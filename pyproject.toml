@@ -64,7 +64,7 @@ docs = [
     "sphinx>=9.1.0",
 ]
 lint = [
-    "ruff>=0.15.18",
+    "ruff>=0.15.20",
 ]
 test = [
     "hypothesis>=6.155.7",
@@ -76,8 +76,8 @@ test = [
 typecheck = [
     "mypy>=2.1.0",
     "pyrefly>=1.1.1",
-    "pyright>=1.1.410",
-    "ty>=0.0.52",
+    "pyright>=1.1.411",
+    "ty>=0.0.55",
 ]
 
 # Build backend: hatchling while the package is pure Python. Switches to maturin (single package,
