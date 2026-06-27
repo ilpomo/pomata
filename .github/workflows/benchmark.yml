@@ -1,0 +1,48 @@
+name: benchmark
+
+# The performance / complexity-scaling tier is informational and non-gating, so it deliberately does NOT run on pull
+# requests -- it would only add minutes to the PR critical path. It runs where a regression actually matters: on every
+# push to main (a merge that regresses performance is flagged immediately, and you know which merge), on a nightly
+# schedule (a daily baseline), and on demand via the Actions "Run workflow" button.
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 3 * * *"   # 03:00 UTC daily; GitHub disables the schedule after 60 days with no repo activity
+  workflow_dispatch:
+
+# Least-privilege token: CI only reads the repo (checkout).
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+# Skip uv's implicit per-run sync: the explicit `uv sync` below installs exactly the lean test group.
+env:
+  UV_NO_SYNC: "1"
+
+jobs:
+  # Performance benchmarks and complexity-scaling checks. A failure here means a real super-linear regression merged to
+  # main (or a noisy timing) -- it blocks nothing (it runs post-merge / nightly), but it shows red so the regression is
+  # visible. The job stays serial (no -n): parallelism would corrupt the timings.
+  benchmark:
+    name: benchmark
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: "0.11.17"
+          python-version: "3.14"
+          enable-cache: true
+      - name: Install (test only)
+        run: uv sync --locked --no-default-groups --group test
+      - name: Benchmarks
+        env:
+          POMATA_BENCHMARKS: "1"
+        run: uv run pytest -m benchmark

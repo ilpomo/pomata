@@ -1,0 +1,61 @@
+# Dependabot keeps the uv lockfile and the GitHub Actions pins current -- weekly, grouped to avoid PR spam.
+# Reference: https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference
+version: 2
+
+updates:
+  # Python dependencies (pyproject.toml + uv.lock). "uv" is the native, GA ecosystem for uv projects; "pip" would
+  # not understand uv.lock. Minor and patch bumps are grouped into one PR each (runtime vs development) while major
+  # bumps arrive ungrouped, so every potentially breaking change is reviewed on its own.
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "build"
+      include: "scope"
+    groups:
+      uv-production:
+        applies-to: version-updates
+        dependency-type: "production"
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+      uv-development:
+        applies-to: version-updates
+        dependency-type: "development"
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  # GitHub Actions pins across .github/workflows. All minor and patch bumps land in one PR; majors arrive ungrouped.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "build"
+      include: "scope"
+    groups:
+      github-actions:
+        applies-to: version-updates
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  # pre-commit hook revisions in .pre-commit-config.yaml (ruff, uv). Grouped like the others so a hook bump arrives in
+  # one PR and the local hooks never drift from the CI tool versions. (Dependabot pre-commit support: GA 2026-03-10.)
+  - package-ecosystem: "pre-commit"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "build"
+      include: "scope"
+    groups:
+      pre-commit:
+        applies-to: version-updates
+        patterns: ["*"]
+        update-types: ["minor", "patch"]

@@ -1,0 +1,192 @@
+name: CI
+
+# Every gating job is skipped while the PR is a draft (`if: ... draft == false`), so a draft burns no runner minutes
+# and GitHub blocks merging it anyway. CI fires when the PR is marked ready for review and on every later push to a
+# non-draft PR; pushes to main always run.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+# Least-privilege token: setting any scope drops every unspecified scope to `none`. CI only reads the repo (checkout).
+permissions:
+  contents: read
+
+# Cancel superseded in-flight runs of the same PR/branch to save runner minutes (head_ref groups PR runs by source
+# branch; ref covers push events on main).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+# bash on every runner (including Windows) so any future multi-command step stays portable.
+defaults:
+  run:
+    shell: bash
+
+# Skip uv's implicit per-run sync: each job's explicit `uv sync` installs exactly the lean group set, so bare `uv run`
+# must not silently re-add the default `dev` umbrella (and thus `docs`).
+env:
+  UV_NO_SYNC: "1"
+
+jobs:
+  # Static analysis + coverage on one Ubuntu runner: lint, format, four type checkers, doctests, and the 100% branch
+  # coverage gate. OS-independent, so it runs once (not across the matrix).
+  quality:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Mapped from the secret so the Codecov upload step can gate on its presence (secrets are not usable in `if:`).
+    env:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+    steps:
+      - name: "Setup: checkout"
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 2 # Codecov reads the parent commit for an accurate PR coverage comparison
+      - name: "Setup: install uv"
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: "0.11.17"        # pin uv to match the project / uv.lock
+          python-version: "3.14"    # sets UV_PYTHON; uv provisions managed CPython 3.14 on sync
+          enable-cache: true        # cache key auto-includes OS+arch+python+lock hash (matrix-safe)
+      # Lean install: --no-default-groups drops the `dev` umbrella (and thus `docs`); the project stays editable-installed
+      # so mypy / pyright / doctest can import pomata. The test group is required because the type checkers also analyze
+      # tests/ (which import hypothesis / pytest).
+      - name: "Setup: sync dependencies (lint + types + coverage + test)"
+        run: uv sync --locked --no-default-groups --group coverage --group lint --group test --group typecheck
+      - name: "Lint: ruff check"
+        run: uv run ruff check
+      - name: "Lint: ruff format"
+        run: uv run ruff format --check
+      - name: "Types: mypy (package)"
+        run: uv run mypy -p pomata
+      - name: "Types: mypy (tests)"
+        run: uv run mypy tests
+      - name: "Types: pyright"
+        run: uv run pyright
+      - name: "Types: pyright (public completeness)"
+        run: uv run pyright --verifytypes pomata --ignoreexternal
+      # pyrefly is scoped to `src` by the native [tool.pyrefly] table (project-includes), so it cannot resolve the tests'
+      # cross-imports; the package is what consumers' editors analyze, and tests stay covered by mypy + pyright.
+      - name: "Types: pyrefly (package)"
+        run: uv run pyrefly check src/pomata
+      # Advisory only: ty is pre-1.0 and must never gate. continue-on-error keeps it non-gating; failures surface as
+      # step annotations but do not fail the job.
+      - name: "Types: ty (advisory)"
+        continue-on-error: true
+        run: uv run ty check --error-on-warning
+      - name: "Docs: doctests"
+        run: uv run pytest --doctest-modules src/pomata -q
+      # Branch coverage of the package, gated at 100% (the threshold lives in [tool.coverage.report]); -n auto fans the
+      # suite across cores and pytest-cov combines the per-worker coverage before the gate.
+      - name: "Coverage: 100% branch gate"
+        run: uv run pytest --cov=pomata --cov-report=term-missing --cov-report=xml -n auto
+      # Upload only once CODECOV_TOKEN is configured, so CI stays green before the repo is onboarded and on fork PRs
+      # (where the secret is empty).
+      - name: "Coverage: upload to Codecov"
+        if: env.CODECOV_TOKEN != ''
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          fail_ci_if_error: true
+          files: ./coverage.xml
+          flags: unittests
+
+  # The unit / property suite across the Python matrix. While the repo is PRIVATE, macOS/Windows are commented out to
+  # save Actions minutes (they bill on private repos); restore the full 3-OS matrix when the repo goes public.
+  test:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false              # report every leg's failure; don't mask e.g. a Windows-only bug
+      matrix:
+        os:
+          - ubuntu-latest
+          # - macos-latest    # TEMP: off while private to save Actions minutes; restore when public.
+          # - windows-latest  # TEMP: off while private to save Actions minutes; restore when public.
+        python-version: ["3.12", "3.13", "3.14"]
+    steps:
+      - name: "Setup: checkout"
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: "Setup: install uv"
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: "0.11.17"
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+      - name: "Setup: sync dependencies (test)"
+        run: uv sync --locked --no-default-groups --group test
+      - name: "Tests: full suite"
+        env:
+          # Same example budget as the local default (tests/conftest.py); CI's assurance is a fresh random seed and the
+          # full matrix, not a deeper search. -n auto fans the independent property tests across the runner's cores.
+          HYPOTHESIS_PROFILE: ci
+        run: uv run pytest -n auto
+      # Doctests run here too (not only in `quality`, which is 3.14-only) so a Python-version-dependent repr in any
+      # Examples block is caught across the whole 3.12-3.14 matrix.
+      - name: "Docs: doctests"
+        run: uv run pytest --doctest-modules src/pomata -q
+
+  # The single required status check: aggregates `quality` and every leg of the test matrix into one stable name, so
+  # branch protection can require `gate` instead of per-leg names that churn whenever the matrix changes. always() so it
+  # still runs (and reports the failure) when a needed job fails; the draft clause keeps it skipped on a draft, exactly
+  # like the jobs it gates -- a draft shows a gray, un-run gate, and GitHub blocks merging a draft regardless. It fails
+  # unless BOTH gating jobs genuinely succeeded (a skipped or cancelled job is not a pass).
+  gate:
+    needs: [quality, test]
+    if: always() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: "Gate: require quality and every test leg to pass"
+        run: |
+          [ "${{ needs.quality.result }}" = "success" ] || { echo "quality did not pass: ${{ needs.quality.result }}"; exit 1; }
+          [ "${{ needs.test.result }}" = "success" ] || { echo "test did not pass: ${{ needs.test.result }}"; exit 1; }
+
+  # Differential parity against TA-Lib (the C reference). Informational, never gating: continue-on-error keeps a
+  # divergence from blocking a merge -- a mismatch flags either a real bug or an undocumented convention difference to
+  # investigate, not a reason to stop.
+  differential:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    timeout-minutes: 15
+    steps:
+      - name: "Setup: checkout"
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: "Setup: install uv"
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: "0.11.17"
+          python-version: "3.14"
+          enable-cache: true
+      - name: "Setup: sync dependencies (test + differential)"
+        run: uv sync --locked --no-default-groups --group test --group differential
+      - name: "Differential: parity vs TA-Lib"
+        run: uv run pytest -m differential
+
+  # Prove the declared dependency floor: resolve the LOWEST versions the constraints allow (ignoring the lockfile) and
+  # run the suite, so `polars>=1.40.0` stays a tested promise, not a guess. Pinned to Python 3.12 -- the floor release
+  # predates the 3.14 wheels. Informational (never gating): an un-pinned transitive release could break the lowest-direct
+  # resolution, and that is signal to investigate, not a reason to block a merge.
+  dependency-floor:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    timeout-minutes: 20
+    steps:
+      - name: "Setup: checkout"
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: "Setup: install uv"
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: "0.11.17"
+          python-version: "3.12" # the polars floor predates the 3.14 wheels; pin to a Python the floor supports
+          enable-cache: true
+      - name: "Setup: sync lowest-direct dependencies"
+        run: uv sync --no-default-groups --group test --resolution lowest-direct
+      - name: "Tests: full suite at the dependency floor"
+        env:
+          HYPOTHESIS_PROFILE: ci
+        run: uv run --no-sync pytest -n auto

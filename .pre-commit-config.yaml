@@ -1,0 +1,22 @@
+# Local pre-commit hooks mirroring the CI lint/format gate, plus a uv.lock consistency check. Run them with
+# `uvx pre-commit install` / `uvx pre-commit run --all-files` -- pre-commit is not added as a project dependency.
+# Heavy type-checking (mypy / pyright / pyrefly / ty) stays in CI, not here. Hook revisions are pinned to the project's
+# own ruff and uv; keep them in step after a Dependabot bump so pre-commit and CI stay aligned.
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.18 # keep in step with the ruff version in uv.lock
+    hooks:
+      - id: ruff-check # mirrors CI's `ruff check`; --fix autofixes locally
+        args: [--fix]
+      - id: ruff-format # mirrors CI's `ruff format --check`
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.11.17 # keep in step with the uv version pinned by CI (this repo's tags carry no leading "v")
+    hooks:
+      - id: uv-lock # keep uv.lock consistent with pyproject.toml
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-toml
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace

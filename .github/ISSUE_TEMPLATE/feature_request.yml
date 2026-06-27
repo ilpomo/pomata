@@ -1,0 +1,38 @@
+name: Feature request
+description: Suggest a new indicator, metric, or capability.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the suggestion. pomata aims at a focused, verifiable set of functions, so please include the
+        motivation and, for an indicator or metric, a reference for the maths.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / motivation
+      description: What are you trying to do, and why is it hard or impossible today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed API
+      description: How would you like to call it? A sketch of the signature and output is enough.
+    validations:
+      required: false
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: For an indicator or metric, link the original source (book or paper) and/or its formal definition.
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Confirmations
+      options:
+        - label: I searched existing issues and discussions and this is not a duplicate.
+          required: true

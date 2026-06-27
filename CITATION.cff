@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use pomata in your research, please cite it as below."
+title: pomata
+abstract: "A verifiably-correct, Polars-native quantitative toolkit: technical-analysis indicators, performance and risk metrics, and profit-and-loss accounting."
+type: software
+authors:
+  - family-names: Cercato
+    given-names: Thomas
+    email: thomas.cercato@gmail.com
+repository-code: "https://github.com/ilpomo/pomata"
+url: "https://github.com/ilpomo/pomata"
+license: MIT
+keywords:
+  - finance
+  - indicators
+  - metrics
+  - pnl
+  - polars
+  - quant
+  - technical-analysis

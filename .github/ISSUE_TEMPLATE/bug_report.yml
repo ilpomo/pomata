@@ -1,0 +1,47 @@
+name: Bug report
+description: Report incorrect output, a crash, or unexpected behavior.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug. Please fill in the sections below so the issue can be reproduced.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: A small, self-contained Polars snippet that reproduces the problem.
+      render: python
+    validations:
+      required: true
+  - type: input
+    id: pomata-version
+    attributes:
+      label: pomata version
+      description: Output of `python -c "import pomata; print(pomata.__version__)"`.
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Polars and Python versions
+      description: For example, polars 1.41.2 on Python 3.12.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Confirmations
+      options:
+        - label: I searched existing issues and this is not a duplicate.
+          required: true
+        - label: I am using the latest released version of pomata.
+          required: true

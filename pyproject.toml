@@ -1,0 +1,260 @@
+[project]
+name = "pomata"
+dynamic = ["version"]
+description = "Verifiably-correct, Polars-native quant toolkit: technical indicators, performance & risk metrics, and PnL accounting."
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Thomas Cercato" }]
+keywords = [
+    "finance",
+    "indicators",
+    "metrics",
+    "pnl",
+    "polars",
+    "quant",
+    "technical-analysis",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Office/Business :: Financial :: Investment",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Typing :: Typed",
+]
+# Runtime dependencies are kept to the absolute minimum. The polars floor is the oldest release the full suite passes
+# on -- bisected, not guessed: 1.40.0 is green, 1.32.0 fails on the rolling-window API, and the `floor` CI job proves
+# the floor every run (`uv sync --resolution lowest-direct`). uv.lock pins the current release for everyday installs.
+dependencies = [
+    "polars>=1.40.0",
+]
+
+[project.urls]
+Changelog = "https://github.com/ilpomo/pomata/releases"
+Documentation = "https://ilpomo.github.io/pomata"
+Homepage = "https://github.com/ilpomo/pomata"
+Issues = "https://github.com/ilpomo/pomata/issues"
+Repository = "https://github.com/ilpomo/pomata"
+
+# Dev tooling split into categories (PEP 735). `uv sync` installs `dev`, which fans out to every
+# group via include-group; install a single category with e.g. `uv sync --only-group typecheck`.
+[dependency-groups]
+coverage = [
+    "pytest-cov>=7.1.0",
+]
+dev = [
+    { include-group = "coverage" },
+    { include-group = "docs" },
+    { include-group = "lint" },
+    { include-group = "test" },
+    { include-group = "typecheck" },
+]
+differential = [
+    "ta-lib>=0.6.8",
+]
+docs = [
+    "furo>=2025.12.19",
+    "sphinx>=9.1.0",
+]
+lint = [
+    "ruff>=0.15.18",
+]
+test = [
+    "hypothesis>=6.155.7",
+    "numpy>=2.5.0",
+    "pytest>=9.1.1",
+    "pytest-benchmark>=5.2.3",
+    "pytest-xdist>=3.8.0",
+]
+typecheck = [
+    "mypy>=2.1.0",
+    "pyrefly>=1.1.1",
+    "pyright>=1.1.410",
+    "ty>=0.0.52",
+]
+
+# Build backend: hatchling while the package is pure Python. Switches to maturin (single package,
+# abi3 wheels) when the native Rust extension is introduced.
+[build-system]
+build-backend = "hatchling.build"
+requires = ["hatch-vcs", "hatchling"]
+
+# Tool configuration, alphabetical by tool; keys within each table are alphabetical too.
+[tool.coverage.report]
+fail_under = 100
+show_missing = true
+
+[tool.coverage.run]
+branch = true
+source = ["pomata"]
+
+[tool.hatch.build.targets.sdist]
+# Explicit allowlist (not .gitignore): the source distribution ships ONLY what is needed to build, test, and verify the
+# package from source -- never local working notes, IDE settings, developer tooling, or caches.
+include = [
+    "/CORRECTNESS.md",
+    "/LICENSE",
+    "/README.md",
+    "/pyproject.toml",
+    "/src/pomata",
+    "/tests",
+    "/uv.lock",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pomata"]
+
+# Version is derived from the latest Git tag at build time (hatch-vcs); the runtime reads it back via
+# importlib.metadata (see src/pomata/__init__.py). No version file is written into the source tree.
+[tool.hatch.version]
+source = "vcs"
+
+[tool.mypy]
+disallow_any_explicit = true
+enable_error_code = [
+    "ignore-without-code",
+    "possibly-undefined",
+    "redundant-expr",
+    "redundant-self",
+    "truthy-bool",
+    "truthy-iterable",
+    "unimported-reveal",
+]
+explicit_package_bases = true
+mypy_path = "src"
+namespace_packages = true
+python_version = "3.12"
+strict = true
+strict_bytes = true
+warn_unreachable = true
+warn_unused_configs = true
+
+# Explicit ``Any`` is unavoidable in two test helpers: the differential tier bridges the untyped TA-Lib C library
+# (no stubs, called dynamically) and numpy, and synthesize_call reflects over the heterogeneous factory signatures
+# (an arbitrary-parameter ``Callable[..., pl.Expr]``). It stays disallowed everywhere else.
+[[tool.mypy.overrides]]
+disallow_any_explicit = false
+module = ["tests.indicators.test_differential", "tests.support.synthesis"]
+
+[tool.pyright]
+extraPaths = ["."]
+include = ["src", "tests"]
+pythonVersion = "3.12"
+typeCheckingMode = "strict"
+venv = ".venv"
+venvPath = "."
+
+[tool.pyrefly]
+# Native config (off the mypy-legacy preset); pyrefly is strict by default. Scoped to the package -- it cannot resolve
+# the tests' cross-imports, which mypy and pyright already cover. CI runs `pyrefly check src/pomata`.
+project-includes = ["src"]
+python-version = "3.12"
+
+[tool.pytest.ini_options]
+addopts = ["--import-mode=importlib", "--strict-markers"]
+filterwarnings = [
+    # Bleeding-edge stack: a warning is a defect. Promote every warning to an error so a deprecation never passes silently.
+    "error",
+    # pytest-benchmark warns at startup whenever xdist is active (it auto-disables benchmarks under ``-n auto``); this is
+    # benign and expected in the parallel coverage run, where benchmarks are opt-in and not collected.
+    "ignore::pytest_benchmark.logger.PytestBenchmarkWarning",
+]
+markers = [
+    "benchmark: performance and complexity-scaling tests.",
+    "differential: non-gating checks against TA-Lib (the C reference); requires the 'differential' dependency group.",
+]
+pythonpath = "."
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+src = ["src", "tests"]
+target-version = "py312"
+# ``scripts/`` holds local dev tooling (the README precision-table regenerator), not shipped or imported by the package
+# or the test suite; it is out of the linters' scope, matching mypy / pyright / pyrefly (which include only src + tests).
+extend-exclude = ["scripts"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.ruff.lint]
+# Maximalist: every rule on, then an explicit, reasoned opt-out list. A ruff upgrade can add new rules that the gate
+# will surface (dependabot keeps the lock current); triage each then.
+select = ["ALL"]
+ignore = [
+    # Banner-docstring + noun-phrase-title convention: summary starts on the line after the opening
+    # ``"""`` (so D212 off keeps D213 on), the closing ``"""`` sits alone, indicator titles are noun phrases.
+    "D200",
+    "D205",
+    "D212",
+    "D401",
+    "D413",
+    # OHLC ``open`` is the canonical domain name (the ``open``/``high``/``low``/``close`` quartet); these numeric
+    # factories never call the ``open()`` builtin, and ``open_`` would break the quartet's symmetry.
+    "A001",
+    "A002",
+    # Inline ``raise ValueError(f"...")`` is the locked self-documenting message grammar; no custom hierarchy.
+    "EM101",
+    "EM102",
+    "TRY003",
+    # Eager annotations are locked (no ``from __future__ import annotations``): never move runtime imports into a
+    # ``TYPE_CHECKING`` block.
+    "TC001",
+    "TC002",
+    "TC003",
+    # Owned by / conflicting with the ruff formatter (ruff's own formatter-compatibility guidance).
+    "COM812",
+    "COM819",
+    "D206",
+    "D300",
+    "E111",
+    "E114",
+    "E117",
+    "ISC001",
+    "ISC002",
+    "Q000",
+    "Q001",
+    "Q002",
+    "Q003",
+    "W191",
+]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.mccabe]
+# A ceiling the most complex current kernel (the Ehlers Hilbert pipeline) fits under, with headroom; it guards new code
+# from runaway complexity rather than pinning the exact current maximum.
+max-complexity = 16
+
+[tool.ruff.lint.per-file-ignores]
+# Test files are deliberately namespace packages (pytest importlib mode needs no ``__init__.py``); their magic numbers
+# (windows, tolerances, golden values) are inherent; oracle/test helpers may take boolean positional flags.
+"tests/**" = ["FBT001", "FBT002", "INP001", "PLR2004", "S101"]
+# The oracle regeneration script is a CLI tool: it prints.
+"tests/indicators/oracles/_regenerate.py" = ["T201"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.pylint]
+max-args = 8
+# Ceilings the most complex current kernels (Ehlers Hilbert pipeline / KAMA / SAR) fit under, so they pass while the
+# rules still guard new code from runaway growth; tighten if the kernels are ever simplified.
+max-branches = 19
+max-statements = 80
+
+[tool.ty.environment]
+python-version = "3.12"
+
+[tool.ty.src]
+# ty (pre-1.0) has beta false-positives on the test files' Polars usage; scope it to src (where it is
+# clean) as an advisory third checker. pyright and mypy cover the tests.
+include = ["src"]
