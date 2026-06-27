@@ -1,9 +1,10 @@
 # pomata
 
-**pomata doesn't ask you to trust its numbers — it proves them.**
+**A Polars-native quant toolkit — technical indicators, PnL accounting, and performance & risk metrics.** Each is a
+composable `pl.Expr`, so an entire study is one lazy Polars pipeline, from price to performance.
 
-Technical indicators, PnL accounting, and performance & risk metrics, each a composable `pl.Expr` verified to the
-`float64` floor against an independent reference. One lazy Polars pipeline, from price to performance.
+And it doesn't ask you to trust its numbers — it **proves** them: every function is verified to the `float64` floor
+against an independent reference, under 100% branch coverage.
 
 [![CI](https://img.shields.io/github/actions/workflow/status/ilpomo/pomata/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/ilpomo/pomata/actions/workflows/ci.yml)
 [![coverage](https://img.shields.io/codecov/c/github/ilpomo/pomata?style=flat-square&label=coverage)](https://codecov.io/gh/ilpomo/pomata)
