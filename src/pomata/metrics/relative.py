@@ -6,8 +6,8 @@ both as fractions, and reduces the pair to a single value. The two series are tr
 observation contributes only where BOTH legs are present, so a ``null`` in either leg drops that pair; among the
 retained pairs a ``NaN`` in either leg poisons the result to ``NaN``. This is the composing layer for cross-sectional
 analytics: ``beta`` is the shared regression slope reused by ``alpha`` and ``treynor_ratio``, and
-``modigliani_risk_adjusted_performance`` is built on the single-input :func:`pomata.metrics.sharpe_ratio` and
-:func:`pomata.metrics.volatility`, imported from their specific theme modules so the theme dependency graph stays
+``modigliani_risk_adjusted_performance`` is built on the single-input :func:`sharpe_ratio` and
+:func:`volatility`, imported from their specific theme modules so the theme dependency graph stays
 acyclic.
 """
 
@@ -135,7 +135,7 @@ def alpha(returns: pl.Expr, benchmark: pl.Expr, *, periods_per_year: int, risk_f
     annualizes its excess arithmetically -- a deliberate convention difference across the relative family.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`pomata.pnl.returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
         benchmark: Benchmark per-bar return series, as fractions, aligned row-for-row with ``returns``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         risk_free_rate: The annualized risk-free rate, converted to a per-period rate geometrically (default ``0.0``).
@@ -151,7 +151,7 @@ def alpha(returns: pl.Expr, benchmark: pl.Expr, *, periods_per_year: int, risk_f
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior, documented under **Edge-case behavior** below.
+        case (missing data and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -165,15 +165,17 @@ def alpha(returns: pl.Expr, benchmark: pl.Expr, *, periods_per_year: int, risk_f
     See Also:
         - :func:`beta`: The regression slope this corrects the return for.
         - :func:`treynor_ratio`: The excess return per unit of the same systematic risk.
+        - :func:`alpha_rolling`: The same measure over a trailing window.
 
     References:
-        - Jensen, M. C. (1968). The Performance of Mutual Funds in the Period 1945-1964. The Journal of Finance,
+        - Jensen, M. C. (1968). "The Performance of Mutual Funds in the Period 1945-1964." *The Journal of Finance*,
           23(2), 389-416.
         - https://en.wikipedia.org/wiki/Jensen%27s_alpha
 
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import alpha
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
         ...         "returns": [0.02, -0.01, 0.03, -0.02, 0.015, 0.005],
@@ -200,7 +202,7 @@ def alpha(returns: pl.Expr, benchmark: pl.Expr, *, periods_per_year: int, risk_f
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "returns": [0.02, None, 0.03, float("nan"), 0.015, 0.005],
+        ...         "returns": [None, 0.02, 0.03, float("nan"), 0.015, 0.005],
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004],
         ...     }
         ... )
@@ -235,7 +237,7 @@ def alpha_rolling(
     slope, :math:`P` is ``periods_per_year``, and :math:`r_f = (1 + \texttt{risk\_free\_rate})^{1/P} - 1`.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`pomata.pnl.returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
         benchmark: Benchmark per-bar return series, as fractions, aligned row-for-row with ``returns``.
         window: Number of observations in the moving window. Must be ``>= 2``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
@@ -264,15 +266,17 @@ def alpha_rolling(
     See Also:
         - :func:`alpha`: The whole-series reducing form.
         - :func:`beta_rolling`: The rolling slope this corrects the return for.
+        - :func:`treynor_ratio_rolling`: The rolling excess per unit of the same systematic risk.
 
     References:
-        - Jensen, M. C. (1968). The Performance of Mutual Funds in the Period 1945-1964. The Journal of Finance,
+        - Jensen, M. C. (1968). "The Performance of Mutual Funds in the Period 1945-1964." *The Journal of Finance*,
           23(2), 389-416.
         - https://en.wikipedia.org/wiki/Jensen%27s_alpha
 
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import alpha_rolling
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
         ...         "returns": [0.02, -0.01, 0.03, -0.02, 0.015, 0.005, -0.01, 0.02],
@@ -283,6 +287,34 @@ def alpha_rolling(
         ...     alpha_rolling(pl.col("returns"), pl.col("benchmark"), 4, periods_per_year=252).round(4)
         ... ).to_series().to_list()
         [None, None, None, -0.0864, -0.0096, -0.0227, 0.4932, 0.7998]
+
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "ticker": ["A"] * 6 + ["B"] * 6,
+        ...         "returns": [0.02, -0.01, 0.03, -0.02, 0.015, 0.005, 0.01, 0.025, -0.015, 0.008, -0.005, 0.012],
+        ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004, 0.012, 0.02, -0.01, 0.006, -0.004, 0.01],
+        ...     }
+        ... )
+        >>> expr = (
+        ...     alpha_rolling(pl.col("returns"), pl.col("benchmark"), 4, periods_per_year=252).over("ticker").round(4)
+        ... )
+        >>> frame.with_columns(expr.alias("m"))["m"].to_list()
+        [None, None, None, -0.0864, -0.0096, -0.0227, None, None, None, -0.3956, -0.1613, -0.1561]
+
+        A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make the handling visible:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "returns": [None, float("nan"), 0.03, -0.02, 0.015, 0.005, -0.01, 0.02],
+        ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004, -0.012, 0.018],
+        ...     }
+        ... )
+        >>> frame.select(
+        ...     alpha_rolling(pl.col("returns"), pl.col("benchmark"), 4, periods_per_year=252).round(4)
+        ... ).to_series().to_list()
+        [None, None, None, None, nan, -0.0227, 0.4932, 0.7998]
     """
     returns = float64_expr(returns)
     benchmark = float64_expr(benchmark)
@@ -313,7 +345,7 @@ def beta(returns: pl.Expr, benchmark: pl.Expr) -> pl.Expr:
     denominator, so the result is the same population or sample slope.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`pomata.pnl.returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
         benchmark: Benchmark per-bar return series, as fractions, aligned row-for-row with ``returns``.
 
     Returns:
@@ -325,7 +357,7 @@ def beta(returns: pl.Expr, benchmark: pl.Expr) -> pl.Expr:
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior, documented under **Edge-case behavior** below.
+        case (missing data and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -339,15 +371,17 @@ def beta(returns: pl.Expr, benchmark: pl.Expr) -> pl.Expr:
     See Also:
         - :func:`alpha`: The benchmark-relative return that nets out beta-explained performance.
         - :func:`treynor_ratio`: The excess return per unit of this systematic risk.
+        - :func:`beta_rolling`: The same slope over a trailing window.
 
     References:
-        - Sharpe, W. F. (1964). Capital Asset Prices: A Theory of Market Equilibrium under Conditions of Risk.
-          The Journal of Finance, 19(3), 425-442.
+        - Sharpe, W. F. (1964). "Capital Asset Prices: A Theory of Market Equilibrium under Conditions of Risk."
+          *The Journal of Finance*, 19(3), 425-442.
         - https://en.wikipedia.org/wiki/Beta_(finance)
 
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import beta
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
         ...         "returns": [0.02, -0.01, 0.03, -0.02, 0.015, 0.005],
@@ -374,7 +408,7 @@ def beta(returns: pl.Expr, benchmark: pl.Expr) -> pl.Expr:
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "returns": [0.02, None, 0.03, float("nan"), 0.015, 0.005],
+        ...         "returns": [None, 0.02, 0.03, float("nan"), 0.015, 0.005],
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004],
         ...     }
         ... )
@@ -404,7 +438,7 @@ def beta_rolling(returns: pl.Expr, benchmark: pl.Expr, window: int) -> pl.Expr:
     with the covariance and variance taken over the window. The degrees-of-freedom convention cancels.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`pomata.pnl.returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
         benchmark: Benchmark per-bar return series, as fractions, aligned row-for-row with ``returns``.
         window: Number of observations in the moving window. Must be ``>= 2``.
 
@@ -430,15 +464,17 @@ def beta_rolling(returns: pl.Expr, benchmark: pl.Expr, window: int) -> pl.Expr:
     See Also:
         - :func:`beta`: The whole-series reducing form.
         - :func:`alpha_rolling`: The benchmark-relative return built on this slope.
+        - :func:`treynor_ratio_rolling`: The excess return per unit of this systematic risk.
 
     References:
-        - Sharpe, W. F. (1964). Capital Asset Prices: A Theory of Market Equilibrium under Conditions of Risk.
-          The Journal of Finance, 19(3), 425-442.
+        - Sharpe, W. F. (1964). "Capital Asset Prices: A Theory of Market Equilibrium under Conditions of Risk."
+          *The Journal of Finance*, 19(3), 425-442.
         - https://en.wikipedia.org/wiki/Beta_(finance)
 
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import beta_rolling
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
         ...         "returns": [0.02, -0.01, 0.03, -0.02, 0.015, 0.005, -0.01, 0.02],
@@ -447,6 +483,30 @@ def beta_rolling(returns: pl.Expr, benchmark: pl.Expr, window: int) -> pl.Expr:
         ... )
         >>> frame.select(beta_rolling(pl.col("returns"), pl.col("benchmark"), 4).round(4)).to_series().to_list()
         [None, None, None, 1.2608, 1.2628, 1.2652, 1.2592, 1.0331]
+
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "ticker": ["A"] * 6 + ["B"] * 6,
+        ...         "returns": [0.02, -0.01, 0.03, -0.02, 0.015, 0.005, 0.01, 0.025, -0.015, 0.008, -0.005, 0.012],
+        ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004, 0.012, 0.02, -0.01, 0.006, -0.004, 0.01],
+        ...     }
+        ... )
+        >>> expr = beta_rolling(pl.col("returns"), pl.col("benchmark"), 4).over("ticker").round(4)
+        >>> frame.with_columns(expr.alias("m"))["m"].to_list()
+        [None, None, None, 1.2608, 1.2628, 1.2652, None, None, None, 1.2851, 1.3159, 1.3466]
+
+        A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make the handling visible:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "returns": [None, float("nan"), 0.03, -0.02, 0.015, 0.005, -0.01, 0.02],
+        ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004, -0.012, 0.018],
+        ...     }
+        ... )
+        >>> frame.select(beta_rolling(pl.col("returns"), pl.col("benchmark"), 4).round(4)).to_series().to_list()
+        [None, None, None, None, nan, 1.2652, 1.2592, 1.0331]
     """
     returns = float64_expr(returns)
     benchmark = float64_expr(benchmark)
@@ -470,7 +530,7 @@ def capture_downside_ratio(returns: pl.Expr, benchmark: pl.Expr, *, periods_per_
     ``periods_per_year``. A value below one means the portfolio lost less than the benchmark in down markets (good).
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`pomata.pnl.returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
         benchmark: Benchmark per-bar return series, as fractions, aligned row-for-row with ``returns``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
 
@@ -484,7 +544,7 @@ def capture_downside_ratio(returns: pl.Expr, benchmark: pl.Expr, *, periods_per_
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior, documented under **Edge-case behavior** below.
+        case (missing data and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -500,14 +560,15 @@ def capture_downside_ratio(returns: pl.Expr, benchmark: pl.Expr, *, periods_per_
     See Also:
         - :func:`capture_upside_ratio`: The up-market counterpart.
         - :func:`capture_ratio`: Their ratio, an overall asymmetry measure.
+        - :func:`beta`: The symmetric benchmark sensitivity this asymmetric down-market measure refines.
 
     References:
-        - Morningstar. Upside/Downside Capture Ratio (methodology).
-          https://www.morningstar.com/articles/374386/article
+        - Morningstar. "Upside/Downside Capture Ratio" (methodology).
 
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import capture_downside_ratio
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
         ...         "returns": [0.02, -0.01, 0.03, -0.02, 0.015, 0.005],
@@ -528,9 +589,11 @@ def capture_downside_ratio(returns: pl.Expr, benchmark: pl.Expr, *, periods_per_
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004, 0.012, 0.02, -0.01, 0.006, -0.004, 0.01],
         ...     }
         ... )
-        >>> reduced = capture_downside_ratio(
-        ...     pl.col("returns"), pl.col("benchmark"), periods_per_year=252
-        ... ).over("ticker").round(4)
+        >>> reduced = (
+        ...     capture_downside_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252)
+        ...     .over("ticker")
+        ...     .round(4)
+        ... )
         >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
         [1.0339, 1.1095]
 
@@ -538,7 +601,7 @@ def capture_downside_ratio(returns: pl.Expr, benchmark: pl.Expr, *, periods_per_
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "returns": [0.02, None, 0.03, float("nan"), 0.015, 0.005],
+        ...         "returns": [None, 0.02, 0.03, float("nan"), 0.015, 0.005],
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004],
         ...     }
         ... )
@@ -568,7 +631,7 @@ def capture_ratio(returns: pl.Expr, benchmark: pl.Expr, *, periods_per_year: int
     where :math:`\mathrm{UCR}` and :math:`\mathrm{DCR}` are the up- and down-market capture ratios.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`pomata.pnl.returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
         benchmark: Benchmark per-bar return series, as fractions, aligned row-for-row with ``returns``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
 
@@ -582,7 +645,7 @@ def capture_ratio(returns: pl.Expr, benchmark: pl.Expr, *, periods_per_year: int
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior, documented under **Edge-case behavior** below.
+        case (missing data and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -598,14 +661,15 @@ def capture_ratio(returns: pl.Expr, benchmark: pl.Expr, *, periods_per_year: int
     See Also:
         - :func:`capture_upside_ratio`: The numerator.
         - :func:`capture_downside_ratio`: The denominator.
+        - :func:`beta`: The symmetric benchmark sensitivity whose up/down asymmetry this score summarizes.
 
     References:
-        - Morningstar. Upside/Downside Capture Ratio (methodology).
-          https://www.morningstar.com/articles/374386/article
+        - Morningstar. "Upside/Downside Capture Ratio" (methodology).
 
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import capture_ratio
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
         ...         "returns": [0.02, -0.01, 0.03, -0.02, 0.015, 0.005],
@@ -624,9 +688,9 @@ def capture_ratio(returns: pl.Expr, benchmark: pl.Expr, *, periods_per_year: int
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004, 0.012, 0.02, -0.01, 0.006, -0.004, 0.01],
         ...     }
         ... )
-        >>> reduced = capture_ratio(
-        ...     pl.col("returns"), pl.col("benchmark"), periods_per_year=252
-        ... ).over("ticker").round(4)
+        >>> reduced = (
+        ...     capture_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252).over("ticker").round(4)
+        ... )
         >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
         [1.4154, 2.6612]
 
@@ -634,7 +698,7 @@ def capture_ratio(returns: pl.Expr, benchmark: pl.Expr, *, periods_per_year: int
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "returns": [0.02, None, 0.03, float("nan"), 0.015, 0.005],
+        ...         "returns": [None, 0.02, 0.03, float("nan"), 0.015, 0.005],
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004],
         ...     }
         ... )
@@ -665,7 +729,7 @@ def capture_upside_ratio(returns: pl.Expr, benchmark: pl.Expr, *, periods_per_ye
     ``periods_per_year``. A value above one means the portfolio gained more than the benchmark in up markets (good).
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`pomata.pnl.returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
         benchmark: Benchmark per-bar return series, as fractions, aligned row-for-row with ``returns``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
 
@@ -679,7 +743,7 @@ def capture_upside_ratio(returns: pl.Expr, benchmark: pl.Expr, *, periods_per_ye
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior, documented under **Edge-case behavior** below.
+        case (missing data and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -695,14 +759,15 @@ def capture_upside_ratio(returns: pl.Expr, benchmark: pl.Expr, *, periods_per_ye
     See Also:
         - :func:`capture_downside_ratio`: The down-market counterpart.
         - :func:`capture_ratio`: Their ratio, an overall asymmetry measure.
+        - :func:`beta`: The symmetric benchmark sensitivity this asymmetric up-market measure refines.
 
     References:
-        - Morningstar. Upside/Downside Capture Ratio (methodology).
-          https://www.morningstar.com/articles/374386/article
+        - Morningstar. "Upside/Downside Capture Ratio" (methodology).
 
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import capture_upside_ratio
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
         ...         "returns": [0.02, -0.01, 0.03, -0.02, 0.015, 0.005],
@@ -723,9 +788,11 @@ def capture_upside_ratio(returns: pl.Expr, benchmark: pl.Expr, *, periods_per_ye
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004, 0.012, 0.02, -0.01, 0.006, -0.004, 0.01],
         ...     }
         ... )
-        >>> reduced = capture_upside_ratio(
-        ...     pl.col("returns"), pl.col("benchmark"), periods_per_year=252
-        ... ).over("ticker").round(4)
+        >>> reduced = (
+        ...     capture_upside_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252)
+        ...     .over("ticker")
+        ...     .round(4)
+        ... )
         >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
         [1.5705, 2.7513]
 
@@ -733,7 +800,7 @@ def capture_upside_ratio(returns: pl.Expr, benchmark: pl.Expr, *, periods_per_ye
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "returns": [0.02, None, 0.03, float("nan"), 0.015, 0.005],
+        ...         "returns": [None, 0.02, 0.03, float("nan"), 0.015, 0.005],
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004],
         ...     }
         ... )
@@ -764,7 +831,7 @@ def information_ratio(returns: pl.Expr, benchmark: pl.Expr, *, periods_per_year:
     :math:`P` is ``periods_per_year``. It measures the consistency of out- (or under-) performance versus the benchmark.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`pomata.pnl.returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
         benchmark: Benchmark per-bar return series, as fractions, aligned row-for-row with ``returns``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
 
@@ -778,7 +845,7 @@ def information_ratio(returns: pl.Expr, benchmark: pl.Expr, *, periods_per_year:
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior, documented under **Edge-case behavior** below.
+        case (missing data and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -791,15 +858,18 @@ def information_ratio(returns: pl.Expr, benchmark: pl.Expr, *, periods_per_year:
           ``information_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252).over("ticker")``.
 
     See Also:
-        - :func:`pomata.metrics.sharpe_ratio`: The total-risk analog measured against a risk-free rate, not a benchmark.
+        - :func:`sharpe_ratio`: The total-risk analog measured against a risk-free rate, not a benchmark.
+        - :func:`information_ratio_rolling`: The same measure over a trailing window.
+        - :func:`alpha`: The benchmark-active return measured per unit of beta instead of tracking error.
 
     References:
-        - Goodwin, T. H. (1998). The Information Ratio. Financial Analysts Journal, 54(4), 34-43.
+        - Goodwin, T. H. (1998). "The Information Ratio." *Financial Analysts Journal*, 54(4), 34-43.
         - https://en.wikipedia.org/wiki/Information_ratio
 
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import information_ratio
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
         ...         "returns": [0.02, -0.01, 0.03, -0.02, 0.015, 0.005],
@@ -820,9 +890,9 @@ def information_ratio(returns: pl.Expr, benchmark: pl.Expr, *, periods_per_year:
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004, 0.012, 0.02, -0.01, 0.006, -0.004, 0.01],
         ...     }
         ... )
-        >>> reduced = information_ratio(
-        ...     pl.col("returns"), pl.col("benchmark"), periods_per_year=252
-        ... ).over("ticker").round(4)
+        >>> reduced = (
+        ...     information_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252).over("ticker").round(4)
+        ... )
         >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
         [0.7463, 5.5663]
 
@@ -830,7 +900,7 @@ def information_ratio(returns: pl.Expr, benchmark: pl.Expr, *, periods_per_year:
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "returns": [0.02, None, 0.03, float("nan"), 0.015, 0.005],
+        ...         "returns": [None, 0.02, 0.03, float("nan"), 0.015, 0.005],
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004],
         ...     }
         ... )
@@ -863,7 +933,7 @@ def information_ratio_rolling(returns: pl.Expr, benchmark: pl.Expr, window: int,
     :math:`P` is ``periods_per_year``.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`pomata.pnl.returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
         benchmark: Benchmark per-bar return series, as fractions, aligned row-for-row with ``returns``.
         window: Number of observations in the moving window. Must be ``>= 2``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
@@ -889,14 +959,17 @@ def information_ratio_rolling(returns: pl.Expr, benchmark: pl.Expr, window: int,
 
     See Also:
         - :func:`information_ratio`: The whole-series reducing form.
+        - :func:`sharpe_ratio_rolling`: The rolling total-risk analog measured against a risk-free rate.
+        - :func:`alpha_rolling`: The rolling benchmark-active return measured per unit of beta.
 
     References:
-        - Goodwin, T. H. (1998). The Information Ratio. Financial Analysts Journal, 54(4), 34-43.
+        - Goodwin, T. H. (1998). "The Information Ratio." *Financial Analysts Journal*, 54(4), 34-43.
         - https://en.wikipedia.org/wiki/Information_ratio
 
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import information_ratio_rolling
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
         ...         "returns": [0.02, -0.01, 0.03, -0.02, 0.015, 0.005, -0.01, 0.02],
@@ -907,6 +980,36 @@ def information_ratio_rolling(returns: pl.Expr, benchmark: pl.Expr, window: int,
         ...     information_ratio_rolling(pl.col("returns"), pl.col("benchmark"), 4, periods_per_year=252).round(4)
         ... ).to_series().to_list()
         [None, None, None, 2.3539, 2.3539, 5.0387, 2.8393, 22.9129]
+
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "ticker": ["A"] * 6 + ["B"] * 6,
+        ...         "returns": [0.02, -0.01, 0.03, -0.02, 0.015, 0.005, 0.01, 0.025, -0.015, 0.008, -0.005, 0.012],
+        ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004, 0.012, 0.02, -0.01, 0.006, -0.004, 0.01],
+        ...     }
+        ... )
+        >>> expr = (
+        ...     information_ratio_rolling(pl.col("returns"), pl.col("benchmark"), 4, periods_per_year=252)
+        ...     .over("ticker")
+        ...     .round(4)
+        ... )
+        >>> frame.with_columns(expr.alias("m"))["m"].to_list()
+        [None, None, None, 2.3539, 2.3539, 5.0387, None, None, None, 0.0, 0.929, -2.3932]
+
+        A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make the handling visible:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "returns": [None, float("nan"), 0.03, -0.02, 0.015, 0.005, -0.01, 0.02],
+        ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004, -0.012, 0.018],
+        ...     }
+        ... )
+        >>> frame.select(
+        ...     information_ratio_rolling(pl.col("returns"), pl.col("benchmark"), 4, periods_per_year=252).round(4)
+        ... ).to_series().to_list()
+        [None, None, None, None, nan, 5.0387, 2.8393, 22.9129]
     """
     returns = float64_expr(returns)
     benchmark = float64_expr(benchmark)
@@ -925,7 +1028,7 @@ def modigliani_risk_adjusted_performance(
     Modigliani Risk-Adjusted Performance (a.k.a. M-squared), the portfolio's return rescaled to the benchmark's risk.
 
     The return the portfolio would have earned if it had been leveraged or de-leveraged to match the benchmark's
-    volatility -- the :func:`pomata.metrics.sharpe_ratio` ratio scaled back into return units by the benchmark's
+    volatility -- the :func:`sharpe_ratio` ratio scaled back into return units by the benchmark's
     annualized volatility, plus the risk-free rate:
 
     .. math::
@@ -933,11 +1036,11 @@ def modigliani_risk_adjusted_performance(
         M^2 = r_f + \mathrm{SR}\,\sigma_b,
 
     where :math:`\mathrm{SR}` is the annualized portfolio Sharpe ratio, :math:`\sigma_b` the benchmark's annualized
-    :func:`pomata.metrics.volatility`, and :math:`r_f` is ``risk_free_rate``. Unlike a bare Sharpe ratio it is expressed
+    :func:`volatility`, and :math:`r_f` is ``risk_free_rate``. Unlike a bare Sharpe ratio it is expressed
     as an annualized return, directly comparable to the benchmark's own return.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`pomata.pnl.returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
         benchmark: Benchmark per-bar return series, as fractions, aligned row-for-row with ``returns``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         risk_free_rate: The annualized risk-free rate, used both to form the Sharpe excess (geometrically per period)
@@ -953,7 +1056,7 @@ def modigliani_risk_adjusted_performance(
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior, documented under **Edge-case behavior** below.
+        case (missing data and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -965,17 +1068,19 @@ def modigliani_risk_adjusted_performance(
           ``modigliani_risk_adjusted_performance(pl.col("r"), pl.col("b"), periods_per_year=252).over("ticker")``.
 
     See Also:
-        - :func:`pomata.metrics.sharpe_ratio`: The risk-adjusted ratio this expresses in return units.
-        - :func:`pomata.metrics.volatility`: The benchmark dispersion it scales to.
+        - :func:`sharpe_ratio`: The risk-adjusted ratio this expresses in return units.
+        - :func:`volatility`: The benchmark dispersion it scales to.
+        - :func:`information_ratio`: Another benchmark-relative performance measure, as a ratio.
 
     References:
-        - Modigliani, F. & Modigliani, L. (1997). Risk-Adjusted Performance. The Journal of Portfolio Management,
+        - Modigliani, F. & Modigliani, L. (1997). "Risk-Adjusted Performance." *The Journal of Portfolio Management*,
           23(2), 45-54.
         - https://en.wikipedia.org/wiki/Modigliani_risk-adjusted_performance
 
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import modigliani_risk_adjusted_performance as m_squared
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
         ...         "returns": [0.02, -0.01, 0.03, -0.02, 0.015, 0.005],
@@ -1002,7 +1107,7 @@ def modigliani_risk_adjusted_performance(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "returns": [0.02, None, 0.03, float("nan"), 0.015, 0.005],
+        ...         "returns": [None, 0.02, 0.03, float("nan"), 0.015, 0.005],
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004],
         ...     }
         ... )
@@ -1026,7 +1131,7 @@ def treynor_ratio(
     Treynor Ratio, the annualized excess return per unit of systematic (benchmark) risk.
 
     The portfolio's annualized arithmetic excess return divided by its :func:`beta` -- the reward-to-systematic-risk
-    counterpart of the :func:`pomata.metrics.sharpe_ratio` ratio, which instead divides by total risk:
+    counterpart of the :func:`sharpe_ratio` ratio, which instead divides by total risk:
 
     .. math::
 
@@ -1037,7 +1142,7 @@ def treynor_ratio(
     excess is annualized arithmetically (it is a ratio numerator), where :func:`alpha` compounds geometrically.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`pomata.pnl.returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
         benchmark: Benchmark per-bar return series, as fractions, aligned row-for-row with ``returns``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         risk_free_rate: The annualized risk-free rate, converted to a per-period rate geometrically (default ``0.0``).
@@ -1053,7 +1158,7 @@ def treynor_ratio(
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior, documented under **Edge-case behavior** below.
+        case (missing data and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -1067,15 +1172,17 @@ def treynor_ratio(
 
     See Also:
         - :func:`beta`: The denominator (systematic risk).
-        - :func:`pomata.metrics.sharpe_ratio`: The total-risk analog.
+        - :func:`sharpe_ratio`: The total-risk analog.
+        - :func:`alpha`: The benchmark-relative excess built on the same beta.
 
     References:
-        - Treynor, J. L. (1965). How to Rate Management of Investment Funds. Harvard Business Review, 43(1), 63-75.
+        - Treynor, J. L. (1965). "How to Rate Management of Investment Funds." *Harvard Business Review*, 43(1), 63-75.
         - https://en.wikipedia.org/wiki/Treynor_ratio
 
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import treynor_ratio
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
         ...         "returns": [0.02, -0.01, 0.03, -0.02, 0.015, 0.005],
@@ -1094,9 +1201,9 @@ def treynor_ratio(
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004, 0.012, 0.02, -0.01, 0.006, -0.004, 0.01],
         ...     }
         ... )
-        >>> reduced = treynor_ratio(
-        ...     pl.col("returns"), pl.col("benchmark"), periods_per_year=252
-        ... ).over("ticker").round(4)
+        >>> reduced = (
+        ...     treynor_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252).over("ticker").round(4)
+        ... )
         >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
         [1.1675, 1.3201]
 
@@ -1104,7 +1211,7 @@ def treynor_ratio(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "returns": [0.02, None, 0.03, float("nan"), 0.015, 0.005],
+        ...         "returns": [None, 0.02, 0.03, float("nan"), 0.015, 0.005],
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004],
         ...     }
         ... )
@@ -1138,7 +1245,7 @@ def treynor_ratio_rolling(
     :math:`r_f = (1 + \texttt{risk\_free\_rate})^{1/P} - 1`.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`pomata.pnl.returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
         benchmark: Benchmark per-bar return series, as fractions, aligned row-for-row with ``returns``.
         window: Number of observations in the moving window. Must be ``>= 2``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
@@ -1167,14 +1274,16 @@ def treynor_ratio_rolling(
     See Also:
         - :func:`treynor_ratio`: The whole-series reducing form.
         - :func:`beta_rolling`: The denominator (systematic risk).
+        - :func:`alpha_rolling`: The rolling benchmark-relative excess built on the same slope.
 
     References:
-        - Treynor, J. L. (1965). How to Rate Management of Investment Funds. Harvard Business Review, 43(1), 63-75.
+        - Treynor, J. L. (1965). "How to Rate Management of Investment Funds." *Harvard Business Review*, 43(1), 63-75.
         - https://en.wikipedia.org/wiki/Treynor_ratio
 
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import treynor_ratio_rolling
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
         ...         "returns": [0.02, -0.01, 0.03, -0.02, 0.015, 0.005, -0.01, 0.02],
@@ -1185,6 +1294,36 @@ def treynor_ratio_rolling(
         ...     treynor_ratio_rolling(pl.col("returns"), pl.col("benchmark"), 4, periods_per_year=252).round(4)
         ... ).to_series().to_list()
         [None, None, None, 0.9993, 0.7483, 1.4938, -0.5003, 1.8295]
+
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "ticker": ["A"] * 6 + ["B"] * 6,
+        ...         "returns": [0.02, -0.01, 0.03, -0.02, 0.015, 0.005, 0.01, 0.025, -0.015, 0.008, -0.005, 0.012],
+        ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004, 0.012, 0.02, -0.01, 0.006, -0.004, 0.01],
+        ...     }
+        ... )
+        >>> expr = (
+        ...     treynor_ratio_rolling(pl.col("returns"), pl.col("benchmark"), 4, periods_per_year=252)
+        ...     .over("ticker")
+        ...     .round(4)
+        ... )
+        >>> frame.with_columns(expr.alias("m"))["m"].to_list()
+        [None, None, None, 0.9993, 0.7483, 1.4938, None, None, None, 1.3726, 0.6224, 0.0]
+
+        A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make the handling visible:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "returns": [None, float("nan"), 0.03, -0.02, 0.015, 0.005, -0.01, 0.02],
+        ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004, -0.012, 0.018],
+        ...     }
+        ... )
+        >>> frame.select(
+        ...     treynor_ratio_rolling(pl.col("returns"), pl.col("benchmark"), 4, periods_per_year=252).round(4)
+        ... ).to_series().to_list()
+        [None, None, None, None, nan, 1.4938, -0.5003, 1.8295]
     """
     returns = float64_expr(returns)
     benchmark = float64_expr(benchmark)

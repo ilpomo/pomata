@@ -95,29 +95,26 @@ def stochastic_fast(
         - :func:`sma`: The moving average that forms %D.
 
     References:
+        - Lane, George C. (1984). "Lane's Stochastics." *Technical Analysis of Stocks & Commodities*, 2(3).
         - https://en.wikipedia.org/wiki/Stochastic_oscillator
-        - https://school.stockcharts.com/doku.php?id=technical_indicators:stochastic_oscillator_fast_slow_and_full
+        - https://www.investopedia.com/terms/s/stochasticoscillator.asp
 
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import stochastic_fast
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "high": [10.0, 11.0, 12.0, 11.5, 13.0, 12.5],
-        ...         "low": [9.0, 10.0, 11.0, 10.5, 12.0, 11.5],
-        ...         "close": [9.5, 10.5, 11.5, 11.0, 12.5, 12.0],
+        ...         "high": [10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 14.0, 13.5],
+        ...         "low": [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5],
+        ...         "close": [9.5, 10.5, 11.5, 11.0, 12.5, 12.0, 13.5, 13.0],
         ...     }
         ... )
         >>> oscillator = stochastic_fast(pl.col("high"), pl.col("low"), pl.col("close"), window_k=3, window_d=2)
         >>> frame.select(oscillator.struct.field("k").round(4).alias("k"))["k"].to_list()
-        [None, None, 83.3333, 50.0, 80.0, 60.0]
+        [None, None, 83.3333, 50.0, 80.0, 60.0, 80.0, 60.0]
         >>> frame.select(oscillator.struct.field("d").round(4).alias("d"))["d"].to_list()
-        [None, None, None, 66.6667, 65.0, 70.0]
-
-        Split the struct into two columns with ``.struct.unnest()``:
-
-        >>> frame.select(oscillator.alias("stoch")).unnest("stoch").columns
-        ['k', 'd']
+        [None, None, None, 66.6667, 65.0, 70.0, 70.0, 70.0]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
 
@@ -132,6 +129,20 @@ def stochastic_fast(
         >>> expr = stochastic_fast(pl.col("high"), pl.col("low"), pl.col("close"), window_k=2, window_d=2)
         >>> frame.with_columns(expr.over("ticker").struct.field("k").round(4).alias("k"))["k"].to_list()
         [None, 75.0, 75.0, 33.3333, None, 75.0, 75.0, 33.3333]
+
+        A ``null`` (yields ``null`` on ``k`` at that row) and a ``NaN`` (which propagates) in ``close`` surface on
+        the %K line:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 14.0, 13.5],
+        ...         "low": [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5],
+        ...         "close": [9.5, 10.5, 11.5, None, 12.5, float("nan"), 13.5, 13.0],
+        ...     }
+        ... )
+        >>> oscillator = stochastic_fast(pl.col("high"), pl.col("low"), pl.col("close"), window_k=3, window_d=2)
+        >>> frame.select(oscillator.struct.field("k").round(4).alias("k"))["k"].to_list()
+        [None, None, 83.3333, None, 80.0, nan, 80.0, 60.0]
     """
     high = float64_expr(high)
     low = float64_expr(low)
@@ -218,31 +229,28 @@ def stochastic_slow(
         - :func:`sma`: The moving average behind both the slowing and %D.
 
     References:
+        - Lane, George C. (1984). "Lane's Stochastics." *Technical Analysis of Stocks & Commodities*, 2(3).
         - https://en.wikipedia.org/wiki/Stochastic_oscillator
-        - https://school.stockcharts.com/doku.php?id=technical_indicators:stochastic_oscillator_fast_slow_and_full
+        - https://www.investopedia.com/terms/s/stochasticoscillator.asp
 
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import stochastic_slow
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "high": [10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 14.0],
-        ...         "low": [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0],
-        ...         "close": [9.5, 10.5, 11.5, 11.0, 12.5, 12.0, 13.5],
+        ...         "high": [10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 14.0, 13.5],
+        ...         "low": [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5],
+        ...         "close": [9.5, 10.5, 11.5, 11.0, 12.5, 12.0, 13.5, 13.0],
         ...     }
         ... )
         >>> oscillator = stochastic_slow(
         ...     pl.col("high"), pl.col("low"), pl.col("close"), window_k=3, window_slowing=2, window_d=2
         ... )
         >>> frame.select(oscillator.struct.field("k").round(4).alias("k"))["k"].to_list()
-        [None, None, None, 66.6667, 65.0, 70.0, 70.0]
+        [None, None, None, 66.6667, 65.0, 70.0, 70.0, 70.0]
         >>> frame.select(oscillator.struct.field("d").round(4).alias("d"))["d"].to_list()
-        [None, None, None, None, 65.8333, 67.5, 70.0]
-
-        Split the struct into two columns with ``.struct.unnest()``:
-
-        >>> frame.select(oscillator.alias("stoch")).unnest("stoch").columns
-        ['k', 'd']
+        [None, None, None, None, 65.8333, 67.5, 70.0, 70.0]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
 
@@ -259,6 +267,22 @@ def stochastic_slow(
         ... )
         >>> frame.with_columns(expr.over("ticker").struct.field("k").round(4).alias("k"))["k"].to_list()
         [None, None, 75.0, 54.1667, 56.6667, None, None, 75.0, 54.1667, 56.6667]
+
+        A ``null`` (nulls every slow %K window it falls in) and a ``NaN`` (which propagates the same way) in
+        ``close`` surface on the slow %K line:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 14.0, 13.5],
+        ...         "low": [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5],
+        ...         "close": [9.5, 10.5, 11.5, None, 12.5, float("nan"), 13.5, 13.0],
+        ...     }
+        ... )
+        >>> oscillator = stochastic_slow(
+        ...     pl.col("high"), pl.col("low"), pl.col("close"), window_k=2, window_slowing=2, window_d=2
+        ... )
+        >>> frame.select(oscillator.struct.field("k").round(4).alias("k"))["k"].to_list()
+        [None, None, 75.0, None, None, nan, nan, 56.6667]
     """
     high = float64_expr(high)
     low = float64_expr(low)

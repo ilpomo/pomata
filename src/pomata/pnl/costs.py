@@ -55,8 +55,7 @@ def cost_borrow(
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every
-        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior, documented
-        under **Edge-case behavior** below.
+        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -78,6 +77,7 @@ def cost_borrow(
     Examples:
         >>> import polars as pl
         >>> from pomata.pnl import cost_borrow
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
         ...         "quantity": [100.0, -50.0, -50.0, -20.0, -20.0],
@@ -87,6 +87,20 @@ def cost_borrow(
         >>> expr = cost_borrow(pl.col("quantity"), pl.col("price"), 0.0001).round(6)
         >>> frame.select(expr.alias("cost"))["cost"].to_list()
         [0.0, 0.055, 0.06, 0.026, 0.028]
+
+        On a multi-ticker panel, partition with ``.over`` — for this elementwise holding cost it is optional (the
+        result is identical without it) and shown here only for consistency:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "ticker": ["A"] * 3 + ["B"] * 3,
+        ...         "quantity": [100.0, -50.0, -50.0, -20.0, -20.0, 30.0],
+        ...         "price": [10.0, 11.0, 12.0, 13.0, 14.0, 15.0],
+        ...     }
+        ... )
+        >>> expr = cost_borrow(pl.col("quantity"), pl.col("price"), 0.0001).over("ticker").round(6)
+        >>> frame.with_columns(expr.alias("c"))["c"].to_list()
+        [0.0, 0.055, 0.06, 0.026, 0.028, 0.0]
 
         A ``null`` (which propagates) and a ``NaN`` make the missing-data handling visible:
 
@@ -141,8 +155,7 @@ def cost_fixed(
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every
-        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior, documented
-        under **Edge-case behavior** below.
+        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -165,6 +178,7 @@ def cost_fixed(
     Examples:
         >>> import polars as pl
         >>> from pomata.pnl import cost_fixed
+        >>>
         >>> frame = pl.DataFrame({"quantity": [10.0, 10.0, -5.0, -5.0, 20.0]})
         >>> frame.select(cost_fixed(pl.col("quantity"), 1.0).round(4).alias("cost"))["cost"].to_list()
         [1.0, 0.0, 1.0, 0.0, 1.0]
@@ -230,8 +244,7 @@ def cost_funding(
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every
-        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior, documented
-        under **Edge-case behavior** below.
+        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -254,6 +267,7 @@ def cost_funding(
     Examples:
         >>> import polars as pl
         >>> from pomata.pnl import cost_funding
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
         ...         "quantity": [10.0, 10.0, -5.0, -5.0, 20.0],
@@ -265,18 +279,33 @@ def cost_funding(
         >>> frame.select(expr.alias("cost"))["cost"].to_list()
         [0.1, 0.102, -0.0505, 0.052, 0.206]
 
+        On a multi-ticker panel, partition with ``.over`` — for this elementwise holding cost it is optional (the
+        result is identical without it) and shown here only for consistency:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "ticker": ["A"] * 3 + ["B"] * 3,
+        ...         "quantity": [10.0, 10.0, -5.0, 2.0, 2.0, -3.0],
+        ...         "price": [100.0, 102.0, 101.0, 50.0, 51.0, 49.0],
+        ...         "rate": [0.0001, 0.0001, 0.0001, 0.0001, -0.0001, 0.0001],
+        ...     }
+        ... )
+        >>> expr = cost_funding(pl.col("quantity"), pl.col("price"), pl.col("rate")).over("ticker").round(6)
+        >>> frame.with_columns(expr.alias("c"))["c"].to_list()
+        [0.1, 0.102, -0.0505, 0.01, -0.0102, -0.0147]
+
         A ``null`` (which propagates) and a ``NaN`` make the missing-data handling visible:
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "quantity": [10.0, None, -5.0, 20.0],
-        ...         "price": [100.0, 102.0, float("nan"), 104.0],
-        ...         "rate": [0.0001, 0.0001, 0.0001, 0.0001],
+        ...         "quantity": [10.0, None, -5.0, float("nan"), 20.0],
+        ...         "price": [100.0, 102.0, 101.0, 104.0, 103.0],
+        ...         "rate": [0.0001, 0.0001, 0.0001, 0.0001, 0.0001],
         ...     }
         ... )
         >>> expr = cost_funding(pl.col("quantity"), pl.col("price"), pl.col("rate")).round(6)
         >>> frame.select(expr.alias("cost"))["cost"].to_list()
-        [0.1, None, nan, 0.208]
+        [0.1, None, -0.0505, nan, 0.206]
     """
     quantity = float64_expr(quantity)
     price = float64_expr(price)
@@ -321,8 +350,7 @@ def cost_notional(
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every
-        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior, documented
-        under **Edge-case behavior** below.
+        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -345,6 +373,7 @@ def cost_notional(
     Examples:
         >>> import polars as pl
         >>> from pomata.pnl import cost_notional
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
         ...         "quantity": [10.0, 10.0, -5.0, -5.0, 20.0],
@@ -419,8 +448,7 @@ def cost_per_share(
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every
-        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior, documented
-        under **Edge-case behavior** below.
+        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -443,6 +471,7 @@ def cost_per_share(
     Examples:
         >>> import polars as pl
         >>> from pomata.pnl import cost_per_share
+        >>>
         >>> frame = pl.DataFrame({"quantity": [10.0, 10.0, -5.0, -5.0, 20.0]})
         >>> frame.select(cost_per_share(pl.col("quantity"), 0.01).round(4).alias("cost"))["cost"].to_list()
         [0.1, 0.0, 0.15, 0.0, 0.25]
@@ -505,8 +534,7 @@ def cost_proportional(
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every
-        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior, documented
-        under **Edge-case behavior** below.
+        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -529,6 +557,7 @@ def cost_proportional(
     Examples:
         >>> import polars as pl
         >>> from pomata.pnl import cost_proportional
+        >>>
         >>> frame = pl.DataFrame({"weight": [0.5, 1.0, -0.5, -0.5, 0.0]})
         >>> expr = cost_proportional(pl.col("weight"), 0.001).round(4)
         >>> frame.select(expr.alias("cost"))["cost"].to_list()
@@ -593,8 +622,7 @@ def cost_slippage(
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every
-        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior, documented
-        under **Edge-case behavior** below.
+        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -617,6 +645,7 @@ def cost_slippage(
     Examples:
         >>> import polars as pl
         >>> from pomata.pnl import cost_slippage
+        >>>
         >>> frame = pl.DataFrame({"weight": [0.5, 1.0, -0.5, -0.5, 0.0]})
         >>> expr = cost_slippage(pl.col("weight"), 0.002).round(4)
         >>> frame.select(expr.alias("cost"))["cost"].to_list()
@@ -631,9 +660,7 @@ def cost_slippage(
         ...         "weight": [0.5, 1.0, -0.5, 1.0, 1.0, 0.0],
         ...     }
         ... )
-        >>> frame.with_columns(cost_slippage(pl.col("weight"), 0.002).over("ticker").round(4).alias("c"))[
-        ...     "c"
-        ... ].to_list()
+        >>> frame.with_columns(cost_slippage(pl.col("weight"), 0.002).over("ticker").round(4).alias("c"))["c"].to_list()
         [0.001, 0.001, 0.003, 0.002, 0.0, 0.002]
 
         A ``null`` (which voids its own row and the next) and a ``NaN`` make the missing-data handling visible:

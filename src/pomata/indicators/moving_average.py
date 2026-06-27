@@ -130,15 +130,17 @@ def dema(
     See Also:
         - :func:`ema`: The single exponential pass this is built from.
         - :func:`tema`: The triple-EMA sibling.
+        - :func:`t3`: The six-pass Tillson member of the lag-reduced family.
 
     References:
-        - Mulloy, P. G. (1994). "Smoothing Data with Faster Moving Averages", Technical Analysis of Stocks &
-          Commodities, 12(1).
+        - Mulloy, P. G. (1994). "Smoothing Data with Faster Moving Averages." *Technical Analysis of Stocks &
+          Commodities*, 12(1).
         - https://en.wikipedia.org/wiki/Double_exponential_moving_average
 
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import dema
+        >>>
         >>> frame = pl.DataFrame({"close": [2.0, 4.0, 6.0, 8.0, 10.0, 12.0]})
         >>> frame.select(dema(pl.col("close"), window=2).round(4).alias("dema_2"))["dema_2"].to_list()
         [None, None, 6.0, 8.0, 10.0, 12.0]
@@ -230,15 +232,16 @@ def ema(
     See Also:
         - :func:`rma`: Wilder's variant, with smoothing factor ``1 / window``.
         - :func:`dema`: A lag-reduced average built from two chained EMAs.
+        - :func:`sma`: The equal-weight simple average this is the exponential analogue of.
 
     References:
         - https://en.wikipedia.org/wiki/Moving_average#Exponential_moving_average
-        - https://school.stockcharts.com/doku.php?id=technical_indicators:moving_averages
         - https://www.investopedia.com/terms/e/ema.asp
 
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import ema
+        >>>
         >>> frame = pl.DataFrame({"close": [2.0, 4.0, 6.0, 8.0, 10.0]})
         >>> frame.select(ema(pl.col("close"), window=3).round(4).alias("ema_3"))["ema_3"].to_list()
         [None, None, 4.0, 6.0, 8.0]
@@ -329,14 +332,15 @@ def hma(
     See Also:
         - :func:`wma`: The weighted mean this composes.
         - :func:`sma`: The unweighted baseline.
+        - :func:`dema`: A lag-reduced average built by the same doubling correction.
 
     References:
-        - https://alanhull.com/hull-moving-average
-        - https://school.stockcharts.com/doku.php?id=technical_indicators:hull_moving_average
+        - Hull, A. (2005). "Hull Moving Average".
 
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import hma
+        >>>
         >>> frame = pl.DataFrame({"close": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]})
         >>> frame.select(hma(pl.col("close"), window=4).round(4).alias("hma_4"))["hma_4"].to_list()
         [None, None, None, None, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
@@ -466,14 +470,15 @@ def kama(
     See Also:
         - :func:`ema`: The fixed-smoothing exponential average KAMA adapts between.
         - :func:`rma`: Wilder's fixed-smoothing average.
+        - :func:`mama`: The MESA adaptive average, steered by cycle phase rather than efficiency.
 
     References:
         - Kaufman, Perry J. (1995). *Smarter Trading*.
-        - https://school.stockcharts.com/doku.php?id=technical_indicators:kaufman_s_adaptive_moving_average
 
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import kama
+        >>>
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, 11.0, 13.0, 12.5]})
         >>> frame.select(
         ...     kama(pl.col("close"), 2, window_fast=2, window_slow=30).round(4).alias("kama")
@@ -573,15 +578,16 @@ def rma(
     See Also:
         - :func:`ema`: The same recursion with smoothing factor ``2 / (window + 1)``.
         - :func:`atr`: The volatility average that smooths the true range with this Wilder mean.
+        - :func:`sma`: The equal-weight baseline.
 
     References:
         - Wilder, J. Welles (1978). *New Concepts in Technical Trading Systems*.
         - https://en.wikipedia.org/wiki/Moving_average#Modified_moving_average
-        - https://school.stockcharts.com/doku.php?id=technical_indicators:moving_averages
 
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import rma
+        >>>
         >>> frame = pl.DataFrame({"close": [2.0, 4.0, 6.0, 8.0, 10.0]})
         >>> frame.select(rma(pl.col("close"), window=3).round(4).alias("rma_3"))["rma_3"].to_list()
         [None, None, 4.0, 5.3333, 6.8889]
@@ -653,14 +659,15 @@ def sma(
     See Also:
         - :func:`ema`: The exponentially-weighted analogue, more responsive to recent values.
         - :func:`wma`: The linearly-weighted analogue.
+        - :func:`trima`: The triangular average, a simple average of a simple average.
 
     References:
         - https://en.wikipedia.org/wiki/Moving_average#Simple_moving_average
-        - https://school.stockcharts.com/doku.php?id=technical_indicators:moving_averages
 
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import sma
+        >>>
         >>> frame = pl.DataFrame({"close": [2.0, 4.0, 6.0, 8.0, 10.0]})
         >>> frame.select(sma(pl.col("close"), window=3).round(4).alias("sma_3"))["sma_3"].to_list()
         [None, None, 4.0, 6.0, 8.0]
@@ -766,13 +773,15 @@ def t3(
     See Also:
         - :func:`dema`: The double-EMA lag-reduced average.
         - :func:`tema`: The triple-EMA lag-reduced average.
+        - :func:`ema`: The exponential pass T3 chains six times.
 
     References:
-        - Tillson, Tim (1998). "Better Moving Averages". Technical Analysis of Stocks & Commodities, 16(1).
+        - Tillson, Tim (1998). "Better Moving Averages". *Technical Analysis of Stocks & Commodities*, 16(1).
 
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import t3
+        >>>
         >>> frame = pl.DataFrame({"close": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]})
         >>> frame.select(t3(pl.col("close"), window=2).round(4).alias("t3_2"))["t3_2"].to_list()
         [None, None, None, None, None, None, 6.55, 7.55]
@@ -783,8 +792,22 @@ def t3(
         ...     {
         ...         "ticker": ["A"] * 8 + ["B"] * 8,
         ...         "close": [
-        ...             10.0, 11.0, 12.0, 11.0, 13.0, 14.0, 13.0, 15.0,
-        ...             20.0, 22.0, 21.0, 23.0, 22.0, 24.0, 25.0, 24.0,
+        ...             10.0,
+        ...             11.0,
+        ...             12.0,
+        ...             11.0,
+        ...             13.0,
+        ...             14.0,
+        ...             13.0,
+        ...             15.0,
+        ...             20.0,
+        ...             22.0,
+        ...             21.0,
+        ...             23.0,
+        ...             22.0,
+        ...             24.0,
+        ...             25.0,
+        ...             24.0,
         ...         ],
         ...     }
         ... )
@@ -797,8 +820,19 @@ def t3(
         >>> frame = pl.DataFrame(
         ...     {
         ...         "close": [
-        ...             10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0,
-        ...             17.0, None, 19.0, float("nan"), 21.0, 22.0,
+        ...             10.0,
+        ...             11.0,
+        ...             12.0,
+        ...             13.0,
+        ...             14.0,
+        ...             15.0,
+        ...             16.0,
+        ...             17.0,
+        ...             None,
+        ...             19.0,
+        ...             float("nan"),
+        ...             21.0,
+        ...             22.0,
         ...         ],
         ...     }
         ... )
@@ -879,15 +913,17 @@ def tema(
     See Also:
         - :func:`dema`: The double-EMA sibling.
         - :func:`t3`: The six-pass Tillson sibling.
+        - :func:`ema`: The exponential pass this chains three times.
 
     References:
-        - Mulloy, Patrick G. (1994). "Smoothing Data with Faster Moving Averages". Technical Analysis of Stocks &
-          Commodities, 12(1).
+        - Mulloy, P. G. (1994). "Smoothing Data with Faster Moving Averages." *Technical Analysis of Stocks &
+          Commodities*, 12(1).
         - https://en.wikipedia.org/wiki/Triple_exponential_moving_average
 
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import tema
+        >>>
         >>> frame = pl.DataFrame({"close": [2.0, 4.0, 6.0, 8.0, 10.0, 12.0]})
         >>> frame.select(tema(pl.col("close"), window=2).round(4).alias("tema_2"))["tema_2"].to_list()
         [None, None, None, 8.0, 10.0, 12.0]
@@ -965,6 +1001,7 @@ def trima(
     See Also:
         - :func:`sma`: The single-pass simple moving average this double-smooths.
         - :func:`wma`: A single-pass linearly-weighted average, also tilting the window's weights off uniform.
+        - :func:`hma`: Another average built by composing simpler moving averages.
 
     References:
         - https://www.investopedia.com/terms/t/triangularaverage.asp
@@ -972,6 +1009,7 @@ def trima(
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import trima
+        >>>
         >>> frame = pl.DataFrame({"x": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]})
         >>> frame.select(trima(pl.col("x"), 4).round(4).alias("trima"))["trima"].to_list()
         [None, None, None, 2.5, 3.5, 4.5]
@@ -1049,6 +1087,7 @@ def vwma(
 
     See Also:
         - :func:`sma`: The equal-weight mean it reduces to when volume is constant.
+        - :func:`vwap`: The cumulative volume-weighted price, the session-anchored cousin.
         - :func:`wma`: The linearly-weighted mean.
 
     References:
@@ -1057,15 +1096,14 @@ def vwma(
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import vwma
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
         ...         "close": [10.0, 11.0, 12.0, 13.0, 14.0],
         ...         "volume": [100.0, 200.0, 300.0, 400.0, 500.0],
         ...     }
         ... )
-        >>> frame.select(
-        ...     vwma(pl.col("close"), pl.col("volume"), window=3).round(4).alias("vwma_3")
-        ... )["vwma_3"].to_list()
+        >>> frame.select(vwma(pl.col("close"), pl.col("volume"), window=3).round(4).alias("vwma_3"))["vwma_3"].to_list()
         [None, None, 11.3333, 12.2222, 13.1667]
 
         On a multi-series panel, wrap the call in ``.over`` so each group warms up independently:
@@ -1152,15 +1190,16 @@ def wma(
     See Also:
         - :func:`sma`: The unweighted analogue.
         - :func:`hma`: A low-lag average built by composing weighted means.
+        - :func:`ema`: The exponentially-weighted analogue.
 
     References:
         - https://en.wikipedia.org/wiki/Moving_average#Weighted_moving_average
-        - https://school.stockcharts.com/doku.php?id=technical_indicators:moving_averages
         - https://www.investopedia.com/articles/technical/060401.asp
 
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import wma
+        >>>
         >>> frame = pl.DataFrame({"close": [2.0, 4.0, 6.0, 8.0, 10.0]})
         >>> frame.select(wma(pl.col("close"), window=3).round(4).alias("wma_3"))["wma_3"].to_list()
         [None, None, 4.6667, 6.6667, 8.6667]

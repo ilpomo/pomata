@@ -70,11 +70,15 @@ def adx(
 
     References:
         - Wilder, J. Welles (1978). *New Concepts in Technical Trading Systems*.
-        - https://school.stockcharts.com/doku.php?id=technical_indicators:average_directional_index_adx
+        - https://en.wikipedia.org/wiki/Average_directional_movement_index
+        - https://www.investopedia.com/terms/a/adx.asp
 
     Examples:
+        On a small OHLC frame with a short window:
+
         >>> import polars as pl
         >>> from pomata.indicators import adx
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
         ...         "high": [10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 14.0, 13.5, 15.0, 14.5],
@@ -85,6 +89,34 @@ def adx(
         >>> expr = adx(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
         >>> frame.select(expr.alias("adx"))["adx"].to_list()
         [None, None, 100.0, 60.0, 68.2353, 44.1176, 58.3602, 39.1801, 55.4486, 37.7243]
+
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "ticker": ["A"] * 6 + ["B"] * 6,
+        ...         "high": [10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 20.0, 22.0, 19.0, 23.0, 20.0, 24.0],
+        ...         "low": [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 18.0, 20.0, 17.0, 21.0, 18.0, 22.0],
+        ...         "close": [9.5, 10.5, 11.5, 11.0, 12.5, 12.0, 19.0, 21.0, 18.0, 22.0, 19.0, 23.0],
+        ...     }
+        ... )
+        >>> expr = adx(pl.col("high"), pl.col("low"), pl.col("close"), 2).over("ticker").round(4)
+        >>> frame.with_columns(expr.alias("adx"))["adx"].to_list()
+        [None, None, 100.0, 60.0, 68.2353, 44.1176, None, None, 75.0, 62.5, 43.75, 45.0893]
+
+        A leading ``null`` ``close`` (absorbed by the true-range maximum) and a later ``NaN`` (which poisons the
+        recursion and latches) make the handling visible:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 14.0, 13.5],
+        ...         "low": [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5],
+        ...         "close": [None, 10.5, 11.5, 11.0, float("nan"), 12.0, 13.5, 13.0],
+        ...     }
+        ... )
+        >>> expr = adx(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
+        >>> frame.select(expr.alias("adx"))["adx"].to_list()
+        [None, None, 100.0, 60.0, 68.2353, nan, nan, nan]
     """
     high = float64_expr(high)
     low = float64_expr(low)
@@ -144,14 +176,19 @@ def adxr(
 
     See Also:
         - :func:`adx`: The trend-strength index this averages with its own past.
+        - :func:`dx`: The directional index the ADX smooths.
+        - :func:`di_plus`: A directional indicator at the base of the system.
 
     References:
         - Wilder, J. Welles (1978). *New Concepts in Technical Trading Systems*.
         - https://www.investopedia.com/terms/a/adxr.asp
 
     Examples:
+        On a small OHLC frame with a short window:
+
         >>> import polars as pl
         >>> from pomata.indicators import adxr
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
         ...         "high": [10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 14.0, 13.5, 15.0, 14.5],
@@ -162,6 +199,34 @@ def adxr(
         >>> expr = adxr(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
         >>> frame.select(expr.alias("adxr"))["adxr"].to_list()
         [None, None, None, None, 84.1176, 52.0588, 63.2977, 41.6489, 56.9044, 38.4522]
+
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "ticker": ["A"] * 7 + ["B"] * 7,
+        ...         "high": [10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 14.0, 20.0, 22.0, 19.0, 23.0, 20.0, 24.0, 21.0],
+        ...         "low": [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 18.0, 20.0, 17.0, 21.0, 18.0, 22.0, 19.0],
+        ...         "close": [9.5, 10.5, 11.5, 11.0, 12.5, 12.0, 13.5, 19.0, 21.0, 18.0, 22.0, 19.0, 23.0, 20.0],
+        ...     }
+        ... )
+        >>> expr = adxr(pl.col("high"), pl.col("low"), pl.col("close"), 2).over("ticker").round(4)
+        >>> frame.with_columns(expr.alias("adxr"))["adxr"].to_list()
+        [None, None, None, None, 84.1176, 52.0588, 63.2977, None, None, None, None, 59.375, 53.7946, 38.4358]
+
+        A leading ``null`` ``close`` (absorbed by the true-range maximum) and a later ``NaN`` (which propagates)
+        make the handling visible:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 14.0, 13.5],
+        ...         "low": [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5],
+        ...         "close": [None, 10.5, 11.5, 11.0, float("nan"), 12.0, 13.5, 13.0],
+        ...     }
+        ... )
+        >>> expr = adxr(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
+        >>> frame.select(expr.alias("adxr"))["adxr"].to_list()
+        [None, None, None, None, 84.1176, nan, nan, nan]
     """
     high = float64_expr(high)
     low = float64_expr(low)
@@ -230,21 +295,53 @@ def di_minus(
 
     References:
         - Wilder, J. Welles (1978). *New Concepts in Technical Trading Systems*.
-        - https://school.stockcharts.com/doku.php?id=technical_indicators:average_directional_index_adx
+        - https://en.wikipedia.org/wiki/Average_directional_movement_index
+        - https://www.investopedia.com/terms/d/dmi.asp
 
     Examples:
+        On a small OHLC frame with a short window:
+
         >>> import polars as pl
         >>> from pomata.indicators import di_minus
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "high": [10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 14.0],
-        ...         "low": [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0],
-        ...         "close": [9.5, 10.5, 11.5, 11.0, 12.5, 12.0, 13.5],
+        ...         "high": [10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 14.0, 13.5],
+        ...         "low": [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5],
+        ...         "close": [9.5, 10.5, 11.5, 11.0, 12.5, 12.0, 13.5, 13.0],
         ...     }
         ... )
         >>> expr = di_minus(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
         >>> frame.select(expr.alias("di_minus"))["di_minus"].to_list()
-        [None, 0.0, 0.0, 21.0526, 7.8431, 24.0964, 9.4787]
+        [None, 0.0, 0.0, 21.0526, 7.8431, 24.0964, 9.4787, 24.7788]
+
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "ticker": ["A"] * 5 + ["B"] * 5,
+        ...         "high": [10.0, 11.0, 12.0, 11.5, 13.0, 20.0, 22.0, 19.0, 23.0, 20.0],
+        ...         "low": [9.0, 10.0, 11.0, 10.5, 12.0, 18.0, 20.0, 17.0, 21.0, 18.0],
+        ...         "close": [9.5, 10.5, 11.5, 11.0, 12.5, 19.0, 21.0, 18.0, 22.0, 19.0],
+        ...     }
+        ... )
+        >>> expr = di_minus(pl.col("high"), pl.col("low"), pl.col("close"), 2).over("ticker").round(4)
+        >>> frame.with_columns(expr.alias("di_minus"))["di_minus"].to_list()
+        [None, 0.0, 0.0, 21.0526, 7.8431, None, 0.0, 46.1538, 18.1818, 46.1538]
+
+        A leading ``null`` ``close`` (absorbed by the ATR's true-range maximum) and a later ``NaN`` (which propagates)
+        make the handling visible:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 14.0, 13.5],
+        ...         "low": [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5],
+        ...         "close": [None, 10.5, 11.5, 11.0, float("nan"), 12.0, 13.5, 13.0],
+        ...     }
+        ... )
+        >>> expr = di_minus(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
+        >>> frame.select(expr.alias("di_minus"))["di_minus"].to_list()
+        [None, 0.0, 0.0, 22.2222, 8.0, nan, nan, nan]
     """
     high = float64_expr(high)
     low = float64_expr(low)
@@ -312,21 +409,53 @@ def di_plus(
 
     References:
         - Wilder, J. Welles (1978). *New Concepts in Technical Trading Systems*.
-        - https://school.stockcharts.com/doku.php?id=technical_indicators:average_directional_index_adx
+        - https://en.wikipedia.org/wiki/Average_directional_movement_index
+        - https://www.investopedia.com/terms/d/dmi.asp
 
     Examples:
+        On a small OHLC frame with a short window:
+
         >>> import polars as pl
         >>> from pomata.indicators import di_plus
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "high": [10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 14.0],
-        ...         "low": [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0],
-        ...         "close": [9.5, 10.5, 11.5, 11.0, 12.5, 12.0, 13.5],
+        ...         "high": [10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 14.0, 13.5],
+        ...         "low": [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5],
+        ...         "close": [9.5, 10.5, 11.5, 11.0, 12.5, 12.0, 13.5, 13.0],
         ...     }
         ... )
         >>> expr = di_plus(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
         >>> frame.select(expr.alias("di_plus"))["di_plus"].to_list()
-        [None, 40.0, 54.5455, 31.5789, 58.8235, 36.1446, 59.7156]
+        [None, 40.0, 54.5455, 31.5789, 58.8235, 36.1446, 59.7156, 37.1681]
+
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "ticker": ["A"] * 5 + ["B"] * 5,
+        ...         "high": [10.0, 11.0, 12.0, 11.5, 13.0, 20.0, 22.0, 19.0, 23.0, 20.0],
+        ...         "low": [9.0, 10.0, 11.0, 10.5, 12.0, 18.0, 20.0, 17.0, 21.0, 18.0],
+        ...         "close": [9.5, 10.5, 11.5, 11.0, 12.5, 19.0, 21.0, 18.0, 22.0, 19.0],
+        ...     }
+        ... )
+        >>> expr = di_plus(pl.col("high"), pl.col("low"), pl.col("close"), 2).over("ticker").round(4)
+        >>> frame.with_columns(expr.alias("di_plus"))["di_plus"].to_list()
+        [None, 40.0, 54.5455, 31.5789, 58.8235, None, 40.0, 15.3846, 54.5455, 27.6923]
+
+        A leading ``null`` ``close`` (absorbed by the ATR's true-range maximum) and a later ``NaN`` (which propagates)
+        make the handling visible:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 14.0, 13.5],
+        ...         "low": [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5],
+        ...         "close": [None, 10.5, 11.5, 11.0, float("nan"), 12.0, 13.5, 13.0],
+        ...     }
+        ... )
+        >>> expr = di_plus(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
+        >>> frame.select(expr.alias("di_plus"))["di_plus"].to_list()
+        [None, 50.0, 60.0, 33.3333, 60.0, nan, nan, nan]
     """
     high = float64_expr(high)
     low = float64_expr(low)
@@ -402,22 +531,52 @@ def dm_minus(
     See Also:
         - :func:`dm_plus`: The plus counterpart.
         - :func:`di_minus`: The minus directional indicator built from this and the :func:`atr`.
+        - :func:`rma`: The Wilder moving average that smooths the raw movement.
 
     References:
         - Wilder, J. Welles (1978). *New Concepts in Technical Trading Systems*.
-        - https://school.stockcharts.com/doku.php?id=technical_indicators:average_directional_index_adx
+        - https://en.wikipedia.org/wiki/Average_directional_movement_index
+        - https://www.investopedia.com/terms/d/dmi.asp
 
     Examples:
+        On a small high/low frame with a short window:
+
         >>> import polars as pl
         >>> from pomata.indicators import dm_minus
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "high": [10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 14.0],
-        ...         "low": [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0],
+        ...         "high": [10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 14.0, 13.5],
+        ...         "low": [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5],
         ...     }
         ... )
         >>> frame.select(dm_minus(pl.col("high"), pl.col("low"), 2).round(4).alias("dm_minus"))["dm_minus"].to_list()
-        [None, 0.0, 0.0, 0.25, 0.125, 0.3125, 0.1562]
+        [None, 0.0, 0.0, 0.25, 0.125, 0.3125, 0.1562, 0.3281]
+
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "ticker": ["A"] * 5 + ["B"] * 5,
+        ...         "high": [10.0, 11.0, 12.0, 11.5, 13.0, 20.0, 22.0, 19.0, 23.0, 20.0],
+        ...         "low": [9.0, 10.0, 11.0, 10.5, 12.0, 18.0, 20.0, 17.0, 21.0, 18.0],
+        ...     }
+        ... )
+        >>> expr = dm_minus(pl.col("high"), pl.col("low"), 2).over("ticker").round(4)
+        >>> frame.with_columns(expr.alias("dm_minus"))["dm_minus"].to_list()
+        [None, 0.0, 0.0, 0.25, 0.125, None, 0.0, 1.5, 0.75, 1.875]
+
+        On a falling frame, a leading ``null`` ``low`` (which zeroes the raw movement it touches) and a later ``NaN``
+        ``low`` (the own side, which poisons the recursion) make the handling visible:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [9.0, 8.0, 7.5, 6.5, 7.0, 6.0, 5.5, 5.0],
+        ...         "low": [None, 7.0, 6.5, 5.5, float("nan"), 5.0, 4.5, 4.0],
+        ...     }
+        ... )
+        >>> frame.select(dm_minus(pl.col("high"), pl.col("low"), 2).round(4).alias("dm_minus"))["dm_minus"].to_list()
+        [None, 0.0, 0.25, 0.625, nan, nan, nan, nan]
     """
     high = float64_expr(high)
     low = float64_expr(low)
@@ -494,22 +653,52 @@ def dm_plus(
     See Also:
         - :func:`dm_minus`: The minus counterpart.
         - :func:`di_plus`: The plus directional indicator built from this and the :func:`atr`.
+        - :func:`rma`: The Wilder moving average that smooths the raw movement.
 
     References:
         - Wilder, J. Welles (1978). *New Concepts in Technical Trading Systems*.
-        - https://school.stockcharts.com/doku.php?id=technical_indicators:average_directional_index_adx
+        - https://en.wikipedia.org/wiki/Average_directional_movement_index
+        - https://www.investopedia.com/terms/d/dmi.asp
 
     Examples:
+        On a small high/low frame with a short window:
+
         >>> import polars as pl
         >>> from pomata.indicators import dm_plus
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "high": [10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 14.0],
-        ...         "low": [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0],
+        ...         "high": [10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 14.0, 13.5],
+        ...         "low": [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5],
         ...     }
         ... )
         >>> frame.select(dm_plus(pl.col("high"), pl.col("low"), 2).round(4).alias("dm_plus"))["dm_plus"].to_list()
-        [None, 0.5, 0.75, 0.375, 0.9375, 0.4688, 0.9844]
+        [None, 0.5, 0.75, 0.375, 0.9375, 0.4688, 0.9844, 0.4922]
+
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "ticker": ["A"] * 5 + ["B"] * 5,
+        ...         "high": [10.0, 11.0, 12.0, 11.5, 13.0, 20.0, 22.0, 19.0, 23.0, 20.0],
+        ...         "low": [9.0, 10.0, 11.0, 10.5, 12.0, 18.0, 20.0, 17.0, 21.0, 18.0],
+        ...     }
+        ... )
+        >>> expr = dm_plus(pl.col("high"), pl.col("low"), 2).over("ticker").round(4)
+        >>> frame.with_columns(expr.alias("dm_plus"))["dm_plus"].to_list()
+        [None, 0.5, 0.75, 0.375, 0.9375, None, 1.0, 0.5, 2.25, 1.125]
+
+        A leading ``null`` ``high`` (which zeroes the raw movement it touches) and a later ``NaN`` ``high`` (the own
+        side, which poisons the recursion) make the handling visible:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [None, 11.0, 12.0, 11.5, float("nan"), 12.5, 14.0, 13.5],
+        ...         "low": [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5],
+        ...     }
+        ... )
+        >>> frame.select(dm_plus(pl.col("high"), pl.col("low"), 2).round(4).alias("dm_plus"))["dm_plus"].to_list()
+        [None, 0.0, 0.5, 0.25, nan, nan, nan, nan]
     """
     high = float64_expr(high)
     low = float64_expr(low)
@@ -578,21 +767,53 @@ def dx(
 
     References:
         - Wilder, J. Welles (1978). *New Concepts in Technical Trading Systems*.
-        - https://school.stockcharts.com/doku.php?id=technical_indicators:average_directional_index_adx
+        - https://en.wikipedia.org/wiki/Average_directional_movement_index
+        - https://www.investopedia.com/terms/d/dmi.asp
 
     Examples:
+        On a small OHLC frame with a short window:
+
         >>> import polars as pl
         >>> from pomata.indicators import dx
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "high": [10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 14.0],
-        ...         "low": [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0],
-        ...         "close": [9.5, 10.5, 11.5, 11.0, 12.5, 12.0, 13.5],
+        ...         "high": [10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 14.0, 13.5],
+        ...         "low": [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5],
+        ...         "close": [9.5, 10.5, 11.5, 11.0, 12.5, 12.0, 13.5, 13.0],
         ...     }
         ... )
         >>> expr = dx(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
         >>> frame.select(expr.alias("dx"))["dx"].to_list()
-        [None, 100.0, 100.0, 20.0, 76.4706, 20.0, 72.6027]
+        [None, 100.0, 100.0, 20.0, 76.4706, 20.0, 72.6027, 20.0]
+
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "ticker": ["A"] * 5 + ["B"] * 5,
+        ...         "high": [10.0, 11.0, 12.0, 11.5, 13.0, 20.0, 22.0, 19.0, 23.0, 20.0],
+        ...         "low": [9.0, 10.0, 11.0, 10.5, 12.0, 18.0, 20.0, 17.0, 21.0, 18.0],
+        ...         "close": [9.5, 10.5, 11.5, 11.0, 12.5, 19.0, 21.0, 18.0, 22.0, 19.0],
+        ...     }
+        ... )
+        >>> expr = dx(pl.col("high"), pl.col("low"), pl.col("close"), 2).over("ticker").round(4)
+        >>> frame.with_columns(expr.alias("dx"))["dx"].to_list()
+        [None, 100.0, 100.0, 20.0, 76.4706, None, 100.0, 50.0, 50.0, 25.0]
+
+        A leading ``null`` ``close`` (absorbed by the underlying ATR's true-range maximum) and a later ``NaN`` (which
+        propagates through the directional indicators) make the handling visible:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 14.0, 13.5],
+        ...         "low": [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5],
+        ...         "close": [None, 10.5, 11.5, 11.0, float("nan"), 12.0, 13.5, 13.0],
+        ...     }
+        ... )
+        >>> expr = dx(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
+        >>> frame.select(expr.alias("dx"))["dx"].to_list()
+        [None, 100.0, 100.0, 20.0, 76.4706, nan, nan, nan]
     """
     high = float64_expr(high)
     low = float64_expr(low)
@@ -667,27 +888,64 @@ def vortex(
     See Also:
         - :func:`di_plus`: The Wilder directional indicator, the same movement-over-range idea, exponentially smoothed.
         - :func:`true_range`: The per-bar basis of the shared denominator.
+        - :func:`di_minus`: The minus directional indicator, the Wilder analog of the negative vortex line.
 
     References:
+        - Botes, Etienne, and Douglas Siepman (2010). "The Vortex Indicator", *Technical Analysis of Stocks &
+          Commodities*, 28(1).
         - https://en.wikipedia.org/wiki/Vortex_indicator
-        - https://school.stockcharts.com/doku.php?id=technical_indicators:vortex_indicator
         - https://www.investopedia.com/terms/v/vortex-indicator-vi.asp
 
     Examples:
+        On a small OHLC frame, reading each vortex line with ``.struct.field``:
+
         >>> import polars as pl
         >>> from pomata.indicators import vortex
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "high": [2.0, 4.0, 6.0, 5.0, 7.0],
-        ...         "low": [1.0, 3.0, 4.0, 4.0, 5.0],
-        ...         "close": [1.5, 3.5, 5.0, 4.5, 6.0],
+        ...         "high": [2.0, 4.0, 6.0, 5.0, 7.0, 6.5, 8.0, 7.5],
+        ...         "low": [1.0, 3.0, 4.0, 4.0, 5.0, 5.5, 6.0, 6.5],
+        ...         "close": [1.5, 3.5, 5.0, 4.5, 6.0, 6.0, 7.0, 7.0],
         ...     }
         ... )
         >>> bands = vortex(pl.col("high"), pl.col("low"), pl.col("close"), 2)
         >>> frame.select(bands.struct.field("plus").round(4).alias("plus"))["plus"].to_list()
-        [None, None, 1.2, 1.1429, 1.1429]
+        [None, None, 1.2, 1.1429, 1.1429, 1.2857, 1.3333, 1.3333]
         >>> frame.select(bands.struct.field("minus").round(4).alias("minus"))["minus"].to_list()
-        [None, None, 0.2, 0.5714, 0.5714]
+        [None, None, 0.2, 0.5714, 0.5714, 0.4286, 0.6667, 0.6667]
+
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "ticker": ["A"] * 5 + ["B"] * 5,
+        ...         "high": [2.0, 4.0, 6.0, 5.0, 7.0, 12.0, 11.0, 13.0, 10.0, 12.0],
+        ...         "low": [1.0, 3.0, 4.0, 4.0, 5.0, 10.0, 9.0, 11.0, 8.0, 10.0],
+        ...         "close": [1.5, 3.5, 5.0, 4.5, 6.0, 11.0, 10.0, 12.0, 9.0, 11.0],
+        ...     }
+        ... )
+        >>> expr = vortex(pl.col("high"), pl.col("low"), pl.col("close"), 2).over("ticker")
+        >>> frame.with_columns(expr.struct.field("plus").round(4).alias("plus"))["plus"].to_list()
+        [None, None, 1.2, 1.1429, 1.1429, None, None, 1.0, 0.7143, 0.7143]
+        >>> frame.with_columns(expr.struct.field("minus").round(4).alias("minus"))["minus"].to_list()
+        [None, None, 0.2, 0.5714, 0.5714, None, None, 0.6, 0.7143, 0.7143]
+
+        A leading ``null`` ``close`` (absorbed by the true-range maximum) and a later ``NaN`` (which contaminates only
+        the bars whose window spans it, then clears) make the handling visible:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [2.0, 4.0, 6.0, 5.0, 7.0, 6.5, 8.0, 7.5],
+        ...         "low": [1.0, 3.0, 4.0, 4.0, 5.0, 5.5, 6.0, 6.5],
+        ...         "close": [None, 3.5, 5.0, 4.5, float("nan"), 6.0, 7.0, 7.0],
+        ...     }
+        ... )
+        >>> bands = vortex(pl.col("high"), pl.col("low"), pl.col("close"), 2)
+        >>> frame.select(bands.struct.field("plus").round(4).alias("plus"))["plus"].to_list()
+        [None, None, 1.7143, 1.1429, 1.1429, nan, nan, 1.3333]
+        >>> frame.select(bands.struct.field("minus").round(4).alias("minus"))["minus"].to_list()
+        [None, None, 0.2857, 0.5714, 0.5714, nan, nan, 0.6667]
     """
     high = float64_expr(high)
     low = float64_expr(low)

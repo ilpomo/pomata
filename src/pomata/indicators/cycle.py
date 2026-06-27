@@ -5,7 +5,7 @@ The price is smoothed, detrended, and split into in-phase and quadrature compone
 a homodyne discriminator (multiplying the complex signal by its one-bar-lagged conjugate) yields the instantaneous
 dominant-cycle period, and the dominant-cycle phase, sine wave, instantaneous trendline, trend/cycle flag, and the MESA
 adaptive moving average all follow from it. The recurrence is sequential, so a single shared pure-Python pipeline runs
-it once via ``map_batches`` (like :func:`pomata.indicators.kama`); each indicator reads its own output and masks its
+it once via ``map_batches`` (like :func:`kama`); each indicator reads its own output and masks its
 warm-up. A ``null`` or ``NaN`` price latches ``null`` from there, since the adaptive recurrence cannot bridge a gap.
 """
 
@@ -289,15 +289,20 @@ def dominant_cycle_period(expr: pl.Expr) -> pl.Expr:
 
     See Also:
         - :func:`dominant_cycle_phase`: The phase of the same dominant cycle.
+        - :func:`hilbert_phasor`: The phasor the period is measured from.
+        - :func:`hilbert_trendline`: Averages the price over one cycle of this period.
 
     References:
         - Ehlers, John F. (2001). *Rocket Science for Traders*.
-        - Ehlers, John F. *MAMA — The Mother of Adaptive Moving Averages*. https://www.mesasoftware.com/papers/MAMA.pdf
+        - Ehlers, John F. "MAMA — The Mother of Adaptive Moving Averages".
 
     Examples:
+        The dominant cycle of a clean period-20 sine, read at the last bar (close to its true length of ``20`` bars):
+
         >>> import math
         >>> import polars as pl
         >>> from pomata.indicators import dominant_cycle_period
+        >>>
         >>> frame = pl.select(close=100.0 + (2 * math.pi * pl.int_range(200) / 20).sin())
         >>> round(frame.select(dominant_cycle_period(pl.col("close")).alias("p"))["p"][-1], 2)
         20.03
@@ -350,6 +355,7 @@ def dominant_cycle_phase(expr: pl.Expr) -> pl.Expr:
     See Also:
         - :func:`dominant_cycle_period`: The length of the same dominant cycle.
         - :func:`sine_wave`: The sine of this phase.
+        - :func:`mama`: The adaptive average this phase's rate drives.
 
     References:
         - Ehlers, John F. (2001). *Rocket Science for Traders*.
@@ -360,6 +366,7 @@ def dominant_cycle_phase(expr: pl.Expr) -> pl.Expr:
         >>> import math
         >>> import polars as pl
         >>> from pomata.indicators import dominant_cycle_phase
+        >>>
         >>> frame = pl.select(close=100.0 + (2 * math.pi * pl.int_range(200) / 20).sin())
         >>> round(frame.select(dominant_cycle_phase(pl.col("close")).alias("p"))["p"][-1], 2)
         -17.84
@@ -402,7 +409,9 @@ def hilbert_phasor(expr: pl.Expr) -> pl.Expr:
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel.
 
     See Also:
-        - :func:`dominant_cycle_phase`: The phase derived from this phasor.
+        - :func:`dominant_cycle_period`: Measured from this phasor by the homodyne discriminator.
+        - :func:`mama`: Adapts on the rate of change of this phasor's phase.
+        - :func:`dominant_cycle_phase`: The companion dominant-cycle phase.
 
     References:
         - Ehlers, John F. (2001). *Rocket Science for Traders*.
@@ -413,6 +422,7 @@ def hilbert_phasor(expr: pl.Expr) -> pl.Expr:
         >>> import math
         >>> import polars as pl
         >>> from pomata.indicators import hilbert_phasor
+        >>>
         >>> frame = pl.select(close=100.0 + (2 * math.pi * pl.int_range(200) / 20).sin())
         >>> phasor = frame.select(hilbert_phasor(pl.col("close")).alias("h")).unnest("h")
         >>> round(phasor["in_phase"][-1], 2), round(phasor["quadrature"][-1], 2)
@@ -459,6 +469,8 @@ def hilbert_trendline(expr: pl.Expr) -> pl.Expr:
 
     See Also:
         - :func:`trend_mode`: Uses the price's deviation from this trendline.
+        - :func:`dominant_cycle_period`: The cycle length this averages the price over.
+        - :func:`mama`: The adaptive average from the same pipeline.
 
     References:
         - Ehlers, John F. (2001). *Rocket Science for Traders*.
@@ -469,6 +481,7 @@ def hilbert_trendline(expr: pl.Expr) -> pl.Expr:
         >>> import math
         >>> import polars as pl
         >>> from pomata.indicators import hilbert_trendline
+        >>>
         >>> frame = pl.select(close=100.0 + (2 * math.pi * pl.int_range(200) / 20).sin())
         >>> round(frame.select(hilbert_trendline(pl.col("close")).alias("t"))["t"][-1], 2)
         100.0
@@ -534,10 +547,12 @@ def mama(expr: pl.Expr, *, limit_fast: float = 0.5, limit_slow: float = 0.05) ->
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel.
 
     See Also:
-        - :func:`dominant_cycle_phase`: The phase whose rate drives the adaptation.
+        - :func:`hilbert_phasor`: The phasor whose phase rate sets the smoothing constant.
+        - :func:`kama`: Another adaptive moving average, adapting on the efficiency ratio.
+        - :func:`dominant_cycle_phase`: The dominant-cycle phase from the same pipeline.
 
     References:
-        - Ehlers, John F. *MAMA — The Mother of Adaptive Moving Averages*. https://www.mesasoftware.com/papers/MAMA.pdf
+        - Ehlers, John F. "MAMA — The Mother of Adaptive Moving Averages".
 
     Examples:
         Both adaptive lines track the level of a clean period-20 cycle (here ``100``), at the last bar:
@@ -545,6 +560,7 @@ def mama(expr: pl.Expr, *, limit_fast: float = 0.5, limit_slow: float = 0.05) ->
         >>> import math
         >>> import polars as pl
         >>> from pomata.indicators import mama
+        >>>
         >>> frame = pl.select(close=100.0 + (2 * math.pi * pl.int_range(200) / 20).sin())
         >>> lines = frame.select(mama(pl.col("close")).alias("m")).unnest("m")
         >>> round(lines["mama"][-1], 2), round(lines["fama"][-1], 2)
@@ -603,6 +619,8 @@ def sine_wave(expr: pl.Expr) -> pl.Expr:
 
     See Also:
         - :func:`dominant_cycle_phase`: The phase these are the sine of.
+        - :func:`trend_mode`: Combines these sine-wave crossings.
+        - :func:`dominant_cycle_period`: The cycle these trace.
 
     References:
         - Ehlers, John F. (2001). *Rocket Science for Traders*.
@@ -613,6 +631,7 @@ def sine_wave(expr: pl.Expr) -> pl.Expr:
         >>> import math
         >>> import polars as pl
         >>> from pomata.indicators import sine_wave
+        >>>
         >>> frame = pl.select(close=100.0 + (2 * math.pi * pl.int_range(200) / 20).sin())
         >>> waves = frame.select(sine_wave(pl.col("close")).alias("s")).unnest("s")
         >>> round(waves["sine"][-1], 2), round(waves["lead_sine"][-1], 2)
@@ -665,6 +684,8 @@ def trend_mode(expr: pl.Expr) -> pl.Expr:
 
     See Also:
         - :func:`hilbert_trendline`: The trendline the mode compares the price against.
+        - :func:`sine_wave`: The sine-wave crossings the mode combines.
+        - :func:`dominant_cycle_phase`: The phase rate the mode also uses.
 
     References:
         - Ehlers, John F. (2001). *Rocket Science for Traders*.
@@ -675,6 +696,7 @@ def trend_mode(expr: pl.Expr) -> pl.Expr:
         >>> import math
         >>> import polars as pl
         >>> from pomata.indicators import trend_mode
+        >>>
         >>> frame = pl.select(close=100.0 + (2 * math.pi * pl.int_range(200) / 20).sin())
         >>> frame.select(trend_mode(pl.col("close")).alias("t"))["t"].drop_nulls().unique().to_list()
         [0.0]

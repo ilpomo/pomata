@@ -149,16 +149,18 @@ def parabolic_sar(
           series boundaries, e.g. ``parabolic_sar(pl.col("high"), pl.col("low")).over("ticker")``.
 
     See Also:
-        - :func:`adx`: Wilder's other trend tool, the directional-movement trend-strength index.
+        - :func:`supertrend`: The other trailing-stop trend tool, ATR-scaled rather than accelerating.
+        - :func:`adx`: Wilder's directional-movement trend-strength index.
         - :func:`atr`: Wilder's volatility average.
 
     References:
         - Wilder, J. Welles (1978). *New Concepts in Technical Trading Systems*.
-        - https://school.stockcharts.com/doku.php?id=technical_indicators:parabolic_sar
+        - https://en.wikipedia.org/wiki/Parabolic_SAR
 
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import parabolic_sar
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
         ...         "high": [10.0, 11.0, 12.0, 13.0, 14.0, 13.0, 12.0, 11.0, 10.0, 11.0],
@@ -180,6 +182,18 @@ def parabolic_sar(
         >>> expr = parabolic_sar(pl.col("high"), pl.col("low")).over("ticker").round(4)
         >>> frame.with_columns(expr.alias("sar"))["sar"].to_list()
         [None, 9.0, 9.0, 9.12, 9.3528, None, 19.0, 19.0, 19.12, 22.0]
+
+        A ``null`` then a ``NaN`` in ``high`` each yield ``null`` / ``NaN`` at that row and are skipped, the
+        running trend state bridging the gap:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.0, 11.0, 12.0, None, 14.0, float("nan"), 12.0, 11.0],
+        ...         "low": [9.0, 10.0, 11.0, 12.0, 13.0, 12.0, 11.0, 10.0],
+        ...     }
+        ... )
+        >>> frame.select(parabolic_sar(pl.col("high"), pl.col("low")).round(4).alias("sar"))["sar"].to_list()
+        [None, 9.0, 9.0, None, 9.12, nan, 9.4128, 9.688]
     """
     high = float64_expr(high)
     low = float64_expr(low)
@@ -323,16 +337,18 @@ def supertrend(
           series boundaries, e.g. ``supertrend(pl.col("high"), pl.col("low"), pl.col("close")).over("ticker")``.
 
     See Also:
-        - :func:`parabolic_sar`: the other trailing-stop trend tool, accelerating rather than ATR-scaled.
-        - :func:`atr`: the volatility average that sets the band half-width.
+        - :func:`parabolic_sar`: The other trailing-stop trend tool, accelerating rather than ATR-scaled.
+        - :func:`atr`: The volatility average that sets the band half-width.
+        - :func:`keltner_channels`: The other ATR-scaled band envelope, centered on an EMA rather than ratcheting.
 
     References:
-        - Seban, Olivier. *La Méthode SuperTrend*.
+        - Seban, Olivier (2009). *Tout le monde mérite d'être riche*.
         - https://www.investopedia.com/supertrend-indicator-7976167
 
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import supertrend
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
         ...         "high": [10.0, 11.0, 12.0, 11.0, 13.0, 12.0, 14.0],
@@ -361,18 +377,19 @@ def supertrend(
         >>> frame.with_columns(expr.over("ticker").struct.field("line").round(4).alias("l"))["l"].to_list()
         [None, 8.0, 9.05, 9.05, 9.05, None, 18.0, 19.05, 19.05, 19.05]
 
-        A ``NaN`` poisons the ATR recursion and latches ``NaN`` (a ``null`` behaves the same through the leg):
+        A ``null`` in ``close`` is skipped and bridged by the running state, while a ``NaN`` poisons the ATR
+        recursion and latches ``NaN`` thereafter:
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "high": [10.0, 11.0, 12.0, 11.0, 13.0, float("nan"), 14.0],
+        ...         "high": [10.0, 11.0, 12.0, 11.0, 13.0, 12.0, 14.0],
         ...         "low": [9.0, 10.0, 11.0, 10.0, 12.0, 11.0, 13.0],
-        ...         "close": [9.5, 10.8, 11.8, 10.2, 12.8, 11.2, 13.8],
+        ...         "close": [9.5, 10.8, 11.8, None, 12.8, float("nan"), 13.8],
         ...     }
         ... )
         >>> expr = supertrend(pl.col("high"), pl.col("low"), pl.col("close"), 2, multiplier=2.0)
         >>> frame.select(expr.struct.field("line").round(4).alias("l"))["l"].to_list()
-        [None, 8.0, 9.05, 9.05, 9.05, nan, nan]
+        [None, 8.0, 9.05, None, 9.9875, nan, nan]
     """
     high = float64_expr(high)
     low = float64_expr(low)

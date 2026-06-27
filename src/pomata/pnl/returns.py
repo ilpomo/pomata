@@ -40,8 +40,7 @@ def returns_log(
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every
-        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior, documented
-        under **Edge-case behavior** below.
+        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -58,18 +57,21 @@ def returns_log(
 
     See Also:
         - :func:`returns_simple`: The arithmetic sibling, which aggregates across assets rather than across time.
+        - :func:`cumulative_pnl`: The additive running total; log returns sum to the total log return over a horizon.
+        - :func:`equity_curve`: Compounds the gross returns into the growth path of one unit of capital.
 
     References:
-        - Meucci, A. (2010). Quant Nugget 2: Linear vs. Compounded Returns. https://papers.ssrn.com/sol3/papers.cfm?abstract_id=1586656
+        - Meucci, A. (2010). "Quant Nugget 2: Linear vs. Compounded Returns."
         - https://en.wikipedia.org/wiki/Rate_of_return#Logarithmic_or_continuously_compounded_return
         - https://www.investopedia.com/terms/c/continuouscompounding.asp
 
     Examples:
         >>> import polars as pl
         >>> from pomata.pnl import returns_log
-        >>> frame = pl.DataFrame({"close": [100.0, 105.0, 102.0, 108.0, 110.0]})
+        >>>
+        >>> frame = pl.DataFrame({"close": [100.0, 102.0, 101.0, 105.0, 104.0, 107.0, 110.0, 108.0, 112.0]})
         >>> frame.select(returns_log(pl.col("close")).round(4).alias("returns_log"))["returns_log"].to_list()
-        [None, 0.0488, -0.029, 0.0572, 0.0183]
+        [None, 0.0198, -0.0099, 0.0388, -0.0096, 0.0284, 0.0277, -0.0183, 0.0364]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
 
@@ -82,11 +84,12 @@ def returns_log(
         >>> frame.with_columns(returns_log(pl.col("close")).over("ticker").round(4).alias("r"))["r"].to_list()
         [None, 0.0488, -0.029, 0.0572, None, 0.0392, -0.0194, 0.0755]
 
-        A ``null`` (whose lag yields ``null``) and a ``NaN`` (which propagates) make the missing-data handling visible:
+        A ``null`` (whose lag voids the next bar too) and a ``NaN`` (which propagates) touch only the positions that
+        reference them before the series recovers, making the missing-data handling visible:
 
-        >>> frame = pl.DataFrame({"close": [100.0, 105.0, None, 108.0, float("nan"), 110.0]})
+        >>> frame = pl.DataFrame({"close": [100.0, 105.0, None, 108.0, 110.0, float("nan"), 113.0, 115.0]})
         >>> frame.select(returns_log(pl.col("close")).round(4).alias("returns_log"))["returns_log"].to_list()
-        [None, 0.0488, None, None, nan, nan]
+        [None, 0.0488, None, None, 0.0183, nan, nan, 0.0175]
     """
     expr = float64_expr(expr)
     # The natural log of the one-bar price relative; the first row is null (no prior) and the IEEE-754 log carries the
@@ -124,8 +127,7 @@ def returns_simple(
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every
-        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior, documented
-        under **Edge-case behavior** below.
+        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -141,18 +143,21 @@ def returns_simple(
 
     See Also:
         - :func:`returns_log`: The logarithmic sibling, which aggregates across time rather than across assets.
+        - :func:`equity_curve`: Compounds the simple returns into the growth path of one unit of capital.
+        - :func:`cumulative_pnl`: The additive running total of a per-bar P&L or return series.
 
     References:
-        - Meucci, A. (2010). Quant Nugget 2: Linear vs. Compounded Returns. https://papers.ssrn.com/sol3/papers.cfm?abstract_id=1586656
+        - Meucci, A. (2010). "Quant Nugget 2: Linear vs. Compounded Returns."
         - https://en.wikipedia.org/wiki/Rate_of_return
         - https://www.investopedia.com/terms/r/rateofreturn.asp
 
     Examples:
         >>> import polars as pl
         >>> from pomata.pnl import returns_simple
-        >>> frame = pl.DataFrame({"close": [100.0, 105.0, 102.0, 108.0, 110.0]})
+        >>>
+        >>> frame = pl.DataFrame({"close": [100.0, 102.0, 101.0, 105.0, 104.0, 107.0, 110.0, 108.0, 112.0]})
         >>> frame.select(returns_simple(pl.col("close")).round(4).alias("returns_simple"))["returns_simple"].to_list()
-        [None, 0.05, -0.0286, 0.0588, 0.0185]
+        [None, 0.02, -0.0098, 0.0396, -0.0095, 0.0288, 0.028, -0.0182, 0.037]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
 
@@ -165,11 +170,12 @@ def returns_simple(
         >>> frame.with_columns(returns_simple(pl.col("close")).over("ticker").round(4).alias("r"))["r"].to_list()
         [None, 0.05, -0.0286, 0.0588, None, 0.04, -0.0192, 0.0784]
 
-        A ``null`` (whose lag yields ``null``) and a ``NaN`` (which propagates) make the missing-data handling visible:
+        A ``null`` (whose lag voids the next bar too) and a ``NaN`` (which propagates) touch only the positions that
+        reference them before the series recovers, making the missing-data handling visible:
 
-        >>> frame = pl.DataFrame({"close": [100.0, 105.0, None, 108.0, float("nan"), 110.0]})
+        >>> frame = pl.DataFrame({"close": [100.0, 105.0, None, 108.0, 110.0, float("nan"), 113.0, 115.0]})
         >>> frame.select(returns_simple(pl.col("close")).round(4).alias("returns_simple"))["returns_simple"].to_list()
-        [None, 0.05, None, None, nan, nan]
+        [None, 0.05, None, None, 0.0185, nan, nan, 0.0177]
     """
     expr = float64_expr(expr)
     # The one-bar price relative minus one; the first row is null (no prior) and a zero previous price divides by zero
