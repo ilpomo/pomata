@@ -92,8 +92,7 @@ jobs:
           files: ./coverage.xml
           flags: unittests
 
-  # The unit / property suite across the Python matrix. While the repo is PRIVATE, macOS/Windows are commented out to
-  # save Actions minutes (they bill on private repos); restore the full 3-OS matrix when the repo goes public.
+  # The unit / property suite across the full Linux/macOS/Windows x Python 3.12-3.14 matrix.
   test:
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ${{ matrix.os }}
@@ -103,8 +102,8 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
-          # - macos-latest    # TEMP: off while private to save Actions minutes; restore when public.
-          # - windows-latest  # TEMP: off while private to save Actions minutes; restore when public.
+          - macos-latest
+          - windows-latest
         python-version: ["3.12", "3.13", "3.14"]
     steps:
       - name: "Setup: checkout"
