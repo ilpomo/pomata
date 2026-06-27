@@ -1,0 +1,89 @@
+name: Release
+
+# Cut a release by pushing a version tag: `git tag v0.1.0 && git push origin v0.1.0`. hatch-vcs derives the package
+# version from that tag, so the tag *is* the version -- no number is duplicated in the source tree. The build is
+# validated, published to PyPI via Trusted Publishing (OIDC, no API token), then a GitHub Release is cut with
+# auto-generated notes. Inert until the first tag: this file does nothing on ordinary pushes or PRs.
+#
+# One-time prerequisites (only needed before the first real tag):
+#   - PyPI -> Publishing -> add a pending publisher: project `pomata`, owner `ilpomo`, repo `pomata`,
+#     workflow `release.yml`, environment `pypi`.
+#   - GitHub -> Settings -> Environments -> create `pypi`.
+on:
+  push:
+    tags: ["v*"]
+
+# Least-privilege token: the top-level scope is read-only; each job widens to exactly what it needs.
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  # Build the sdist + wheel once and hand them to the publish/release jobs as an artifact, so every downstream job
+  # ships the identical, already-validated files.
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: "Setup: checkout"
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0 # hatch-vcs reads the tag history to stamp the version
+      - name: "Setup: install uv"
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: "0.11.17"
+          python-version: "3.14"
+          enable-cache: true
+      - name: "Build: sdist + wheel"
+        run: uv build
+      - name: "Build: validate the distribution metadata"
+        run: uvx twine check --strict dist/*
+      - name: "Build: upload the distribution artifact"
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  # Publish to PyPI through Trusted Publishing: GitHub mints a short-lived OIDC token that PyPI exchanges for upload
+  # credentials, so there is no long-lived API token to store or leak. PEP 740 attestations are emitted by default.
+  pypi:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: pypi
+      url: https://pypi.org/p/pomata
+    permissions:
+      id-token: write # OIDC token Trusted Publishing exchanges for a short-lived PyPI credential
+    steps:
+      - name: "Release: download the distribution artifact"
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: dist
+          path: dist/
+      - name: "Release: publish to PyPI (Trusted Publishing)"
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0
+
+  # Cut the GitHub Release only after PyPI succeeds, so a published release never points at a version that failed to
+  # upload. Notes are generated from the merged PRs, grouped by triage label via .github/release.yml.
+  github-release:
+    needs: pypi
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # create the Release and attach the built distributions
+    steps:
+      - name: "Release: download the distribution artifact"
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: dist
+          path: dist/
+      - name: "Release: create the GitHub Release with generated notes"
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${GITHUB_REF_NAME}" dist/* --repo "${GITHUB_REPOSITORY}" --title "${GITHUB_REF_NAME}" --generate-notes
