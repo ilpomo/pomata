@@ -42,6 +42,10 @@ doctest_global_setup = "import polars as pl\npl.Config.set_tbl_width_chars(120)"
 # meaning, the signature carries types).
 autodoc_member_order = "bysource"
 
+# Render every signature multi-line -- one parameter per line with a trailing comma -- so the busy OHLCV and
+# keyword-only signatures stay readable. The threshold of 1 forces the wrap for all signatures, not just the long ones.
+python_maximum_signature_line_length = 1
+
 napoleon_google_docstring = True
 napoleon_numpy_docstring = False
 
@@ -53,3 +57,7 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 html_theme = "furo"
 html_title = f"pomata {release}"
+
+# One small override (loaded after the theme): align a multi-line signature's closing parenthesis with the name.
+html_static_path = ["_static"]
+html_css_files = ["custom.css"]
