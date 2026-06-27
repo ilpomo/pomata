@@ -12,7 +12,11 @@ from pomata._expr import float64_expr, validate_finite, validate_window, validat
 __all__ = ("dema", "ema", "hma", "kama", "rma", "sma", "t3", "tema", "trima", "vwma", "wma")
 
 
-def _seeded_recursive_mean_kernel(series: pl.Series, alpha: float, window: int) -> pl.Series:
+def _seeded_recursive_mean_kernel(
+    series: pl.Series,
+    alpha: float,
+    window: int,
+) -> pl.Series:
     """
     Pure-Python kernel for one ``Float64`` batch of the SMA-seeded recurrence; the body of
     :func:`_seeded_recursive_mean`, run once per ``map_batches`` batch (per group under ``.over``).
@@ -53,7 +57,11 @@ def _seeded_recursive_mean_kernel(series: pl.Series, alpha: float, window: int) 
     return pl.Series(series.name, result, dtype=pl.Float64)
 
 
-def _seeded_recursive_mean(expr: pl.Expr, alpha: float, window: int) -> pl.Expr:
+def _seeded_recursive_mean(
+    expr: pl.Expr,
+    alpha: float,
+    window: int,
+) -> pl.Expr:
     """
     Recursive exponential mean seeded with the simple average of the first ``window`` observations.
 
@@ -374,7 +382,10 @@ def hma(
     return wma(raw_expr, smoothing_window)
 
 
-def _kama_kernel(series: pl.Series, window: int) -> pl.Series:
+def _kama_kernel(
+    series: pl.Series,
+    window: int,
+) -> pl.Series:
     """
     Sequential KAMA recurrence over one Series of ``{value, sc}`` structs (the pure-Python kernel).
 

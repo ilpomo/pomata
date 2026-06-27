@@ -825,7 +825,9 @@ def chande_momentum_oscillator(
     return pl.when(is_flat).then(float("nan")).otherwise(raw)
 
 
-def _fisher_kernel(series: pl.Series) -> pl.Series:
+def _fisher_kernel(
+    series: pl.Series,
+) -> pl.Series:
     """
     Sequential Fisher-transform recurrence over one Series of normalized channel positions (the pure-Python kernel).
 
@@ -851,7 +853,11 @@ def _fisher_kernel(series: pl.Series) -> pl.Series:
     return pl.Series(result, dtype=pl.Float64)
 
 
-def fisher_transform(high: pl.Expr, low: pl.Expr, window: int) -> pl.Expr:
+def fisher_transform(
+    high: pl.Expr,
+    low: pl.Expr,
+    window: int,
+) -> pl.Expr:
     r"""
     Fisher Transform.
 
@@ -1839,7 +1845,9 @@ def ultimate_oscillator(
     buying_pressure = close - true_low
     true_range = true_high - true_low
 
-    def averaged(window: int) -> pl.Expr:
+    def averaged(
+        window: int,
+    ) -> pl.Expr:
         # The genuine 0/0 degenerate (an exactly-flat true range with no buying pressure) is detected residual-free via
         # the rolling maxima and returned as NaN deterministically. A finite buying pressure over a zero true range --
         # reachable only through the documented missing-low fallback -- is left to IEEE-754 as +/-inf, the deliberate

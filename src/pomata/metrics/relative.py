@@ -39,7 +39,10 @@ __all__ = (
 _MINIMUM_PAIRED_OBSERVATIONS = 2
 
 
-def _paired(returns: pl.Expr, benchmark: pl.Expr) -> tuple[pl.Expr, pl.Expr]:
+def _paired(
+    returns: pl.Expr,
+    benchmark: pl.Expr,
+) -> tuple[pl.Expr, pl.Expr]:
     """
     Filter a return/benchmark pair to its pairwise-complete rows, returning the two filtered legs in input order.
 
@@ -50,7 +53,11 @@ def _paired(returns: pl.Expr, benchmark: pl.Expr) -> tuple[pl.Expr, pl.Expr]:
     return returns.filter(both_present), benchmark.filter(both_present)
 
 
-def _rolling_raw_beta(returns: pl.Expr, benchmark: pl.Expr, window: int) -> pl.Expr:
+def _rolling_raw_beta(
+    returns: pl.Expr,
+    benchmark: pl.Expr,
+    window: int,
+) -> pl.Expr:
     """
     The population regression slope over each trailing window, from rolling raw moments.
 
@@ -72,7 +79,10 @@ def _rolling_raw_beta(returns: pl.Expr, benchmark: pl.Expr, window: int) -> pl.E
     return pl.when(is_flat).then(float("nan")).otherwise(covariance / variance)
 
 
-def _raw_beta(returns: pl.Expr, benchmark: pl.Expr) -> pl.Expr:
+def _raw_beta(
+    returns: pl.Expr,
+    benchmark: pl.Expr,
+) -> pl.Expr:
     """
     The population regression slope ``cov(returns, benchmark) / var(benchmark)`` over complete pairs.
 
@@ -90,7 +100,13 @@ def _raw_beta(returns: pl.Expr, benchmark: pl.Expr) -> pl.Expr:
     return pl.when(is_flat).then(float("nan")).otherwise(slope)
 
 
-def _capture(returns: pl.Expr, benchmark: pl.Expr, periods_per_year: int, *, upside: bool) -> pl.Expr:
+def _capture(
+    returns: pl.Expr,
+    benchmark: pl.Expr,
+    periods_per_year: int,
+    *,
+    upside: bool,
+) -> pl.Expr:
     """
     The shared up/down capture ratio: annualized portfolio return over annualized benchmark return on selected periods.
 
@@ -117,7 +133,13 @@ def _capture(returns: pl.Expr, benchmark: pl.Expr, periods_per_year: int, *, ups
     )
 
 
-def alpha(returns: pl.Expr, benchmark: pl.Expr, *, periods_per_year: int, risk_free_rate: float = 0.0) -> pl.Expr:
+def alpha(
+    returns: pl.Expr,
+    benchmark: pl.Expr,
+    *,
+    periods_per_year: int,
+    risk_free_rate: float = 0.0,
+) -> pl.Expr:
     r"""
     Jensen's Alpha, the annualized excess return a portfolio earns beyond its benchmark-explained (CAPM) return.
 
@@ -222,7 +244,12 @@ def alpha(returns: pl.Expr, benchmark: pl.Expr, *, periods_per_year: int, risk_f
 
 
 def alpha_rolling(
-    returns: pl.Expr, benchmark: pl.Expr, window: int, *, periods_per_year: int, risk_free_rate: float = 0.0
+    returns: pl.Expr,
+    benchmark: pl.Expr,
+    window: int,
+    *,
+    periods_per_year: int,
+    risk_free_rate: float = 0.0,
 ) -> pl.Expr:
     r"""
     Rolling Jensen's Alpha over a window — the windowed twin of :func:`alpha`.
@@ -329,7 +356,10 @@ def alpha_rolling(
     return (1.0 + alpha_period) ** periods_per_year - 1.0
 
 
-def beta(returns: pl.Expr, benchmark: pl.Expr) -> pl.Expr:
+def beta(
+    returns: pl.Expr,
+    benchmark: pl.Expr,
+) -> pl.Expr:
     r"""
     Beta, the sensitivity of a portfolio's return to its benchmark (its systematic, non-diversifiable risk).
 
@@ -425,7 +455,11 @@ def beta(returns: pl.Expr, benchmark: pl.Expr) -> pl.Expr:
     )
 
 
-def beta_rolling(returns: pl.Expr, benchmark: pl.Expr, window: int) -> pl.Expr:
+def beta_rolling(
+    returns: pl.Expr,
+    benchmark: pl.Expr,
+    window: int,
+) -> pl.Expr:
     r"""
     Rolling Beta over a window — the windowed twin of :func:`beta`.
 
@@ -514,7 +548,12 @@ def beta_rolling(returns: pl.Expr, benchmark: pl.Expr, window: int) -> pl.Expr:
     return _rolling_raw_beta(returns, benchmark, window)
 
 
-def capture_downside_ratio(returns: pl.Expr, benchmark: pl.Expr, *, periods_per_year: int) -> pl.Expr:
+def capture_downside_ratio(
+    returns: pl.Expr,
+    benchmark: pl.Expr,
+    *,
+    periods_per_year: int,
+) -> pl.Expr:
     r"""
     Downside Capture Ratio, how much of the benchmark's loss a portfolio participated in during down markets.
 
@@ -617,7 +656,12 @@ def capture_downside_ratio(returns: pl.Expr, benchmark: pl.Expr, *, periods_per_
     return _capture(returns_paired, benchmark_paired, periods_per_year, upside=False)
 
 
-def capture_ratio(returns: pl.Expr, benchmark: pl.Expr, *, periods_per_year: int) -> pl.Expr:
+def capture_ratio(
+    returns: pl.Expr,
+    benchmark: pl.Expr,
+    *,
+    periods_per_year: int,
+) -> pl.Expr:
     r"""
     Capture Ratio, the ratio of upside capture to downside capture (a single market-asymmetry score).
 
@@ -713,7 +757,12 @@ def capture_ratio(returns: pl.Expr, benchmark: pl.Expr, *, periods_per_year: int
     )
 
 
-def capture_upside_ratio(returns: pl.Expr, benchmark: pl.Expr, *, periods_per_year: int) -> pl.Expr:
+def capture_upside_ratio(
+    returns: pl.Expr,
+    benchmark: pl.Expr,
+    *,
+    periods_per_year: int,
+) -> pl.Expr:
     r"""
     Upside Capture Ratio, how much of the benchmark's gain a portfolio participated in during up markets.
 
@@ -816,7 +865,12 @@ def capture_upside_ratio(returns: pl.Expr, benchmark: pl.Expr, *, periods_per_ye
     return _capture(returns_paired, benchmark_paired, periods_per_year, upside=True)
 
 
-def information_ratio(returns: pl.Expr, benchmark: pl.Expr, *, periods_per_year: int) -> pl.Expr:
+def information_ratio(
+    returns: pl.Expr,
+    benchmark: pl.Expr,
+    *,
+    periods_per_year: int,
+) -> pl.Expr:
     r"""
     Information Ratio, the annualized active return per unit of tracking error.
 
@@ -918,7 +972,13 @@ def information_ratio(returns: pl.Expr, benchmark: pl.Expr, *, periods_per_year:
     return pl.when(active.len() < _MINIMUM_PAIRED_OBSERVATIONS).then(None).otherwise(annualized)
 
 
-def information_ratio_rolling(returns: pl.Expr, benchmark: pl.Expr, window: int, *, periods_per_year: int) -> pl.Expr:
+def information_ratio_rolling(
+    returns: pl.Expr,
+    benchmark: pl.Expr,
+    window: int,
+    *,
+    periods_per_year: int,
+) -> pl.Expr:
     r"""
     Rolling Information Ratio over a window — the windowed twin of :func:`information_ratio`.
 
@@ -1022,7 +1082,11 @@ def information_ratio_rolling(returns: pl.Expr, benchmark: pl.Expr, window: int,
 
 
 def modigliani_risk_adjusted_performance(
-    returns: pl.Expr, benchmark: pl.Expr, *, periods_per_year: int, risk_free_rate: float = 0.0
+    returns: pl.Expr,
+    benchmark: pl.Expr,
+    *,
+    periods_per_year: int,
+    risk_free_rate: float = 0.0,
 ) -> pl.Expr:
     r"""
     Modigliani Risk-Adjusted Performance (a.k.a. M-squared), the portfolio's return rescaled to the benchmark's risk.
@@ -1125,7 +1189,11 @@ def modigliani_risk_adjusted_performance(
 
 
 def treynor_ratio(
-    returns: pl.Expr, benchmark: pl.Expr, *, periods_per_year: int, risk_free_rate: float = 0.0
+    returns: pl.Expr,
+    benchmark: pl.Expr,
+    *,
+    periods_per_year: int,
+    risk_free_rate: float = 0.0,
 ) -> pl.Expr:
     r"""
     Treynor Ratio, the annualized excess return per unit of systematic (benchmark) risk.
@@ -1230,7 +1298,12 @@ def treynor_ratio(
 
 
 def treynor_ratio_rolling(
-    returns: pl.Expr, benchmark: pl.Expr, window: int, *, periods_per_year: int, risk_free_rate: float = 0.0
+    returns: pl.Expr,
+    benchmark: pl.Expr,
+    window: int,
+    *,
+    periods_per_year: int,
+    risk_free_rate: float = 0.0,
 ) -> pl.Expr:
     r"""
     Rolling Treynor Ratio over a window — the windowed twin of :func:`treynor_ratio`.

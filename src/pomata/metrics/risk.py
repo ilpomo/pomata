@@ -39,7 +39,10 @@ __all__ = (
 )
 
 
-def _rolling_central_moments(expr: pl.Expr, window: int) -> tuple[pl.Expr, pl.Expr, pl.Expr]:
+def _rolling_central_moments(
+    expr: pl.Expr,
+    window: int,
+) -> tuple[pl.Expr, pl.Expr, pl.Expr]:
     """
     The rolling second, third, and fourth central moments over a window, from the rolling raw moments.
 
@@ -57,7 +60,12 @@ def _rolling_central_moments(expr: pl.Expr, window: int) -> tuple[pl.Expr, pl.Ex
     return central_2, central_3, central_4
 
 
-def _rolling_downside_deviation(expr: pl.Expr, window: int, periods_per_year: int, threshold: float) -> pl.Expr:
+def _rolling_downside_deviation(
+    expr: pl.Expr,
+    window: int,
+    periods_per_year: int,
+    threshold: float,
+) -> pl.Expr:
     """
     The rolling annualized downside deviation, with the no-downside window forced to exactly zero.
 
@@ -74,7 +82,11 @@ def _rolling_downside_deviation(expr: pl.Expr, window: int, periods_per_year: in
     return safe_mean_square.sqrt() * math.sqrt(periods_per_year)
 
 
-def conditional_value_at_risk(returns: pl.Expr, *, confidence: float = 0.95) -> pl.Expr:
+def conditional_value_at_risk(
+    returns: pl.Expr,
+    *,
+    confidence: float = 0.95,
+) -> pl.Expr:
     r"""
     Historical Conditional Value-at-Risk (a.k.a. Expected Shortfall), the mean loss beyond the value-at-risk quantile.
 
@@ -177,7 +189,12 @@ def conditional_value_at_risk(returns: pl.Expr, *, confidence: float = 0.95) -> 
     return pl.when(returns.is_nan().any()).then(pl.lit(float("nan"))).otherwise(shortfall_mean)
 
 
-def downside_deviation(returns: pl.Expr, *, periods_per_year: int, threshold: float = 0.0) -> pl.Expr:
+def downside_deviation(
+    returns: pl.Expr,
+    *,
+    periods_per_year: int,
+    threshold: float = 0.0,
+) -> pl.Expr:
     r"""
     Annualized Downside Deviation, the dispersion of returns below a threshold.
 
@@ -266,7 +283,11 @@ def downside_deviation(returns: pl.Expr, *, periods_per_year: int, threshold: fl
 
 
 def downside_deviation_rolling(
-    returns: pl.Expr, window: int, *, periods_per_year: int, threshold: float = 0.0
+    returns: pl.Expr,
+    window: int,
+    *,
+    periods_per_year: int,
+    threshold: float = 0.0,
 ) -> pl.Expr:
     r"""
     Rolling Downside Deviation over a window — the windowed twin of :func:`downside_deviation`.
@@ -369,7 +390,9 @@ def downside_deviation_rolling(
     return _rolling_downside_deviation(returns, window, periods_per_year, threshold)
 
 
-def kelly_criterion(returns: pl.Expr) -> pl.Expr:
+def kelly_criterion(
+    returns: pl.Expr,
+) -> pl.Expr:
     r"""
     Kelly Criterion, the growth-optimal fraction of capital to risk per bet.
 
@@ -466,7 +489,9 @@ def kelly_criterion(returns: pl.Expr) -> pl.Expr:
     return probability - (1.0 - probability) / payoff_ratio(returns)
 
 
-def kurtosis(returns: pl.Expr) -> pl.Expr:
+def kurtosis(
+    returns: pl.Expr,
+) -> pl.Expr:
     r"""
     Excess Kurtosis, the tailedness of a return distribution.
 
@@ -557,7 +582,10 @@ def kurtosis(returns: pl.Expr) -> pl.Expr:
     return returns.kurtosis()
 
 
-def kurtosis_rolling(returns: pl.Expr, window: int) -> pl.Expr:
+def kurtosis_rolling(
+    returns: pl.Expr,
+    window: int,
+) -> pl.Expr:
     r"""
     Rolling Excess Kurtosis over a window — the windowed twin of :func:`kurtosis`.
 
@@ -653,7 +681,9 @@ def kurtosis_rolling(returns: pl.Expr, window: int) -> pl.Expr:
     return central_4 / central_2**2 - 3.0
 
 
-def payoff_ratio(returns: pl.Expr) -> pl.Expr:
+def payoff_ratio(
+    returns: pl.Expr,
+) -> pl.Expr:
     r"""
     Payoff Ratio, the average winning return over the average losing return.
 
@@ -749,7 +779,9 @@ def payoff_ratio(returns: pl.Expr) -> pl.Expr:
     return pl.when(returns.is_nan().any()).then(pl.lit(float("nan"))).otherwise(ratio)
 
 
-def profit_ratio(returns: pl.Expr) -> pl.Expr:
+def profit_ratio(
+    returns: pl.Expr,
+) -> pl.Expr:
     r"""
     Profit Factor, the total gain over the total loss.
 
@@ -843,7 +875,9 @@ def profit_ratio(returns: pl.Expr) -> pl.Expr:
     return total_gain / total_loss
 
 
-def risk_of_ruin(returns: pl.Expr) -> pl.Expr:
+def risk_of_ruin(
+    returns: pl.Expr,
+) -> pl.Expr:
     r"""
     Risk of Ruin, the probability of losing the whole capital under a symmetric betting model.
 
@@ -932,7 +966,9 @@ def risk_of_ruin(returns: pl.Expr) -> pl.Expr:
     return ((1.0 - probability) / probability).pow(observations).clip(upper_bound=1.0)
 
 
-def skewness(returns: pl.Expr) -> pl.Expr:
+def skewness(
+    returns: pl.Expr,
+) -> pl.Expr:
     r"""
     Skewness, the asymmetry of a return distribution.
 
@@ -1022,7 +1058,10 @@ def skewness(returns: pl.Expr) -> pl.Expr:
     return returns.skew()
 
 
-def skewness_rolling(returns: pl.Expr, window: int) -> pl.Expr:
+def skewness_rolling(
+    returns: pl.Expr,
+    window: int,
+) -> pl.Expr:
     r"""
     Rolling Skewness over a window — the windowed twin of :func:`skewness`.
 
@@ -1117,7 +1156,9 @@ def skewness_rolling(returns: pl.Expr, window: int) -> pl.Expr:
     return central_3 / central_2**1.5
 
 
-def tail_ratio(returns: pl.Expr) -> pl.Expr:
+def tail_ratio(
+    returns: pl.Expr,
+) -> pl.Expr:
     r"""
     Tail Ratio, the size of the right tail relative to the left tail of a return distribution.
 
@@ -1196,7 +1237,10 @@ def tail_ratio(returns: pl.Expr) -> pl.Expr:
     return pl.when(returns.is_nan().any()).then(pl.lit(float("nan"))).otherwise(ratio)
 
 
-def tail_ratio_rolling(returns: pl.Expr, window: int) -> pl.Expr:
+def tail_ratio_rolling(
+    returns: pl.Expr,
+    window: int,
+) -> pl.Expr:
     r"""
     Rolling Tail Ratio over a window — the windowed twin of :func:`tail_ratio`.
 
@@ -1292,7 +1336,11 @@ def tail_ratio_rolling(returns: pl.Expr, window: int) -> pl.Expr:
     return pl.when(nan_in_window == 1.0).then(pl.lit(float("nan"))).otherwise(ratio)
 
 
-def value_at_risk(returns: pl.Expr, *, confidence: float = 0.95) -> pl.Expr:
+def value_at_risk(
+    returns: pl.Expr,
+    *,
+    confidence: float = 0.95,
+) -> pl.Expr:
     r"""
     Historical Value-at-Risk, the loss threshold a return falls below only ``1 - confidence`` of the time.
 
@@ -1377,7 +1425,11 @@ def value_at_risk(returns: pl.Expr, *, confidence: float = 0.95) -> pl.Expr:
     return pl.when(returns.is_nan().any()).then(pl.lit(float("nan"))).otherwise(quantile)
 
 
-def value_at_risk_modified(returns: pl.Expr, *, confidence: float = 0.95) -> pl.Expr:
+def value_at_risk_modified(
+    returns: pl.Expr,
+    *,
+    confidence: float = 0.95,
+) -> pl.Expr:
     r"""
     Modified Value-at-Risk (a.k.a. Cornish-Fisher VaR), the Gaussian VaR corrected for skewness and kurtosis.
 
@@ -1489,7 +1541,11 @@ def value_at_risk_modified(returns: pl.Expr, *, confidence: float = 0.95) -> pl.
     return returns.mean() + z_cornish_fisher * returns.std(ddof=1)
 
 
-def value_at_risk_parametric(returns: pl.Expr, *, confidence: float = 0.95) -> pl.Expr:
+def value_at_risk_parametric(
+    returns: pl.Expr,
+    *,
+    confidence: float = 0.95,
+) -> pl.Expr:
     r"""
     Parametric Value-at-Risk (a.k.a. variance-covariance / Gaussian VaR), the normal-distribution loss quantile.
 
@@ -1572,7 +1628,12 @@ def value_at_risk_parametric(returns: pl.Expr, *, confidence: float = 0.95) -> p
     return returns.mean() + z * returns.std(ddof=1)
 
 
-def value_at_risk_rolling(returns: pl.Expr, window: int, *, confidence: float = 0.95) -> pl.Expr:
+def value_at_risk_rolling(
+    returns: pl.Expr,
+    window: int,
+    *,
+    confidence: float = 0.95,
+) -> pl.Expr:
     r"""
     Rolling historical Value-at-Risk over a window — the windowed twin of :func:`value_at_risk`.
 
@@ -1669,7 +1730,11 @@ def value_at_risk_rolling(returns: pl.Expr, window: int, *, confidence: float = 
     return pl.when(nan_in_window == 1.0).then(pl.lit(float("nan"))).otherwise(quantile)
 
 
-def volatility(returns: pl.Expr, *, periods_per_year: int) -> pl.Expr:
+def volatility(
+    returns: pl.Expr,
+    *,
+    periods_per_year: int,
+) -> pl.Expr:
     r"""
     Annualized Volatility, the annualized sample standard deviation of returns.
 
@@ -1749,7 +1814,12 @@ def volatility(returns: pl.Expr, *, periods_per_year: int) -> pl.Expr:
     return returns.std(ddof=1) * math.sqrt(periods_per_year)
 
 
-def volatility_rolling(returns: pl.Expr, window: int, *, periods_per_year: int) -> pl.Expr:
+def volatility_rolling(
+    returns: pl.Expr,
+    window: int,
+    *,
+    periods_per_year: int,
+) -> pl.Expr:
     r"""
     Rolling Volatility over a window — the windowed twin of :func:`volatility`.
 
@@ -1842,7 +1912,9 @@ def volatility_rolling(returns: pl.Expr, window: int, *, periods_per_year: int) 
     return returns.rolling_std(window, ddof=1, min_samples=window) * math.sqrt(periods_per_year)
 
 
-def win_rate(returns: pl.Expr) -> pl.Expr:
+def win_rate(
+    returns: pl.Expr,
+) -> pl.Expr:
     r"""
     Win Rate, the fraction of decisive returns that are positive.
 

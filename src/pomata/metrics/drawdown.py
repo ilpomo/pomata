@@ -18,7 +18,11 @@ __all__ = (
 )
 
 
-def conditional_drawdown_at_risk(equity_curve: pl.Expr, *, confidence: float = 0.95) -> pl.Expr:
+def conditional_drawdown_at_risk(
+    equity_curve: pl.Expr,
+    *,
+    confidence: float = 0.95,
+) -> pl.Expr:
     r"""
     Conditional Drawdown at Risk (CDaR), the mean of the worst drawdowns beyond a confidence level.
 
@@ -103,7 +107,9 @@ def conditional_drawdown_at_risk(equity_curve: pl.Expr, *, confidence: float = 0
     return pl.when(equity_curve.is_nan().any()).then(pl.lit(float("nan"))).otherwise(tail_mean)
 
 
-def drawdown(equity_curve: pl.Expr) -> pl.Expr:
+def drawdown(
+    equity_curve: pl.Expr,
+) -> pl.Expr:
     r"""
     Drawdown, the running fractional decline of an equity curve from its prior peak.
 
@@ -177,7 +183,10 @@ def drawdown(equity_curve: pl.Expr) -> pl.Expr:
     return equity_curve / equity_curve.cum_max() - 1
 
 
-def drawdown_rolling(equity_curve: pl.Expr, window: int) -> pl.Expr:
+def drawdown_rolling(
+    equity_curve: pl.Expr,
+    window: int,
+) -> pl.Expr:
     r"""
     Rolling Drawdown over a window — the decline from each trailing window's peak.
 
@@ -255,7 +264,9 @@ def drawdown_rolling(equity_curve: pl.Expr, window: int) -> pl.Expr:
     return equity_curve / equity_curve.rolling_max(window, min_samples=window) - 1.0
 
 
-def max_drawdown(equity_curve: pl.Expr) -> pl.Expr:
+def max_drawdown(
+    equity_curve: pl.Expr,
+) -> pl.Expr:
     r"""
     Maximum Drawdown, the deepest peak-to-trough decline of an equity curve.
 
@@ -328,7 +339,9 @@ def max_drawdown(equity_curve: pl.Expr) -> pl.Expr:
     return pl.when(declines.is_nan().any()).then(pl.lit(float("nan"))).otherwise(declines.min())
 
 
-def max_drawdown_duration(equity_curve: pl.Expr) -> pl.Expr:
+def max_drawdown_duration(
+    equity_curve: pl.Expr,
+) -> pl.Expr:
     r"""
     Maximum Drawdown Duration, the length of the longest underwater stretch (in bars).
 
@@ -405,7 +418,9 @@ def max_drawdown_duration(equity_curve: pl.Expr) -> pl.Expr:
     return pl.when(equity_curve.is_nan().any()).then(pl.lit(float("nan"))).otherwise(longest)
 
 
-def pain_index(equity_curve: pl.Expr) -> pl.Expr:
+def pain_index(
+    equity_curve: pl.Expr,
+) -> pl.Expr:
     r"""
     Pain Index, the average depth of drawdown over the whole curve.
 
@@ -477,7 +492,9 @@ def pain_index(equity_curve: pl.Expr) -> pl.Expr:
     return drawdown(equity_curve).abs().mean()
 
 
-def ulcer_index(equity_curve: pl.Expr) -> pl.Expr:
+def ulcer_index(
+    equity_curve: pl.Expr,
+) -> pl.Expr:
     r"""
     Ulcer Index, the root-mean-square depth of an equity curve's drawdowns.
 

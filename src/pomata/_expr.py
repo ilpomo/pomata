@@ -13,7 +13,9 @@ from typing import cast
 import polars as pl
 
 
-def float64_expr(expr: pl.Expr) -> pl.Expr:
+def float64_expr(
+    expr: pl.Expr,
+) -> pl.Expr:
     """
     Normalize a factory input to a ``Float64`` expression.
 
@@ -45,7 +47,12 @@ def float64_expr(expr: pl.Expr) -> pl.Expr:
     return candidate.cast(pl.Float64)
 
 
-def validate_window(window: int, minimum: int = 1, *, name: str = "window") -> None:
+def validate_window(
+    window: int,
+    minimum: int = 1,
+    *,
+    name: str = "window",
+) -> None:
     """
     Validate a lookback ``window`` against its minimum, raising the canonical message on failure.
 
@@ -66,7 +73,10 @@ def validate_window(window: int, minimum: int = 1, *, name: str = "window") -> N
         raise ValueError(f"{name} must be >= {minimum}, got {window}")
 
 
-def validate_ddof(ddof: int, window: int) -> None:
+def validate_ddof(
+    ddof: int,
+    window: int,
+) -> None:
     """
     Validate that the delta degrees of freedom leave a positive divisor, raising the canonical message on failure.
 
@@ -85,7 +95,11 @@ def validate_ddof(ddof: int, window: int) -> None:
 
 
 def validate_window_order(
-    window_fast: int, window_slow: int, *, fast_name: str = "window_fast", slow_name: str = "window_slow"
+    window_fast: int,
+    window_slow: int,
+    *,
+    fast_name: str = "window_fast",
+    slow_name: str = "window_slow",
 ) -> None:
     """
     Validate that a fast/slow window pair is ordered, raising the canonical message on failure.
@@ -110,7 +124,9 @@ def validate_window_order(
         )
 
 
-def validate_periods_per_year(periods_per_year: int) -> None:
+def validate_periods_per_year(
+    periods_per_year: int,
+) -> None:
     """
     Validate the annualization factor, raising the canonical message on failure.
 
@@ -127,7 +143,10 @@ def validate_periods_per_year(periods_per_year: int) -> None:
         raise ValueError(f"periods_per_year must be >= 1, got {periods_per_year}")
 
 
-def per_period_rate(annual_rate: float, periods_per_year: int) -> float:
+def per_period_rate(
+    annual_rate: float,
+    periods_per_year: int,
+) -> float:
     """
     Convert an annualized rate to its per-period equivalent geometrically.
 
@@ -145,7 +164,10 @@ def per_period_rate(annual_rate: float, periods_per_year: int) -> float:
     return math.pow(1.0 + annual_rate, 1.0 / periods_per_year) - 1.0
 
 
-def validate_finite(value: float, name: str) -> None:
+def validate_finite(
+    value: float,
+    name: str,
+) -> None:
     """
     Validate a scalar tuning parameter is a finite number, raising the canonical message on failure.
 
@@ -163,7 +185,12 @@ def validate_finite(value: float, name: str) -> None:
         raise ValueError(f"{name} must be a finite number, got {value}")
 
 
-def validate_positive(value: float, name: str, *, allow_zero: bool = False) -> None:
+def validate_positive(
+    value: float,
+    name: str,
+    *,
+    allow_zero: bool = False,
+) -> None:
     """
     Validate a scalar tuning parameter is a finite, positive number, raising the canonical message on failure.
 
@@ -184,7 +211,9 @@ def validate_positive(value: float, name: str, *, allow_zero: bool = False) -> N
         raise ValueError(f"{name} must be a finite number {bound}, got {value}")
 
 
-def validate_confidence(confidence: float) -> None:
+def validate_confidence(
+    confidence: float,
+) -> None:
     """
     Validate a tail confidence level lies strictly inside ``(0, 1)``, raising the canonical message on failure.
 

@@ -10,7 +10,12 @@ from pomata.indicators.moving_average import sma
 __all__ = ("stochastic_fast", "stochastic_slow")
 
 
-def _raw_percent_k(high: pl.Expr, low: pl.Expr, close: pl.Expr, window_k: int) -> pl.Expr:
+def _raw_percent_k(
+    high: pl.Expr,
+    low: pl.Expr,
+    close: pl.Expr,
+    window_k: int,
+) -> pl.Expr:
     """
     Raw stochastic %K: the close's position within the ``window_k`` high-low range, scaled to ``[0, 100]``.
 
