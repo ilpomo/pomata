@@ -2,9 +2,10 @@ name: Release
 
 # Releasing is UI-driven: GitHub -> Releases -> Draft a new release -> choose the tag `vX.Y.Z` (create on publish) ->
 # Generate release notes -> Publish. Publishing fires this workflow, which builds the sdist + wheel, validates them,
-# publishes to PyPI via Trusted Publishing (OIDC, no API token), and attaches the built distributions to the Release
-# you just published. hatch-vcs derives the package version from the tag, so the tag *is* the version. The workflow is
-# inert on ordinary pushes and PRs -- only a published Release triggers it.
+# and publishes to PyPI via Trusted Publishing (OIDC, no API token). hatch-vcs derives the package version from the
+# tag, so the tag *is* the version. The workflow is inert on ordinary pushes and PRs -- only a published Release
+# triggers it. PyPI is the artifact home: `skip-existing` makes re-publishing a no-op, and the wheel/sdist are not
+# attached to the Release.
 #
 # One-time prerequisites (already configured; listed for the record):
 #   - PyPI -> Publishing -> pending publisher: project `pomata`, owner `ilpomo`, repo `pomata`,
@@ -69,22 +70,5 @@ jobs:
           path: dist/
       - name: "Release: publish to PyPI (Trusted Publishing)"
         uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0
-
-  # Attach the built sdist + wheel to the Release that triggered this run (the Release itself is authored in the UI).
-  # Runs after PyPI so the assets appear only once the package is actually published.
-  attach:
-    needs: pypi
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: write # upload assets to the Release
-    steps:
-      - name: "Release: download the distribution artifact"
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: dist
-          path: dist/
-      - name: "Release: attach the distributions to the published Release"
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${GITHUB_REF_NAME}" dist/* --repo "${GITHUB_REPOSITORY}" --clobber
+          skip-existing: true # re-publishing an already-uploaded version is a no-op, not an error
