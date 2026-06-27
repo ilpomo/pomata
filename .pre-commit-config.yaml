@@ -4,7 +4,7 @@
 # own ruff and uv; keep them in step after a Dependabot bump so pre-commit and CI stay aligned.
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.18 # keep in step with the ruff version in uv.lock
+    rev: v0.15.20 # keep in step with the ruff version in uv.lock
     hooks:
       - id: ruff-check # mirrors CI's `ruff check`; --fix autofixes locally
         args: [--fix]
