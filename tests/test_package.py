@@ -10,6 +10,14 @@ import pytest
 import pomata
 
 
+def test_every_subpackage_imports() -> None:
+    """
+    Verifies that the top-level package and each family subpackage (indicators, pnl, metrics) import without error.
+    """
+    for name in ("pomata", "pomata.indicators", "pomata.metrics", "pomata.pnl"):
+        assert importlib.import_module(name).__name__ == name
+
+
 def test_version_is_exposed() -> None:
     """
     ``pomata.__version__`` is a non-empty string resolved from the installed distribution metadata.
