@@ -1,0 +1,14 @@
+/* Align the closing parenthesis of a multi-line signature with the function name.
+
+   Furo gives every signature a hanging indent (`text-indent: -2.5em` over a `3em` left padding) so that a
+   soft-wrapped signature's continuation lines sit indented under the name. But with `python_maximum_signature_line_length`
+   forcing every signature multi-line, Sphinx emits the parameters as a `<dl>` and places the closing `)` on the line
+   *after* that block -- a continuation line -- so it inherits the 2.5em indent and no longer lines up with `def`.
+
+   Dropping the hanging indent re-aligns the closing `)` with the name without moving the name itself (same effective
+   0.5em offset) and without flattening the parameters (they keep their own `<dd>` indent). This is the only lever
+   Furo exposes for it; the selector matches Furo's own rule exactly, and this file loads after the theme, so it wins. */
+.sig:not(.sig-inline) {
+  padding-left: 0.5em;
+  text-indent: 0;
+}

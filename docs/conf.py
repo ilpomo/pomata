@@ -57,3 +57,7 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 html_theme = "furo"
 html_title = f"pomata {release}"
+
+# One small override (loaded after the theme): align a multi-line signature's closing parenthesis with the name.
+html_static_path = ["_static"]
+html_css_files = ["custom.css"]
