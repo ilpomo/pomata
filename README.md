@@ -22,8 +22,6 @@ against an independent reference, under 100% branch coverage.
 [![license](https://img.shields.io/badge/license-MIT-750014?style=flat-square)](LICENSE)
 
 > **Alpha.** The API is not frozen until `1.0`; expect refinement. The correctness bar holds at every commit regardless.
-> CI runs on Linux during the private alpha; the macOS/Windows badges reflect intended support (the full OS matrix
-> returns when the repo goes public).
 
 ## From price to performance, in one query
 
