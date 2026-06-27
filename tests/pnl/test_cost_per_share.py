@@ -1,0 +1,251 @@
+"""
+Tests for ``pomata.pnl.cost_per_share`` — the per-unit-traded commission (currency).
+
+``cost_per_share`` is single-input (``quantity``) plus a scalar ``fee``; it scales :func:`turnover`, so it inherits the
+flat start (first row ``|quantity_0| * fee``) and turnover's null / NaN rule. Tests use the shared ``apply_expr`` helper
+over a one-column ``Float64`` frame; ``assert_matches`` and the naive ``cost_per_share_reference`` oracle are shared.
+The cost is degree-1 homogeneous in the quantity, so it carries the scale-homogeneity and large-magnitude tiers.
+
+The ladder is the canonical one: contract (type / shape / lazy-eager / ``.over`` per-group independence), edge
+(flat-start / single-row / null / NaN / negative-fee guard), correctness (vs the closed-form reference and a frozen
+golden master), and properties (reference agreement incl. missing data, scale-homogeneity, large-magnitude). Categories
+are split into classes; cross-cutting categories use markers (see ``tests/README.md``).
+"""
+
+import math
+
+import polars as pl
+import pytest
+from hypothesis import given
+from hypothesis import strategies as st
+from polars.testing import assert_frame_equal
+from tests.pnl.oracles import cost_per_share_reference
+from tests.support import (
+    ABSOLUTE_TOLERANCE_REFERENCE,
+    ABSOLUTE_TOLERANCE_STREAMING,
+    COLUMN_X,
+    GROUP_KEY,
+    RELATIVE_TOLERANCE_PROPERTY,
+    RELATIVE_TOLERANCE_REFERENCE,
+    RELATIVE_TOLERANCE_SCALE,
+    apply_expr,
+    assert_matches,
+    assert_scale_homogeneous,
+    finite_floats,
+    missing_data_floats,
+)
+
+from pomata.pnl import cost_per_share
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Test sizing -- cost_per_share scales turnover (W = 0, flat start, M = 0); a case is just the quantity series plus a
+# scalar fee. Degree-1 homogeneous in the quantity, so it keeps the scale-homogeneity and large-magnitude tiers.
+# Repetitions N are the shared CI profile (tests/conftest.py).
+# ----------------------------------------------------------------------------------------------------------------------
+SERIES_MAX = 50
+FEE = 0.01  # the deterministic-test per-share fee (one cent per share)
+
+_FEES = st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False)
+
+
+@st.composite
+def _cases[T](draw: st.DrawFn, quantities: st.SearchStrategy[T], min_size: int = 1) -> list[T]:
+    """
+    A quantity series; windowless with a flat start, so every row is a defined output.
+    """
+    return draw(st.lists(quantities, min_size=min_size, max_size=SERIES_MAX))
+
+
+class TestCostPerShareContract:
+    """
+    Type, shape, and lazy/eager guarantees.
+    """
+
+    def test_returns_expr(self) -> None:
+        """
+        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
+        """
+        assert isinstance(cost_per_share(pl.col(COLUMN_X), FEE), pl.Expr)
+
+    def test_preserves_length_and_dtype(self) -> None:
+        """
+        Verifies that the output has one value per input row and is ``Float64``.
+        """
+        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [10.0, 10.0, -5.0, -5.0, 20.0], dtype=pl.Float64)})
+        result = frame.select(cost_per_share(pl.col(COLUMN_X), FEE).alias("y"))
+        assert result.height == frame.height
+        assert result.schema["y"] == pl.Float64
+
+    def test_lazy_eager_parity(self) -> None:
+        """
+        Verifies that eager and lazy application produce identical materialized output.
+        """
+        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [10.0, 10.0, -5.0, -5.0, 20.0], dtype=pl.Float64)})
+        expr = cost_per_share(pl.col(COLUMN_X), FEE).alias("y")
+        result_eager = frame.select(expr)
+        result_lazy = frame.lazy().select(expr).collect()
+        assert_frame_equal(result_eager, result_lazy)
+
+    def test_over_partitions_independently(self) -> None:
+        """
+        Verifies that under ``.over`` the turnover resets per group (each group gets its own flat start).
+        """
+        frame = pl.DataFrame({GROUP_KEY: ["a"] * 3 + ["b"] * 3, COLUMN_X: [10.0, 10.0, -5.0, 2.0, 2.0, 2.0]})
+        expr = cost_per_share(pl.col(COLUMN_X), FEE).over(GROUP_KEY)
+        grouped = frame.select(expr.alias("y"))["y"].to_list()
+        group_a = apply_expr([10.0, 10.0, -5.0], cost_per_share(pl.col(COLUMN_X), FEE))
+        group_b = apply_expr([2.0, 2.0, 2.0], cost_per_share(pl.col(COLUMN_X), FEE))
+        assert_matches(grouped, group_a + group_b)
+
+
+class TestCostPerShareEdge:
+    """
+    Boundaries, the flat start, null / NaN handling, and the fee guard.
+    """
+
+    def test_flat_start_first_row(self) -> None:
+        """
+        Verifies the first row is ``|quantity_0| * fee`` (the cost of the entry trade from a flat start).
+        """
+        assert_matches(apply_expr([10.0, 10.0, -5.0], cost_per_share(pl.col(COLUMN_X), FEE)), [0.1, 0.0, 0.15])
+
+    def test_single_row(self) -> None:
+        """
+        Verifies that a one-element series resolves to ``|quantity_0| * fee`` (the entry trade), not null.
+        """
+        assert_matches(apply_expr([10.0], cost_per_share(pl.col(COLUMN_X), FEE)), [0.1])
+
+    def test_empty(self) -> None:
+        """
+        Verifies that an empty series yields an empty result.
+        """
+        assert_matches(apply_expr([], cost_per_share(pl.col(COLUMN_X), FEE)), [])
+
+    def test_all_null(self) -> None:
+        """
+        Verifies that an all-null series stays null.
+        """
+        assert_matches(apply_expr([None, None, None], cost_per_share(pl.col(COLUMN_X), FEE)), [None, None, None])
+
+    def test_null_propagates(self) -> None:
+        """
+        Verifies that a null voids its own row and the next (via turnover), matching the naive reference.
+        """
+        values = [10.0, None, -5.0, 20.0]
+        assert_matches(apply_expr(values, cost_per_share(pl.col(COLUMN_X), FEE)), cost_per_share_reference(values, FEE))
+
+    def test_nan_propagates(self) -> None:
+        """
+        Verifies that a NaN propagates to its own row and the next (matching the naive reference).
+        """
+        values = [10.0, math.nan, -5.0, 20.0]
+        assert_matches(apply_expr(values, cost_per_share(pl.col(COLUMN_X), FEE)), cost_per_share_reference(values, FEE))
+
+    def test_invalid_fee_raises(self) -> None:
+        """
+        Verifies that a fee that is not a finite number ``>= 0`` (negative, ``NaN``, or ``±inf``) raises
+        ``ValueError`` -- a commission is a finite non-negative number, so a non-finite value fails fast at the call
+        site rather than silently poisoning the output with ``NaN`` / ``inf``.
+        """
+        for invalid in (-0.01, math.nan, math.inf, -math.inf):
+            with pytest.raises(ValueError, match="fee must be a finite number >= 0"):
+                cost_per_share(pl.col(COLUMN_X), invalid)
+
+
+class TestCostPerShareCorrectness:
+    """
+    Against the naive reference oracle and frozen golden-master values.
+    """
+
+    def test_matches_reference(self) -> None:
+        """
+        Verifies agreement with the naive closed-form reference over a representative quantity series.
+        """
+        values = [10.0, 10.0, -5.0, -5.0, 20.0, 15.0, -8.0, 12.0]
+        assert_matches(
+            apply_expr(values, cost_per_share(pl.col(COLUMN_X), FEE)),
+            cost_per_share_reference(values, FEE),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
+        )
+
+    def test_golden_master(self) -> None:
+        """
+        Verifies the frozen reference over a five-bar quantity series at one cent per share.
+        """
+        result = apply_expr([10.0, 10.0, -5.0, -5.0, 20.0], cost_per_share(pl.col(COLUMN_X), FEE).round(4))
+        assert_matches(result, [0.1, 0.0, 0.15, 0.0, 0.25])
+
+
+class TestCostPerShareProperties:
+    """
+    Invariants that must hold for all inputs (property-based).
+    """
+
+    @given(case=_cases(finite_floats(), min_size=0), fee=_FEES)
+    def test_matches_reference_for_any_input(
+        self,
+        case: list[float],
+        fee: float,
+    ) -> None:
+        """
+        Verifies that, for any quantity series and non-negative fee, the implementation matches the naive reference.
+        """
+        values = case
+        assert_matches(
+            apply_expr(values, cost_per_share(pl.col(COLUMN_X), fee)),
+            cost_per_share_reference(values, fee),
+            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
+        )
+
+    @given(case=_cases(missing_data_floats(), min_size=0), fee=_FEES)
+    def test_matches_reference_under_missing_data(
+        self,
+        case: list[float | None],
+        fee: float,
+    ) -> None:
+        """
+        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
+        """
+        values = case
+        assert_matches(
+            apply_expr(values, cost_per_share(pl.col(COLUMN_X), fee)),
+            cost_per_share_reference(values, fee),
+            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
+        )
+
+    @given(case=_cases(finite_floats()), exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]))
+    def test_scale_homogeneity(
+        self,
+        case: list[float],
+        exponent: int,
+    ) -> None:
+        """
+        Verifies degree-1 homogeneity in the quantity: scaling it by a constant scales the cost by the same constant
+        (the fee held fixed). ``k`` is a power of two so the rescaling is lossless.
+        """
+        k = 2.0**exponent
+        values = case
+        result_base = apply_expr(values, cost_per_share(pl.col(COLUMN_X), FEE))
+        result_scaled = apply_expr([value * k for value in values], cost_per_share(pl.col(COLUMN_X), FEE))
+        assert_scale_homogeneous(result_scaled, result_base, k=k, degree=1)
+
+    @given(case=_cases(finite_floats()), scale=st.sampled_from([1e-6, 1e6, 1e9]), fee=_FEES)
+    def test_matches_reference_at_large_magnitude(
+        self,
+        case: list[float],
+        scale: float,
+        fee: float,
+    ) -> None:
+        """
+        Verifies that at extreme quantity magnitudes the implementation stays finite where the reference is and agrees.
+        """
+        values = [value * scale for value in case]
+        assert_matches(
+            apply_expr(values, cost_per_share(pl.col(COLUMN_X), fee)),
+            cost_per_share_reference(values, fee),
+            rel_tol=RELATIVE_TOLERANCE_SCALE,
+            abs_tol=ABSOLUTE_TOLERANCE_STREAMING,
+        )
