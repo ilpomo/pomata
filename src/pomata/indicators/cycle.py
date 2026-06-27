@@ -56,19 +56,27 @@ class _Pipeline:
     trend_mode: list[float]
 
 
-def _fir(series: list[float], index: int, adjust: float) -> float:
+def _fir(
+    series: list[float],
+    index: int,
+    adjust: float,
+) -> float:
     """
     Ehlers' six-tap Hilbert-transform quadrature filter at ``index``, amplitude-compensated by ``adjust``.
     """
 
-    def lag(steps: int) -> float:
+    def lag(
+        steps: int,
+    ) -> float:
         position = index - steps
         return series[position] if position >= 0 else 0.0
 
     return (0.0962 * series[index] + 0.5769 * lag(2) - 0.5769 * lag(4) - 0.0962 * lag(6)) * adjust
 
 
-def _clean_prefix(series: pl.Series) -> list[float]:
+def _clean_prefix(
+    series: pl.Series,
+) -> list[float]:
     """
     The leading run of finite prices, stopping at the first ``null`` or ``NaN`` (a gap the recurrence cannot bridge).
     """
@@ -80,7 +88,11 @@ def _clean_prefix(series: pl.Series) -> list[float]:
     return prices
 
 
-def _ehlers_pipeline(prices: list[float], limit_fast: float, limit_slow: float) -> _Pipeline:
+def _ehlers_pipeline(
+    prices: list[float],
+    limit_fast: float,
+    limit_slow: float,
+) -> _Pipeline:
     """
     Run Ehlers' shared smooth / detrend / Hilbert-quadrature / homodyne-discriminator pipeline over ``prices``.
     """
@@ -192,14 +204,20 @@ def _ehlers_pipeline(prices: list[float], limit_fast: float, limit_slow: float) 
     return _Pipeline(smooth_period, phase, inphase, quad, sine, lead_sine, trendline, mama_line, fama_line, mode_line)
 
 
-def _sign(value: float) -> float:
+def _sign(
+    value: float,
+) -> float:
     """
     ``-1`` / ``0`` / ``1`` by the sign of ``value`` (as EasyLanguage's ``Sign``).
     """
     return (value > 0.0) - (value < 0.0)
 
 
-def _emit(values: list[float], length: int, warmup: int) -> list[float | None]:
+def _emit(
+    values: list[float],
+    length: int,
+    warmup: int,
+) -> list[float | None]:
     """
     Mask the warm-up: ``values[index]`` from ``warmup`` to ``len(values)``, ``None`` before and (latched) after.
     """
@@ -209,7 +227,12 @@ def _emit(values: list[float], length: int, warmup: int) -> list[float | None]:
     return result
 
 
-def _line_kernel(series: pl.Series, *, field: str, warmup: int) -> pl.Series:
+def _line_kernel(
+    series: pl.Series,
+    *,
+    field: str,
+    warmup: int,
+) -> pl.Series:
     """
     Run the shared pipeline and emit one named single-line output, warm-up-masked and gap-latched.
     """
@@ -218,7 +241,12 @@ def _line_kernel(series: pl.Series, *, field: str, warmup: int) -> pl.Series:
     return pl.Series(_emit(getattr(pipeline, field), len(series), warmup), dtype=pl.Float64)
 
 
-def _struct_kernel(series: pl.Series, *, fields: tuple[str, str], warmup: int) -> pl.Series:
+def _struct_kernel(
+    series: pl.Series,
+    *,
+    fields: tuple[str, str],
+    warmup: int,
+) -> pl.Series:
     """
     Run the shared pipeline and emit a two-field struct output, warm-up-masked and gap-latched.
 
@@ -235,7 +263,11 @@ def _struct_kernel(series: pl.Series, *, fields: tuple[str, str], warmup: int) -
     ).to_struct()
 
 
-def _mama_kernel(series: pl.Series, limit_fast: float, limit_slow: float) -> pl.Series:
+def _mama_kernel(
+    series: pl.Series,
+    limit_fast: float,
+    limit_slow: float,
+) -> pl.Series:
     """
     Run the shared pipeline with the MAMA limits and emit the ``{mama, fama}`` struct, warm-up-masked and gap-latched.
     """
@@ -247,7 +279,9 @@ def _mama_kernel(series: pl.Series, limit_fast: float, limit_slow: float) -> pl.
     ).to_struct()
 
 
-def dominant_cycle_period(expr: pl.Expr) -> pl.Expr:
+def dominant_cycle_period(
+    expr: pl.Expr,
+) -> pl.Expr:
     r"""
     Dominant Cycle Period (Hilbert transform).
 
@@ -311,7 +345,9 @@ def dominant_cycle_period(expr: pl.Expr) -> pl.Expr:
     return expr.map_batches(partial(_line_kernel, field="period", warmup=_DIRECT_WARMUP), return_dtype=pl.Float64)
 
 
-def dominant_cycle_phase(expr: pl.Expr) -> pl.Expr:
+def dominant_cycle_phase(
+    expr: pl.Expr,
+) -> pl.Expr:
     r"""
     Dominant Cycle Phase (Hilbert transform).
 
@@ -375,7 +411,9 @@ def dominant_cycle_phase(expr: pl.Expr) -> pl.Expr:
     return expr.map_batches(partial(_line_kernel, field="phase", warmup=_PHASE_WARMUP), return_dtype=pl.Float64)
 
 
-def hilbert_phasor(expr: pl.Expr) -> pl.Expr:
+def hilbert_phasor(
+    expr: pl.Expr,
+) -> pl.Expr:
     r"""
     Hilbert Transform Phasor — in-phase and quadrature components.
 
@@ -435,7 +473,9 @@ def hilbert_phasor(expr: pl.Expr) -> pl.Expr:
     )
 
 
-def hilbert_trendline(expr: pl.Expr) -> pl.Expr:
+def hilbert_trendline(
+    expr: pl.Expr,
+) -> pl.Expr:
     r"""
     Hilbert Transform Instantaneous Trendline.
 
@@ -490,7 +530,12 @@ def hilbert_trendline(expr: pl.Expr) -> pl.Expr:
     return expr.map_batches(partial(_line_kernel, field="trendline", warmup=_PHASE_WARMUP), return_dtype=pl.Float64)
 
 
-def mama(expr: pl.Expr, *, limit_fast: float = 0.5, limit_slow: float = 0.05) -> pl.Expr:
+def mama(
+    expr: pl.Expr,
+    *,
+    limit_fast: float = 0.5,
+    limit_slow: float = 0.05,
+) -> pl.Expr:
     r"""
     MESA Adaptive Moving Average (MAMA), with its companion FAMA.
 
@@ -579,7 +624,9 @@ def mama(expr: pl.Expr, *, limit_fast: float = 0.5, limit_slow: float = 0.05) ->
     )
 
 
-def sine_wave(expr: pl.Expr) -> pl.Expr:
+def sine_wave(
+    expr: pl.Expr,
+) -> pl.Expr:
     r"""
     Hilbert Transform Sine Wave.
 
@@ -644,7 +691,9 @@ def sine_wave(expr: pl.Expr) -> pl.Expr:
     )
 
 
-def trend_mode(expr: pl.Expr) -> pl.Expr:
+def trend_mode(
+    expr: pl.Expr,
+) -> pl.Expr:
     r"""
     Hilbert Transform Trend vs Cycle Mode.
 

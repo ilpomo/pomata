@@ -43,7 +43,9 @@ __all__ = (
 )
 
 
-def _normal_cdf(values: pl.Series) -> pl.Series:
+def _normal_cdf(
+    values: pl.Series,
+) -> pl.Series:
     """
     The standard-normal CDF applied to a one-element aggregation, with ``null`` / ``NaN`` passed through unchanged.
 
@@ -57,7 +59,12 @@ def _normal_cdf(values: pl.Series) -> pl.Series:
     )
 
 
-def adjusted_sharpe_ratio(returns: pl.Expr, *, periods_per_year: int, risk_free_rate: float = 0.0) -> pl.Expr:
+def adjusted_sharpe_ratio(
+    returns: pl.Expr,
+    *,
+    periods_per_year: int,
+    risk_free_rate: float = 0.0,
+) -> pl.Expr:
     r"""
     Adjusted Sharpe Ratio, the Sharpe ratio penalized for negative skewness and excess kurtosis.
 
@@ -149,7 +156,12 @@ def adjusted_sharpe_ratio(returns: pl.Expr, *, periods_per_year: int, risk_free_
     return annualization * sharpe * (1.0 + returns.skew() / 6.0 * sharpe - returns.kurtosis() / 24.0 * sharpe**2)
 
 
-def burke_ratio(equity_curve: pl.Expr, *, periods_per_year: int, risk_free_rate: float = 0.0) -> pl.Expr:
+def burke_ratio(
+    equity_curve: pl.Expr,
+    *,
+    periods_per_year: int,
+    risk_free_rate: float = 0.0,
+) -> pl.Expr:
     r"""
     Burke Ratio, the excess compound annual growth rate per unit of drawdown energy.
 
@@ -235,7 +247,11 @@ def burke_ratio(equity_curve: pl.Expr, *, periods_per_year: int, risk_free_rate:
     ).sum().sqrt()
 
 
-def calmar_ratio(equity_curve: pl.Expr, *, periods_per_year: int) -> pl.Expr:
+def calmar_ratio(
+    equity_curve: pl.Expr,
+    *,
+    periods_per_year: int,
+) -> pl.Expr:
     r"""
     Calmar Ratio, the compound annual growth rate per unit of maximum drawdown.
 
@@ -317,7 +333,9 @@ def calmar_ratio(equity_curve: pl.Expr, *, periods_per_year: int) -> pl.Expr:
     return cagr(equity_curve, periods_per_year=periods_per_year) / max_drawdown(equity_curve).abs()
 
 
-def common_sense_ratio(returns: pl.Expr) -> pl.Expr:
+def common_sense_ratio(
+    returns: pl.Expr,
+) -> pl.Expr:
     r"""
     Common Sense Ratio, the profit factor scaled by the tail ratio.
 
@@ -396,7 +414,9 @@ def common_sense_ratio(returns: pl.Expr) -> pl.Expr:
     return profit_ratio(returns) * tail_ratio(returns)
 
 
-def gain_to_pain_ratio(returns: pl.Expr) -> pl.Expr:
+def gain_to_pain_ratio(
+    returns: pl.Expr,
+) -> pl.Expr:
     r"""
     Gain to Pain Ratio, the net return over the total loss (Schwager).
 
@@ -472,7 +492,11 @@ def gain_to_pain_ratio(returns: pl.Expr) -> pl.Expr:
     return returns.mean() / (-returns).clip(lower_bound=0.0).mean()
 
 
-def omega_ratio(returns: pl.Expr, *, threshold: float = 0.0) -> pl.Expr:
+def omega_ratio(
+    returns: pl.Expr,
+    *,
+    threshold: float = 0.0,
+) -> pl.Expr:
     r"""
     Omega Ratio, the ratio of probability-weighted gains to losses about a threshold.
 
@@ -557,7 +581,12 @@ def omega_ratio(returns: pl.Expr, *, threshold: float = 0.0) -> pl.Expr:
     return mean_gain / mean_loss
 
 
-def omega_ratio_rolling(returns: pl.Expr, window: int, *, threshold: float = 0.0) -> pl.Expr:
+def omega_ratio_rolling(
+    returns: pl.Expr,
+    window: int,
+    *,
+    threshold: float = 0.0,
+) -> pl.Expr:
     r"""
     Rolling Omega Ratio over a window — the windowed twin of :func:`omega_ratio`.
 
@@ -645,7 +674,12 @@ def omega_ratio_rolling(returns: pl.Expr, window: int, *, threshold: float = 0.0
     return mean_gain / mean_loss
 
 
-def pain_ratio(equity_curve: pl.Expr, *, periods_per_year: int, risk_free_rate: float = 0.0) -> pl.Expr:
+def pain_ratio(
+    equity_curve: pl.Expr,
+    *,
+    periods_per_year: int,
+    risk_free_rate: float = 0.0,
+) -> pl.Expr:
     r"""
     Pain Ratio, the excess compound annual growth rate per unit of pain index.
 
@@ -727,7 +761,11 @@ def pain_ratio(equity_curve: pl.Expr, *, periods_per_year: int, risk_free_rate: 
 
 
 def probabilistic_sharpe_ratio(
-    returns: pl.Expr, *, periods_per_year: int, benchmark_sharpe: float = 0.0, risk_free_rate: float = 0.0
+    returns: pl.Expr,
+    *,
+    periods_per_year: int,
+    benchmark_sharpe: float = 0.0,
+    risk_free_rate: float = 0.0,
 ) -> pl.Expr:
     r"""
     Probabilistic Sharpe Ratio (PSR), the confidence that the true Sharpe ratio exceeds a benchmark.
@@ -834,7 +872,9 @@ def probabilistic_sharpe_ratio(
     return argument.map_batches(_normal_cdf, return_dtype=pl.Float64, returns_scalar=True)
 
 
-def recovery_ratio(equity_curve: pl.Expr) -> pl.Expr:
+def recovery_ratio(
+    equity_curve: pl.Expr,
+) -> pl.Expr:
     r"""
     Recovery Factor, the total return per unit of maximum drawdown.
 
@@ -915,7 +955,12 @@ def recovery_ratio(equity_curve: pl.Expr) -> pl.Expr:
     return total_return(equity_curve) / max_drawdown(equity_curve).abs()
 
 
-def sharpe_ratio(returns: pl.Expr, *, periods_per_year: int, risk_free_rate: float = 0.0) -> pl.Expr:
+def sharpe_ratio(
+    returns: pl.Expr,
+    *,
+    periods_per_year: int,
+    risk_free_rate: float = 0.0,
+) -> pl.Expr:
     r"""
     Sharpe Ratio, the annualized excess return per unit of total volatility.
 
@@ -1004,7 +1049,11 @@ def sharpe_ratio(returns: pl.Expr, *, periods_per_year: int, risk_free_rate: flo
 
 
 def sharpe_ratio_rolling(
-    returns: pl.Expr, window: int, *, periods_per_year: int, risk_free_rate: float = 0.0
+    returns: pl.Expr,
+    window: int,
+    *,
+    periods_per_year: int,
+    risk_free_rate: float = 0.0,
 ) -> pl.Expr:
     r"""
     Rolling Sharpe Ratio over a window — the windowed twin of :func:`sharpe_ratio`.
@@ -1095,7 +1144,12 @@ def sharpe_ratio_rolling(
     )
 
 
-def sortino_ratio(returns: pl.Expr, *, periods_per_year: int, risk_free_rate: float = 0.0) -> pl.Expr:
+def sortino_ratio(
+    returns: pl.Expr,
+    *,
+    periods_per_year: int,
+    risk_free_rate: float = 0.0,
+) -> pl.Expr:
     r"""
     Sortino Ratio, the annualized excess return per unit of downside deviation.
 
@@ -1189,7 +1243,11 @@ def sortino_ratio(returns: pl.Expr, *, periods_per_year: int, risk_free_rate: fl
 
 
 def sortino_ratio_rolling(
-    returns: pl.Expr, window: int, *, periods_per_year: int, risk_free_rate: float = 0.0
+    returns: pl.Expr,
+    window: int,
+    *,
+    periods_per_year: int,
+    risk_free_rate: float = 0.0,
 ) -> pl.Expr:
     r"""
     Rolling Sortino Ratio over a window — the windowed twin of :func:`sortino_ratio`.
@@ -1285,7 +1343,11 @@ def sortino_ratio_rolling(
 
 
 def sterling_ratio(
-    equity_curve: pl.Expr, *, periods_per_year: int, risk_free_rate: float = 0.0, excess: float = 0.10
+    equity_curve: pl.Expr,
+    *,
+    periods_per_year: int,
+    risk_free_rate: float = 0.0,
+    excess: float = 0.10,
 ) -> pl.Expr:
     r"""
     Sterling Ratio, the excess compound annual growth rate per unit of average drawdown plus a cushion.
@@ -1372,7 +1434,12 @@ def sterling_ratio(
     )
 
 
-def ulcer_performance_ratio(equity_curve: pl.Expr, *, periods_per_year: int, risk_free_rate: float = 0.0) -> pl.Expr:
+def ulcer_performance_ratio(
+    equity_curve: pl.Expr,
+    *,
+    periods_per_year: int,
+    risk_free_rate: float = 0.0,
+) -> pl.Expr:
     r"""
     Ulcer Performance Index (a.k.a. Martin Ratio), the excess compound annual growth rate per unit of ulcer index.
 

@@ -13,7 +13,11 @@ __all__ = ("cagr", "cagr_rolling", "stability", "total_return", "total_return_ro
 _MINIMUM_REGRESSION_POINTS = 2
 
 
-def cagr(equity_curve: pl.Expr, *, periods_per_year: int) -> pl.Expr:
+def cagr(
+    equity_curve: pl.Expr,
+    *,
+    periods_per_year: int,
+) -> pl.Expr:
     r"""
     Compound Annual Growth Rate (CAGR), the constant per-year rate that reproduces the curve's total growth.
 
@@ -98,7 +102,12 @@ def cagr(equity_curve: pl.Expr, *, periods_per_year: int) -> pl.Expr:
     return pl.when(equity_curve.is_nan().any()).then(pl.lit(float("nan"))).otherwise(growth)
 
 
-def cagr_rolling(equity_curve: pl.Expr, window: int, *, periods_per_year: int) -> pl.Expr:
+def cagr_rolling(
+    equity_curve: pl.Expr,
+    window: int,
+    *,
+    periods_per_year: int,
+) -> pl.Expr:
     r"""
     Rolling Compound Annual Growth Rate over a window — the windowed twin of :func:`cagr`.
 
@@ -174,7 +183,9 @@ def cagr_rolling(equity_curve: pl.Expr, window: int, *, periods_per_year: int) -
     return (equity_curve / equity_curve.shift(window - 1)) ** (periods_per_year / window) - 1.0
 
 
-def stability(returns: pl.Expr) -> pl.Expr:
+def stability(
+    returns: pl.Expr,
+) -> pl.Expr:
     r"""
     Stability, the goodness-of-fit of the cumulative log-return path to a straight line.
 
@@ -283,7 +294,9 @@ def stability(returns: pl.Expr) -> pl.Expr:
     )
 
 
-def total_return(equity_curve: pl.Expr) -> pl.Expr:
+def total_return(
+    equity_curve: pl.Expr,
+) -> pl.Expr:
     r"""
     Total Return, the overall compounded return of an equity curve.
 
@@ -360,7 +373,10 @@ def total_return(equity_curve: pl.Expr) -> pl.Expr:
     return pl.when(equity_curve.is_nan().any()).then(pl.lit(float("nan"))).otherwise(growth)
 
 
-def total_return_rolling(equity_curve: pl.Expr, window: int) -> pl.Expr:
+def total_return_rolling(
+    equity_curve: pl.Expr,
+    window: int,
+) -> pl.Expr:
     r"""
     Rolling Total Return over a window — the windowed twin of :func:`total_return`.
 

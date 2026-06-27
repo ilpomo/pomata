@@ -18,7 +18,11 @@ _MINIMUM_SEED_BARS = 2
 _SUPERTREND_DTYPE = pl.Struct({"line": pl.Float64, "direction": pl.Float64})
 
 
-def _sar_kernel(series: pl.Series, acceleration: float, maximum: float) -> pl.Series:
+def _sar_kernel(
+    series: pl.Series,
+    acceleration: float,
+    maximum: float,
+) -> pl.Series:
     """
     Sequential Parabolic SAR recurrence over one Series of ``{high, low}`` structs (the pure-Python kernel).
 
@@ -210,7 +214,9 @@ def parabolic_sar(
     )
 
 
-def _supertrend_kernel(series: pl.Series) -> pl.Series:
+def _supertrend_kernel(
+    series: pl.Series,
+) -> pl.Series:
     """
     Sequential SuperTrend recurrence over one Series of ``{basic_upper, basic_lower, close}`` structs (the kernel).
 
