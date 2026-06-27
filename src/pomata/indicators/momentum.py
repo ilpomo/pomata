@@ -81,14 +81,18 @@ def absolute_price_oscillator(
 
     See Also:
         - :func:`percentage_price_oscillator`: The same gap expressed as a percentage of the slow EMA.
+        - :func:`macd`: The oscillator this line underlies, adding a signal and histogram.
         - :func:`ema`: The exponential moving average each leg is built from.
 
     References:
         - https://www.investopedia.com/terms/p/apo.asp
 
     Examples:
+        Basic usage on a single price series:
+
         >>> import polars as pl
         >>> from pomata.indicators import absolute_price_oscillator
+        >>>
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, 11.0, 13.0, 14.0, 13.0, 15.0]})
         >>> expr = absolute_price_oscillator(pl.col("close"), window_fast=2, window_slow=3).round(4)
         >>> frame.select(expr.alias("apo"))["apo"].to_list()
@@ -174,15 +178,19 @@ def aroon(
 
     See Also:
         - :func:`aroon_oscillator`: The difference ``up - down`` as a single line.
+        - :func:`donchian_channels`: The rolling high/low extremes Aroon locates in time.
+        - :func:`williams_r`: Another windowed high-low range oscillator.
 
     References:
-        - Chande, Tushar (1995). "The Aroon Oscillator". Technical Analysis of Stocks & Commodities.
-        - https://school.stockcharts.com/doku.php?id=technical_indicators:aroon
+        - Chande, Tushar (1995). "The Aroon Oscillator". *Technical Analysis of Stocks & Commodities*.
         - https://www.investopedia.com/terms/a/aroon.asp
 
     Examples:
+        Basic usage on high-low bars:
+
         >>> import polars as pl
         >>> from pomata.indicators import aroon
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
         ...         "high": [10.0, 11.0, 12.0, 11.0, 13.0, 12.0, 14.0, 13.0],
@@ -194,6 +202,32 @@ def aroon(
         [None, None, None, 66.6667, 100.0, 66.6667, 100.0, 66.6667]
         >>> bands["down"].round(4).to_list()
         [None, None, None, 0.0, 66.6667, 33.3333, 0.0, 33.3333]
+
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker's channel warms up independently:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "ticker": ["A"] * 5 + ["B"] * 5,
+        ...         "high": [10.0, 11.0, 12.0, 11.0, 13.0, 20.0, 22.0, 24.0, 22.0, 26.0],
+        ...         "low": [9.0, 10.0, 11.0, 10.0, 12.0, 19.0, 21.0, 23.0, 21.0, 25.0],
+        ...     }
+        ... )
+        >>> expr = aroon(pl.col("high"), pl.col("low"), 3).over("ticker").struct.field("up").round(4)
+        >>> frame.with_columns(expr.alias("up"))["up"].to_list()
+        [None, None, None, 66.6667, 100.0, None, None, None, 66.6667, 100.0]
+
+        A ``null`` (which nulls the affected line) and a ``NaN`` (which propagates) in ``high`` make the handling
+        visible on the ``up`` line:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.0, 11.0, 12.0, 13.0, None, 15.0, 16.0, 17.0, 18.0, float("nan"), 20.0, 21.0],
+        ...         "low": [9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0],
+        ...     }
+        ... )
+        >>> expr = aroon(pl.col("high"), pl.col("low"), 3).struct.field("up").round(4)
+        >>> frame.select(expr.alias("up"))["up"].to_list()
+        [None, None, None, 100.0, None, None, None, None, 100.0, nan, nan, nan]
     """
     high = float64_expr(high)
     low = float64_expr(low)
@@ -266,14 +300,19 @@ def aroon_oscillator(
 
     See Also:
         - :func:`aroon`: The two-line indicator this collapses into one.
+        - :func:`donchian_channels`: The rolling high/low extremes the lines are built from.
+        - :func:`williams_r`: Another windowed high-low range oscillator.
 
     References:
-        - Chande, Tushar (1995). "The Aroon Oscillator". Technical Analysis of Stocks & Commodities.
+        - Chande, Tushar (1995). "The Aroon Oscillator". *Technical Analysis of Stocks & Commodities*.
         - https://www.investopedia.com/terms/a/aroonoscillator.asp
 
     Examples:
+        Basic usage on high-low bars:
+
         >>> import polars as pl
         >>> from pomata.indicators import aroon_oscillator
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
         ...         "high": [10.0, 11.0, 12.0, 11.0, 13.0, 12.0, 14.0, 13.0],
@@ -283,6 +322,32 @@ def aroon_oscillator(
         >>> expr = aroon_oscillator(pl.col("high"), pl.col("low"), 3).round(4)
         >>> frame.select(expr.alias("osc"))["osc"].to_list()
         [None, None, None, 66.6667, 33.3333, 33.3333, 100.0, 33.3333]
+
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "ticker": ["A"] * 5 + ["B"] * 5,
+        ...         "high": [10.0, 11.0, 12.0, 11.0, 13.0, 20.0, 22.0, 24.0, 22.0, 26.0],
+        ...         "low": [9.0, 10.0, 11.0, 10.0, 12.0, 19.0, 21.0, 23.0, 21.0, 25.0],
+        ...     }
+        ... )
+        >>> expr = aroon_oscillator(pl.col("high"), pl.col("low"), 3).over("ticker").round(4)
+        >>> frame.with_columns(expr.alias("osc"))["osc"].to_list()
+        [None, None, None, 66.6667, 33.3333, None, None, None, 66.6667, 33.3333]
+
+        A ``null`` (which nulls the oscillator) and a ``NaN`` (which propagates) in ``high`` make the handling
+        visible:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.0, 11.0, 12.0, 13.0, None, 15.0, 16.0, 17.0, 18.0, float("nan"), 20.0, 21.0],
+        ...         "low": [9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0],
+        ...     }
+        ... )
+        >>> expr = aroon_oscillator(pl.col("high"), pl.col("low"), 3).round(4)
+        >>> frame.select(expr.alias("osc"))["osc"].to_list()
+        [None, None, None, 100.0, None, None, None, None, 100.0, nan, nan, nan]
     """
     high = float64_expr(high)
     low = float64_expr(low)
@@ -348,14 +413,18 @@ def awesome_oscillator(
     See Also:
         - :func:`absolute_price_oscillator`: The same fast-minus-slow shape on the close, with exponential averages.
         - :func:`macd`: The exponential oscillator with an added signal line.
+        - :func:`price_median`: The bar median each average is taken over.
 
     References:
-        - https://school.stockcharts.com/doku.php?id=technical_indicators:awesome_oscillator
+        - Williams, Bill (1998). *New Trading Dimensions*. Wiley.
         - https://www.investopedia.com/terms/a/awesomeoscillator.asp
 
     Examples:
+        Basic usage on high-low bars:
+
         >>> import polars as pl
         >>> from pomata.indicators import awesome_oscillator
+        >>>
         >>> frame = pl.DataFrame({"high": [2.0, 4.0, 6.0, 8.0, 10.0], "low": [0.0, 2.0, 4.0, 6.0, 8.0]})
         >>> expr = awesome_oscillator(pl.col("high"), pl.col("low"), window_fast=2, window_slow=3)
         >>> frame.select(expr.round(4).alias("ao"))["ao"].to_list()
@@ -451,13 +520,18 @@ def balance_of_power(
 
     See Also:
         - :func:`price_average`: Another per-bar OHLC summary, the equal-weighted mean of the four prices.
+        - :func:`price_weighted_close`: A per-bar OHLC summary that leans on the close.
+        - :func:`price_typical`: The per-bar high-low-close average.
 
     References:
-        - Livshin, Igor (2001). "Using the Balance of Power Indicator". Technical Analysis of Stocks & Commodities.
+        - Livshin, Igor (2001). "Using the Balance of Power Indicator". *Technical Analysis of Stocks & Commodities*.
 
     Examples:
+        Basic usage on a small OHLC frame:
+
         >>> import polars as pl
         >>> from pomata.indicators import balance_of_power
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
         ...         "open": [10.0, 11.0, 12.0, 11.0],
@@ -470,19 +544,35 @@ def balance_of_power(
         >>> frame.select(expr.alias("bop"))["bop"].to_list()
         [0.25, 0.3333, -0.5, 0.3333]
 
-        A flat bar (``high == low``, giving ``0``), a ``null``, and a ``NaN`` make the edge handling visible:
+        Balance of Power is elementwise, so ``.over`` is optional; each ticker yields the same per-bar reading:
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "open": [10.0, 12.0, 12.0, 12.0],
-        ...         "high": [11.0, 12.0, 13.0, float("nan")],
-        ...         "low": [9.0, 12.0, 11.0, 11.0],
-        ...         "close": [10.5, 12.0, None, 13.0],
+        ...         "ticker": ["A"] * 4 + ["B"] * 4,
+        ...         "open": [10.0, 11.0, 12.0, 11.0, 20.0, 21.0, 22.0, 21.0],
+        ...         "high": [11.0, 13.0, 12.0, 13.0, 21.0, 23.0, 22.0, 23.0],
+        ...         "low": [9.0, 10.0, 11.0, 10.0, 19.0, 20.0, 21.0, 20.0],
+        ...         "close": [10.5, 12.0, 11.5, 12.0, 20.5, 22.0, 21.5, 22.0],
+        ...     }
+        ... )
+        >>> expr = balance_of_power(pl.col("open"), pl.col("high"), pl.col("low"), pl.col("close"))
+        >>> frame.with_columns(expr.over("ticker").round(4).alias("bop"))["bop"].to_list()
+        [0.25, 0.3333, -0.5, 0.3333, 0.25, 0.3333, -0.5, 0.3333]
+
+        A flat bar (``high == low``, giving ``0``), then a ``null`` and a ``NaN`` in ``close`` make the edge
+        handling visible:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "open": [10.0, 12.0, 11.0, 12.0, 12.0],
+        ...         "high": [11.0, 12.0, 13.0, 14.0, 13.0],
+        ...         "low": [9.0, 12.0, 11.0, 12.0, 11.0],
+        ...         "close": [10.5, 12.0, None, 13.0, float("nan")],
         ...     }
         ... )
         >>> expr = balance_of_power(pl.col("open"), pl.col("high"), pl.col("low"), pl.col("close")).round(4)
         >>> frame.select(expr.alias("bop"))["bop"].to_list()
-        [0.25, 0.0, None, nan]
+        [0.25, 0.0, None, 0.5, nan]
     """
     open = float64_expr(open)
     high = float64_expr(high)
@@ -561,15 +651,17 @@ def cci(
         - :func:`rsi`: A bounded momentum oscillator.
 
     References:
-        - Lambert, Donald R. (1980). "Commodity Channel Index: Tools for Trading Cyclic Trends". Commodities (now
-          Futures) magazine.
+        - Lambert, Donald R. (1980). "Commodity Channel Index: Tools for Trading Cyclic Trends". *Commodities* (now
+          *Futures*) magazine.
         - https://en.wikipedia.org/wiki/Commodity_channel_index
-        - https://school.stockcharts.com/doku.php?id=technical_indicators:commodity_channel_index_cci
         - https://www.investopedia.com/terms/c/commoditychannelindex.asp
 
     Examples:
+        Basic usage on high-low-close bars:
+
         >>> import polars as pl
         >>> from pomata.indicators import cci
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
         ...         "high": [24.2, 24.3, 24.7, 25.0, 24.8, 24.5, 24.6],
@@ -577,9 +669,9 @@ def cci(
         ...         "close": [24.0, 24.2, 24.5, 24.8, 24.6, 24.3, 24.4],
         ...     }
         ... )
-        >>> frame.select(
-        ...     cci(pl.col("high"), pl.col("low"), pl.col("close"), window=3).round(4).alias("cci_3")
-        ... )["cci_3"].to_list()
+        >>> frame.select(cci(pl.col("high"), pl.col("low"), pl.col("close"), window=3).round(4).alias("cci_3"))[
+        ...     "cci_3"
+        ... ].to_list()
         [None, None, 100.0, 100.0, -20.0, -100.0, -20.0]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -596,19 +688,19 @@ def cci(
         >>> frame.with_columns(expr.alias("cci"))["cci"].to_list()
         [None, 66.6667, 66.6667, -66.6667, None, 66.6667, -66.6667, 66.6667]
 
-        A ``null`` (skipped, and any window it touches yields ``null``) and a ``NaN`` (which propagates) make the
-        exact handling visible at a glance:
+        A ``null`` and a ``NaN`` in ``close`` (each voiding every window that covers it) make the exact handling
+        visible at a glance:
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "high": [11.0, 12.0, 13.0, 14.0, 15.0, 16.0, float("nan"), 18.0],
+        ...         "high": [11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0],
         ...         "low": [9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0],
-        ...         "close": [10.0, 11.0, 12.0, 13.0, None, 15.0, 16.0, 17.0],
+        ...         "close": [10.0, 11.0, 12.0, None, 14.0, 15.0, float("nan"), 17.0],
         ...     }
         ... )
         >>> expr = cci(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
         >>> frame.select(expr.alias("cci"))["cci"].to_list()
-        [None, 66.6667, 66.6667, 66.6667, None, None, nan, nan]
+        [None, 66.6667, 66.6667, None, None, 66.6667, nan, nan]
     """
     high = float64_expr(high)
     low = float64_expr(low)
@@ -683,14 +775,18 @@ def chande_momentum_oscillator(
     See Also:
         - :func:`rsi`: The Wilder-smoothed sibling, bounded in ``[0, 100]``.
         - :func:`roc`: A simpler single-horizon momentum measure.
+        - :func:`mom`: The absolute-difference momentum sibling.
 
     References:
-        - Chande, Tushar S., and Kroll, Stanley (1994). "The New Technical Trader". Wiley.
+        - Chande, Tushar S., and Kroll, Stanley (1994). *The New Technical Trader*. Wiley.
         - https://www.investopedia.com/terms/c/chandemomentumoscillator.asp
 
     Examples:
+        Basic usage on a single price series:
+
         >>> import polars as pl
         >>> from pomata.indicators import chande_momentum_oscillator
+        >>>
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, 11.0, 13.0, 14.0, 13.0, 15.0]})
         >>> frame.select(chande_momentum_oscillator(pl.col("close"), 3).round(4).alias("cmo"))["cmo"].to_list()
         [None, None, None, 33.3333, 50.0, 50.0, 50.0, 50.0]
@@ -819,8 +915,9 @@ def fisher_transform(high: pl.Expr, low: pl.Expr, window: int) -> pl.Expr:
           series boundaries, e.g. ``fisher_transform(pl.col("high"), pl.col("low")).over("ticker")``.
 
     See Also:
-        - :func:`rsi_stochastic`: another channel-normalized momentum oscillator, bounded rather than tail-stretched.
-        - :func:`williams_r`: the raw channel position the transform sharpens.
+        - :func:`williams_r`: The raw channel position the transform sharpens.
+        - :func:`rsi_stochastic`: Another channel-normalized momentum oscillator, bounded rather than tail-stretched.
+        - :func:`stochastic_fast`: The %K channel position, the same normalization before the transform.
 
     References:
         - Ehlers, John F. (2002). "Using the Fisher Transform." *Technical Analysis of Stocks & Commodities*, 20(11).
@@ -828,8 +925,11 @@ def fisher_transform(high: pl.Expr, low: pl.Expr, window: int) -> pl.Expr:
         - https://www.investopedia.com/terms/f/fisher-transform.asp
 
     Examples:
+        Basic usage on high-low bars:
+
         >>> import polars as pl
         >>> from pomata.indicators import fisher_transform
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
         ...         "high": [10.0, 11.0, 12.0, 13.0, 14.0, 13.0, 12.0, 13.0, 14.0, 15.0],
@@ -937,20 +1037,22 @@ def macd(
           e.g. ``macd(pl.col("close")).over("ticker")``.
 
     See Also:
-        - :func:`ema`: The exponential moving average all three lines are built from.
         - :func:`absolute_price_oscillator`: The Absolute Price Oscillator, the MACD line without the signal and
           histogram.
         - :func:`percentage_price_oscillator`: The percentage counterpart of the MACD line.
+        - :func:`ema`: The exponential moving average all three lines are built from.
 
     References:
         - Appel, Gerald (2005). *Technical Analysis: Power Tools for Active Investors*.
         - https://en.wikipedia.org/wiki/MACD
-        - https://school.stockcharts.com/doku.php?id=technical_indicators:moving_average_convergence_divergence_macd
         - https://www.investopedia.com/terms/m/macd.asp
 
     Examples:
+        Basic usage on a single price series:
+
         >>> import polars as pl
         >>> from pomata.indicators import macd
+        >>>
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, 11.0, 13.0, 14.0, 13.0, 15.0]})
         >>> bands = frame.select(
         ...     macd(pl.col("close"), window_fast=2, window_slow=3, window_signal=2).alias("macd")
@@ -961,6 +1063,23 @@ def macd(
         [None, None, None, 0.3333, 0.3704, 0.4321, 0.2469, 0.3388]
         >>> bands["histogram"].round(4).to_list()
         [None, None, None, -0.1667, 0.0185, 0.0309, -0.0926, 0.046]
+
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker's EMAs warm up independently:
+
+        >>> frame = pl.DataFrame(
+        ...     {"ticker": ["A"] * 4 + ["B"] * 4, "close": [10.0, 11.0, 12.0, 11.0, 20.0, 22.0, 24.0, 22.0]}
+        ... )
+        >>> expr = macd(pl.col("close"), window_fast=2, window_slow=3, window_signal=2)
+        >>> frame.with_columns(expr.over("ticker").struct.field("macd").round(4).alias("macd"))["macd"].to_list()
+        [None, None, 0.5, 0.1667, None, None, 1.0, 0.3333]
+
+        A ``null`` (which the recursive EMAs latch on) and a ``NaN`` (which propagates) make the handling visible on
+        the MACD line:
+
+        >>> frame = pl.DataFrame({"close": [10.0, 11.0, None, 13.0, float("nan"), 15.0]})
+        >>> expr = macd(pl.col("close"), window_fast=2, window_slow=3, window_signal=2)
+        >>> frame.select(expr.struct.field("macd").round(4).alias("macd"))["macd"].to_list()
+        [None, None, None, 1.3095, nan, nan]
     """
     expr = float64_expr(expr)
     validate_window(window_fast, name="window_fast")
@@ -1023,15 +1142,18 @@ def mom(
     See Also:
         - :func:`roc`: The percentage-change sibling (scale-invariant).
         - :func:`rsi`: A bounded momentum oscillator.
+        - :func:`chande_momentum_oscillator`: A bounded net-of-gains-and-losses momentum oscillator.
 
     References:
         - https://en.wikipedia.org/wiki/Momentum_(technical_analysis)
-        - https://school.stockcharts.com/doku.php?id=technical_indicators:momentum
         - https://www.investopedia.com/terms/m/momentum.asp
 
     Examples:
+        Basic usage on a single price series:
+
         >>> import polars as pl
         >>> from pomata.indicators import mom
+        >>>
         >>> frame = pl.DataFrame({"close": [2.0, 4.0, 6.0, 8.0, 10.0]})
         >>> frame.select(mom(pl.col("close"), window=2).round(4).alias("mom_2"))["mom_2"].to_list()
         [None, None, 4.0, 4.0, 4.0]
@@ -1110,14 +1232,18 @@ def percentage_price_oscillator(
 
     See Also:
         - :func:`absolute_price_oscillator`: The same gap in price units, before dividing by the slow EMA.
+        - :func:`macd`: The oscillator built on this gap, with an added signal line.
         - :func:`ema`: The exponential moving average each leg is built from.
 
     References:
         - https://www.investopedia.com/terms/p/ppo.asp
 
     Examples:
+        Basic usage on a single price series:
+
         >>> import polars as pl
         >>> from pomata.indicators import percentage_price_oscillator
+        >>>
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, 11.0, 13.0, 14.0, 13.0, 15.0]})
         >>> expr = percentage_price_oscillator(pl.col("close"), window_fast=2, window_slow=3).round(4)
         >>> frame.select(expr.alias("ppo"))["ppo"].to_list()
@@ -1200,16 +1326,19 @@ def roc(
 
     See Also:
         - :func:`mom`: The absolute-difference sibling.
+        - :func:`trix`: The one-period rate of change of a triple-smoothed EMA.
         - :func:`rsi`: A bounded momentum oscillator.
 
     References:
         - https://en.wikipedia.org/wiki/Momentum_(technical_analysis)
-        - https://school.stockcharts.com/doku.php?id=technical_indicators:rate_of_change_roc_and_momentum
         - https://www.investopedia.com/terms/p/pricerateofchange.asp
 
     Examples:
+        Basic usage on a single price series:
+
         >>> import polars as pl
         >>> from pomata.indicators import roc
+        >>>
         >>> frame = pl.DataFrame({"close": [2.0, 4.0, 6.0, 8.0, 10.0]})
         >>> frame.select(roc(pl.col("close"), window=2).round(4).alias("roc_2"))["roc_2"].to_list()
         [None, None, 200.0, 100.0, 66.6667]
@@ -1302,11 +1431,11 @@ def rsi(
     See Also:
         - :func:`rma`: Wilder's moving average that smooths the gains and losses RSI is built on.
         - :func:`money_flow_index`: The volume-weighted analogue — the same oscillator on raw money flow.
+        - :func:`chande_momentum_oscillator`: The unsmoothed sibling that sums gains and losses over a fixed window.
 
     References:
         - Wilder, J. Welles (1978). *New Concepts in Technical Trading Systems*. Trend Research.
         - https://en.wikipedia.org/wiki/Relative_strength_index
-        - https://school.stockcharts.com/doku.php?id=technical_indicators:relative_strength_index_rsi
         - https://www.investopedia.com/terms/r/rsi.asp
 
     Examples:
@@ -1314,6 +1443,7 @@ def rsi(
 
         >>> import polars as pl
         >>> from pomata.indicators import rsi
+        >>>
         >>> frame = pl.DataFrame({"close": [44.34, 44.09, 44.15, 43.61, 44.33, 44.83, 45.10, 45.42]})
         >>> frame.select(rsi(pl.col("close"), window=3).round(4).alias("rsi_3"))["rsi_3"].to_list()
         [None, None, None, 7.0588, 59.0674, 74.1408, 80.0819, 85.8581]
@@ -1416,14 +1546,17 @@ def rsi_stochastic(
     See Also:
         - :func:`rsi`: The oscillator this is the stochastic of.
         - :func:`stochastic_fast`: The same %K / %D construction applied to price.
+        - :func:`stochastic_slow`: The smoothed %K / %D stochastic variant.
 
     References:
-        - Chande, Tushar S., and Kroll, Stanley (1994). *The New Technical Trader*.
-        - https://school.stockcharts.com/doku.php?id=technical_indicators:stochrsi
+        - Chande, Tushar S., and Kroll, Stanley (1994). *The New Technical Trader*. Wiley.
 
     Examples:
+        Basic usage on a single price series:
+
         >>> import polars as pl
         >>> from pomata.indicators import rsi_stochastic
+        >>>
         >>> frame = pl.DataFrame({"close": [50.0, 51.0, 50.5, 52.0, 51.5, 53.0, 52.0, 54.0, 53.5, 55.0]})
         >>> oscillator = rsi_stochastic(pl.col("close"), window_rsi=3, window_k=3, window_d=2)
         >>> frame.select(oscillator.struct.field("k").round(4).alias("k"))["k"].to_list()
@@ -1431,10 +1564,27 @@ def rsi_stochastic(
         >>> frame.select(oscillator.struct.field("d").round(4).alias("d"))["d"].to_list()
         [None, None, None, None, None, None, 47.3684, 40.793, 62.9049, 72.1118]
 
-        Split the struct into two columns with ``.struct.unnest()``:
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
 
-        >>> frame.select(oscillator.alias("stochrsi")).unnest("stochrsi").columns
-        ['k', 'd']
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "ticker": ["A"] * 8 + ["B"] * 8,
+        ...         "close": [50.0, 51.0, 50.5, 52.0, 51.5, 53.0, 52.0, 54.0,
+        ...                   40.0, 41.0, 40.5, 42.0, 41.5, 43.0, 42.0, 44.0],
+        ...     }
+        ... )
+        >>> expr = rsi_stochastic(pl.col("close"), window_rsi=3, window_k=3, window_d=2)
+        >>> frame.with_columns(expr.over("ticker").struct.field("k").round(4).alias("k"))["k"].to_list()
+        [None, None, None, None, None, 94.7368, 0.0, 81.5861, None, None, None, None, None, 94.7368, 0.0, 81.5861]
+
+        A ``null`` (which nulls the dependent %K) and a ``NaN`` (which propagates) make the handling visible:
+
+        >>> frame = pl.DataFrame(
+        ...     {"close": [50.0, 51.0, 50.5, 52.0, 51.5, 53.0, 52.0, 54.0, None, 55.0, float("nan"), 56.0, 57.0, 58.0]}
+        ... )
+        >>> expr = rsi_stochastic(pl.col("close"), window_rsi=3, window_k=3, window_d=2)
+        >>> frame.select(expr.struct.field("k").round(4).alias("k"))["k"].to_list()
+        [None, None, None, None, None, 94.7368, 0.0, 81.5861, None, None, None, None, nan, nan]
     """
     expr = float64_expr(expr)
     validate_window(window_rsi, name="window_rsi")
@@ -1491,13 +1641,19 @@ def trix(
     See Also:
         - :func:`ema`: The exponential moving average chained three times.
         - :func:`roc`: The one-period rate of change applied to the smoothed line.
+        - :func:`tema`: Another triple-EMA construction, blending the three passes differently.
 
     References:
+        - Hutson, Jack K. (1983). "Good Trix". *Technical Analysis of Stocks & Commodities*.
+        - https://en.wikipedia.org/wiki/Trix_(technical_analysis)
         - https://www.investopedia.com/terms/t/trix.asp
 
     Examples:
+        Basic usage on a single price series:
+
         >>> import polars as pl
         >>> from pomata.indicators import trix
+        >>>
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, 11.0, 13.0, 14.0, 13.0, 15.0]})
         >>> frame.select(trix(pl.col("close"), 2).round(4).alias("trix"))["trix"].to_list()
         [None, None, None, None, 5.4718, 7.4466, 2.989, 5.4253]
@@ -1609,15 +1765,18 @@ def ultimate_oscillator(
     See Also:
         - :func:`rsi`: The single-period momentum oscillator this generalises across three.
         - :func:`williams_r`: Another high-low-range momentum oscillator.
+        - :func:`true_range`: The per-bar true range the buying pressure is normalized by.
 
     References:
-        - Williams, Larry (1985). *The Ultimate Oscillator*, Technical Analysis of Stocks & Commodities.
+        - Williams, Larry (1985). "The Ultimate Oscillator". *Technical Analysis of Stocks & Commodities*.
         - https://en.wikipedia.org/wiki/Ultimate_oscillator
-        - https://school.stockcharts.com/doku.php?id=technical_indicators:ultimate_oscillator
 
     Examples:
+        Basic usage on high-low-close bars:
+
         >>> import polars as pl
         >>> from pomata.indicators import ultimate_oscillator
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
         ...         "high": [10.0, 11.0, 12.0, 11.5, 13.0, 12.5],
@@ -1646,6 +1805,22 @@ def ultimate_oscillator(
         ... )
         >>> frame.with_columns(expr.over("ticker").round(4).alias("uo"))["uo"].to_list()
         [None, None, None, 60.7143, 66.6667, 65.0433, None, None, None, 60.7143, 66.6667, 65.0433]
+
+        A ``null`` (which nulls the windows that cover it) and a ``NaN`` (which propagates, also poisoning the next
+        bar's true range) in ``close`` make the handling visible:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 14.0, 13.5, 15.0, 14.5, 16.0, 15.5, 17.0],
+        ...         "low": [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5, 14.0, 13.5, 15.0, 14.5, 16.0],
+        ...         "close": [9.5, 10.5, 11.5, 11.0, 12.5, 12.0, None, 13.0, 12.5, 13.5, float("nan"), 14.0, 15.0],
+        ...     }
+        ... )
+        >>> expr = ultimate_oscillator(
+        ...     pl.col("high"), pl.col("low"), pl.col("close"), window_short=2, window_medium=3, window_long=4
+        ... )
+        >>> frame.select(expr.round(4).alias("uo"))["uo"].to_list()
+        [None, None, None, 60.7143, 66.6667, 65.0433, None, None, None, None, nan, nan, nan]
     """
     high = float64_expr(high)
     low = float64_expr(low)
@@ -1747,18 +1922,21 @@ def williams_r(
           boundaries, e.g. ``williams_r(pl.col("high"), pl.col("low"), pl.col("close"), 14).over("ticker")``.
 
     See Also:
+        - :func:`stochastic_fast`: The Fast Stochastic %K this oscillator inverts.
         - :func:`rsi`: A bounded momentum oscillator on the same [0, 100]-style scale.
         - :func:`cci`: Another bounded oscillator over a rolling window.
 
     References:
-        - Williams, Larry (1979). *How I Made One Million Dollars Last Year Trading Commodities*.
+        - Williams, Larry (1973). *How I Made One Million Dollars Last Year Trading Commodities*.
         - https://en.wikipedia.org/wiki/Williams_%25R
-        - https://school.stockcharts.com/doku.php?id=technical_indicators:williams_r
         - https://www.investopedia.com/terms/w/williamsr.asp
 
     Examples:
+        Basic usage on high-low-close bars:
+
         >>> import polars as pl
         >>> from pomata.indicators import williams_r
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
         ...         "high": [10.0, 12.0, 11.0, 13.0, 15.0, 14.0],
@@ -1766,9 +1944,9 @@ def williams_r(
         ...         "close": [9.0, 11.0, 10.5, 12.0, 14.0, 13.5],
         ...     }
         ... )
-        >>> frame.select(
-        ...     williams_r(pl.col("high"), pl.col("low"), pl.col("close"), window=3).round(4).alias("wr_3")
-        ... )["wr_3"].to_list()
+        >>> frame.select(williams_r(pl.col("high"), pl.col("low"), pl.col("close"), window=3).round(4).alias("wr_3"))[
+        ...     "wr_3"
+        ... ].to_list()
         [None, None, -37.5, -25.0, -20.0, -37.5]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -1785,19 +1963,19 @@ def williams_r(
         >>> frame.with_columns(expr.alias("williams_r"))["williams_r"].to_list()
         [None, -33.3333, -33.3333, -66.6667, None, -25.0, -66.6667, -25.0]
 
-        A ``null`` (skipped, and any window it touches yields ``null``) and a ``NaN`` (which propagates) make the
-        exact handling visible at a glance:
+        A ``null`` and a ``NaN`` in ``close`` (each confined to its own bar, since the close enters elementwise) make
+        the exact handling visible at a glance:
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "high": [11.0, 12.0, 13.0, 14.0, 15.0, 16.0, float("nan"), 18.0],
+        ...         "high": [11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0],
         ...         "low": [9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0],
-        ...         "close": [10.0, 11.0, 12.0, 13.0, None, 15.0, 16.0, 17.0],
+        ...         "close": [10.0, 11.0, 12.0, None, 14.0, 15.0, float("nan"), 17.0],
         ...     }
         ... )
         >>> expr = williams_r(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
         >>> frame.select(expr.alias("williams_r"))["williams_r"].to_list()
-        [None, -33.3333, -33.3333, -33.3333, None, -33.3333, nan, nan]
+        [None, -33.3333, -33.3333, None, -33.3333, -33.3333, nan, -33.3333]
     """
     high = float64_expr(high)
     low = float64_expr(low)

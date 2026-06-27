@@ -98,16 +98,17 @@ def atr(
     See Also:
         - :func:`true_range`: The per-bar range this Wilder-smooths.
         - :func:`rma`: The Wilder moving average used for the smoothing.
+        - :func:`atr_normalized`: The same ATR expressed as a percent of the current close.
 
     References:
         - Wilder, J. Welles (1978). *New Concepts in Technical Trading Systems*.
         - https://en.wikipedia.org/wiki/Average_true_range
-        - https://school.stockcharts.com/doku.php?id=technical_indicators:average_true_range_atr
         - https://www.investopedia.com/terms/a/atr.asp
 
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import atr
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
         ...         "high": [10.0, 12.0, 13.0, 12.0, 14.0],
@@ -134,14 +135,14 @@ def atr(
         >>> frame.with_columns(expr.alias("atr"))["atr"].to_list()
         [None, 2.0, 1.75, 2.125, None, 2.5, 2.25, 2.375]
 
-        A ``null`` (skipped, and any window it touches yields ``null``) and a ``NaN`` (which propagates) make the
-        exact handling visible at a glance:
+        A ``null`` ``close`` (absorbed, so the next bar falls back to ``high - low``) then a ``NaN`` ``close`` (which
+        the Wilder recursion latches from the next bar on) make the exact handling visible at a glance:
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "high": [12.0, 13.0, 14.0, 15.0, 16.0, 17.0, float("nan"), 19.0],
+        ...         "high": [12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0],
         ...         "low": [10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0],
-        ...         "close": [11.5, 12.5, 13.0, 14.5, None, 16.0, 17.5, 18.0],
+        ...         "close": [11.5, 12.5, None, 14.5, 15.5, float("nan"), 17.5, 18.0],
         ...     }
         ... )
         >>> expr = atr(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
@@ -205,6 +206,8 @@ def atr_normalized(
 
     See Also:
         - :func:`atr`: The raw (price-unit) average true range this normalizes.
+        - :func:`true_range`: The per-bar range underlying the ATR.
+        - :func:`bollinger_bands`: Another volatility view, standard-deviation bands around a moving average.
 
     References:
         - https://www.investopedia.com/terms/a/atr.asp
@@ -212,6 +215,7 @@ def atr_normalized(
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import atr_normalized
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
         ...         "high": [10.2, 10.5, 10.7, 10.3, 10.8],
@@ -222,6 +226,34 @@ def atr_normalized(
         >>> expr = atr_normalized(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
         >>> frame.select(expr.alias("natr"))["natr"].to_list()
         [None, 4.3689, 4.5238, 5.3218, 5.8373]
+
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "ticker": ["A"] * 4 + ["B"] * 4,
+        ...         "high": [10.2, 10.5, 10.7, 10.3, 20.4, 21.0, 21.4, 20.6],
+        ...         "low": [9.8, 10.0, 10.2, 9.9, 19.6, 20.0, 20.4, 19.8],
+        ...         "close": [10.0, 10.3, 10.5, 10.1, 20.0, 20.6, 21.0, 20.2],
+        ...     }
+        ... )
+        >>> expr = atr_normalized(pl.col("high"), pl.col("low"), pl.col("close"), 2).over("ticker").round(4)
+        >>> frame.with_columns(expr.alias("natr"))["natr"].to_list()
+        [None, 4.3689, 4.5238, 5.3218, None, 4.3689, 4.5238, 5.3218]
+
+        A ``null`` ``close`` (voiding the ratio at that row) then a ``NaN`` ``close`` (which propagates through the
+        ratio and the latched ATR) make the missing-data handling visible at a glance:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.2, 10.5, 10.7, 10.9, 11.1, 11.3, 11.5, 11.7],
+        ...         "low": [9.8, 10.0, 10.2, 10.4, 10.6, 10.8, 11.0, 11.2],
+        ...         "close": [10.0, 10.3, None, 10.7, float("nan"), 11.1, 11.3, 11.5],
+        ...     }
+        ... )
+        >>> expr = atr_normalized(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
+        >>> frame.select(expr.alias("natr"))["natr"].to_list()
+        [None, 4.3689, None, 4.5561, nan, nan, nan, nan]
     """
     high = float64_expr(high)
     low = float64_expr(low)
@@ -295,16 +327,17 @@ def bollinger_bands(
     See Also:
         - :func:`sma`: The center band.
         - :func:`standard_deviation_rolling`: The band half-width, before scaling by ``num_std``.
+        - :func:`keltner_channels`: The same band shape with ATR width instead of a standard deviation.
 
     References:
         - Bollinger, John (2001). *Bollinger on Bollinger Bands*.
         - https://en.wikipedia.org/wiki/Bollinger_Bands
-        - https://school.stockcharts.com/doku.php?id=technical_indicators:bollinger_bands
         - https://www.investopedia.com/terms/b/bollingerbands.asp
 
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import bollinger_bands
+        >>>
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, 11.0, 13.0]})
         >>> bands = bollinger_bands(pl.col("close"), 3)
         >>> frame.select(bands.struct.field("lower").round(4).alias("l"))["l"].to_list()
@@ -406,15 +439,17 @@ def true_range(
 
     See Also:
         - :func:`atr`: The Wilder-smoothed average of this per-bar range.
+        - :func:`atr_normalized`: That average expressed as a percent of the current close.
+        - :func:`vortex`: A directional indicator that normalizes its movement by this range.
 
     References:
         - Wilder, J. Welles (1978). *New Concepts in Technical Trading Systems*.
         - https://en.wikipedia.org/wiki/Average_true_range
-        - https://school.stockcharts.com/doku.php?id=technical_indicators:average_true_range_atr
 
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import true_range
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
         ...         "high": [10.0, 12.0, 11.5, 13.0, 12.5],
@@ -422,9 +457,9 @@ def true_range(
         ...         "close": [9.5, 11.0, 10.5, 12.5, 12.0],
         ...     }
         ... )
-        >>> frame.select(
-        ...     true_range(pl.col("high"), pl.col("low"), pl.col("close")).round(4).alias("true_range")
-        ... )["true_range"].to_list()
+        >>> frame.select(true_range(pl.col("high"), pl.col("low"), pl.col("close")).round(4).alias("true_range"))[
+        ...     "true_range"
+        ... ].to_list()
         [1.0, 2.5, 1.5, 2.5, 1.0]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -441,14 +476,14 @@ def true_range(
         >>> frame.with_columns(expr.alias("true_range"))["true_range"].to_list()
         [2.0, 2.0, 1.5, 2.5, 2.0, 3.0, 2.0, 2.5]
 
-        A ``null`` (voiding the rows that reference it) and a ``NaN`` (which propagates) make the
-        exact handling visible at a glance:
+        A ``null`` ``close`` (skipped, so the next bar falls back to ``high - low``) then a ``NaN`` ``close`` (which
+        contaminates only the following bar's gap terms) make the exact handling visible at a glance:
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "high": [12.0, 13.0, 14.0, 15.0, 16.0, 17.0, float("nan"), 19.0],
+        ...         "high": [12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0],
         ...         "low": [10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0],
-        ...         "close": [11.5, 12.5, 13.0, 14.5, None, 16.0, 17.5, 18.0],
+        ...         "close": [11.5, 12.5, None, 14.5, 15.5, float("nan"), 17.5, 18.0],
         ...     }
         ... )
         >>> expr = true_range(pl.col("high"), pl.col("low"), pl.col("close")).round(4)

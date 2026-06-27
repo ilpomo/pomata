@@ -91,7 +91,7 @@ def conditional_value_at_risk(returns: pl.Expr, *, confidence: float = 0.95) -> 
     value is on the same scale as the returns and is negative for a loss.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`pomata.pnl.returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
         confidence: The tail confidence level in the open interval ``(0, 1)`` (canonically ``0.95``); the shortfall is
             averaged over the worst ``1 - confidence`` of returns.
 
@@ -105,7 +105,7 @@ def conditional_value_at_risk(returns: pl.Expr, *, confidence: float = 0.95) -> 
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior, documented under **Edge-case behavior** below.
+        case (missing data and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -119,15 +119,18 @@ def conditional_value_at_risk(returns: pl.Expr, *, confidence: float = 0.95) -> 
 
     See Also:
         - :func:`value_at_risk`: The quantile threshold this averages beyond.
+        - :func:`conditional_drawdown_at_risk`: The same tail-averaging applied to the drawdown curve.
+        - :func:`value_at_risk_parametric`: A parametric alternative to this historical tail estimate.
 
     References:
-        - Rockafellar, R. T. & Uryasev, S. (2000). Optimization of Conditional Value-at-Risk.
+        - Rockafellar, R. T. & Uryasev, S. (2000). "Optimization of Conditional Value-at-Risk." *Journal of Risk*.
         - https://en.wikipedia.org/wiki/Expected_shortfall
         - https://www.investopedia.com/terms/c/conditional_value_at_risk.asp
 
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import conditional_value_at_risk
+        >>>
         >>> frame = pl.DataFrame({"returns": [0.03, -0.05, 0.02, -0.08, 0.01, -0.06, 0.04, -0.02]})
         >>> frame.select(conditional_value_at_risk(pl.col("returns"), confidence=0.75).round(4)).item()
         -0.07
@@ -138,8 +141,22 @@ def conditional_value_at_risk(returns: pl.Expr, *, confidence: float = 0.95) -> 
         ...     {
         ...         "ticker": ["A"] * 8 + ["B"] * 8,
         ...         "returns": [
-        ...             0.03, -0.05, 0.02, -0.08, 0.01, -0.06, 0.04, -0.02,
-        ...             0.02, -0.03, 0.05, -0.04, 0.01, -0.07, 0.03, -0.01,
+        ...             0.03,
+        ...             -0.05,
+        ...             0.02,
+        ...             -0.08,
+        ...             0.01,
+        ...             -0.06,
+        ...             0.04,
+        ...             -0.02,
+        ...             0.02,
+        ...             -0.03,
+        ...             0.05,
+        ...             -0.04,
+        ...             0.01,
+        ...             -0.07,
+        ...             0.03,
+        ...             -0.01,
         ...         ],
         ...     }
         ... )
@@ -166,7 +183,7 @@ def downside_deviation(returns: pl.Expr, *, periods_per_year: int, threshold: fl
 
     The root-mean-square of the returns' shortfall below a minimum acceptable return (the MAR), annualized by the
     square-root-of-time rule -- the downside-only counterpart of :func:`volatility` and the denominator of
-    :func:`pomata.metrics.sortino_ratio`:
+    :func:`sortino_ratio`:
 
     .. math::
 
@@ -177,7 +194,7 @@ def downside_deviation(returns: pl.Expr, *, periods_per_year: int, threshold: fl
     penalized, unlike the symmetric standard deviation.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`pomata.pnl.returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         threshold: The return level separating gains from losses / the minimum acceptable return (default ``0.0``).
             Must be finite.
@@ -192,7 +209,7 @@ def downside_deviation(returns: pl.Expr, *, periods_per_year: int, threshold: fl
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior, documented under **Edge-case behavior** below.
+        case (missing data and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -205,17 +222,20 @@ def downside_deviation(returns: pl.Expr, *, periods_per_year: int, threshold: fl
           series, e.g. ``downside_deviation(pl.col("returns"), periods_per_year=252).over("ticker")``.
 
     See Also:
-        - :func:`pomata.metrics.sortino_ratio`: The risk-adjusted return that divides excess return by this.
+        - :func:`sortino_ratio`: The risk-adjusted return that divides excess return by this.
         - :func:`volatility`: The symmetric (two-sided) dispersion.
+        - :func:`downside_deviation_rolling`: The rolling (windowed) form.
 
     References:
-        - Sortino, F. A. & Price, L. N. (1994). Performance Measurement in a Downside Risk Framework.
+        - Sortino, F. A. & Price, L. N. (1994). "Performance Measurement in a Downside Risk Framework."
+          *The Journal of Investing*.
         - https://en.wikipedia.org/wiki/Downside_risk
         - https://www.investopedia.com/terms/d/downside-deviation.asp
 
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import downside_deviation
+        >>>
         >>> frame = pl.DataFrame({"returns": [0.02, -0.04, 0.01, -0.06, 0.03]})
         >>> frame.select(downside_deviation(pl.col("returns"), periods_per_year=252).round(4)).item()
         0.5119
@@ -261,7 +281,7 @@ def downside_deviation_rolling(
     where :math:`\tau` is ``threshold`` and :math:`P` is ``periods_per_year``.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`pomata.pnl.returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
         window: Number of observations in the moving window. Must be ``>= 1``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         threshold: The return level separating gains from losses / the minimum acceptable return (default ``0.0``).
@@ -290,6 +310,7 @@ def downside_deviation_rolling(
     See Also:
         - :func:`downside_deviation`: The whole-series reducing form.
         - :func:`sortino_ratio_rolling`: The risk-adjusted ratio that divides rolling excess return by this.
+        - :func:`volatility_rolling`: The symmetric (two-sided) rolling dispersion.
 
     References:
         - https://en.wikipedia.org/wiki/Downside_risk
@@ -297,11 +318,49 @@ def downside_deviation_rolling(
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import downside_deviation_rolling
+        >>>
         >>> frame = pl.DataFrame({"returns": [0.01, -0.02, 0.03, -0.01, 0.02, 0.0, -0.015]})
         >>> frame.select(
         ...     downside_deviation_rolling(pl.col("returns"), 3, periods_per_year=252).round(4)
         ... ).to_series().to_list()
         [None, None, 0.1833, 0.2049, 0.0917, 0.0917, 0.1375]
+
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up on its own (the ``B`` group never
+        borrows ``A``'s tail):
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "ticker": ["A"] * 7 + ["B"] * 7,
+        ...         "returns": [
+        ...             0.01,
+        ...             -0.02,
+        ...             0.03,
+        ...             -0.01,
+        ...             0.02,
+        ...             0.0,
+        ...             -0.015,
+        ...             0.02,
+        ...             -0.01,
+        ...             0.04,
+        ...             -0.03,
+        ...             0.01,
+        ...             0.025,
+        ...             -0.02,
+        ...         ],
+        ...     }
+        ... )
+        >>> rolled = downside_deviation_rolling(pl.col("returns"), 3, periods_per_year=252).over("ticker").round(4)
+        >>> frame.select(rolled.alias("m"))["m"].to_list()
+        [None, None, 0.1833, 0.2049, 0.0917, 0.0917, 0.1375, None, None, 0.0917, 0.2898, 0.275, 0.275, 0.1833]
+
+        A leading ``null`` and a later ``NaN`` show the per-window masking, with the result recovering once both
+        leave the window:
+
+        >>> frame = pl.DataFrame({"returns": [None, 0.01, -0.02, float("nan"), 0.03, -0.01, 0.02]})
+        >>> frame.select(
+        ...     downside_deviation_rolling(pl.col("returns"), 3, periods_per_year=252).round(4)
+        ... ).to_series().to_list()
+        [None, None, None, nan, nan, nan, 0.0917]
     """
     returns = float64_expr(returns)
     validate_window(window)
@@ -325,7 +384,7 @@ def kelly_criterion(returns: pl.Expr) -> pl.Expr:
     average win over the average loss).
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`pomata.pnl.returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
 
     Returns:
         A single ``Float64`` value: the Kelly fraction (one value in ``select``, one per group under ``.over``).
@@ -336,7 +395,7 @@ def kelly_criterion(returns: pl.Expr) -> pl.Expr:
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior, documented under **Edge-case behavior** below.
+        case (missing data and boundaries) is given a defined behavior.
 
         This is the **discrete win/loss** form (from the win rate and payoff ratio). A common alternative for continuous
         returns is the ratio of the mean return to its variance; the two coincide only under specific assumptions.
@@ -353,15 +412,18 @@ def kelly_criterion(returns: pl.Expr) -> pl.Expr:
     See Also:
         - :func:`win_rate`: The win probability ``p``.
         - :func:`payoff_ratio`: The average-win to average-loss ratio ``W``.
+        - :func:`risk_of_ruin`: The ruin probability from the same win-rate model.
 
     References:
-        - Kelly, J. L. (1956). A New Interpretation of Information Rate. Bell System Technical Journal, 35(4), 917-926.
+        - Kelly, J. L. (1956). "A New Interpretation of Information Rate."
+          *Bell System Technical Journal*, 35(4), 917-926.
         - https://en.wikipedia.org/wiki/Kelly_criterion
         - https://www.investopedia.com/articles/trading/04/091504.asp
 
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import kelly_criterion
+        >>>
         >>> frame = pl.DataFrame({"returns": [0.03, -0.01, 0.02, -0.015, 0.01, 0.005, -0.02]})
         >>> frame.select(kelly_criterion(pl.col("returns")).round(4)).item()
         0.1758
@@ -372,8 +434,20 @@ def kelly_criterion(returns: pl.Expr) -> pl.Expr:
         ...     {
         ...         "ticker": ["A"] * 7 + ["B"] * 7,
         ...         "returns": [
-        ...             0.03, -0.01, 0.02, -0.015, 0.01, 0.005, -0.02,
-        ...             0.04, -0.02, 0.03, -0.01, 0.02, 0.01, -0.03,
+        ...             0.03,
+        ...             -0.01,
+        ...             0.02,
+        ...             -0.015,
+        ...             0.01,
+        ...             0.005,
+        ...             -0.02,
+        ...             0.04,
+        ...             -0.02,
+        ...             0.03,
+        ...             -0.01,
+        ...             0.02,
+        ...             0.01,
+        ...             -0.03,
         ...         ],
         ...     }
         ... )
@@ -406,7 +480,7 @@ def kurtosis(returns: pl.Expr) -> pl.Expr:
     where :math:`m_k` is the population central moment of order :math:`k`.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`pomata.pnl.returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
 
     Returns:
         A single ``Float64`` value: the excess kurtosis (one value in ``select``, one per group under ``.over``).
@@ -418,7 +492,7 @@ def kurtosis(returns: pl.Expr) -> pl.Expr:
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior, documented under **Edge-case behavior** below.
+        case (missing data and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -431,6 +505,8 @@ def kurtosis(returns: pl.Expr) -> pl.Expr:
 
     See Also:
         - :func:`skewness`: The third-moment companion (asymmetry).
+        - :func:`kurtosis_rolling`: The rolling (windowed) form.
+        - :func:`value_at_risk_modified`: Uses this excess kurtosis in its Cornish-Fisher tail correction.
 
     References:
         - https://en.wikipedia.org/wiki/Kurtosis
@@ -439,6 +515,7 @@ def kurtosis(returns: pl.Expr) -> pl.Expr:
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import kurtosis
+        >>>
         >>> frame = pl.DataFrame({"returns": [0.01, -0.02, 0.015, -0.03, 0.005, -0.01, 0.02]})
         >>> frame.select(kurtosis(pl.col("returns")).round(4)).item()
         -1.3223
@@ -449,8 +526,20 @@ def kurtosis(returns: pl.Expr) -> pl.Expr:
         ...     {
         ...         "ticker": ["A"] * 7 + ["B"] * 7,
         ...         "returns": [
-        ...             0.01, -0.02, 0.015, -0.03, 0.005, -0.01, 0.02,
-        ...             0.02, -0.01, 0.03, -0.02, 0.01, -0.005, 0.025,
+        ...             0.01,
+        ...             -0.02,
+        ...             0.015,
+        ...             -0.03,
+        ...             0.005,
+        ...             -0.01,
+        ...             0.02,
+        ...             0.02,
+        ...             -0.01,
+        ...             0.03,
+        ...             -0.02,
+        ...             0.01,
+        ...             -0.005,
+        ...             0.025,
         ...         ],
         ...     }
         ... )
@@ -483,7 +572,7 @@ def kurtosis_rolling(returns: pl.Expr, window: int) -> pl.Expr:
     moments so an empty input is handled cleanly.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`pomata.pnl.returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
         window: Number of observations in the moving window. Must be ``>= 2``.
 
     Returns:
@@ -496,8 +585,7 @@ def kurtosis_rolling(returns: pl.Expr, window: int) -> pl.Expr:
 
     Note:
         **Correctness** -- each window matches an independent reference oracle (the reducing :func:`kurtosis` recomputed
-        over the window), and every edge case (missing data and boundaries) has a defined behavior, documented under
-        **Edge-case behavior** below.
+        over the window), and every edge case (missing data and boundaries) has a defined behavior.
 
         **Edge-case behavior:**
 
@@ -511,6 +599,7 @@ def kurtosis_rolling(returns: pl.Expr, window: int) -> pl.Expr:
     See Also:
         - :func:`kurtosis`: The whole-series reducing form.
         - :func:`skewness_rolling`: The rolling third-moment counterpart.
+        - :func:`value_at_risk_modified`: Uses excess kurtosis in its Cornish-Fisher tail correction.
 
     References:
         - https://en.wikipedia.org/wiki/Kurtosis
@@ -518,9 +607,45 @@ def kurtosis_rolling(returns: pl.Expr, window: int) -> pl.Expr:
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import kurtosis_rolling
+        >>>
         >>> frame = pl.DataFrame({"returns": [0.01, -0.02, 0.03, -0.01, 0.02, 0.0, -0.015]})
         >>> frame.select(kurtosis_rolling(pl.col("returns"), 4).round(4))["returns"].to_list()
         [None, None, None, -1.4266, -1.7785, -1.64, -1.099]
+
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up on its own (the ``B`` group never
+        borrows ``A``'s tail):
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "ticker": ["A"] * 7 + ["B"] * 7,
+        ...         "returns": [
+        ...             0.01,
+        ...             -0.02,
+        ...             0.03,
+        ...             -0.01,
+        ...             0.02,
+        ...             0.0,
+        ...             -0.015,
+        ...             0.02,
+        ...             -0.01,
+        ...             0.04,
+        ...             -0.03,
+        ...             0.01,
+        ...             0.025,
+        ...             -0.02,
+        ...         ],
+        ...     }
+        ... )
+        >>> rolled = kurtosis_rolling(pl.col("returns"), 4).over("ticker").round(4)
+        >>> frame.select(rolled.alias("m"))["m"].to_list()
+        [None, None, None, -1.4266, -1.7785, -1.64, -1.099, None, None, None, -1.5244, -1.2555, -1.0441, -1.6961]
+
+        A leading ``null`` and a later ``NaN`` show the per-window masking, with the result recovering once both
+        leave the window:
+
+        >>> frame = pl.DataFrame({"returns": [None, 0.01, float("nan"), -0.02, 0.03, -0.01, 0.02, 0.0, -0.015]})
+        >>> frame.select(kurtosis_rolling(pl.col("returns"), 4).round(4))["returns"].to_list()
+        [None, None, None, None, nan, nan, -1.7785, -1.64, -1.099]
     """
     returns = float64_expr(returns)
     validate_window(window, minimum=2)
@@ -543,7 +668,7 @@ def payoff_ratio(returns: pl.Expr) -> pl.Expr:
     the strictly negative returns.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`pomata.pnl.returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
 
     Returns:
         A single ``Float64`` value: the payoff ratio (one value in ``select``, one per group under ``.over``). ``null``
@@ -554,7 +679,7 @@ def payoff_ratio(returns: pl.Expr) -> pl.Expr:
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior, documented under **Edge-case behavior** below.
+        case (missing data and boundaries) is given a defined behavior.
 
         This is a **bar-level** statistic: each return observation is treated as one win or loss. It is not a per-trade
         statistic -- true per-trade payoff needs trade-level fill data, which is outside this toolkit's scope.
@@ -571,13 +696,15 @@ def payoff_ratio(returns: pl.Expr) -> pl.Expr:
     See Also:
         - :func:`win_rate`: The companion frequency (how often returns win).
         - :func:`profit_ratio`: The aggregate (total-gain to total-loss) counterpart.
+        - :func:`kelly_criterion`: The growth-optimal fraction built from this and the win rate.
 
     References:
-        - Pardo, R. (2008). The Evaluation and Optimization of Trading Strategies (2nd ed.). Wiley.
+        - Pardo, R. (2008). *The Evaluation and Optimization of Trading Strategies* (2nd ed.). Wiley.
 
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import payoff_ratio
+        >>>
         >>> frame = pl.DataFrame({"returns": [0.03, -0.01, 0.02, -0.015, 0.01, 0.005, -0.02]})
         >>> frame.select(payoff_ratio(pl.col("returns")).round(4)).item()
         1.0833
@@ -588,8 +715,20 @@ def payoff_ratio(returns: pl.Expr) -> pl.Expr:
         ...     {
         ...         "ticker": ["A"] * 7 + ["B"] * 7,
         ...         "returns": [
-        ...             0.03, -0.01, 0.02, -0.015, 0.01, 0.005, -0.02,
-        ...             0.04, -0.02, 0.03, -0.01, 0.02, 0.01, -0.03,
+        ...             0.03,
+        ...             -0.01,
+        ...             0.02,
+        ...             -0.015,
+        ...             0.01,
+        ...             0.005,
+        ...             -0.02,
+        ...             0.04,
+        ...             -0.02,
+        ...             0.03,
+        ...             -0.01,
+        ...             0.02,
+        ...             0.01,
+        ...             -0.03,
         ...         ],
         ...     }
         ... )
@@ -624,7 +763,7 @@ def profit_ratio(returns: pl.Expr) -> pl.Expr:
     A value above one means the gains outweigh the losses.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`pomata.pnl.returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
 
     Returns:
         A single ``Float64`` value: the profit factor (one value in ``select``, one per group under ``.over``). ``null``
@@ -635,7 +774,7 @@ def profit_ratio(returns: pl.Expr) -> pl.Expr:
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior, documented under **Edge-case behavior** below.
+        case (missing data and boundaries) is given a defined behavior.
 
         This is a **bar-level** statistic: each return observation is treated as one gain or loss. It is not a per-trade
         statistic -- true per-trade profit factor needs trade-level fill data, which is outside this toolkit's scope.
@@ -652,13 +791,15 @@ def profit_ratio(returns: pl.Expr) -> pl.Expr:
     See Also:
         - :func:`payoff_ratio`: The average-win to average-loss counterpart.
         - :func:`omega_ratio`: The same ratio generalized to an arbitrary threshold.
+        - :func:`common_sense_ratio`: Scales this profit factor by the tail ratio.
 
     References:
-        - Pardo, R. (2008). The Evaluation and Optimization of Trading Strategies (2nd ed.). Wiley.
+        - Pardo, R. (2008). *The Evaluation and Optimization of Trading Strategies* (2nd ed.). Wiley.
 
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import profit_ratio
+        >>>
         >>> frame = pl.DataFrame({"returns": [0.03, -0.01, 0.02, -0.015, 0.01, 0.005, -0.02]})
         >>> frame.select(profit_ratio(pl.col("returns")).round(4)).item()
         1.4444
@@ -669,8 +810,20 @@ def profit_ratio(returns: pl.Expr) -> pl.Expr:
         ...     {
         ...         "ticker": ["A"] * 7 + ["B"] * 7,
         ...         "returns": [
-        ...             0.03, -0.01, 0.02, -0.015, 0.01, 0.005, -0.02,
-        ...             0.04, -0.02, 0.03, -0.01, 0.02, 0.01, -0.03,
+        ...             0.03,
+        ...             -0.01,
+        ...             0.02,
+        ...             -0.015,
+        ...             0.01,
+        ...             0.005,
+        ...             -0.02,
+        ...             0.04,
+        ...             -0.02,
+        ...             0.03,
+        ...             -0.01,
+        ...             0.02,
+        ...             0.01,
+        ...             -0.03,
         ...         ],
         ...     }
         ... )
@@ -705,7 +858,7 @@ def risk_of_ruin(returns: pl.Expr) -> pl.Expr:
     (:math:`p \le 0.5`) it is :math:`\ge 1`, so the probability is capped at one -- ruin is certain.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`pomata.pnl.returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
 
     Returns:
         A single ``Float64`` value in ``[0, 1]``: the risk of ruin (one value in ``select``, one per group under
@@ -716,7 +869,7 @@ def risk_of_ruin(returns: pl.Expr) -> pl.Expr:
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior, documented under **Edge-case behavior** below.
+        case (missing data and boundaries) is given a defined behavior.
 
         This is the **symmetric** form: it depends only on the win rate and the bet count, assuming equal-sized wins and
         losses and ruin at the loss of all capital. It deliberately ignores win/loss size and capital units. Because the
@@ -737,15 +890,17 @@ def risk_of_ruin(returns: pl.Expr) -> pl.Expr:
     See Also:
         - :func:`win_rate`: The win probability the model is built on.
         - :func:`kelly_criterion`: The growth-optimal bet fraction from the same inputs.
+        - :func:`payoff_ratio`: The average win/loss size this symmetric model ignores.
 
     References:
-        - Vince, R. (1990). Portfolio Management Formulas. Wiley.
+        - Vince, R. (1990). *Portfolio Management Formulas*. Wiley.
         - https://en.wikipedia.org/wiki/Gambler%27s_ruin
         - https://www.investopedia.com/terms/r/risk-of-ruin.asp
 
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import risk_of_ruin
+        >>>
         >>> frame = pl.DataFrame({"returns": [0.02, -0.01, 0.03, -0.02]})
         >>> frame.select(risk_of_ruin(pl.col("returns")).round(4)).item()
         1.0
@@ -791,7 +946,7 @@ def skewness(returns: pl.Expr) -> pl.Expr:
     where :math:`m_k` is the population central moment of order :math:`k`.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`pomata.pnl.returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
 
     Returns:
         A single ``Float64`` value: the skewness (one value in ``select``, one per group under ``.over``). ``null``
@@ -802,7 +957,7 @@ def skewness(returns: pl.Expr) -> pl.Expr:
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior, documented under **Edge-case behavior** below.
+        case (missing data and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -815,6 +970,8 @@ def skewness(returns: pl.Expr) -> pl.Expr:
 
     See Also:
         - :func:`kurtosis`: The fourth-moment companion (tailedness).
+        - :func:`skewness_rolling`: The rolling (windowed) form.
+        - :func:`value_at_risk_modified`: Uses this skewness in its Cornish-Fisher tail correction.
 
     References:
         - https://en.wikipedia.org/wiki/Skewness
@@ -823,6 +980,7 @@ def skewness(returns: pl.Expr) -> pl.Expr:
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import skewness
+        >>>
         >>> frame = pl.DataFrame({"returns": [0.01, -0.02, 0.015, -0.03, 0.005, -0.01, 0.02]})
         >>> frame.select(skewness(pl.col("returns")).round(4)).item()
         -0.384
@@ -833,8 +991,20 @@ def skewness(returns: pl.Expr) -> pl.Expr:
         ...     {
         ...         "ticker": ["A"] * 7 + ["B"] * 7,
         ...         "returns": [
-        ...             0.01, -0.02, 0.015, -0.03, 0.005, -0.01, 0.02,
-        ...             0.02, -0.01, 0.03, -0.02, 0.01, -0.005, 0.025,
+        ...             0.01,
+        ...             -0.02,
+        ...             0.015,
+        ...             -0.03,
+        ...             0.005,
+        ...             -0.01,
+        ...             0.02,
+        ...             0.02,
+        ...             -0.01,
+        ...             0.03,
+        ...             -0.02,
+        ...             0.01,
+        ...             -0.005,
+        ...             0.025,
         ...         ],
         ...     }
         ... )
@@ -866,7 +1036,7 @@ def skewness_rolling(returns: pl.Expr, window: int) -> pl.Expr:
     moments so an empty input is handled cleanly.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`pomata.pnl.returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
         window: Number of observations in the moving window. Must be ``>= 2``.
 
     Returns:
@@ -879,8 +1049,7 @@ def skewness_rolling(returns: pl.Expr, window: int) -> pl.Expr:
 
     Note:
         **Correctness** -- each window matches an independent reference oracle (the reducing :func:`skewness` recomputed
-        over the window), and every edge case (missing data and boundaries) has a defined behavior, documented under
-        **Edge-case behavior** below.
+        over the window), and every edge case (missing data and boundaries) has a defined behavior.
 
         **Edge-case behavior:**
 
@@ -894,6 +1063,7 @@ def skewness_rolling(returns: pl.Expr, window: int) -> pl.Expr:
     See Also:
         - :func:`skewness`: The whole-series reducing form.
         - :func:`kurtosis_rolling`: The rolling fourth-moment counterpart.
+        - :func:`value_at_risk_modified`: Uses skewness in its Cornish-Fisher tail correction.
 
     References:
         - https://en.wikipedia.org/wiki/Skewness
@@ -901,9 +1071,45 @@ def skewness_rolling(returns: pl.Expr, window: int) -> pl.Expr:
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import skewness_rolling
+        >>>
         >>> frame = pl.DataFrame({"returns": [0.01, -0.02, 0.03, -0.01, 0.02, 0.0, -0.015]})
         >>> frame.select(skewness_rolling(pl.col("returns"), 4).round(4))["returns"].to_list()
         [None, None, None, 0.278, 0.0, 0.0, 0.6568]
+
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up on its own (the ``B`` group never
+        borrows ``A``'s tail):
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "ticker": ["A"] * 7 + ["B"] * 7,
+        ...         "returns": [
+        ...             0.01,
+        ...             -0.02,
+        ...             0.03,
+        ...             -0.01,
+        ...             0.02,
+        ...             0.0,
+        ...             -0.015,
+        ...             0.02,
+        ...             -0.01,
+        ...             0.04,
+        ...             -0.03,
+        ...             0.01,
+        ...             0.025,
+        ...             -0.02,
+        ...         ],
+        ...     }
+        ... )
+        >>> rolled = skewness_rolling(pl.col("returns"), 4).over("ticker").round(4)
+        >>> frame.select(rolled.alias("m"))["m"].to_list()
+        [None, None, None, 0.278, 0.0, 0.0, 0.6568, None, None, None, 0.0, 0.2439, -0.6183, 0.0912]
+
+        A leading ``null`` and a later ``NaN`` show the per-window masking, with the result recovering once both
+        leave the window:
+
+        >>> frame = pl.DataFrame({"returns": [None, 0.01, float("nan"), -0.02, 0.03, -0.01, 0.02, 0.0, -0.015]})
+        >>> frame.select(skewness_rolling(pl.col("returns"), 4).round(4))["returns"].to_list()
+        [None, None, None, None, nan, nan, 0.0, 0.0, 0.6568]
     """
     returns = float64_expr(returns)
     validate_window(window, minimum=2)
@@ -926,7 +1132,7 @@ def tail_ratio(returns: pl.Expr) -> pl.Expr:
     quantiles it is scale-invariant -- rescaling the returns leaves it unchanged.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`pomata.pnl.returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
 
     Returns:
         A single ``Float64`` value: the tail ratio (one value in ``select``, one per group under ``.over``). ``null``
@@ -937,7 +1143,7 @@ def tail_ratio(returns: pl.Expr) -> pl.Expr:
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior, documented under **Edge-case behavior** below.
+        case (missing data and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -949,6 +1155,8 @@ def tail_ratio(returns: pl.Expr) -> pl.Expr:
           ``tail_ratio(pl.col("returns")).over("ticker")``.
 
     See Also:
+        - :func:`tail_ratio_rolling`: The rolling (windowed) form.
+        - :func:`common_sense_ratio`: Scales the profit factor by this tail ratio.
         - :func:`skewness`: The moment-based companion measure of distributional asymmetry.
 
     References:
@@ -958,6 +1166,7 @@ def tail_ratio(returns: pl.Expr) -> pl.Expr:
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import tail_ratio
+        >>>
         >>> frame = pl.DataFrame({"returns": [0.02, -0.04, 0.01, -0.06, 0.03]})
         >>> frame.select(tail_ratio(pl.col("returns")).round(4)).item()
         0.5
@@ -1000,7 +1209,7 @@ def tail_ratio_rolling(returns: pl.Expr, window: int) -> pl.Expr:
     where :math:`Q_{p}` is the type-7 (linear-interpolation) empirical quantile over the window.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`pomata.pnl.returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
         window: Number of observations in the moving window. Must be ``>= 1``.
 
     Returns:
@@ -1025,6 +1234,8 @@ def tail_ratio_rolling(returns: pl.Expr, window: int) -> pl.Expr:
 
     See Also:
         - :func:`tail_ratio`: The whole-series reducing form.
+        - :func:`value_at_risk_rolling`: Another rolling tail-risk measure.
+        - :func:`skewness_rolling`: The rolling moment-based companion measure of distributional asymmetry.
 
     References:
         - https://en.wikipedia.org/wiki/Tail_risk
@@ -1032,9 +1243,45 @@ def tail_ratio_rolling(returns: pl.Expr, window: int) -> pl.Expr:
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import tail_ratio_rolling
+        >>>
         >>> frame = pl.DataFrame({"returns": [0.01, -0.02, 0.03, -0.01, 0.02, 0.0, -0.015]})
         >>> frame.select(tail_ratio_rolling(pl.col("returns"), 5).round(4)).to_series().to_list()
         [None, None, None, None, 1.5556, 1.5556, 2.0]
+
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up on its own (the ``B`` group never
+        borrows ``A``'s tail):
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "ticker": ["A"] * 7 + ["B"] * 7,
+        ...         "returns": [
+        ...             0.01,
+        ...             -0.02,
+        ...             0.03,
+        ...             -0.01,
+        ...             0.02,
+        ...             0.0,
+        ...             -0.015,
+        ...             0.02,
+        ...             -0.01,
+        ...             0.04,
+        ...             -0.03,
+        ...             0.01,
+        ...             0.025,
+        ...             -0.02,
+        ...         ],
+        ...     }
+        ... )
+        >>> rolled = tail_ratio_rolling(pl.col("returns"), 5).over("ticker").round(4)
+        >>> frame.select(rolled.alias("m"))["m"].to_list()
+        [None, None, None, None, 1.5556, 1.5556, 2.0, None, None, None, None, 1.3846, 1.4231, 1.3214]
+
+        A leading ``null`` and a later ``NaN`` show the per-window masking, with the result recovering once both
+        leave the window:
+
+        >>> frame = pl.DataFrame({"returns": [None, 0.01, float("nan"), -0.02, 0.03, -0.01, 0.02, 0.0, -0.015, 0.005]})
+        >>> frame.select(tail_ratio_rolling(pl.col("returns"), 5).round(4)).to_series().to_list()
+        [None, None, None, None, None, nan, nan, 1.5556, 2.0, 1.2143]
     """
     returns = float64_expr(returns)
     validate_window(window)
@@ -1061,7 +1308,7 @@ def value_at_risk(returns: pl.Expr, *, confidence: float = 0.95) -> pl.Expr:
     value is on the same scale as the returns and is negative for a loss (a result of ``-0.05`` is a 5% loss).
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`pomata.pnl.returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
         confidence: The tail confidence level in the open interval ``(0, 1)`` (canonically ``0.95``); the quantile taken
             is ``1 - confidence``.
 
@@ -1075,7 +1322,7 @@ def value_at_risk(returns: pl.Expr, *, confidence: float = 0.95) -> pl.Expr:
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior, documented under **Edge-case behavior** below.
+        case (missing data and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -1090,15 +1337,18 @@ def value_at_risk(returns: pl.Expr, *, confidence: float = 0.95) -> pl.Expr:
 
     See Also:
         - :func:`conditional_value_at_risk`: The mean loss beyond this threshold (expected shortfall).
+        - :func:`value_at_risk_parametric`: The Gaussian (parametric) estimate of the same quantile.
+        - :func:`value_at_risk_modified`: The skewness/kurtosis-corrected (Cornish-Fisher) estimate.
 
     References:
-        - J.P. Morgan / Reuters (1996). RiskMetrics -- Technical Document (4th ed.).
+        - J.P. Morgan / Reuters (1996). *RiskMetrics -- Technical Document* (4th ed.).
         - https://en.wikipedia.org/wiki/Value_at_risk
         - https://www.investopedia.com/terms/v/var.asp
 
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import value_at_risk
+        >>>
         >>> frame = pl.DataFrame({"returns": [0.02, -0.04, 0.01, -0.06, 0.03]})
         >>> frame.select(value_at_risk(pl.col("returns"), confidence=0.95).round(4)).item()
         -0.056
@@ -1144,7 +1394,7 @@ def value_at_risk_modified(returns: pl.Expr, *, confidence: float = 0.95) -> pl.
     The value is on the same scale as the returns and is negative for a loss.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`pomata.pnl.returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
         confidence: The tail confidence level in the open interval ``(0, 1)`` (canonically ``0.95``).
 
     Returns:
@@ -1157,7 +1407,7 @@ def value_at_risk_modified(returns: pl.Expr, *, confidence: float = 0.95) -> pl.
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior, documented under **Edge-case behavior** below.
+        case (missing data and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -1171,15 +1421,17 @@ def value_at_risk_modified(returns: pl.Expr, *, confidence: float = 0.95) -> pl.
     See Also:
         - :func:`value_at_risk_parametric`: The Gaussian form this corrects.
         - :func:`value_at_risk`: The historical (empirical) form.
+        - :func:`conditional_value_at_risk`: The expected shortfall beyond the VaR threshold.
 
     References:
-        - Favre, L. & Galeano, J.-A. (2002). Mean-Modified Value-at-Risk Optimization with Hedge Funds. Journal of
-          Alternative Investments, 5(2), 21-25.
+        - Favre, L. & Galeano, J.-A. (2002). "Mean-Modified Value-at-Risk Optimization with Hedge Funds."
+          *Journal of Alternative Investments*, 5(2), 21-25.
         - https://en.wikipedia.org/wiki/Cornish%E2%80%93Fisher_expansion
 
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import value_at_risk_modified
+        >>>
         >>> frame = pl.DataFrame({"returns": [0.02, -0.04, 0.01, -0.06, 0.03, -0.05, 0.04, -0.02, 0.01, -0.03]})
         >>> frame.select(value_at_risk_modified(pl.col("returns")).round(4)).item()
         -0.069
@@ -1190,8 +1442,26 @@ def value_at_risk_modified(returns: pl.Expr, *, confidence: float = 0.95) -> pl.
         ...     {
         ...         "ticker": ["A"] * 10 + ["B"] * 10,
         ...         "returns": [
-        ...             0.02, -0.04, 0.01, -0.06, 0.03, -0.05, 0.04, -0.02, 0.01, -0.03,
-        ...             0.03, -0.03, 0.02, -0.05, 0.04, -0.04, 0.03, -0.01, 0.02, -0.02,
+        ...             0.02,
+        ...             -0.04,
+        ...             0.01,
+        ...             -0.06,
+        ...             0.03,
+        ...             -0.05,
+        ...             0.04,
+        ...             -0.02,
+        ...             0.01,
+        ...             -0.03,
+        ...             0.03,
+        ...             -0.03,
+        ...             0.02,
+        ...             -0.05,
+        ...             0.04,
+        ...             -0.04,
+        ...             0.03,
+        ...             -0.01,
+        ...             0.02,
+        ...             -0.02,
         ...         ],
         ...     }
         ... )
@@ -1201,9 +1471,7 @@ def value_at_risk_modified(returns: pl.Expr, *, confidence: float = 0.95) -> pl.
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
 
-        >>> frame = pl.DataFrame(
-        ...     {"returns": [0.02, None, -0.04, 0.01, float("nan"), -0.06, 0.03, -0.05, 0.04, -0.02]}
-        ... )
+        >>> frame = pl.DataFrame({"returns": [0.02, None, -0.04, 0.01, float("nan"), -0.06, 0.03, -0.05, 0.04, -0.02]})
         >>> frame.select(value_at_risk_modified(pl.col("returns")).round(4)).item()
         nan
     """
@@ -1237,7 +1505,7 @@ def value_at_risk_parametric(returns: pl.Expr, *, confidence: float = 0.95) -> p
     loss.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`pomata.pnl.returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
         confidence: The tail confidence level in the open interval ``(0, 1)`` (canonically ``0.95``).
 
     Returns:
@@ -1250,7 +1518,7 @@ def value_at_risk_parametric(returns: pl.Expr, *, confidence: float = 0.95) -> p
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior, documented under **Edge-case behavior** below.
+        case (missing data and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -1265,15 +1533,17 @@ def value_at_risk_parametric(returns: pl.Expr, *, confidence: float = 0.95) -> p
     See Also:
         - :func:`value_at_risk`: The historical (empirical) form.
         - :func:`value_at_risk_modified`: The skewness/kurtosis-corrected form.
+        - :func:`conditional_value_at_risk`: The expected shortfall beyond the VaR threshold.
 
     References:
-        - Jorion, P. (2006). Value at Risk: The New Benchmark for Managing Financial Risk (3rd ed.). McGraw-Hill.
+        - Jorion, P. (2006). *Value at Risk: The New Benchmark for Managing Financial Risk* (3rd ed.). McGraw-Hill.
         - https://en.wikipedia.org/wiki/Value_at_risk
         - https://www.investopedia.com/terms/v/var.asp
 
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import value_at_risk_parametric
+        >>>
         >>> frame = pl.DataFrame({"returns": [0.02, -0.04, 0.01, -0.06, 0.03]})
         >>> frame.select(value_at_risk_parametric(pl.col("returns")).round(4)).item()
         -0.0732
@@ -1315,7 +1585,7 @@ def value_at_risk_rolling(returns: pl.Expr, window: int, *, confidence: float = 
     where :math:`c` is ``confidence``. Returned as the signed return quantile (negative for a loss).
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`pomata.pnl.returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
         window: Number of observations in the moving window. Must be ``>= 1``.
         confidence: The tail confidence level in the open interval ``(0, 1)`` (canonically ``0.95``).
 
@@ -1340,6 +1610,8 @@ def value_at_risk_rolling(returns: pl.Expr, window: int, *, confidence: float = 
 
     See Also:
         - :func:`value_at_risk`: The whole-series reducing form.
+        - :func:`tail_ratio_rolling`: Another rolling tail-risk measure.
+        - :func:`downside_deviation_rolling`: Another rolling downside-risk measure.
 
     References:
         - https://en.wikipedia.org/wiki/Value_at_risk
@@ -1347,9 +1619,45 @@ def value_at_risk_rolling(returns: pl.Expr, window: int, *, confidence: float = 
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import value_at_risk_rolling
+        >>>
         >>> frame = pl.DataFrame({"returns": [0.01, -0.02, 0.03, -0.01, 0.02, 0.0, -0.015]})
         >>> frame.select(value_at_risk_rolling(pl.col("returns"), 4).round(4)).to_series().to_list()
         [None, None, None, -0.0185, -0.0185, -0.0085, -0.0142]
+
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up on its own (the ``B`` group never
+        borrows ``A``'s tail):
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "ticker": ["A"] * 7 + ["B"] * 7,
+        ...         "returns": [
+        ...             0.01,
+        ...             -0.02,
+        ...             0.03,
+        ...             -0.01,
+        ...             0.02,
+        ...             0.0,
+        ...             -0.015,
+        ...             0.02,
+        ...             -0.01,
+        ...             0.04,
+        ...             -0.03,
+        ...             0.01,
+        ...             0.025,
+        ...             -0.02,
+        ...         ],
+        ...     }
+        ... )
+        >>> rolled = value_at_risk_rolling(pl.col("returns"), 4).over("ticker").round(4)
+        >>> frame.select(rolled.alias("m"))["m"].to_list()
+        [None, None, None, -0.0185, -0.0185, -0.0085, -0.0142, None, None, None, -0.027, -0.027, -0.024, -0.0285]
+
+        A leading ``null`` and a later ``NaN`` show the per-window masking, with the result recovering once both
+        leave the window:
+
+        >>> frame = pl.DataFrame({"returns": [None, 0.01, float("nan"), -0.02, 0.03, -0.01, 0.02, 0.0, -0.015]})
+        >>> frame.select(value_at_risk_rolling(pl.col("returns"), 4).round(4)).to_series().to_list()
+        [None, None, None, None, nan, nan, -0.0185, -0.0085, -0.0142]
     """
     returns = float64_expr(returns)
     validate_window(window)
@@ -1377,7 +1685,7 @@ def volatility(returns: pl.Expr, *, periods_per_year: int) -> pl.Expr:
     returns. The square-root-of-time scaling assumes the per-bar returns are serially uncorrelated.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`pomata.pnl.returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
 
     Returns:
@@ -1390,19 +1698,21 @@ def volatility(returns: pl.Expr, *, periods_per_year: int) -> pl.Expr:
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior, documented under **Edge-case behavior** below.
+        case (missing data and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
         - **Null** — a ``null`` return is skipped (excluded from the standard deviation), so a leading warm-up ``null``
-          (as produced by :func:`pomata.pnl.returns_simple`) does not affect the result.
+          (as produced by :func:`returns_simple`) does not affect the result.
         - **NaN** — a ``NaN`` return propagates, yielding ``NaN``.
         - **Fewer than two returns** — the sample standard deviation is undefined, so the result is ``null``.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the volatility is computed per
           series, e.g. ``volatility(pl.col("returns"), periods_per_year=252).over("ticker")``.
 
     See Also:
-        - :func:`pomata.pnl.returns_net`: The usual source of the net-return series this measures.
+        - :func:`volatility_rolling`: The rolling (windowed) form.
+        - :func:`downside_deviation`: The downside-only (one-sided) counterpart.
+        - :func:`returns_net`: The usual source of the net-return series this measures.
 
     References:
         - https://en.wikipedia.org/wiki/Volatility_(finance)
@@ -1411,6 +1721,7 @@ def volatility(returns: pl.Expr, *, periods_per_year: int) -> pl.Expr:
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import volatility
+        >>>
         >>> frame = pl.DataFrame({"returns": [0.01, -0.02, 0.015, 0.005, -0.01]})
         >>> frame.select(volatility(pl.col("returns"), periods_per_year=252).round(4)).item()
         0.2314
@@ -1426,6 +1737,12 @@ def volatility(returns: pl.Expr, *, periods_per_year: int) -> pl.Expr:
         >>> annual = volatility(pl.col("returns"), periods_per_year=252).over("ticker").round(4)
         >>> frame.select(annual.alias("v"))["v"].unique().sort().to_list()
         [0.2314, 0.3054]
+
+        A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
+
+        >>> frame = pl.DataFrame({"returns": [0.01, None, -0.02, 0.015, float("nan"), 0.005, -0.01]})
+        >>> frame.select(volatility(pl.col("returns"), periods_per_year=252).round(4)).item()
+        nan
     """
     returns = float64_expr(returns)
     validate_periods_per_year(periods_per_year)
@@ -1445,7 +1762,7 @@ def volatility_rolling(returns: pl.Expr, window: int, *, periods_per_year: int) 
     where :math:`P` is ``periods_per_year``.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`pomata.pnl.returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
         window: Number of observations in the moving window. Must be ``>= 2``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
 
@@ -1459,8 +1776,7 @@ def volatility_rolling(returns: pl.Expr, window: int, *, periods_per_year: int) 
 
     Note:
         **Correctness** -- each window matches an independent reference oracle (the reducing :func:`volatility`
-        recomputed over the window), and every edge case (missing data and boundaries) has a defined behavior,
-        documented under **Edge-case behavior** below.
+        recomputed over the window), and every edge case (missing data and boundaries) has a defined behavior.
 
         **Edge-case behavior:**
 
@@ -1472,6 +1788,7 @@ def volatility_rolling(returns: pl.Expr, window: int, *, periods_per_year: int) 
     See Also:
         - :func:`volatility`: The whole-series reducing form.
         - :func:`sharpe_ratio_rolling`: The risk-adjusted ratio whose denominator is this.
+        - :func:`downside_deviation_rolling`: The downside-only rolling counterpart.
 
     References:
         - https://en.wikipedia.org/wiki/Volatility_(finance)
@@ -1479,9 +1796,45 @@ def volatility_rolling(returns: pl.Expr, window: int, *, periods_per_year: int) 
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import volatility_rolling
+        >>>
         >>> frame = pl.DataFrame({"returns": [0.01, -0.02, 0.03, -0.01, 0.02, 0.0, -0.015]})
         >>> frame.select(volatility_rolling(pl.col("returns"), 3, periods_per_year=252).round(4))["returns"].to_list()
         [None, None, 0.3995, 0.42, 0.3305, 0.2425, 0.2787]
+
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up on its own (the ``B`` group never
+        borrows ``A``'s tail):
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "ticker": ["A"] * 7 + ["B"] * 7,
+        ...         "returns": [
+        ...             0.01,
+        ...             -0.02,
+        ...             0.03,
+        ...             -0.01,
+        ...             0.02,
+        ...             0.0,
+        ...             -0.015,
+        ...             0.02,
+        ...             -0.01,
+        ...             0.04,
+        ...             -0.03,
+        ...             0.01,
+        ...             0.025,
+        ...             -0.02,
+        ...         ],
+        ...     }
+        ... )
+        >>> rolled = volatility_rolling(pl.col("returns"), 3, periods_per_year=252).over("ticker").round(4)
+        >>> frame.select(rolled.alias("m"))["m"].to_list()
+        [None, None, 0.3995, 0.42, 0.3305, 0.2425, 0.2787, None, None, 0.3995, 0.5724, 0.5575, 0.4513, 0.3637]
+
+        A leading ``null`` and a later ``NaN`` show the per-window masking, with the result recovering once both
+        leave the window:
+
+        >>> frame = pl.DataFrame({"returns": [None, 0.01, -0.02, float("nan"), 0.03, -0.01, 0.02]})
+        >>> frame.select(volatility_rolling(pl.col("returns"), 3, periods_per_year=252).round(4))["returns"].to_list()
+        [None, None, None, nan, nan, nan, 0.3305]
     """
     returns = float64_expr(returns)
     validate_window(window, minimum=2)
@@ -1500,7 +1853,7 @@ def win_rate(returns: pl.Expr) -> pl.Expr:
         \mathrm{win\ rate} = \frac{\#\{r_i > 0\}}{\#\{r_i \neq 0\}}.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`pomata.pnl.returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
 
     Returns:
         A single ``Float64`` value in ``[0, 1]``: the win rate (one value in ``select``, one per group under ``.over``).
@@ -1511,7 +1864,7 @@ def win_rate(returns: pl.Expr) -> pl.Expr:
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior, documented under **Edge-case behavior** below.
+        case (missing data and boundaries) is given a defined behavior.
 
         This is a **bar-level** statistic: each return observation is treated as one win or loss. It is not a per-trade
         statistic -- true per-trade win rate needs trade-level fill data, which is outside this toolkit's scope.
@@ -1528,13 +1881,15 @@ def win_rate(returns: pl.Expr) -> pl.Expr:
     See Also:
         - :func:`payoff_ratio`: The average size of a win versus a loss.
         - :func:`profit_ratio`: The aggregate gain-to-loss ratio.
+        - :func:`kelly_criterion`: The growth-optimal bet fraction built on this rate.
 
     References:
-        - Pardo, R. (2008). The Evaluation and Optimization of Trading Strategies (2nd ed.). Wiley.
+        - Pardo, R. (2008). *The Evaluation and Optimization of Trading Strategies* (2nd ed.). Wiley.
 
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import win_rate
+        >>>
         >>> frame = pl.DataFrame({"returns": [0.03, -0.01, 0.02, -0.015, 0.01, 0.005, -0.02]})
         >>> frame.select(win_rate(pl.col("returns")).round(4)).item()
         0.5714
@@ -1545,8 +1900,20 @@ def win_rate(returns: pl.Expr) -> pl.Expr:
         ...     {
         ...         "ticker": ["A"] * 7 + ["B"] * 7,
         ...         "returns": [
-        ...             0.03, -0.01, 0.02, -0.015, 0.01, 0.005, -0.02,
-        ...             0.04, -0.02, 0.03, 0.01, 0.02, 0.01, -0.03,
+        ...             0.03,
+        ...             -0.01,
+        ...             0.02,
+        ...             -0.015,
+        ...             0.01,
+        ...             0.005,
+        ...             -0.02,
+        ...             0.04,
+        ...             -0.02,
+        ...             0.03,
+        ...             0.01,
+        ...             0.02,
+        ...             0.01,
+        ...             -0.03,
         ...         ],
         ...     }
         ... )

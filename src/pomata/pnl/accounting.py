@@ -49,8 +49,7 @@ def cumulative_pnl(
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every
-        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior, documented
-        under **Edge-case behavior** below.
+        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -64,30 +63,34 @@ def cumulative_pnl(
     See Also:
         - :func:`equity_curve`: The compounded (reinvested) return-flow cumulation, a product of one-plus-returns.
         - :func:`pnl_net`: The per-bar net P&L this typically cumulates in the cash flow.
+        - :func:`returns_net`: The per-bar net return it cumulates for an additive, fixed-notional total.
 
     References:
         - https://en.wikipedia.org/wiki/Rate_of_return
 
     Examples:
+        Basic usage on a per-bar P&L series:
+
         >>> import polars as pl
         >>> from pomata.pnl import cumulative_pnl
-        >>> frame = pl.DataFrame({"returns": [0.1, -0.05, 0.2, 0.1]})
+        >>>
+        >>> frame = pl.DataFrame({"returns": [0.1, -0.05, 0.2, 0.1, -0.15, 0.05, 0.3, -0.1]})
         >>> frame.select(cumulative_pnl(pl.col("returns")).round(4).alias("cumulative_pnl"))["cumulative_pnl"].to_list()
-        [0.1, 0.05, 0.25, 0.35]
+        [0.1, 0.05, 0.25, 0.35, 0.2, 0.25, 0.55, 0.45]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker accumulates independently:
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 3 + ["B"] * 3,
-        ...         "returns": [0.1, 0.2, -0.05, 0.0, 0.1, 0.1],
+        ...         "ticker": ["A"] * 4 + ["B"] * 4,
+        ...         "returns": [0.1, 0.2, -0.05, 0.1, 0.0, 0.1, 0.1, -0.2],
         ...     }
         ... )
         >>> frame.with_columns(cumulative_pnl(pl.col("returns")).over("ticker").round(4).alias("c"))["c"].to_list()
-        [0.1, 0.3, 0.25, 0.0, 0.1, 0.2]
+        [0.1, 0.3, 0.25, 0.35, 0.0, 0.1, 0.2, 0.0]
 
-        A ``null`` (skipped, the total carries across it) and a ``NaN`` (which contaminates every later row) make the
-        missing-data handling visible:
+        A ``null`` (skipped, the running total carries across it) then a ``NaN`` (which contaminates every later row)
+        in ``returns`` make the missing-data handling visible:
 
         >>> frame = pl.DataFrame({"returns": [0.1, None, 0.2, float("nan"), 0.1]})
         >>> frame.select(cumulative_pnl(pl.col("returns")).round(4).alias("cumulative_pnl"))["cumulative_pnl"].to_list()
@@ -130,8 +133,7 @@ def dividend(
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every
-        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior, documented
-        under **Edge-case behavior** below.
+        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -141,36 +143,54 @@ def dividend(
           identically and is optional here, unlike the lagged / cumulative functions.
 
     See Also:
+        - :func:`pnl_gross`: The gross position PnL this dividend income is added to.
         - :func:`cost_borrow`: The equity holding cashflow on the cost side (short-borrow).
-        - :func:`pnl_gross`: The gross position PnL this income is added to.
+        - :func:`cost_funding`: The perpetual-swap funding leg, another per-bar holding cashflow.
 
     References:
         - https://en.wikipedia.org/wiki/Dividend
 
     Examples:
+        Basic usage on a held quantity and a per-share dividend:
+
         >>> import polars as pl
         >>> from pomata.pnl import dividend
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "quantity": [100.0, 100.0, 100.0, 0.0, -50.0],
-        ...         "dividend_per_share": [0.0, 0.0, 0.5, 0.0, 0.5],
+        ...         "quantity": [100.0, 100.0, 100.0, 0.0, -50.0, -50.0, 200.0, 200.0],
+        ...         "dividend_per_share": [0.0, 0.0, 0.5, 0.0, 0.5, 0.5, 0.0, 0.0],
         ...     }
         ... )
         >>> expr = dividend(pl.col("quantity"), pl.col("dividend_per_share")).round(4)
         >>> frame.select(expr.alias("dividend"))["dividend"].to_list()
-        [0.0, 0.0, 50.0, 0.0, -25.0]
+        [0.0, 0.0, 50.0, 0.0, -25.0, -25.0, 0.0, 0.0]
 
-        A ``null`` (which propagates) and a ``NaN`` make the missing-data handling visible:
+        The product is elementwise, so ``.over`` partitions identically and is shown only for consistency:
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "quantity": [100.0, None, 100.0, float("nan")],
-        ...         "dividend_per_share": [0.0, 0.5, float("nan"), 0.5],
+        ...         "ticker": ["A"] * 4 + ["B"] * 4,
+        ...         "quantity": [100.0, 100.0, 100.0, 0.0, 50.0, 50.0, -50.0, -50.0],
+        ...         "dividend_per_share": [0.0, 0.0, 0.5, 0.0, 0.0, 0.3, 0.3, 0.3],
+        ...     }
+        ... )
+        >>> expr = dividend(pl.col("quantity"), pl.col("dividend_per_share")).over("ticker").round(4)
+        >>> frame.with_columns(expr.alias("d"))["d"].to_list()
+        [0.0, 0.0, 50.0, 0.0, 0.0, 15.0, -15.0, -15.0]
+
+        A ``null`` then a ``NaN`` in ``quantity`` (both propagate through the product) make the missing-data handling
+        visible:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "quantity": [100.0, None, 100.0, float("nan"), -50.0],
+        ...         "dividend_per_share": [0.5, 0.5, 0.5, 0.5, 0.5],
         ...     }
         ... )
         >>> expr = dividend(pl.col("quantity"), pl.col("dividend_per_share")).round(4)
         >>> frame.select(expr.alias("dividend"))["dividend"].to_list()
-        [0.0, None, nan, nan]
+        [50.0, None, 50.0, nan, -25.0]
     """
     quantity = float64_expr(quantity)
     dividend_per_share = float64_expr(dividend_per_share)
@@ -209,8 +229,7 @@ def equity_curve(
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every
-        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior, documented
-        under **Edge-case behavior** below.
+        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -225,34 +244,38 @@ def equity_curve(
     See Also:
         - :func:`cumulative_pnl`: The additive (fixed-notional) twin, a cumulative sum of returns.
         - :func:`returns_gross`: The per-bar strategy returns this typically compounds.
+        - :func:`drawdown`: The metric that consumes this equity curve, its decline from the running peak.
 
     References:
         - https://en.wikipedia.org/wiki/Rate_of_return
 
     Examples:
+        Basic usage on a per-bar return series:
+
         >>> import polars as pl
         >>> from pomata.pnl import equity_curve
-        >>> frame = pl.DataFrame({"returns": [0.1, -0.05, 0.2, 0.1]})
+        >>>
+        >>> frame = pl.DataFrame({"returns": [0.1, -0.05, 0.2, 0.1, -0.15, 0.05, 0.3, -0.1]})
         >>> frame.select(equity_curve(pl.col("returns")).round(4).alias("equity"))["equity"].to_list()
-        [1.1, 1.045, 1.254, 1.3794]
-
-        A leading warm-up ``null`` (as produced by :func:`returns_simple`) stays ``null``; the curve begins at the first
-        defined return:
-
-        >>> frame = pl.DataFrame({"returns": [None, 0.1, 0.2, -0.05]})
-        >>> frame.select(equity_curve(pl.col("returns")).round(4).alias("equity"))["equity"].to_list()
-        [None, 1.1, 1.32, 1.254]
+        [1.1, 1.045, 1.254, 1.3794, 1.1725, 1.2311, 1.6004, 1.4404]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker compounds independently:
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 3 + ["B"] * 3,
-        ...         "returns": [0.1, 0.2, -0.05, 0.0, 0.1, 0.1],
+        ...         "ticker": ["A"] * 4 + ["B"] * 4,
+        ...         "returns": [0.1, 0.2, -0.05, 0.1, 0.0, 0.1, 0.1, -0.2],
         ...     }
         ... )
         >>> frame.with_columns(equity_curve(pl.col("returns")).over("ticker").round(4).alias("e"))["e"].to_list()
-        [1.1, 1.32, 1.254, 1.0, 1.1, 1.21]
+        [1.1, 1.32, 1.254, 1.3794, 1.0, 1.1, 1.21, 0.968]
+
+        A leading ``null`` stays ``null`` (the curve begins at the first defined return) and a later ``NaN`` then
+        contaminates every row after it:
+
+        >>> frame = pl.DataFrame({"returns": [None, 0.1, 0.2, float("nan"), 0.1]})
+        >>> frame.select(equity_curve(pl.col("returns")).round(4).alias("equity"))["equity"].to_list()
+        [None, 1.1, 1.32, nan, nan]
     """
     returns = float64_expr(returns)
     # Cumulative product of one-plus-returns: a null is skipped (emits null, the product carries across it), a NaN
@@ -299,8 +322,7 @@ def pnl_gross(
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every
-        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior, documented
-        under **Edge-case behavior** below.
+        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior.
 
         **No lookahead (alignment is the caller's):** the PnL assumes ``quantity`` at row ``t`` is the position held
         over the price change into row ``t``. To stay lookahead-free, that quantity must depend only on information
@@ -323,50 +345,47 @@ def pnl_gross(
 
     References:
         - https://en.wikipedia.org/wiki/Mark-to-market_accounting
-        - https://en.wikipedia.org/wiki/Rate_of_return
 
     Examples:
+        Basic usage on a held quantity and a price series:
+
         >>> import polars as pl
         >>> from pomata.pnl import pnl_gross
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "quantity": [10.0, 10.0, -5.0, -5.0, 20.0],
-        ...         "price": [100.0, 102.0, 101.0, 104.0, 103.0],
+        ...         "quantity": [10.0, 10.0, -5.0, -5.0, 20.0, 20.0, -10.0, -10.0],
+        ...         "price": [100.0, 102.0, 101.0, 104.0, 103.0, 105.0, 104.0, 106.0],
         ...     }
         ... )
         >>> frame.select(pnl_gross(pl.col("quantity"), pl.col("price")).round(4).alias("pnl"))["pnl"].to_list()
-        [None, 20.0, 5.0, -15.0, -20.0]
-
-        A futures contract multiplier scales the PnL (here ``50`` per point):
-
-        >>> expr = pnl_gross(pl.col("quantity"), pl.col("price"), multiplier=50.0).round(4)
-        >>> frame.select(expr.alias("pnl"))["pnl"].to_list()
-        [None, 1000.0, 250.0, -750.0, -1000.0]
+        [None, 20.0, 5.0, -15.0, -20.0, 40.0, 10.0, -20.0]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 3 + ["B"] * 3,
-        ...         "quantity": [10.0, 10.0, -5.0, 2.0, 2.0, 2.0],
-        ...         "price": [100.0, 102.0, 101.0, 50.0, 51.0, 49.0],
+        ...         "ticker": ["A"] * 4 + ["B"] * 4,
+        ...         "quantity": [10.0, 10.0, -5.0, -5.0, 2.0, 2.0, 2.0, 2.0],
+        ...         "price": [100.0, 102.0, 101.0, 104.0, 50.0, 51.0, 49.0, 52.0],
         ...     }
         ... )
         >>> frame.with_columns(pnl_gross(pl.col("quantity"), pl.col("price")).over("ticker").round(4).alias("p"))[
         ...     "p"
         ... ].to_list()
-        [None, 20.0, 5.0, None, 2.0, -4.0]
+        [None, 20.0, 5.0, -15.0, None, 2.0, -4.0, 6.0]
 
-        A ``null`` (which propagates) and a ``NaN`` make the missing-data handling visible:
+        A leading warm-up ``null`` (row 0, no prior price), then a ``null`` and a ``NaN`` in ``quantity`` that void
+        only their own rows:
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "quantity": [10.0, None, -5.0, 20.0],
-        ...         "price": [100.0, 102.0, float("nan"), 104.0],
+        ...         "quantity": [10.0, None, -5.0, float("nan"), 20.0],
+        ...         "price": [100.0, 102.0, 101.0, 104.0, 103.0],
         ...     }
         ... )
         >>> frame.select(pnl_gross(pl.col("quantity"), pl.col("price")).round(4).alias("pnl"))["pnl"].to_list()
-        [None, None, nan, nan]
+        [None, None, 5.0, nan, -20.0]
     """
     quantity = float64_expr(quantity)
     price = float64_expr(price)
@@ -421,8 +440,7 @@ def pnl_gross_inverse(
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every
-        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior, documented
-        under **Edge-case behavior** below.
+        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior.
 
         **No lookahead (alignment is the caller's):** the PnL assumes ``quantity`` at row ``t`` is the position held
         over the price change into row ``t``. To stay lookahead-free, that quantity must depend only on information
@@ -453,52 +471,49 @@ def pnl_gross_inverse(
 
     References:
         - https://en.wikipedia.org/wiki/Perpetual_futures
-        - https://en.wikipedia.org/wiki/Mark-to-market_accounting
 
     Examples:
+        Basic usage on an inverse (coin-margined) contract:
+
         >>> import polars as pl
         >>> from pomata.pnl import pnl_gross_inverse
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "quantity": [1.0, 1.0, -2.0, -2.0, 3.0],
-        ...         "price": [100.0, 110.0, 105.0, 120.0, 115.0],
+        ...         "quantity": [1.0, 1.0, -2.0, -2.0, 3.0, 3.0, -1.0, -1.0],
+        ...         "price": [100.0, 110.0, 105.0, 120.0, 115.0, 118.0, 112.0, 120.0],
         ...     }
         ... )
         >>> expr = pnl_gross_inverse(pl.col("quantity"), pl.col("price")).round(6)
         >>> frame.select(expr.alias("pnl"))["pnl"].to_list()
-        [None, 0.000909, 0.000866, -0.002381, -0.001087]
-
-        A contract notional scales the coin PnL (here ``100`` USD per contract):
-
-        >>> expr = pnl_gross_inverse(pl.col("quantity"), pl.col("price"), multiplier=100.0).round(4)
-        >>> frame.select(expr.alias("pnl"))["pnl"].to_list()
-        [None, 0.0909, 0.0866, -0.2381, -0.1087]
+        [None, 0.000909, 0.000866, -0.002381, -0.001087, 0.000663, 0.000454, -0.000595]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 3 + ["B"] * 3,
-        ...         "quantity": [1.0, 1.0, -2.0, 2.0, 2.0, 2.0],
-        ...         "price": [100.0, 110.0, 105.0, 50.0, 55.0, 52.0],
+        ...         "ticker": ["A"] * 4 + ["B"] * 4,
+        ...         "quantity": [1.0, 1.0, -2.0, -2.0, 2.0, 2.0, 2.0, 2.0],
+        ...         "price": [100.0, 110.0, 105.0, 120.0, 50.0, 55.0, 52.0, 58.0],
         ...     }
         ... )
         >>> frame.with_columns(
         ...     pnl_gross_inverse(pl.col("quantity"), pl.col("price")).over("ticker").round(6).alias("p")
         ... )["p"].to_list()
-        [None, 0.000909, 0.000866, None, 0.003636, -0.002098]
+        [None, 0.000909, 0.000866, -0.002381, None, 0.003636, -0.002098, 0.003979]
 
-        A ``null`` (which propagates) and a ``NaN`` make the missing-data handling visible:
+        A leading warm-up ``null`` (row 0, no prior price), then a ``null`` and a ``NaN`` in ``quantity`` that void
+        only their own rows:
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "quantity": [1.0, None, -2.0, 3.0],
-        ...         "price": [100.0, 110.0, float("nan"), 120.0],
+        ...         "quantity": [1.0, None, -2.0, float("nan"), 3.0],
+        ...         "price": [100.0, 110.0, 105.0, 120.0, 115.0],
         ...     }
         ... )
         >>> expr = pnl_gross_inverse(pl.col("quantity"), pl.col("price")).round(6)
         >>> frame.select(expr.alias("pnl"))["pnl"].to_list()
-        [None, None, nan, nan]
+        [None, None, 0.000866, nan, -0.001087]
     """
     quantity = float64_expr(quantity)
     price = float64_expr(price)
@@ -540,8 +555,7 @@ def pnl_net(
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every
-        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior, documented
-        under **Edge-case behavior** below.
+        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -557,30 +571,47 @@ def pnl_net(
 
     References:
         - https://en.wikipedia.org/wiki/Mark-to-market_accounting
-        - https://en.wikipedia.org/wiki/Rate_of_return
 
     Examples:
+        Basic usage on a gross P&L and a cost series:
+
         >>> import polars as pl
         >>> from pomata.pnl import pnl_net
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "pnl_gross": [20.0, 5.0, -15.0, -20.0, 8.0],
-        ...         "cost": [2.0, 0.0, 3.0, 0.0, 1.0],
+        ...         "pnl_gross": [20.0, 5.0, -15.0, -20.0, 8.0, 12.0, -3.0, 10.0],
+        ...         "cost": [2.0, 0.0, 3.0, 0.0, 1.0, 2.0, 0.0, 1.0],
         ...     }
         ... )
         >>> frame.select(pnl_net(pl.col("pnl_gross"), pl.col("cost")).round(4).alias("pnl_net"))["pnl_net"].to_list()
-        [18.0, 5.0, -18.0, -20.0, 7.0]
+        [18.0, 5.0, -18.0, -20.0, 7.0, 10.0, -3.0, 9.0]
 
-        A ``null`` (which propagates) and a ``NaN`` make the missing-data handling visible:
+        The subtraction is elementwise, so ``.over`` partitions identically and is shown only for consistency:
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "pnl_gross": [20.0, None, -15.0, float("nan")],
-        ...         "cost": [2.0, 3.0, float("nan"), 0.0],
+        ...         "ticker": ["A"] * 4 + ["B"] * 4,
+        ...         "pnl_gross": [20.0, 5.0, -15.0, -20.0, 8.0, 12.0, -3.0, 10.0],
+        ...         "cost": [2.0, 0.0, 3.0, 0.0, 1.0, 2.0, 0.0, 1.0],
+        ...     }
+        ... )
+        >>> frame.with_columns(pnl_net(pl.col("pnl_gross"), pl.col("cost")).over("ticker").round(4).alias("n"))[
+        ...     "n"
+        ... ].to_list()
+        [18.0, 5.0, -18.0, -20.0, 7.0, 10.0, -3.0, 9.0]
+
+        A ``null`` then a ``NaN`` in ``pnl_gross`` (both propagate through the subtraction) make the missing-data
+        handling visible:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "pnl_gross": [20.0, None, -15.0, float("nan"), 8.0],
+        ...         "cost": [2.0, 3.0, 3.0, 0.0, 1.0],
         ...     }
         ... )
         >>> frame.select(pnl_net(pl.col("pnl_gross"), pl.col("cost")).round(4).alias("pnl_net"))["pnl_net"].to_list()
-        [18.0, None, nan, nan]
+        [18.0, None, -18.0, nan, 7.0]
     """
     pnl_gross = float64_expr(pnl_gross)
     cost = float64_expr(cost)
@@ -624,8 +655,7 @@ def returns_gross(
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every
-        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior, documented
-        under **Edge-case behavior** below.
+        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior.
 
         **No lookahead (alignment is the caller's):** the product assumes ``weight`` at row ``t`` is the weight held
         over ``asset_returns`` at row ``t``. To stay lookahead-free, that weight must depend only on information
@@ -648,46 +678,50 @@ def returns_gross(
         - :func:`equity_curve`: Compounds these per-bar returns into a capital curve.
 
     References:
-        - Meucci, A. (2010). Quant Nugget 2: Linear vs. Compounded Returns. https://papers.ssrn.com/sol3/papers.cfm?abstract_id=1586656
+        - Meucci, A. (2010). "Quant Nugget 2: Linear vs. Compounded Returns."
         - https://en.wikipedia.org/wiki/Rate_of_return
 
     Examples:
+        Basic usage on a weight and an asset-return series:
+
         >>> import polars as pl
         >>> from pomata.pnl import returns_gross
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "weight": [1.0, 0.5, -1.0, -1.0, 0.5],
-        ...         "asset_returns": [0.02, -0.01, 0.03, -0.02, 0.04],
+        ...         "weight": [1.0, 0.5, -1.0, -1.0, 0.5, 1.0, -0.5, 0.5],
+        ...         "asset_returns": [0.02, -0.01, 0.03, -0.02, 0.04, 0.01, -0.03, 0.02],
         ...     }
         ... )
         >>> expr = returns_gross(pl.col("weight"), pl.col("asset_returns")).round(4)
         >>> frame.select(expr.alias("returns_gross"))["returns_gross"].to_list()
-        [0.02, -0.005, -0.03, 0.02, 0.02]
+        [0.02, -0.005, -0.03, 0.02, 0.02, 0.01, 0.015, 0.01]
 
-        On a multi-ticker panel the product is already per-row, so ``.over`` is optional and shown only for consistency:
+        The product is elementwise, so ``.over`` partitions identically and is shown only for consistency:
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 3 + ["B"] * 3,
-        ...         "weight": [1.0, -1.0, 0.5, 0.5, 0.5, -1.0],
-        ...         "asset_returns": [0.02, 0.03, -0.01, 0.04, -0.02, 0.01],
+        ...         "ticker": ["A"] * 4 + ["B"] * 4,
+        ...         "weight": [1.0, -1.0, 0.5, 0.5, 0.5, 0.5, -1.0, 1.0],
+        ...         "asset_returns": [0.02, 0.03, -0.01, 0.04, -0.02, 0.01, 0.03, -0.01],
         ...     }
         ... )
         >>> expr = returns_gross(pl.col("weight"), pl.col("asset_returns")).over("ticker").round(4)
         >>> frame.with_columns(expr.alias("g"))["g"].to_list()
-        [0.02, -0.03, -0.005, 0.02, -0.01, -0.01]
+        [0.02, -0.03, -0.005, 0.02, -0.01, 0.005, -0.03, -0.01]
 
-        A ``null`` (which propagates through the product) and a ``NaN`` make the missing-data handling visible:
+        A ``null`` then a ``NaN`` in ``asset_returns`` (both propagate through the product) make the missing-data
+        handling visible:
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "weight": [1.0, None, -1.0, 0.5],
-        ...         "asset_returns": [0.02, 0.03, float("nan"), 0.04],
+        ...         "weight": [1.0, 0.5, -1.0, -1.0, 0.5],
+        ...         "asset_returns": [0.02, None, 0.03, float("nan"), 0.04],
         ...     }
         ... )
         >>> expr = returns_gross(pl.col("weight"), pl.col("asset_returns")).round(4)
         >>> frame.select(expr.alias("returns_gross"))["returns_gross"].to_list()
-        [0.02, None, nan, 0.02]
+        [0.02, None, -0.03, nan, 0.02]
     """
     weight = float64_expr(weight)
     asset_returns = float64_expr(asset_returns)
@@ -728,8 +762,7 @@ def returns_net(
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every
-        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior, documented
-        under **Edge-case behavior** below.
+        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -743,37 +776,52 @@ def returns_net(
     See Also:
         - :func:`returns_gross`: The gross return this nets costs from.
         - :func:`cost_proportional`: The usual source of ``cost`` (a proportional, bps-of-notional fee).
-        - :func:`cost_slippage`: A second cost component (a fixed half-spread); sum it with the others.
         - :func:`equity_curve`: Compounds these net returns into a capital curve.
 
     References:
         - https://en.wikipedia.org/wiki/Rate_of_return
-        - https://en.wikipedia.org/wiki/Transaction_cost
 
     Examples:
+        Basic usage on a gross return and a cost series:
+
         >>> import polars as pl
         >>> from pomata.pnl import returns_net
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "returns_gross": [0.05, -0.02, 0.03, 0.01, 0.0],
+        ...         "returns_gross": [0.05, -0.02, 0.03, 0.01, 0.0, 0.04, -0.01, 0.02],
+        ...         "cost": [0.0005, 0.0015, 0.0005, 0.0, 0.0005, 0.001, 0.0, 0.0005],
+        ...     }
+        ... )
+        >>> expr = returns_net(pl.col("returns_gross"), pl.col("cost")).round(4)
+        >>> frame.select(expr.alias("returns_net"))["returns_net"].to_list()
+        [0.0495, -0.0215, 0.0295, 0.01, -0.0005, 0.039, -0.01, 0.0195]
+
+        The subtraction is elementwise, so ``.over`` partitions identically and is shown only for consistency:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "ticker": ["A"] * 4 + ["B"] * 4,
+        ...         "returns_gross": [0.05, -0.02, 0.03, 0.01, 0.0, 0.04, -0.01, 0.02],
+        ...         "cost": [0.0005, 0.0015, 0.0005, 0.0, 0.0005, 0.001, 0.0, 0.0005],
+        ...     }
+        ... )
+        >>> expr = returns_net(pl.col("returns_gross"), pl.col("cost")).over("ticker").round(4)
+        >>> frame.with_columns(expr.alias("n"))["n"].to_list()
+        [0.0495, -0.0215, 0.0295, 0.01, -0.0005, 0.039, -0.01, 0.0195]
+
+        A ``null`` then a ``NaN`` in ``returns_gross`` (both propagate through the subtraction) make the missing-data
+        handling visible:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "returns_gross": [0.05, None, 0.03, float("nan"), 0.0],
         ...         "cost": [0.0005, 0.0015, 0.0005, 0.0, 0.0005],
         ...     }
         ... )
         >>> expr = returns_net(pl.col("returns_gross"), pl.col("cost")).round(4)
         >>> frame.select(expr.alias("returns_net"))["returns_net"].to_list()
-        [0.0495, -0.0215, 0.0295, 0.01, -0.0005]
-
-        A ``null`` (which propagates through the subtraction) and a ``NaN`` make the missing-data handling visible:
-
-        >>> frame = pl.DataFrame(
-        ...     {
-        ...         "returns_gross": [0.05, None, 0.03, float("nan")],
-        ...         "cost": [0.0005, 0.0015, float("nan"), 0.0],
-        ...     }
-        ... )
-        >>> expr = returns_net(pl.col("returns_gross"), pl.col("cost")).round(4)
-        >>> frame.select(expr.alias("returns_net"))["returns_net"].to_list()
-        [0.0495, None, nan, nan]
+        [0.0495, None, 0.0295, nan, -0.0005]
     """
     returns_gross = float64_expr(returns_gross)
     cost = float64_expr(cost)
@@ -812,8 +860,7 @@ def turnover(
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every
-        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior, documented
-        under **Edge-case behavior** below.
+        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -827,31 +874,37 @@ def turnover(
           ``turnover(pl.col("weight")).over("ticker")``.
 
     See Also:
+        - :func:`cost_proportional`: The proportional transaction cost this turnover scales.
+        - :func:`cost_slippage`: A per-trade slippage cost also driven by the traded fraction.
         - :func:`returns_gross`: The gross return of the same ``weight``.
 
     References:
         - https://www.investopedia.com/terms/p/portfolioturnover.asp
 
     Examples:
+        Basic usage on a weight series:
+
         >>> import polars as pl
         >>> from pomata.pnl import turnover
-        >>> frame = pl.DataFrame({"weight": [0.5, 1.0, -0.5, -0.5, 0.0]})
+        >>>
+        >>> frame = pl.DataFrame({"weight": [0.5, 1.0, -0.5, -0.5, 0.0, 1.0, 1.0, -1.0]})
         >>> frame.select(turnover(pl.col("weight")).round(4).alias("turnover"))["turnover"].to_list()
-        [0.5, 0.5, 1.5, 0.0, 0.5]
+        [0.5, 0.5, 1.5, 0.0, 0.5, 1.0, 0.0, 2.0]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker starts flat and never differences across the
         boundary:
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 3 + ["B"] * 3,
-        ...         "weight": [0.5, 1.0, -0.5, 1.0, 1.0, 0.0],
+        ...         "ticker": ["A"] * 4 + ["B"] * 4,
+        ...         "weight": [0.5, 1.0, -0.5, -0.5, 1.0, 1.0, 0.0, 0.5],
         ...     }
         ... )
         >>> frame.with_columns(turnover(pl.col("weight")).over("ticker").round(4).alias("t"))["t"].to_list()
-        [0.5, 0.5, 1.5, 1.0, 0.0, 1.0]
+        [0.5, 0.5, 1.5, 0.0, 1.0, 0.0, 1.0, 0.5]
 
-        A ``null`` (which voids its own row and the next) and a ``NaN`` make the missing-data handling visible:
+        A ``null`` (which voids its own row and the next, since the difference references the previous weight) then a
+        ``NaN`` (likewise) make the missing-data handling visible:
 
         >>> frame = pl.DataFrame({"weight": [0.5, None, -0.5, float("nan"), 0.0]})
         >>> frame.select(turnover(pl.col("weight")).round(4).alias("turnover"))["turnover"].to_list()

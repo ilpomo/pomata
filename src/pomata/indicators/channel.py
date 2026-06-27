@@ -74,16 +74,17 @@ def donchian_channels(
 
     See Also:
         - :func:`midprice`: The channel's middle band on its own.
+        - :func:`keltner_channels`: The same band shape, an EMA midline with ATR width instead of window extremes.
         - :func:`bollinger_bands`: Volatility bands around a moving average rather than around the window's extremes.
 
     References:
         - https://en.wikipedia.org/wiki/Donchian_channel
-        - https://school.stockcharts.com/doku.php?id=technical_indicators:price_channels
         - https://www.investopedia.com/terms/d/donchianchannels.asp
 
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import donchian_channels
+        >>>
         >>> frame = pl.DataFrame({"high": [11.0, 12.0, 13.0, 12.5, 14.0], "low": [9.0, 10.0, 11.0, 11.0, 12.0]})
         >>> out = frame.select(donchian_channels(pl.col("high"), pl.col("low"), 3).alias("dc")).unnest("dc")
         >>> out["upper"].round(4).to_list()
@@ -195,18 +196,19 @@ def ichimoku(
           boundaries.
 
     See Also:
-        - :func:`midprice`: the single rolling high-low midpoint each Ichimoku line is built from.
-        - :func:`donchian_channels`: the same window extremes kept as separate bands rather than midpoints.
+        - :func:`midprice`: The single rolling high-low midpoint each Ichimoku line is built from.
+        - :func:`donchian_channels`: The same window extremes kept as separate bands rather than midpoints.
+        - :func:`keltner_channels`: Another channel, an EMA midline with ATR bands rather than rolling midpoints.
 
     References:
         - Hosoda, Goichi (1969). *Ichimoku Kinkō Hyō*.
         - https://en.wikipedia.org/wiki/Ichimoku_Kink%C5%8D_Hy%C5%8D
-        - https://school.stockcharts.com/doku.php?id=technical_indicators:ichimoku_cloud
         - https://www.investopedia.com/terms/i/ichimoku-cloud.asp
 
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import ichimoku
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
         ...         "high": [10.0, 12.0, 11.0, 13.0, 14.0, 12.0, 15.0, 13.0],
@@ -339,13 +341,14 @@ def keltner_channels(
         - :func:`bollinger_bands`: The same idea with standard-deviation width instead of ATR.
 
     References:
+        - Keltner, Chester W. (1960). *How to Make Money in Commodities*.
         - https://en.wikipedia.org/wiki/Keltner_channel
-        - https://school.stockcharts.com/doku.php?id=technical_indicators:keltner_channels
         - https://www.investopedia.com/terms/k/keltnerchannel.asp
 
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import keltner_channels
+        >>>
         >>> frame = pl.DataFrame(
         ...     {"high": [3.0, 4.0, 5.0, 6.0], "low": [1.0, 2.0, 3.0, 4.0], "close": [2.0, 3.0, 4.0, 5.0]}
         ... )
@@ -435,6 +438,7 @@ def midpoint(
     See Also:
         - :func:`midprice`: The same midpoint taken across a bar's high and low instead of one series.
         - :func:`sma`: The moving mean of the window, which uses every value rather than only the extremes.
+        - :func:`donchian_channels`: The high-low band system built from the same rolling extremes.
 
     References:
         - https://www.investopedia.com/terms/m/midpoint.asp
@@ -442,6 +446,7 @@ def midpoint(
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import midpoint
+        >>>
         >>> frame = pl.DataFrame({"x": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]})
         >>> frame.select(midpoint(pl.col("x"), 3).round(4).alias("midpoint"))["midpoint"].to_list()
         [None, None, 2.0, 3.0, 4.0, 5.0]
@@ -517,6 +522,7 @@ def midprice(
     See Also:
         - :func:`midpoint`: The same midpoint over a single series instead of a bar's high and low.
         - :func:`price_median`: The per-bar ``(high + low) / 2`` this collapses to at ``window == 1``.
+        - :func:`donchian_channels`: The channel whose middle band is exactly this midprice.
 
     References:
         - https://www.investopedia.com/terms/m/midpoint.asp
@@ -524,6 +530,7 @@ def midprice(
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import midprice
+        >>>
         >>> frame = pl.DataFrame({"high": [11.0, 12.0, 13.0, 12.5, 14.0], "low": [9.0, 10.0, 11.0, 11.0, 12.0]})
         >>> expr = midprice(pl.col("high"), pl.col("low"), 3).round(4)
         >>> frame.select(expr.alias("midprice"))["midprice"].to_list()

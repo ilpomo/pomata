@@ -34,7 +34,7 @@ def conditional_drawdown_at_risk(equity_curve: pl.Expr, *, confidence: float = 0
     :math:`c` is ``confidence``. The value is non-positive (a drawdown).
 
     Args:
-        equity_curve: Compounded growth-factor series (e.g. from :func:`pomata.pnl.equity_curve`), positive.
+        equity_curve: Compounded growth-factor series (e.g. from :func:`equity_curve`), positive.
         confidence: The tail confidence level in the open interval ``(0, 1)`` (canonically ``0.95``); the mean is taken
             over the worst ``1 - confidence`` of drawdowns.
 
@@ -48,7 +48,7 @@ def conditional_drawdown_at_risk(equity_curve: pl.Expr, *, confidence: float = 0
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior, documented under **Edge-case behavior** below.
+        case (missing data and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -61,16 +61,18 @@ def conditional_drawdown_at_risk(equity_curve: pl.Expr, *, confidence: float = 0
 
     See Also:
         - :func:`max_drawdown`: The single worst drawdown.
-        - :func:`pomata.metrics.conditional_value_at_risk`: The return-space analog (expected shortfall).
+        - :func:`conditional_value_at_risk`: The return-space analog (expected shortfall).
+        - :func:`pain_index`: The full-sample mean drawdown, against this worst-tail mean.
 
     References:
-        - Chekhlov, A., Uryasev, S. & Zabarankin, M. (2005). Drawdown Measure in Portfolio Optimization. International
-          Journal of Theoretical and Applied Finance, 8(1), 13-58.
+        - Chekhlov, A., Uryasev, S. & Zabarankin, M. (2005). "Drawdown Measure in Portfolio Optimization."
+          *International Journal of Theoretical and Applied Finance*, 8(1), 13-58.
         - https://en.wikipedia.org/wiki/Drawdown_(economics)
 
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import conditional_drawdown_at_risk
+        >>>
         >>> frame = pl.DataFrame({"equity": [1.1, 1.05, 1.2, 1.15, 1.3, 1.25, 1.4]})
         >>> frame.select(conditional_drawdown_at_risk(pl.col("equity")).round(4)).item()
         -0.0455
@@ -80,8 +82,7 @@ def conditional_drawdown_at_risk(equity_curve: pl.Expr, *, confidence: float = 0
         >>> frame = pl.DataFrame(
         ...     {
         ...         "ticker": ["A"] * 7 + ["B"] * 7,
-        ...         "equity_curve": [1.1, 1.05, 1.2, 1.15, 1.3, 1.25, 1.4]
-        ...         + [1.0, 0.9, 0.95, 1.1, 1.0, 1.2, 1.15],
+        ...         "equity_curve": [1.1, 1.05, 1.2, 1.15, 1.3, 1.25, 1.4] + [1.0, 0.9, 0.95, 1.1, 1.0, 1.2, 1.15],
         ...     }
         ... )
         >>> reduced = conditional_drawdown_at_risk(pl.col("equity_curve")).over("ticker").round(4)
@@ -117,7 +118,7 @@ def drawdown(equity_curve: pl.Expr) -> pl.Expr:
     so it is the natural input to a custom drawdown analysis; :func:`max_drawdown` and :func:`ulcer_index` summarize it.
 
     Args:
-        equity_curve: Compounded growth-factor series (e.g. from :func:`pomata.pnl.equity_curve`), positive.
+        equity_curve: Compounded growth-factor series (e.g. from :func:`equity_curve`), positive.
 
     Returns:
         The drawdown for each row, the same length as ``equity_curve``: ``0`` at a running peak and negative while below
@@ -128,7 +129,7 @@ def drawdown(equity_curve: pl.Expr) -> pl.Expr:
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior, documented under **Edge-case behavior** below.
+        case (missing data and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -141,6 +142,7 @@ def drawdown(equity_curve: pl.Expr) -> pl.Expr:
     See Also:
         - :func:`max_drawdown`: The deepest point of this series.
         - :func:`ulcer_index`: The root-mean-square of this series.
+        - :func:`drawdown_rolling`: The trailing-window form, healed once an old peak rolls out.
 
     References:
         - https://en.wikipedia.org/wiki/Drawdown_(economics)
@@ -148,7 +150,7 @@ def drawdown(equity_curve: pl.Expr) -> pl.Expr:
 
     Examples:
         >>> import polars as pl
-        >>> from pomata.metrics import drawdown
+        >>> from pomata.metrics.drawdown import drawdown
         >>> frame = pl.DataFrame({"equity": [1.0, 1.1, 1.05, 1.2, 0.9, 1.0]})
         >>> frame.select(drawdown(pl.col("equity")).round(4).alias("d"))["d"].to_list()
         [0.0, 0.0, -0.0455, 0.0, -0.25, -0.1667]
@@ -158,8 +160,7 @@ def drawdown(equity_curve: pl.Expr) -> pl.Expr:
         >>> frame = pl.DataFrame(
         ...     {
         ...         "ticker": ["A"] * 7 + ["B"] * 7,
-        ...         "equity_curve": [1.0, 1.1, 1.05, 1.2, 0.9, 1.0, 1.1]
-        ...         + [1.0, 0.95, 1.05, 1.0, 1.15, 1.1, 1.2],
+        ...         "equity_curve": [1.0, 1.1, 1.05, 1.2, 0.9, 1.0, 1.1] + [1.0, 0.95, 1.05, 1.0, 1.15, 1.1, 1.2],
         ...     }
         ... )
         >>> reduced = drawdown(pl.col("equity_curve")).over("ticker").round(4)
@@ -191,7 +192,7 @@ def drawdown_rolling(equity_curve: pl.Expr, window: int) -> pl.Expr:
     rolls out of the window.
 
     Args:
-        equity_curve: Compounded growth-factor series (e.g. from :func:`pomata.pnl.equity_curve`), positive.
+        equity_curve: Compounded growth-factor series (e.g. from :func:`equity_curve`), positive.
         window: Number of observations in the moving window. Must be ``>= 1``.
 
     Returns:
@@ -216,6 +217,7 @@ def drawdown_rolling(equity_curve: pl.Expr, window: int) -> pl.Expr:
     See Also:
         - :func:`drawdown`: The running form, measured against the all-time high to date.
         - :func:`max_drawdown`: The deepest all-time decline.
+        - :func:`max_drawdown_duration`: The time dimension (longest underwater stretch).
 
     References:
         - https://en.wikipedia.org/wiki/Drawdown_(economics)
@@ -223,9 +225,30 @@ def drawdown_rolling(equity_curve: pl.Expr, window: int) -> pl.Expr:
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import drawdown_rolling
+        >>>
         >>> frame = pl.DataFrame({"equity": [1.0, 1.1, 1.05, 1.2, 1.15, 1.3, 1.25]})
         >>> frame.select(drawdown_rolling(pl.col("equity"), 3).round(4))["equity"].to_list()
         [None, None, -0.0455, 0.0, -0.0417, 0.0, -0.0385]
+
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker's window restarts independently and never
+        spans the boundary:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "ticker": ["A"] * 7 + ["B"] * 7,
+        ...         "equity_curve": [1.0, 1.1, 1.05, 1.2, 1.15, 1.3, 1.25] + [1.0, 0.95, 1.05, 1.0, 1.15, 1.1, 1.2],
+        ...     }
+        ... )
+        >>> reduced = drawdown_rolling(pl.col("equity_curve"), 3).over("ticker").round(4)
+        >>> frame.select(reduced.alias("d"))["d"].to_list()
+        [None, None, -0.0455, 0.0, -0.0417, 0.0, -0.0385, None, None, 0.0, -0.0476, 0.0, -0.0435, 0.0]
+
+        A leading ``null`` and a later ``NaN`` make the windowed handling visible: a window covering the ``null`` is
+        ``null``, and the ``NaN`` poisons every window it enters:
+
+        >>> frame = pl.DataFrame({"equity_curve": [None, 1.1, 1.05, 1.2, float("nan"), 1.15, 1.3]})
+        >>> frame.select(drawdown_rolling(pl.col("equity_curve"), 3).round(4).alias("d"))["d"].to_list()
+        [None, None, None, 0.0, nan, nan, nan]
     """
     equity_curve = float64_expr(equity_curve)
     validate_window(window)
@@ -244,7 +267,7 @@ def max_drawdown(equity_curve: pl.Expr) -> pl.Expr:
         \mathrm{MDD} = \min_t \left( \frac{E_t}{\max_{i \le t} E_i} - 1 \right) \le 0.
 
     Args:
-        equity_curve: Compounded growth-factor series (e.g. from :func:`pomata.pnl.equity_curve`), positive.
+        equity_curve: Compounded growth-factor series (e.g. from :func:`equity_curve`), positive.
 
     Returns:
         A single ``Float64`` value: the maximum drawdown (``<= 0``; ``0`` for a never-declining curve), one value in
@@ -255,7 +278,7 @@ def max_drawdown(equity_curve: pl.Expr) -> pl.Expr:
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior, documented under **Edge-case behavior** below.
+        case (missing data and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -269,6 +292,7 @@ def max_drawdown(equity_curve: pl.Expr) -> pl.Expr:
     See Also:
         - :func:`drawdown`: The running series this reduces.
         - :func:`calmar_ratio`: The return-over-drawdown ratio built on this.
+        - :func:`max_drawdown_duration`: The duration dimension (longest underwater stretch).
 
     References:
         - https://en.wikipedia.org/wiki/Drawdown_(economics)
@@ -277,6 +301,7 @@ def max_drawdown(equity_curve: pl.Expr) -> pl.Expr:
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import max_drawdown
+        >>>
         >>> frame = pl.DataFrame({"equity": [1.0, 1.1, 1.05, 1.2, 0.9, 1.0]})
         >>> frame.select(max_drawdown(pl.col("equity")).round(4)).item()
         -0.25
@@ -286,8 +311,7 @@ def max_drawdown(equity_curve: pl.Expr) -> pl.Expr:
         >>> frame = pl.DataFrame(
         ...     {
         ...         "ticker": ["A"] * 7 + ["B"] * 7,
-        ...         "equity_curve": [1.0, 1.1, 1.05, 1.2, 0.9, 1.0, 1.1]
-        ...         + [1.0, 0.95, 1.05, 1.0, 1.15, 1.1, 1.2],
+        ...         "equity_curve": [1.0, 1.1, 1.05, 1.2, 0.9, 1.0, 1.1] + [1.0, 0.95, 1.05, 1.0, 1.15, 1.1, 1.2],
         ...     }
         ... )
         >>> reduced = max_drawdown(pl.col("equity_curve")).over("ticker").round(4)
@@ -312,7 +336,7 @@ def max_drawdown_duration(equity_curve: pl.Expr) -> pl.Expr:
     negative drawdown, the time dimension of drawdown risk (returned as a ``Float64`` count of bars).
 
     Args:
-        equity_curve: Compounded growth-factor series (e.g. from :func:`pomata.pnl.equity_curve`), positive.
+        equity_curve: Compounded growth-factor series (e.g. from :func:`equity_curve`), positive.
 
     Returns:
         A single ``Float64`` value: the longest underwater run length in bars (one value in ``select``, one per group
@@ -323,7 +347,7 @@ def max_drawdown_duration(equity_curve: pl.Expr) -> pl.Expr:
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior, documented under **Edge-case behavior** below.
+        case (missing data and boundaries) is given a defined behavior.
 
         The duration is a count of observations, not a calendar span; with irregular spacing scale it by the bar period
         externally.
@@ -340,14 +364,16 @@ def max_drawdown_duration(equity_curve: pl.Expr) -> pl.Expr:
 
     See Also:
         - :func:`max_drawdown`: The depth dimension (worst decline).
+        - :func:`drawdown`: The running series whose underwater runs this counts.
+        - :func:`ulcer_index`: Penalizes prolonged declines, blending depth and duration.
 
     References:
         - https://en.wikipedia.org/wiki/Drawdown_(economics)
-        - https://www.investopedia.com/terms/d/drawdownduration.asp
 
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import max_drawdown_duration
+        >>>
         >>> frame = pl.DataFrame({"equity": [1.0, 0.9, 0.8, 0.85, 1.1, 1.05]})
         >>> frame.select(max_drawdown_duration(pl.col("equity"))).item()
         3.0
@@ -357,8 +383,7 @@ def max_drawdown_duration(equity_curve: pl.Expr) -> pl.Expr:
         >>> frame = pl.DataFrame(
         ...     {
         ...         "ticker": ["A"] * 7 + ["B"] * 7,
-        ...         "equity_curve": [1.0, 0.9, 0.8, 0.85, 1.1, 1.05, 1.2]
-        ...         + [1.0, 1.05, 0.95, 0.9, 1.1, 1.0, 1.2],
+        ...         "equity_curve": [1.0, 0.9, 0.8, 0.85, 1.1, 1.05, 1.2] + [1.0, 1.05, 0.95, 0.9, 1.1, 1.0, 1.2],
         ...     }
         ... )
         >>> reduced = max_drawdown_duration(pl.col("equity_curve")).over("ticker").round(4)
@@ -392,7 +417,7 @@ def pain_index(equity_curve: pl.Expr) -> pl.Expr:
         \mathrm{PI} = \frac{1}{n} \sum_{i=1}^{n} \lvert D_i \rvert, \qquad D_i = \frac{E_i}{\max_{j \le i} E_j} - 1.
 
     Args:
-        equity_curve: Compounded growth-factor series (e.g. from :func:`pomata.pnl.equity_curve`), positive.
+        equity_curve: Compounded growth-factor series (e.g. from :func:`equity_curve`), positive.
 
     Returns:
         A single ``Float64`` value (non-negative): the pain index (one value in ``select``, one per group under
@@ -403,7 +428,7 @@ def pain_index(equity_curve: pl.Expr) -> pl.Expr:
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior, documented under **Edge-case behavior** below.
+        case (missing data and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -416,15 +441,16 @@ def pain_index(equity_curve: pl.Expr) -> pl.Expr:
 
     See Also:
         - :func:`ulcer_index`: The root-mean-square counterpart.
-        - :func:`pomata.metrics.pain_ratio`: The return-to-pain ratio built on this.
+        - :func:`pain_ratio`: The return-to-pain ratio built on this.
+        - :func:`max_drawdown`: The single worst drawdown, against this average depth.
 
     References:
-        - Becker, T. (Zephyr Associates). The Pain Index and Pain Ratio.
-        - https://en.wikipedia.org/wiki/Pain_index
+        - Becker, T. "The Pain Index and Pain Ratio." *Zephyr Associates*.
 
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import pain_index
+        >>>
         >>> frame = pl.DataFrame({"equity": [1.1, 1.05, 1.2, 1.15, 1.3, 1.25, 1.4]})
         >>> frame.select(pain_index(pl.col("equity")).round(4)).item()
         0.0179
@@ -434,8 +460,7 @@ def pain_index(equity_curve: pl.Expr) -> pl.Expr:
         >>> frame = pl.DataFrame(
         ...     {
         ...         "ticker": ["A"] * 7 + ["B"] * 7,
-        ...         "equity_curve": [1.1, 1.05, 1.2, 1.15, 1.3, 1.25, 1.4]
-        ...         + [1.0, 0.9, 0.95, 1.1, 1.0, 1.2, 1.15],
+        ...         "equity_curve": [1.1, 1.05, 1.2, 1.15, 1.3, 1.25, 1.4] + [1.0, 0.9, 0.95, 1.1, 1.0, 1.2, 1.15],
         ...     }
         ... )
         >>> reduced = pain_index(pl.col("equity_curve")).over("ticker").round(4)
@@ -467,7 +492,7 @@ def ulcer_index(equity_curve: pl.Expr) -> pl.Expr:
     expressed as a fraction (not a percentage). Lower is better; it is ``0`` only for a never-declining curve.
 
     Args:
-        equity_curve: Compounded growth-factor series (e.g. from :func:`pomata.pnl.equity_curve`), positive.
+        equity_curve: Compounded growth-factor series (e.g. from :func:`equity_curve`), positive.
 
     Returns:
         A single ``Float64`` value: the Ulcer Index (``>= 0``), one value in ``select`` and one per group under
@@ -478,7 +503,7 @@ def ulcer_index(equity_curve: pl.Expr) -> pl.Expr:
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior, documented under **Edge-case behavior** below.
+        case (missing data and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -491,6 +516,7 @@ def ulcer_index(equity_curve: pl.Expr) -> pl.Expr:
     See Also:
         - :func:`max_drawdown`: The single worst drawdown, which the Ulcer Index complements with a continuous measure.
         - :func:`ulcer_performance_ratio`: The return-over-Ulcer ratio built on this.
+        - :func:`pain_index`: The arithmetic-mean counterpart of this root-mean-square.
 
     References:
         - Martin, P. G. & McCann, B. B. (1989). *The Investor's Guide to Fidelity Funds*.
@@ -500,6 +526,7 @@ def ulcer_index(equity_curve: pl.Expr) -> pl.Expr:
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import ulcer_index
+        >>>
         >>> frame = pl.DataFrame({"equity": [1.0, 1.1, 1.05, 1.2, 0.9, 1.0]})
         >>> frame.select(ulcer_index(pl.col("equity")).round(4)).item()
         0.1241
@@ -509,8 +536,7 @@ def ulcer_index(equity_curve: pl.Expr) -> pl.Expr:
         >>> frame = pl.DataFrame(
         ...     {
         ...         "ticker": ["A"] * 7 + ["B"] * 7,
-        ...         "equity_curve": [1.0, 1.1, 1.05, 1.2, 0.9, 1.0, 1.1]
-        ...         + [1.0, 0.95, 1.05, 1.0, 1.15, 1.1, 1.2],
+        ...         "equity_curve": [1.0, 1.1, 1.05, 1.2, 0.9, 1.0, 1.1] + [1.0, 0.95, 1.05, 1.0, 1.15, 1.1, 1.2],
         ...     }
         ... )
         >>> reduced = ulcer_index(pl.col("equity_curve")).over("ticker").round(4)

@@ -183,6 +183,9 @@ extend-exclude = ["scripts"]
 
 [tool.ruff.format]
 quote-style = "double"
+# Example code in docstrings is governed by the formatter too, so the published snippets stay canonical.
+docstring-code-format = true
+docstring-code-line-length = "dynamic"
 
 [tool.ruff.lint]
 # Maximalist: every rule on, then an explicit, reasoned opt-out list. A ruff upgrade can add new rules that the gate

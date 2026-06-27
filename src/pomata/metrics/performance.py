@@ -29,7 +29,7 @@ def cagr(equity_curve: pl.Expr, *, periods_per_year: int) -> pl.Expr:
     counterpart of an arithmetic average return and the numerator of :func:`calmar_ratio`.
 
     Args:
-        equity_curve: Compounded growth-factor series (e.g. from :func:`pomata.pnl.equity_curve`), positive; its ``N``
+        equity_curve: Compounded growth-factor series (e.g. from :func:`equity_curve`), positive; its ``N``
             values are ``N`` period growth factors, and its final value is the total growth multiple.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
 
@@ -43,7 +43,7 @@ def cagr(equity_curve: pl.Expr, *, periods_per_year: int) -> pl.Expr:
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior, documented under **Edge-case behavior** below.
+        case (missing data and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -58,6 +58,7 @@ def cagr(equity_curve: pl.Expr, *, periods_per_year: int) -> pl.Expr:
 
     See Also:
         - :func:`total_return`: The un-annualized total growth this is the per-year rate of.
+        - :func:`cagr_rolling`: The windowed twin, computed over each trailing window.
         - :func:`calmar_ratio`: The CAGR-over-drawdown ratio built on this.
 
     References:
@@ -67,6 +68,7 @@ def cagr(equity_curve: pl.Expr, *, periods_per_year: int) -> pl.Expr:
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import cagr
+        >>>
         >>> frame = pl.DataFrame({"equity": [1.1, 1.21]})
         >>> frame.select(cagr(pl.col("equity"), periods_per_year=1).round(4)).item()
         0.1
@@ -110,7 +112,7 @@ def cagr_rolling(equity_curve: pl.Expr, window: int, *, periods_per_year: int) -
     on the first and last equity of the window, not the path between them.
 
     Args:
-        equity_curve: Compounded growth-factor series (e.g. from :func:`pomata.pnl.equity_curve`), positive.
+        equity_curve: Compounded growth-factor series (e.g. from :func:`equity_curve`), positive.
         window: Number of observations in the moving window. Must be ``>= 2``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
 
@@ -135,6 +137,7 @@ def cagr_rolling(equity_curve: pl.Expr, window: int, *, periods_per_year: int) -
     See Also:
         - :func:`cagr`: The whole-series reducing form.
         - :func:`total_return_rolling`: The non-annualized windowed return.
+        - :func:`total_return`: The whole-series, non-annualized total growth.
 
     References:
         - https://en.wikipedia.org/wiki/Compound_annual_growth_rate
@@ -142,9 +145,28 @@ def cagr_rolling(equity_curve: pl.Expr, window: int, *, periods_per_year: int) -
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import cagr_rolling
+        >>>
         >>> frame = pl.DataFrame({"equity": [1.0, 1.1, 1.05, 1.2, 1.15, 1.3, 1.25]})
         >>> frame.select(cagr_rolling(pl.col("equity"), 3, periods_per_year=4).round(4))["equity"].to_list()
         [None, None, 0.0672, 0.123, 0.129, 0.1126, 0.1176]
+
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "ticker": ["A"] * 5 + ["B"] * 5,
+        ...         "equity": [1.0, 1.1, 1.05, 1.2, 1.15, 1.0, 1.02, 1.08, 1.05, 1.12],
+        ...     }
+        ... )
+        >>> rolled = cagr_rolling(pl.col("equity"), 3, periods_per_year=4).over("ticker").round(4)
+        >>> frame.select(rolled.alias("m"))["m"].to_list()
+        [None, None, 0.0672, 0.123, 0.129, None, None, 0.1081, 0.0394, 0.0497]
+
+        A ``null`` or ``NaN`` at a window endpoint propagates, while a ``NaN`` interior to a window is ignored:
+
+        >>> frame = pl.DataFrame({"equity": [None, 1.1, 1.05, 1.2, float("nan"), 1.3, 1.25]})
+        >>> frame.select(cagr_rolling(pl.col("equity"), 3, periods_per_year=4).round(4))["equity"].to_list()
+        [None, None, None, 0.123, nan, 0.1126, nan]
     """
     equity_curve = float64_expr(equity_curve)
     validate_window(window, minimum=2)
@@ -167,7 +189,7 @@ def stability(returns: pl.Expr) -> pl.Expr:
     A value near one means the strategy compounds at a near-constant rate; a low value means an erratic path.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`pomata.pnl.returns_net`); each must exceed
+        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`); each must exceed
             ``-1`` (a return of ``-100%`` or worse makes the cumulative log undefined).
 
     Returns:
@@ -179,7 +201,7 @@ def stability(returns: pl.Expr) -> pl.Expr:
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior, documented under **Edge-case behavior** below.
+        case (missing data and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -194,6 +216,8 @@ def stability(returns: pl.Expr) -> pl.Expr:
 
     See Also:
         - :func:`cagr`: The growth rate whose steadiness this measures.
+        - :func:`linear_regression`: The fitted least-squares trend line whose goodness-of-fit this scores.
+        - :func:`linear_regression_slope`: The slope of that same least-squares trend.
 
     References:
         - https://en.wikipedia.org/wiki/Coefficient_of_determination
@@ -201,6 +225,7 @@ def stability(returns: pl.Expr) -> pl.Expr:
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import stability
+        >>>
         >>> frame = pl.DataFrame({"returns": [0.01, 0.012, 0.009, 0.011, 0.013, 0.008, 0.01, 0.012]})
         >>> frame.select(stability(pl.col("returns")).round(4)).item()
         0.9984
@@ -211,8 +236,22 @@ def stability(returns: pl.Expr) -> pl.Expr:
         ...     {
         ...         "ticker": ["A"] * 8 + ["B"] * 8,
         ...         "returns": [
-        ...             0.01, 0.012, 0.009, 0.011, 0.013, 0.008, 0.01, 0.012,
-        ...             0.02, -0.01, 0.03, -0.02, 0.025, -0.015, 0.018, -0.012,
+        ...             0.01,
+        ...             0.012,
+        ...             0.009,
+        ...             0.011,
+        ...             0.013,
+        ...             0.008,
+        ...             0.01,
+        ...             0.012,
+        ...             0.02,
+        ...             -0.01,
+        ...             0.03,
+        ...             -0.02,
+        ...             0.025,
+        ...             -0.015,
+        ...             0.018,
+        ...             -0.012,
         ...         ],
         ...     }
         ... )
@@ -259,7 +298,7 @@ def total_return(equity_curve: pl.Expr) -> pl.Expr:
     unit of capital, the final value already is the total growth multiple.
 
     Args:
-        equity_curve: Compounded growth-factor series (e.g. from :func:`pomata.pnl.equity_curve`), positive; its ``N``
+        equity_curve: Compounded growth-factor series (e.g. from :func:`equity_curve`), positive; its ``N``
             values are ``N`` period growth factors, and its final value is the total growth multiple.
 
     Returns:
@@ -271,7 +310,7 @@ def total_return(equity_curve: pl.Expr) -> pl.Expr:
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior, documented under **Edge-case behavior** below.
+        case (missing data and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -283,6 +322,8 @@ def total_return(equity_curve: pl.Expr) -> pl.Expr:
 
     See Also:
         - :func:`cagr`: The annualized (per-year) form of this total growth.
+        - :func:`total_return_rolling`: The windowed twin, over each trailing window.
+        - :func:`equity_curve`: The pnl builder that produces the input curve.
 
     References:
         - https://en.wikipedia.org/wiki/Total_return
@@ -291,6 +332,7 @@ def total_return(equity_curve: pl.Expr) -> pl.Expr:
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import total_return
+        >>>
         >>> frame = pl.DataFrame({"equity": [1.1, 1.045, 1.254, 1.3794]})
         >>> frame.select(total_return(pl.col("equity")).round(4)).item()
         0.3794
@@ -333,7 +375,7 @@ def total_return_rolling(equity_curve: pl.Expr, window: int) -> pl.Expr:
     endpoint quantity it depends only on the first and last equity of the window, not the path between them.
 
     Args:
-        equity_curve: Compounded growth-factor series (e.g. from :func:`pomata.pnl.equity_curve`), positive.
+        equity_curve: Compounded growth-factor series (e.g. from :func:`equity_curve`), positive.
         window: Number of observations in the moving window. Must be ``>= 2``.
 
     Returns:
@@ -357,6 +399,7 @@ def total_return_rolling(equity_curve: pl.Expr, window: int) -> pl.Expr:
     See Also:
         - :func:`total_return`: The whole-series reducing form.
         - :func:`cagr_rolling`: The annualized (per-year) windowed counterpart.
+        - :func:`cagr`: The whole-series, annualized growth rate.
 
     References:
         - https://en.wikipedia.org/wiki/Total_return
@@ -364,9 +407,28 @@ def total_return_rolling(equity_curve: pl.Expr, window: int) -> pl.Expr:
     Examples:
         >>> import polars as pl
         >>> from pomata.metrics import total_return_rolling
+        >>>
         >>> frame = pl.DataFrame({"equity": [1.0, 1.1, 1.05, 1.2, 1.15, 1.3, 1.25]})
         >>> frame.select(total_return_rolling(pl.col("equity"), 3).round(4))["equity"].to_list()
         [None, None, 0.05, 0.0909, 0.0952, 0.0833, 0.087]
+
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "ticker": ["A"] * 5 + ["B"] * 5,
+        ...         "equity": [1.0, 1.1, 1.05, 1.2, 1.15, 1.0, 1.02, 1.08, 1.05, 1.12],
+        ...     }
+        ... )
+        >>> rolled = total_return_rolling(pl.col("equity"), 3).over("ticker").round(4)
+        >>> frame.select(rolled.alias("m"))["m"].to_list()
+        [None, None, 0.05, 0.0909, 0.0952, None, None, 0.08, 0.0294, 0.037]
+
+        A ``null`` or ``NaN`` at a window endpoint propagates, while a ``NaN`` interior to a window is ignored:
+
+        >>> frame = pl.DataFrame({"equity": [None, 1.1, 1.05, 1.2, float("nan"), 1.3, 1.25]})
+        >>> frame.select(total_return_rolling(pl.col("equity"), 3).round(4))["equity"].to_list()
+        [None, None, None, 0.0909, nan, 0.0833, nan]
     """
     equity_curve = float64_expr(equity_curve)
     validate_window(window, minimum=2)

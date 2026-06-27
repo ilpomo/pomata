@@ -86,17 +86,19 @@ def accumulation_distribution(
           ``accumulation_distribution(pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume")).over("ticker")``
 
     See Also:
-        - :func:`obv`: Another cumulative volume-flow line.
+        - :func:`accumulation_distribution_oscillator`: The Chaikin oscillator — fast minus slow EMA of this line.
         - :func:`chaikin_money_flow`: The windowed money-flow ratio over the same multiplier.
+        - :func:`obv`: Another cumulative volume-flow line.
 
     References:
+        - Chaikin, Marc. "Accumulation/Distribution Line".
         - https://en.wikipedia.org/wiki/Accumulation/distribution_index
-        - https://school.stockcharts.com/doku.php?id=technical_indicators:accumulation_distribution_line
         - https://www.investopedia.com/terms/a/accumulationdistribution.asp
 
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import accumulation_distribution
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
         ...         "high": [10.0, 11.0, 12.0, 13.0, 14.0],
@@ -134,9 +136,9 @@ def accumulation_distribution(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "high": [12.0, 13.0, 14.0, 15.0, 16.0, 17.0, float("nan"), 19.0],
+        ...         "high": [12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0],
         ...         "low": [10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0],
-        ...         "close": [11.5, 12.5, 13.0, 14.5, None, 16.0, 17.5, 18.0],
+        ...         "close": [11.5, 12.5, 13.0, 14.5, None, 16.0, float("nan"), 18.0],
         ...         "volume": [100.0, 120.0, 90.0, 110.0, 130.0, 100.0, 95.0, 140.0],
         ...     }
         ... )
@@ -214,13 +216,16 @@ def accumulation_distribution_oscillator(
     See Also:
         - :func:`accumulation_distribution`: The line this oscillates.
         - :func:`ema`: The exponential moving average of the two smoothings.
+        - :func:`macd`: The same fast-minus-slow-EMA oscillator, applied to price.
 
     References:
+        - Chaikin, Marc. "Chaikin Oscillator".
         - https://www.investopedia.com/terms/c/chaikinoscillator.asp
 
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import accumulation_distribution_oscillator
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
         ...         "high": [10.2, 10.5, 10.7, 10.3, 10.8],
@@ -234,6 +239,44 @@ def accumulation_distribution_oscillator(
         ... ).round(4)
         >>> frame.select(expr.alias("adosc"))["adosc"].to_list()
         [None, None, 13.0, 8.6667, 11.0556]
+
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "ticker": ["A"] * 4 + ["B"] * 4,
+        ...         "high": [12.0, 13.0, 12.5, 14.0, 22.0, 24.0, 23.0, 25.0],
+        ...         "low": [10.0, 11.0, 11.0, 12.0, 20.0, 21.0, 21.0, 23.0],
+        ...         "close": [11.0, 12.5, 11.5, 13.5, 21.5, 21.5, 22.5, 24.0],
+        ...         "volume": [100.0, 120.0, 90.0, 110.0, 100.0, 120.0, 90.0, 110.0],
+        ...     }
+        ... )
+        >>> expr = (
+        ...     accumulation_distribution_oscillator(
+        ...         pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), window_fast=2, window_slow=3
+        ...     )
+        ...     .over("ticker")
+        ...     .round(4)
+        ... )
+        >>> frame.with_columns(expr.alias("adosc"))["adosc"].to_list()
+        [None, None, 0.0, 9.1667, None, None, 1.6667, 1.1111]
+
+        A ``null`` (which voids the line and its EMAs) and a ``NaN`` (which propagates) make the exact handling
+        visible at a glance:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0],
+        ...         "low": [10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0],
+        ...         "close": [11.5, 12.5, 13.0, 14.5, None, 16.0, float("nan"), 18.0],
+        ...         "volume": [100.0, 120.0, 90.0, 110.0, 130.0, 100.0, 95.0, 140.0],
+        ...     }
+        ... )
+        >>> expr = accumulation_distribution_oscillator(
+        ...     pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), window_fast=2, window_slow=3
+        ... ).round(4)
+        >>> frame.select(expr.alias("adosc"))["adosc"].to_list()
+        [None, None, 10.0, 15.8333, None, 9.4048, nan, nan]
     """
     high = float64_expr(high)
     low = float64_expr(low)
@@ -318,16 +361,17 @@ def chaikin_money_flow(
     See Also:
         - :func:`accumulation_distribution`: The cumulative (window-less) money-flow line.
         - :func:`money_flow_index`: A bounded windowed money-flow oscillator.
+        - :func:`accumulation_distribution_oscillator`: Chaikin's momentum oscillator over the same line.
 
     References:
         - Chaikin, Marc. "Chaikin Money Flow".
         - https://en.wikipedia.org/wiki/Chaikin_Analytics#Chaikin_Money_Flow
-        - https://school.stockcharts.com/doku.php?id=technical_indicators:chaikin_money_flow_cmf
         - https://www.investopedia.com/terms/c/chaikinmoneyflow.asp
 
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import chaikin_money_flow
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
         ...         "high": [10.0, 12.0, 11.0, 13.0, 14.0],
@@ -365,9 +409,9 @@ def chaikin_money_flow(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "high": [12.0, 13.0, 14.0, 15.0, 16.0, 17.0, float("nan"), 19.0],
+        ...         "high": [12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0],
         ...         "low": [10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0],
-        ...         "close": [11.5, 12.5, 13.0, 14.5, None, 16.0, 17.5, 18.0],
+        ...         "close": [11.5, 12.5, 13.0, 14.5, None, 16.0, float("nan"), 18.0],
         ...         "volume": [100.0, 120.0, 90.0, 110.0, 130.0, 100.0, 95.0, 140.0],
         ...     }
         ... )
@@ -475,17 +519,18 @@ def money_flow_index(
     See Also:
         - :func:`rsi`: The price-only analogue (no volume weighting).
         - :func:`chaikin_money_flow`: Another volume-weighted money-flow oscillator.
+        - :func:`price_typical`: The per-bar typical price this weights by volume.
 
     References:
-        - Quong, Gene & Soudack, Avrum (1989). "Volume-Weighted RSI: Money Flow". Technical Analysis of Stocks &
-          Commodities, 7(3).
+        - Quong, Gene & Soudack, Avrum (1989). "Volume-Weighted RSI: Money Flow".
+          *Technical Analysis of Stocks & Commodities*, 7(3).
         - https://en.wikipedia.org/wiki/Money_flow_index
-        - https://school.stockcharts.com/doku.php?id=technical_indicators:money_flow_index_mfi
         - https://www.investopedia.com/terms/m/mfi.asp
 
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import money_flow_index
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
         ...         "high": [10.0, 11.0, 12.0, 11.0, 13.0, 14.0, 13.0, 15.0],
@@ -495,9 +540,9 @@ def money_flow_index(
         ...     }
         ... )
         >>> frame.select(
-        ...     money_flow_index(
-        ...         pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), window=3
-        ...     ).round(4).alias("mfi_3")
+        ...     money_flow_index(pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), window=3)
+        ...     .round(4)
+        ...     .alias("mfi_3")
         ... )["mfi_3"].to_list()
         [None, None, None, 68.4466, 67.0051, 72.3404, 66.9291, 72.6384]
 
@@ -512,9 +557,11 @@ def money_flow_index(
         ...         "volume": [100.0, 120.0, 90.0, 110.0, 100.0, 120.0, 90.0, 110.0],
         ...     }
         ... )
-        >>> expr = money_flow_index(
-        ...     pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), 2
-        ... ).over("ticker").round(4)
+        >>> expr = (
+        ...     money_flow_index(pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), 2)
+        ...     .over("ticker")
+        ...     .round(4)
+        ... )
         >>> frame.with_columns(expr.alias("money_flow_index"))["money_flow_index"].to_list()
         [None, None, 58.1673, 57.972, None, None, 100.0, 100.0]
 
@@ -523,9 +570,9 @@ def money_flow_index(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "high": [12.0, 13.0, 14.0, 15.0, 16.0, 17.0, float("nan"), 19.0],
+        ...         "high": [12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0],
         ...         "low": [10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0],
-        ...         "close": [11.5, 12.5, 13.0, 14.5, None, 16.0, 17.5, 18.0],
+        ...         "close": [11.5, 12.5, 13.0, 14.5, None, 16.0, float("nan"), 18.0],
         ...         "volume": [100.0, 120.0, 90.0, 110.0, 130.0, 100.0, 95.0, 140.0],
         ...     }
         ... )
@@ -641,16 +688,17 @@ def obv(
     See Also:
         - :func:`accumulation_distribution`: Another cumulative volume line.
         - :func:`money_flow_index`: A bounded volume-weighted oscillator.
+        - :func:`chaikin_money_flow`: A windowed volume-weighted money-flow ratio.
 
     References:
         - Granville, Joseph E. (1963). *Granville's New Key to Stock Market Profits*. Prentice-Hall.
         - https://en.wikipedia.org/wiki/On-balance_volume
-        - https://school.stockcharts.com/doku.php?id=technical_indicators:on_balance_volume_obv
         - https://www.investopedia.com/terms/o/onbalancevolume.asp
 
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import obv
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
         ...         "close": [10.0, 12.0, 11.0, 11.0, 13.0, 9.0],
@@ -752,6 +800,7 @@ def vwap(
     See Also:
         - :func:`vwma`: The windowed volume-weighted moving average, for a rolling rather than anchored weight.
         - :func:`price_typical`: The per-bar price this weights.
+        - :func:`sma`: The equal-weighted moving average, the volume-blind analogue.
 
     References:
         - https://en.wikipedia.org/wiki/Volume-weighted_average_price
@@ -760,6 +809,7 @@ def vwap(
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import vwap
+        >>>
         >>> frame = pl.DataFrame(
         ...     {
         ...         "high": [2.0, 4.0, 6.0],

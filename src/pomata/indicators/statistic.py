@@ -68,14 +68,25 @@ def linear_regression(
         - :func:`time_series_forecast`: The line extrapolated one bar into the future.
 
     References:
+        - https://en.wikipedia.org/wiki/Simple_linear_regression
         - https://www.investopedia.com/terms/r/regression.asp
 
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import linear_regression
+        >>>
         >>> frame = pl.DataFrame({"x": [10.0, 11.0, 13.0, 12.0, 14.0, 13.0, 15.0]})
         >>> frame.select(linear_regression(pl.col("x"), 3).round(4).alias("linreg"))["linreg"].to_list()
         [None, None, 12.8333, 12.5, 13.5, 13.5, 14.5]
+
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
+
+        >>> frame = pl.DataFrame(
+        ...     {"ticker": ["A"] * 4 + ["B"] * 4, "x": [10.0, 11.0, 13.0, 12.0, 20.0, 22.0, 21.0, 24.0]}
+        ... )
+        >>> expr = linear_regression(pl.col("x"), 3).over("ticker").round(4)
+        >>> frame.with_columns(expr.alias("linreg"))["linreg"].to_list()
+        [None, None, 12.8333, 12.5, None, None, 21.5, 23.3333]
 
         A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make the handling visible:
 
@@ -132,16 +143,29 @@ def linear_regression_angle(
 
     See Also:
         - :func:`linear_regression_slope`: The slope this takes the arctangent of.
+        - :func:`linear_regression`: The fitted line's endpoint whose steepness this reports.
+        - :func:`time_series_forecast`: The same line projected one bar ahead.
 
     References:
+        - https://en.wikipedia.org/wiki/Simple_linear_regression
         - https://www.investopedia.com/terms/r/regression.asp
 
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import linear_regression_angle
+        >>>
         >>> frame = pl.DataFrame({"x": [10.0, 11.0, 13.0, 12.0, 14.0, 13.0, 15.0]})
         >>> frame.select(linear_regression_angle(pl.col("x"), 3).round(4).alias("angle"))["angle"].to_list()
         [None, None, 56.3099, 26.5651, 26.5651, 26.5651, 26.5651]
+
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
+
+        >>> frame = pl.DataFrame(
+        ...     {"ticker": ["A"] * 4 + ["B"] * 4, "x": [10.0, 11.0, 13.0, 12.0, 20.0, 22.0, 21.0, 24.0]}
+        ... )
+        >>> expr = linear_regression_angle(pl.col("x"), 3).over("ticker").round(4)
+        >>> frame.with_columns(expr.alias("angle"))["angle"].to_list()
+        [None, None, 56.3099, 26.5651, None, None, 26.5651, 45.0]
 
         A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make the handling visible:
 
@@ -199,16 +223,28 @@ def linear_regression_intercept(
     See Also:
         - :func:`linear_regression`: The same line evaluated at the most recent bar instead of the oldest.
         - :func:`linear_regression_slope`: The slope of the same fitted line.
+        - :func:`time_series_forecast`: The same line projected one bar past the most recent.
 
     References:
+        - https://en.wikipedia.org/wiki/Simple_linear_regression
         - https://www.investopedia.com/terms/r/regression.asp
 
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import linear_regression_intercept
+        >>>
         >>> frame = pl.DataFrame({"x": [10.0, 11.0, 13.0, 12.0, 14.0, 13.0, 15.0]})
         >>> frame.select(linear_regression_intercept(pl.col("x"), 3).round(4).alias("intercept"))["intercept"].to_list()
         [None, None, 9.8333, 11.5, 12.5, 12.5, 13.5]
+
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
+
+        >>> frame = pl.DataFrame(
+        ...     {"ticker": ["A"] * 4 + ["B"] * 4, "x": [10.0, 11.0, 13.0, 12.0, 20.0, 22.0, 21.0, 24.0]}
+        ... )
+        >>> expr = linear_regression_intercept(pl.col("x"), 3).over("ticker").round(4)
+        >>> frame.with_columns(expr.alias("intercept"))["intercept"].to_list()
+        [None, None, 9.8333, 11.5, None, None, 20.5, 21.3333]
 
         A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make the handling visible:
 
@@ -270,13 +306,16 @@ def linear_regression_slope(
     See Also:
         - :func:`linear_regression`: The fitted line's value at the most recent bar.
         - :func:`linear_regression_angle`: This slope expressed as an angle in degrees.
+        - :func:`time_series_forecast`: The line projected one bar ahead using this slope.
 
     References:
         - https://en.wikipedia.org/wiki/Simple_linear_regression
+        - https://www.investopedia.com/terms/r/regression.asp
 
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import linear_regression_slope
+        >>>
         >>> frame = pl.DataFrame({"x": [10.0, 11.0, 13.0, 12.0, 14.0, 13.0, 15.0]})
         >>> frame.select(linear_regression_slope(pl.col("x"), 3).round(4).alias("slope"))["slope"].to_list()
         [None, None, 1.5, 0.5, 0.5, 0.5, 0.5]
@@ -371,9 +410,19 @@ def standard_deviation_ewma(
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import standard_deviation_ewma
+        >>>
         >>> frame = pl.DataFrame({"x": [10.0, 11.0, 13.0, 12.0, 14.0, 13.0, 15.0]})
         >>> frame.select(standard_deviation_ewma(pl.col("x"), 3).round(4).alias("std"))["std"].to_list()
         [None, None, 1.299, 0.927, 1.2484, 0.8833, 1.1923]
+
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
+
+        >>> frame = pl.DataFrame(
+        ...     {"ticker": ["A"] * 4 + ["B"] * 4, "x": [10.0, 11.0, 13.0, 12.0, 20.0, 22.0, 21.0, 24.0]}
+        ... )
+        >>> expr = standard_deviation_ewma(pl.col("x"), 3).over("ticker").round(4)
+        >>> frame.with_columns(expr.alias("std"))["std"].to_list()
+        [None, None, 1.299, 0.927, None, None, 0.7071, 1.5811]
 
         A ``null`` (decays across the gap) and a ``NaN`` (which propagates) make the handling visible:
 
@@ -448,6 +497,7 @@ def standard_deviation_rolling(
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import standard_deviation_rolling
+        >>>
         >>> frame = pl.DataFrame({"x": [10.0, 11.0, 12.0, 11.0, 13.0]})
         >>> frame.select(standard_deviation_rolling(pl.col("x"), 3).round(4).alias("std"))["std"].to_list()
         [None, None, 0.8165, 0.4714, 0.8165]
@@ -519,16 +569,28 @@ def time_series_forecast(
     See Also:
         - :func:`linear_regression`: The same line evaluated at the current bar rather than one ahead.
         - :func:`linear_regression_slope`: The slope used for the projection.
+        - :func:`linear_regression_intercept`: The same line's value at the oldest bar of the window.
 
     References:
-        - https://www.investopedia.com/terms/t/tsf.asp
+        - https://en.wikipedia.org/wiki/Simple_linear_regression
+        - https://www.investopedia.com/terms/r/regression.asp
 
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import time_series_forecast
+        >>>
         >>> frame = pl.DataFrame({"x": [10.0, 11.0, 13.0, 12.0, 14.0, 13.0, 15.0]})
         >>> frame.select(time_series_forecast(pl.col("x"), 3).round(4).alias("tsf"))["tsf"].to_list()
         [None, None, 14.3333, 13.0, 14.0, 14.0, 15.0]
+
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
+
+        >>> frame = pl.DataFrame(
+        ...     {"ticker": ["A"] * 4 + ["B"] * 4, "x": [10.0, 11.0, 13.0, 12.0, 20.0, 22.0, 21.0, 24.0]}
+        ... )
+        >>> expr = time_series_forecast(pl.col("x"), 3).over("ticker").round(4)
+        >>> frame.with_columns(expr.alias("tsf"))["tsf"].to_list()
+        [None, None, 14.3333, 13.0, None, None, 22.0, 24.3333]
 
         A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make the handling visible:
 
@@ -610,9 +672,19 @@ def variance_ewma(
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import variance_ewma
+        >>>
         >>> frame = pl.DataFrame({"x": [10.0, 11.0, 13.0, 12.0, 14.0, 13.0, 15.0]})
         >>> frame.select(variance_ewma(pl.col("x"), 3).round(4).alias("var"))["var"].to_list()
         [None, None, 1.6875, 0.8594, 1.5586, 0.7803, 1.4216]
+
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
+
+        >>> frame = pl.DataFrame(
+        ...     {"ticker": ["A"] * 4 + ["B"] * 4, "x": [10.0, 11.0, 13.0, 12.0, 20.0, 22.0, 21.0, 24.0]}
+        ... )
+        >>> expr = variance_ewma(pl.col("x"), 3).over("ticker").round(4)
+        >>> frame.with_columns(expr.alias("var"))["var"].to_list()
+        [None, None, 1.6875, 0.8594, None, None, 0.5, 2.5]
 
         A ``null`` (decays across the gap) and a ``NaN`` (which propagates) make the handling visible:
 
@@ -681,6 +753,7 @@ def variance_rolling(
 
     See Also:
         - :func:`standard_deviation_rolling`: Its square root, in the input's own units.
+        - :func:`variance_ewma`: The exponentially-weighted counterpart, weighting recent observations more.
         - :func:`sma`: The moving mean the deviations are measured from.
 
     References:
@@ -689,14 +762,10 @@ def variance_rolling(
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import variance_rolling
+        >>>
         >>> frame = pl.DataFrame({"x": [10.0, 11.0, 12.0, 11.0, 13.0]})
         >>> frame.select(variance_rolling(pl.col("x"), 3).round(4).alias("variance"))["variance"].to_list()
         [None, None, 0.6667, 0.2222, 0.6667]
-
-        The default ``ddof=0`` is the population variance; ``ddof=1`` gives the unbiased sample variance:
-
-        >>> frame.select(variance_rolling(pl.col("x"), 3, ddof=1).round(4).alias("variance"))["variance"].to_list()
-        [None, None, 1.0, 0.3333, 1.0]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
 
