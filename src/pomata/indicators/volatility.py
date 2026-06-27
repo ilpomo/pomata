@@ -1,0 +1,468 @@
+"""
+Volatility indicators.
+"""
+
+import polars as pl
+
+from pomata._expr import float64_expr, validate_positive, validate_window
+from pomata.indicators.moving_average import rma, sma
+from pomata.indicators.statistic import standard_deviation_rolling
+
+__all__ = ("atr", "atr_normalized", "bollinger_bands", "true_range")
+
+
+def atr(
+    high: pl.Expr,
+    low: pl.Expr,
+    close: pl.Expr,
+    window: int,
+) -> pl.Expr:
+    r"""
+    Average True Range (ATR), Wilder's volatility measure.
+
+    Introduced by J. Welles Wilder in *New Concepts in Technical Trading Systems* (1978) as the Wilder-smoothed average
+    of the :func:`true_range`. The true range captures the largest of the three candidate moves on each bar — the
+    current high-low spread and the two gaps from the previous close — and the ATR smooths that series with Wilder's
+    running average:
+
+    .. math::
+
+        \mathrm{TR}_t &= \max\!\bigl(\,\mathrm{high}_t - \mathrm{low}_t,\;
+            \lvert \mathrm{high}_t - \mathrm{close}_{t-1} \rvert,\;
+            \lvert \mathrm{low}_t - \mathrm{close}_{t-1} \rvert \,\bigr), \\
+        \mathrm{ATR}_t &= \mathrm{RMA}(\mathrm{TR})_t,
+            \qquad \alpha = \frac{1}{n}, \quad n = \text{window}.
+
+    It is computed by composing the public :func:`true_range` and :func:`rma`, so the Wilder smoothing
+    (:math:`\alpha = 1 / n`) is shared with the rest of Wilder's family (RSI, ADX, DMI) and the result is
+    unit-consistent with price.
+
+    Because every true-range candidate is a non-negative magnitude (the ``high - low`` spread of a well-formed bar, or
+    one of the two absolute gap terms), the true range is non-negative, and the Wilder average of a non-negative series
+    is itself non-negative for well-formed bars (``high >= low``).
+
+    Args:
+        high: High-price series (e.g. ``pl.col("high")``).
+        low: Low-price series (e.g. ``pl.col("low")``).
+        close: Close-price series (e.g. ``pl.col("close")``); the previous close seeds the two gap terms.
+        window: Number of observations in the moving window. Must be ``>= 1``.
+
+    Returns:
+        The ATR for each row, the same length as the inputs. The first ``window - 1`` values are ``null`` (warm-up),
+        inherited from the :func:`rma` over the true-range series: the running average emits only once ``window``
+        non-null true ranges have been counted, independent of where any interior ``null`` falls.
+
+        The true range itself is defined from row ``0`` (the first bar has no previous close, so it degenerates to
+        ``high - low`` with the two gap terms dropped), so the ATR warm-up is exactly the ``rma`` warm-up of
+        ``window - 1``.
+
+    Raises:
+        TypeError: If any input is not a ``pl.Expr``.
+        ValueError: If ``window < 1``.
+
+    Note:
+        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
+        any finite input within a sane dynamic range; ``CORRECTNESS.md`` gives the method and the float-conditioning
+        limit beyond it.
+
+        **Scaling:**
+
+        Scaling is homogeneous of degree ``1`` only for a positive factor: the true range is built from absolute
+        differences, so multiplying every price by ``k`` scales the ATR by ``|k|``, not by ``k``.
+
+        **Seeding:**
+
+        The Wilder smoothing (:func:`rma`) is seeded with the simple average of the first ``window`` true ranges --
+        Wilder's canonical initialization. The first true range is the bar's high-low range (no prior close extends
+        it), so the seed and warm-up include it.
+
+        **Edge-case behavior:**
+
+        - **Null** — null handling follows ``pl.max_horizontal``: a ``null`` in a single ``high``, ``low``, or
+          ``close`` input drops only the candidate terms that reference it, leaving the true range as the maximum of the
+          remaining non-null terms. The roles are not interchangeable: a ``null`` ``high`` removes the ``high - low``
+          and ``|high - close_prev|`` terms (leaving ``|low - close_prev|``), a ``null`` ``low`` removes ``high - low``
+          and ``|low - close_prev|`` (leaving ``|high - close_prev|``), and a ``null`` ``close`` only blanks the two gap
+          terms of the *next* bar (whose previous close is then ``null``). The true range is therefore ``null`` only
+          when every candidate term is ``null`` (e.g. the first bar with both ``high`` and ``low`` null); a ``null``
+          true range yields ``null`` at that row while the Wilder recursion preserves its state and bridges the gap.
+        - **NaN** — a ``NaN`` in any active term poisons that true range and then the recursion, latching ``NaN`` for
+          every subsequent value.
+        - **window == 1** — the smoothing factor is ``1`` and the warm-up vanishes, so the ATR reproduces the true
+          range exactly: the ``max_horizontal``-reduced true range (not a textbook three-term true range whenever a
+          candidate term is dropped by a ``null``).
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so neither the previous-close
+          shift nor the Wilder recursion spans series boundaries, e.g.
+          ``atr(pl.col("high"), pl.col("low"), pl.col("close"), 14).over("ticker")``.
+
+    See Also:
+        - :func:`true_range`: The per-bar range this Wilder-smooths.
+        - :func:`rma`: The Wilder moving average used for the smoothing.
+
+    References:
+        - Wilder, J. Welles (1978). *New Concepts in Technical Trading Systems*.
+        - https://en.wikipedia.org/wiki/Average_true_range
+        - https://school.stockcharts.com/doku.php?id=technical_indicators:average_true_range_atr
+        - https://www.investopedia.com/terms/a/atr.asp
+
+    Examples:
+        >>> import polars as pl
+        >>> from pomata.indicators import atr
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.0, 12.0, 13.0, 12.0, 14.0],
+        ...         "low": [9.0, 10.0, 11.0, 10.0, 12.0],
+        ...         "close": [9.5, 11.0, 12.0, 11.0, 13.0],
+        ...     }
+        ... )
+        >>> frame.select(
+        ...     atr(pl.col("high"), pl.col("low"), pl.col("close"), window=3).round(4).alias("atr_3")
+        ... )["atr_3"].to_list()
+        [None, None, 1.8333, 1.8889, 2.2593]
+
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "ticker": ["A"] * 4 + ["B"] * 4,
+        ...         "high": [12.0, 13.0, 12.5, 14.0, 22.0, 24.0, 23.0, 25.0],
+        ...         "low": [10.0, 11.0, 11.0, 12.0, 20.0, 21.0, 21.0, 23.0],
+        ...         "close": [11.0, 12.5, 11.5, 13.5, 21.5, 21.5, 22.5, 24.0],
+        ...     }
+        ... )
+        >>> expr = atr(pl.col("high"), pl.col("low"), pl.col("close"), 2).over("ticker").round(4)
+        >>> frame.with_columns(expr.alias("atr"))["atr"].to_list()
+        [None, 2.0, 1.75, 2.125, None, 2.5, 2.25, 2.375]
+
+        A ``null`` (skipped, and any window it touches yields ``null``) and a ``NaN`` (which propagates) make the
+        exact handling visible at a glance:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [12.0, 13.0, 14.0, 15.0, 16.0, 17.0, float("nan"), 19.0],
+        ...         "low": [10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0],
+        ...         "close": [11.5, 12.5, 13.0, 14.5, None, 16.0, 17.5, 18.0],
+        ...     }
+        ... )
+        >>> expr = atr(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
+        >>> frame.select(expr.alias("atr"))["atr"].to_list()
+        [None, 2.0, 2.0, 2.0, 2.0, 2.0, nan, nan]
+    """
+    high = float64_expr(high)
+    low = float64_expr(low)
+    close = float64_expr(close)
+    validate_window(window)
+    return rma(true_range(high, low, close), window)
+
+
+def atr_normalized(
+    high: pl.Expr,
+    low: pl.Expr,
+    close: pl.Expr,
+    window: int,
+) -> pl.Expr:
+    r"""
+    Normalized Average True Range (NATR).
+
+    The :func:`atr` expressed as a percentage of the current close, so volatility is comparable across instruments and
+    price levels (unlike the raw ATR, which is in price units). With the ATR over the same ``window``:
+
+    .. math::
+
+        \mathrm{NATR}_t = 100 \cdot \frac{\mathrm{ATR}_t}{\mathrm{close}_t}, \qquad n = \text{window}.
+
+    Args:
+        high: High-price series (e.g. ``pl.col("high")``).
+        low: Low-price series (e.g. ``pl.col("low")``).
+        close: Close-price series (e.g. ``pl.col("close")``).
+        window: Number of observations in the Wilder moving window. Must be ``>= 1``.
+
+    Returns:
+        The NATR (in percent) for each row, the same length as the inputs. The first ``window - 1`` values are ``null``
+        (warm-up), inherited from the :func:`atr`.
+
+    Raises:
+        TypeError: If any input is not a ``pl.Expr``.
+        ValueError: If ``window < 1``.
+
+    Note:
+        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
+        any finite input within a sane dynamic range; ``CORRECTNESS.md`` gives the method and the float-conditioning
+        limit beyond it.
+
+        It is scale-invariant under a positive common rescaling of ``high``, ``low``, and ``close`` (the ATR and the
+        close scale together).
+
+        **Edge-case behavior:**
+
+        - **Null** — a ``null`` ATR or a ``null`` ``close`` at a row yields ``null`` there (the ATR inherits
+          :func:`atr`'s per-term null handling).
+        - **NaN** — a ``NaN`` ATR or ``close`` yields ``NaN``.
+        - **Zero close** — where ``close`` is ``0`` the ratio follows IEEE-754 (``+/-inf`` for a non-zero ATR, ``NaN``
+          for a zero ATR).
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the underlying ATR does not
+          span series boundaries, e.g. ``atr_normalized(pl.col("high"), pl.col("low"), pl.col("close"), 14).over("t")``.
+
+    See Also:
+        - :func:`atr`: The raw (price-unit) average true range this normalizes.
+
+    References:
+        - https://www.investopedia.com/terms/a/atr.asp
+
+    Examples:
+        >>> import polars as pl
+        >>> from pomata.indicators import atr_normalized
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.2, 10.5, 10.7, 10.3, 10.8],
+        ...         "low": [9.8, 10.0, 10.2, 9.9, 10.3],
+        ...         "close": [10.0, 10.3, 10.5, 10.1, 10.6],
+        ...     }
+        ... )
+        >>> expr = atr_normalized(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
+        >>> frame.select(expr.alias("natr"))["natr"].to_list()
+        [None, 4.3689, 4.5238, 5.3218, 5.8373]
+    """
+    high = float64_expr(high)
+    low = float64_expr(low)
+    close = float64_expr(close)
+    validate_window(window)
+    return 100.0 * atr(high, low, close, window) / close
+
+
+def bollinger_bands(
+    expr: pl.Expr,
+    window: int,
+    *,
+    num_std: float = 2.0,
+) -> pl.Expr:
+    r"""
+    Bollinger Bands, volatility bands around a moving average.
+
+    Introduced by John Bollinger in the 1980s: a center band that is the :func:`sma` of ``expr``, with an upper and a
+    lower band placed ``num_std`` population standard deviations away. The bands widen as volatility rises and contract
+    as it falls, so price is read relative to a band that breathes with the market:
+
+    .. math::
+
+        \mathrm{middle}_t &= \mathrm{SMA}(\mathrm{expr}, n)_t, \\
+        \mathrm{upper}_t &= \mathrm{middle}_t + k \, \sigma_t, \\
+        \mathrm{lower}_t &= \mathrm{middle}_t - k \, \sigma_t,
+
+    where :math:`n` is the window, :math:`k` is ``num_std``, and :math:`\sigma_t` is the population rolling
+    :func:`standard_deviation_rolling` of ``expr`` over the same window.
+
+    Args:
+        expr: Input series, typically a price column (e.g. ``pl.col("close")``).
+        window: Number of observations in the moving window. Must be ``>= 1``.
+        num_std: Number of standard deviations between the center band and each outer band (default ``2.0``). Must be a
+            finite number ``> 0`` (a non-positive width would collapse or invert the bands). The bands are symmetric;
+            for asymmetric bands compose :func:`sma` and :func:`standard_deviation_rolling` directly.
+
+    Returns:
+        A struct column (one struct per row, the same length as the input) with three ``Float64`` fields:
+
+        - ``lower`` — the lower band, ``middle - num_std * sigma``.
+        - ``middle`` — the center band, the :func:`sma` of ``expr``.
+        - ``upper`` — the upper band, ``middle + num_std * sigma``.
+
+        Read one band with ``.struct.field("middle")`` (etc.) or split all three into columns with
+        ``.struct.unnest()``. The first ``window - 1`` rows are ``null`` (warm-up).
+
+    Raises:
+        TypeError: If any input is not a ``pl.Expr``.
+        ValueError: If ``window < 1``, or if ``num_std`` is not a finite number ``> 0``.
+
+    Note:
+        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
+        any finite input within a sane dynamic range; ``CORRECTNESS.md`` gives the method and the float-conditioning
+        limit beyond it.
+
+        **Composition:**
+
+        The bands are built from :func:`sma` (center) and the population :func:`standard_deviation_rolling` (width), so
+        they inherit the warm-up and missing-data behavior of both — identically on every field of the struct.
+
+        **Edge-case behavior:**
+
+        - **Null** — a window containing a ``null`` yields ``null`` on all three fields (the window must hold ``window``
+          non-null values).
+        - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` on all three fields.
+        - **window == 1** — the standard deviation is ``0``, so all three bands collapse onto ``expr`` itself.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so no window spans series
+          boundaries, e.g. ``bollinger_bands(pl.col("close"), 20).over("ticker")``.
+
+    See Also:
+        - :func:`sma`: The center band.
+        - :func:`standard_deviation_rolling`: The band half-width, before scaling by ``num_std``.
+
+    References:
+        - Bollinger, John (2001). *Bollinger on Bollinger Bands*.
+        - https://en.wikipedia.org/wiki/Bollinger_Bands
+        - https://school.stockcharts.com/doku.php?id=technical_indicators:bollinger_bands
+        - https://www.investopedia.com/terms/b/bollingerbands.asp
+
+    Examples:
+        >>> import polars as pl
+        >>> from pomata.indicators import bollinger_bands
+        >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, 11.0, 13.0]})
+        >>> bands = bollinger_bands(pl.col("close"), 3)
+        >>> frame.select(bands.struct.field("lower").round(4).alias("l"))["l"].to_list()
+        [None, None, 9.367, 10.3905, 10.367]
+        >>> frame.select(bands.struct.field("middle").round(4).alias("m"))["m"].to_list()
+        [None, None, 11.0, 11.3333, 12.0]
+        >>> frame.select(bands.struct.field("upper").round(4).alias("u"))["u"].to_list()
+        [None, None, 12.633, 12.2761, 13.633]
+
+        Split the struct into three columns with ``.struct.unnest()``:
+
+        >>> frame.select(bands.alias("bb")).unnest("bb").columns
+        ['lower', 'middle', 'upper']
+
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
+
+        >>> frame = pl.DataFrame({"ticker": ["A"] * 3 + ["B"] * 3, "close": [10.0, 11.0, 12.0, 20.0, 22.0, 21.0]})
+        >>> expr = bollinger_bands(pl.col("close"), 2).over("ticker").struct.field("middle").round(4)
+        >>> frame.with_columns(expr.alias("middle"))["middle"].to_list()
+        [None, 10.5, 11.5, None, 21.0, 21.5]
+
+        A ``null`` and a ``NaN`` propagate to every band; the middle band makes the handling visible:
+
+        >>> frame = pl.DataFrame({"close": [10.0, None, 12.0, float("nan"), 14.0, 15.0]})
+        >>> expr = bollinger_bands(pl.col("close"), 2).struct.field("middle").round(4)
+        >>> frame.select(expr.alias("middle"))["middle"].to_list()
+        [None, None, None, nan, nan, 14.5]
+    """
+    expr = float64_expr(expr)
+    validate_window(window)
+    validate_positive(num_std, "num_std")
+    # Center = SMA; bands = ± num_std * population rolling std (composed, so the warm-up/null/NaN behavior matches).
+    middle = sma(expr, window)
+    half_width = num_std * standard_deviation_rolling(expr, window)
+    return pl.struct(lower=middle - half_width, middle=middle, upper=middle + half_width)
+
+
+def true_range(
+    high: pl.Expr,
+    low: pl.Expr,
+    close: pl.Expr,
+) -> pl.Expr:
+    r"""
+    True Range (TR), also known as Wilder's True Range.
+
+    The single-bar volatility primitive J. Welles Wilder introduced as the building block of the Average True Range and
+    the Directional Movement system. It generalises the bar's high-low spread to account for gaps relative to the prior
+    close, taking the largest of three distances:
+
+    .. math::
+
+        \mathrm{TR}_t = \max\!\Bigl(
+            h_t - l_t,\;
+            \lvert h_t - c_{t-1} \rvert,\;
+            \lvert l_t - c_{t-1} \rvert
+        \Bigr),
+
+    where :math:`h`, :math:`l`, :math:`c` are ``high``, ``low``, ``close`` and :math:`c_{t-1}` is the previous
+    ``close``. The first row has no previous ``close``, so the two gap terms vanish and
+    :math:`\mathrm{TR}_0 = h_0 - l_0` (Wilder's original definition). TR is a base building block: it composes nothing
+    and is itself the input to :func:`atr` and the volatility-normalized directional indicators.
+
+    Args:
+        high: High-price series (e.g. ``pl.col("high")``).
+        low: Low-price series (e.g. ``pl.col("low")``).
+        close: Close-price series (e.g. ``pl.col("close")``); the previous close supplies the two gap terms.
+
+    Returns:
+        The True Range for each row, the same length as the inputs. There is no window and no warm-up: every row is
+        defined from row ``0``, which falls back to ``high - low`` because no previous close exists. On well-formed OHLC
+        data (``high >= low``) every value is non-negative.
+
+    Raises:
+        TypeError: If any input is not a ``pl.Expr``.
+
+    Note:
+        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
+        any finite input within a sane dynamic range; ``CORRECTNESS.md`` gives the method and the float-conditioning
+        limit beyond it.
+
+        **Inputs:**
+
+        ``high``, ``low``, and ``close`` are taken as the canonical OHLC roles in that positional order and must share a
+        length and alignment (the same row index is one bar).
+
+        **Edge-case behavior:**
+
+        - **Null** — null handling follows ``pl.max_horizontal``, which **skips** ``null`` candidates rather than
+          propagating them: a ``null`` in ``high`` or ``low`` (or a ``null`` previous ``close``) simply drops that
+          candidate, so the row still resolves from whichever distances remain. The result is ``null`` only when all
+          three candidates are ``null`` (``high`` and ``low`` both ``null`` at the row, and no usable previous close).
+        - **NaN** — a ``NaN`` is **not** skipped: it dominates the maximum, so any row whose surviving candidates
+          include a ``NaN`` yields ``NaN`` (a ``NaN`` ``close`` therefore contaminates the two gap terms of the **next**
+          row only, not the whole series).
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the previous-close shift never
+          reaches across series boundaries, e.g.
+          ``true_range(pl.col("high"), pl.col("low"), pl.col("close")).over("ticker")`` — without it the first bar of
+          one series would borrow the last ``close`` of the previous series.
+
+    See Also:
+        - :func:`atr`: The Wilder-smoothed average of this per-bar range.
+
+    References:
+        - Wilder, J. Welles (1978). *New Concepts in Technical Trading Systems*.
+        - https://en.wikipedia.org/wiki/Average_true_range
+        - https://school.stockcharts.com/doku.php?id=technical_indicators:average_true_range_atr
+
+    Examples:
+        >>> import polars as pl
+        >>> from pomata.indicators import true_range
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.0, 12.0, 11.5, 13.0, 12.5],
+        ...         "low": [9.0, 10.5, 10.0, 11.0, 11.5],
+        ...         "close": [9.5, 11.0, 10.5, 12.5, 12.0],
+        ...     }
+        ... )
+        >>> frame.select(
+        ...     true_range(pl.col("high"), pl.col("low"), pl.col("close")).round(4).alias("true_range")
+        ... )["true_range"].to_list()
+        [1.0, 2.5, 1.5, 2.5, 1.0]
+
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "ticker": ["A"] * 4 + ["B"] * 4,
+        ...         "high": [12.0, 13.0, 12.5, 14.0, 22.0, 24.0, 23.0, 25.0],
+        ...         "low": [10.0, 11.0, 11.0, 12.0, 20.0, 21.0, 21.0, 23.0],
+        ...         "close": [11.0, 12.5, 11.5, 13.5, 21.5, 21.5, 22.5, 24.0],
+        ...     }
+        ... )
+        >>> expr = true_range(pl.col("high"), pl.col("low"), pl.col("close")).over("ticker").round(4)
+        >>> frame.with_columns(expr.alias("true_range"))["true_range"].to_list()
+        [2.0, 2.0, 1.5, 2.5, 2.0, 3.0, 2.0, 2.5]
+
+        A ``null`` (voiding the rows that reference it) and a ``NaN`` (which propagates) make the
+        exact handling visible at a glance:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [12.0, 13.0, 14.0, 15.0, 16.0, 17.0, float("nan"), 19.0],
+        ...         "low": [10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0],
+        ...         "close": [11.5, 12.5, 13.0, 14.5, None, 16.0, 17.5, 18.0],
+        ...     }
+        ... )
+        >>> expr = true_range(pl.col("high"), pl.col("low"), pl.col("close")).round(4)
+        >>> frame.select(expr.alias("true_range"))["true_range"].to_list()
+        [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, nan, 2.0]
+    """
+    high = float64_expr(high)
+    low = float64_expr(low)
+    close = float64_expr(close)
+    # Pure native Polars expressions (shift / abs / max_horizontal): lazy/eager-uniform, no Rust kernel needed.
+    # max_horizontal skips null candidates and propagates NaN; row 0 has no previous close, so TR0 = high - low.
+    previous_close = close.shift(1)
+    return pl.max_horizontal(
+        high - low,
+        (high - previous_close).abs(),
+        (low - previous_close).abs(),
+    )
