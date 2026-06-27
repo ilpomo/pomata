@@ -244,6 +244,8 @@ max-complexity = 16
 "tests/**" = ["FBT001", "FBT002", "INP001", "PLR2004", "S101"]
 # The oracle regeneration script is a CLI tool: it prints.
 "tests/indicators/oracles/_regenerate.py" = ["T201"]
+# The Sphinx config is a module-style script, not a package (no __init__.py).
+"docs/conf.py" = ["INP001"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
