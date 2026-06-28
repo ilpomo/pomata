@@ -56,7 +56,9 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # -- HTML output -------------------------------------------------------------
 
 html_theme = "furo"
-html_title = f"pomata {release}"
+# Just the name in the sidebar: the docs deploy from main (ahead of the latest tag), so the hatch-vcs version would
+# render as a noisy dev string (e.g. 0.1.2.dev3+g...). The exact version lives on PyPI and in the API reference.
+html_title = "pomata"
 
 # One small override (loaded after the theme): align a multi-line signature's closing parenthesis with the name.
 html_static_path = ["_static"]
