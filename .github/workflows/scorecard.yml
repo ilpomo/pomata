@@ -1,0 +1,45 @@
+name: Scorecard
+
+# OpenSSF Scorecard -- automated supply-chain security scoring (branch protection, pinned dependencies, token
+# permissions, SAST, signed releases, ...). Runs weekly, on every push to main, and whenever a branch-protection rule
+# changes; results go to the Security tab (SARIF) and are published to the OpenSSF API, which powers the README badge.
+on:
+  push:
+    branches: [main]
+  branch_protection_rule:
+  schedule:
+    - cron: "0 5 * * 1" # Mondays 05:00 UTC; offset from CodeQL (04:30) and the benchmark (03:00)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scorecard-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analysis:
+    name: scorecard
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read # read the repository for analysis
+      actions: read # inspect the workflows
+      security-events: write # upload the SARIF results to code scanning
+      id-token: write # publish results to the OpenSSF API (powers the badge)
+    steps:
+      - name: "Setup: checkout"
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: "Scorecard: analyze"
+        uses: ossf/scorecard-action@4eaacf0543bb3f2c246792bd56e8cdeffafb205a # v2.4.3
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true # required for the badge
+      - name: "Scorecard: upload SARIF to code scanning"
+        uses: github/codeql-action/upload-sarif@c35d1b164463ee62a100735382aaaa525c5d3496 # codeql-bundle-v2.25.6
+        with:
+          sarif_file: results.sarif
