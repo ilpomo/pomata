@@ -87,9 +87,12 @@ jobs:
       # (where the secret is empty).
       - name: "Coverage: upload to Codecov"
         if: env.CODECOV_TOKEN != ''
+        # Reporting only: the 100% branch gate above already enforces coverage, so a Codecov outage (its CLI download,
+        # GPG check, or upload) must never fail CI. Non-gating, like ty and the differential.
+        continue-on-error: true
         uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
-          fail_ci_if_error: true
+          fail_ci_if_error: false
           files: ./coverage.xml
           flags: unittests
 
