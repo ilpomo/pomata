@@ -1,0 +1,45 @@
+name: CodeQL
+
+# Static application security testing (SAST) with CodeQL -- GitHub's FLOSS analyzer. Runs on every push to main, every
+# PR to main, and a weekly schedule; findings surface in the Security tab (code scanning). Python is interpreted, so
+# the analysis needs no build step (build-mode: none).
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "30 4 * * 1" # Mondays 04:30 UTC; offset from the nightly benchmark cron
+  workflow_dispatch:
+
+# Least-privilege by default; the analyze job widens to upload the code-scanning results.
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: analyze (python)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write # upload the SARIF results to code scanning
+    steps:
+      - name: "Setup: checkout"
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: "CodeQL: initialize"
+        uses: github/codeql-action/init@c35d1b164463ee62a100735382aaaa525c5d3496 # codeql-bundle-v2.25.6
+        with:
+          languages: python
+          build-mode: none
+          queries: security-extended
+      - name: "CodeQL: analyze"
+        uses: github/codeql-action/analyze@c35d1b164463ee62a100735382aaaa525c5d3496 # codeql-bundle-v2.25.6
+        with:
+          category: "/language:python"
