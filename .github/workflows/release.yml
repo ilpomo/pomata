@@ -34,12 +34,13 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0 # hatch-vcs reads the tag history to stamp the version
+          persist-credentials: false
       - name: "Setup: install uv"
         uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
         with:
           version: "0.11.17"
           python-version: "3.14"
-          enable-cache: true
+          enable-cache: false # no cache in the PyPI publish path (cache-poisoning hardening)
       - name: "Build: sdist + wheel"
         run: uv build
       - name: "Build: validate the distribution metadata"
