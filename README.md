@@ -21,6 +21,8 @@ against an independent reference, under 100% branch coverage.
 [![Polars](https://img.shields.io/badge/Polars-%E2%89%A51.40-CD792C?style=flat-square)](https://pola.rs)
 [![license](https://img.shields.io/badge/license-MIT-750014?style=flat-square)](LICENSE)
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20980041.svg)](https://doi.org/10.5281/zenodo.20980041)
+
 > **Alpha.** The API is not frozen until `1.0`; expect refinement. The correctness bar holds at every commit regardless.
 
 ## From price to performance, in one query
