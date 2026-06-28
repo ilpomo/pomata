@@ -1,27 +1,28 @@
 # pomata
 
-**A Polars-native quant toolkit — technical indicators, PnL accounting, and performance & risk metrics.** Each is a
-composable `pl.Expr`, so an entire study is one lazy Polars pipeline, from price to performance.
-
-And it doesn't ask you to trust its numbers — it **proves** them: every function is verified to the `float64` floor
-against an independent reference, under 100% branch coverage.
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20980041.svg)](https://doi.org/10.5281/zenodo.20980041)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/13392/badge)](https://www.bestpractices.dev/projects/13392)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/ilpomo/pomata/badge)](https://securityscorecards.dev/viewer/?uri=github.com/ilpomo/pomata)
 
 [![CI](https://img.shields.io/github/actions/workflow/status/ilpomo/pomata/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/ilpomo/pomata/actions/workflows/ci.yml)
-[![coverage](https://img.shields.io/codecov/c/github/ilpomo/pomata?style=flat-square&label=coverage)](https://codecov.io/gh/ilpomo/pomata)
+[![codecov](https://img.shields.io/codecov/c/github/ilpomo/pomata?style=flat-square&label=codecov)](https://codecov.io/gh/ilpomo/pomata)
 [![ruff](https://img.shields.io/badge/ruff-261230?style=flat-square&logo=ruff&logoColor=D7FF64)](https://github.com/astral-sh/ruff)
 [![ty](https://img.shields.io/badge/ty-261230?style=flat-square&logo=ty&logoColor=D7FF64)](https://github.com/astral-sh/ty)
-[![mypy](https://img.shields.io/badge/mypy-4B6BFB?style=flat-square)](https://www.mypy-lang.org)
-[![pyright](https://img.shields.io/badge/pyright-4B6BFB?style=flat-square)](https://github.com/microsoft/pyright)
-[![pyrefly](https://img.shields.io/badge/pyrefly-4B6BFB?style=flat-square)](https://pyrefly.org)
+[![mypy](https://img.shields.io/badge/mypy-505050?style=flat-square)](https://www.mypy-lang.org)
+[![pyright](https://img.shields.io/badge/pyright-505050?style=flat-square)](https://github.com/microsoft/pyright)
+[![pyrefly](https://img.shields.io/badge/pyrefly-505050?style=flat-square)](https://pyrefly.org)
 
 ![Linux](https://img.shields.io/badge/Linux-505050?style=flat-square&logo=linux&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-505050?style=flat-square&logo=apple&logoColor=white)
 ![Windows](https://custom-icon-badges.demolab.com/badge/Windows-505050.svg?style=flat-square&logo=windows11&logoColor=white)
 [![python](https://img.shields.io/badge/python-3.12%20|%203.13%20|%203.14-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![Polars](https://img.shields.io/badge/Polars-%E2%89%A51.40-CD792C?style=flat-square)](https://pola.rs)
-[![license](https://img.shields.io/badge/license-MIT-750014?style=flat-square)](LICENSE)
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20980041.svg)](https://doi.org/10.5281/zenodo.20980041)
+**A Polars-native quant toolkit — technical indicators, PnL accounting, and performance & risk metrics.** Each is a
+composable `pl.Expr`, so an entire study is one lazy Polars pipeline, from price to performance.
+
+And it doesn't ask you to trust its numbers — it **proves** them: every function is verified to the `float64` floor
+against an independent reference, under 100% branch coverage.
 
 > **Alpha.** The API is not frozen until `1.0`; expect refinement. The correctness bar holds at every commit regardless.
 
