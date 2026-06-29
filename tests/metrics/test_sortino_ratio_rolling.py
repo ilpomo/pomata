@@ -86,7 +86,7 @@ def _windows_conditioned(values: Sequence[float | None], window: int) -> bool:
     return True
 
 
-class TestSortinoRollingContract:
+class TestSortinoRatioRollingContract:
     """
     Type, shape, and lazy/eager guarantees.
     """
@@ -130,7 +130,7 @@ class TestSortinoRollingContract:
         assert_matches(grouped, expected, rel_tol=RELATIVE_TOLERANCE_REFERENCE)
 
 
-class TestSortinoRollingEdge:
+class TestSortinoRatioRollingEdge:
     """
     Validation, boundaries, and null / NaN handling.
     """
@@ -206,7 +206,7 @@ class TestSortinoRollingEdge:
         )
 
 
-class TestSortinoRollingCorrectness:
+class TestSortinoRatioRollingCorrectness:
     """
     Against the naive reference oracle and frozen golden-master values.
     """
@@ -236,7 +236,7 @@ class TestSortinoRollingCorrectness:
         )
 
 
-class TestSortinoRollingProperties:
+class TestSortinoRatioRollingProperties:
     """
     Invariants that must hold for all inputs (property-based).
     """

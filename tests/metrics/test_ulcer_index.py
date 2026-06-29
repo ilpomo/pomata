@@ -188,7 +188,7 @@ class TestUlcerIndexProperties:
         )
 
     @given(case=_cases(_EQUITY), exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]))
-    def test_scale_invariant(self, case: list[float], exponent: int) -> None:
+    def test_scale_invariance(self, case: list[float], exponent: int) -> None:
         """
         Verifies that a positive rescale of the equity leaves the Ulcer Index unchanged (powers of two, lossless).
         """

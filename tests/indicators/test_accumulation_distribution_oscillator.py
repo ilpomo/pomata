@@ -104,7 +104,7 @@ def apply_accumulation_distribution_oscillator(
     )
 
 
-class TestAdoscContract:
+class TestAccumulationDistributionOscillatorContract:
     """
     Type, shape, and lazy/eager guarantees.
     """
@@ -183,7 +183,7 @@ class TestAdoscContract:
         assert_matches(grouped, group_a + group_b)
 
 
-class TestAdoscEdge:
+class TestAccumulationDistributionOscillatorEdge:
     """
     Boundaries, warm-up, and null / NaN handling.
     """
@@ -298,7 +298,7 @@ class TestAdoscEdge:
         )
 
 
-class TestAdoscCorrectness:
+class TestAccumulationDistributionOscillatorCorrectness:
     """
     Against the naive reference oracle and frozen golden-master values.
     """
@@ -335,7 +335,7 @@ class TestAdoscCorrectness:
         )
 
 
-class TestAdoscProperties:
+class TestAccumulationDistributionOscillatorProperties:
     """
     Invariants that must hold for all inputs (property-based).
     """

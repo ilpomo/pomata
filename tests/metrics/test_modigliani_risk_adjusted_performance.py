@@ -68,7 +68,7 @@ def _complete_returns(returns: Sequence[float | None], benchmark: Sequence[float
     return [x for x, y in zip(returns, benchmark, strict=True) if x is not None and y is not None]
 
 
-class TestModiglianiContract:
+class TestModiglianiRiskAdjustedPerformanceContract:
     """
     Type, shape, and lazy/eager guarantees.
     """
@@ -141,7 +141,7 @@ class TestModiglianiContract:
         )
 
 
-class TestModiglianiEdge:
+class TestModiglianiRiskAdjustedPerformanceEdge:
     """
     Validation, boundaries, and null / NaN handling.
     """
@@ -224,7 +224,7 @@ class TestModiglianiEdge:
         )
 
 
-class TestModiglianiCorrectness:
+class TestModiglianiRiskAdjustedPerformanceCorrectness:
     """
     Against the naive reference oracle and frozen golden-master values.
     """
@@ -264,7 +264,7 @@ class TestModiglianiCorrectness:
         )
 
 
-class TestModiglianiProperties:
+class TestModiglianiRiskAdjustedPerformanceProperties:
     """
     Invariants that must hold for all inputs (property-based).
     """

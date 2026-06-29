@@ -68,7 +68,7 @@ def _has_substantial_gain(returns: Sequence[float | None]) -> bool:
     return any(value is not None and not math.isnan(value) and value > 1e-3 for value in returns)
 
 
-class TestCaptureUpsideContract:
+class TestCaptureUpsideRatioContract:
     """
     Type, shape, and lazy/eager guarantees.
     """
@@ -133,7 +133,7 @@ class TestCaptureUpsideContract:
         )
 
 
-class TestCaptureUpsideEdge:
+class TestCaptureUpsideRatioEdge:
     """
     Validation, boundaries, and null / NaN handling.
     """
@@ -196,7 +196,7 @@ class TestCaptureUpsideEdge:
         )
 
 
-class TestCaptureUpsideCorrectness:
+class TestCaptureUpsideRatioCorrectness:
     """
     Against the naive reference oracle and frozen golden-master values.
     """
@@ -232,7 +232,7 @@ class TestCaptureUpsideCorrectness:
         )
 
 
-class TestCaptureUpsideProperties:
+class TestCaptureUpsideRatioProperties:
     """
     Invariants that must hold for all inputs (property-based).
     """

@@ -55,7 +55,7 @@ def _cases[T](draw: st.DrawFn, returns: st.SearchStrategy[T], min_size: int = 1)
     return draw(st.lists(returns, min_size=min_size, max_size=SERIES_MAX))
 
 
-class TestSortinoContract:
+class TestSortinoRatioContract:
     """
     Type, shape, and lazy/eager guarantees.
     """
@@ -100,7 +100,7 @@ class TestSortinoContract:
         )
 
 
-class TestSortinoEdge:
+class TestSortinoRatioEdge:
     """
     Validation, boundaries, and null / NaN handling.
     """
@@ -160,7 +160,7 @@ class TestSortinoEdge:
         assert_matches(apply_expr(values, sortino_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS)), [math.nan])
 
 
-class TestSortinoCorrectness:
+class TestSortinoRatioCorrectness:
     """
     Against the naive reference oracle and frozen golden-master values.
     """
@@ -185,7 +185,7 @@ class TestSortinoCorrectness:
         assert_matches(apply_expr(values, sortino_ratio(pl.col(COLUMN_X), periods_per_year=252).round(4)), [4.4567])
 
 
-class TestSortinoProperties:
+class TestSortinoRatioProperties:
     """
     Invariants that must hold for all inputs (property-based).
     """
@@ -217,7 +217,7 @@ class TestSortinoProperties:
         )
 
     @given(case=_cases(subnormal_safe_floats(bound=1e3), min_size=2), exponent=st.sampled_from([-4, -2, -1, 1, 2, 4]))
-    def test_scale_invariant(self, case: list[float], exponent: int) -> None:
+    def test_scale_invariance(self, case: list[float], exponent: int) -> None:
         """
         Verifies that a positive rescale of the returns leaves the Sortino ratio at a zero risk-free rate unchanged (a
         mean over a downside deviation), using powers of two so the rescaling is lossless.

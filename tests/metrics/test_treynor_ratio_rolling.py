@@ -108,7 +108,7 @@ def _treynor_windows_conditioned(
     return True
 
 
-class TestTreynorRollingContract:
+class TestTreynorRatioRollingContract:
     """
     Type, shape, and lazy/eager guarantees.
     """
@@ -174,7 +174,7 @@ class TestTreynorRollingContract:
         assert_matches(grouped, expected, rel_tol=RELATIVE_TOLERANCE_REFERENCE)
 
 
-class TestTreynorRollingEdge:
+class TestTreynorRatioRollingEdge:
     """
     Validation, boundaries, and null / NaN handling.
     """
@@ -290,7 +290,7 @@ class TestTreynorRollingEdge:
         )
 
 
-class TestTreynorRollingCorrectness:
+class TestTreynorRatioRollingCorrectness:
     """
     Against the naive reference oracle and frozen golden-master values.
     """
@@ -326,7 +326,7 @@ class TestTreynorRollingCorrectness:
         )
 
 
-class TestTreynorRollingProperties:
+class TestTreynorRatioRollingProperties:
     """
     Invariants that must hold for all inputs (property-based).
     """

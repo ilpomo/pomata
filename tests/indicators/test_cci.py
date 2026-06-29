@@ -372,7 +372,7 @@ class TestCciProperties:
         case=_cases(coherent_hlc(), window_min=2),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
     )
-    def test_positive_scale_invariance(
+    def test_scale_invariance(
         self,
         case: tuple[list[tuple[float, float, float]], int],
         exponent: int,

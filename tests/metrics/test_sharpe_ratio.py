@@ -56,7 +56,7 @@ def _cases[T](draw: st.DrawFn, returns: st.SearchStrategy[T], min_size: int = 1)
     return draw(st.lists(returns, min_size=min_size, max_size=SERIES_MAX))
 
 
-class TestSharpeContract:
+class TestSharpeRatioContract:
     """
     Type, shape, and lazy/eager guarantees.
     """
@@ -101,7 +101,7 @@ class TestSharpeContract:
         )
 
 
-class TestSharpeEdge:
+class TestSharpeRatioEdge:
     """
     Validation, boundaries, and null / NaN handling.
     """
@@ -155,7 +155,7 @@ class TestSharpeEdge:
         assert_matches(apply_expr(values, sharpe_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS)), [math.nan])
 
 
-class TestSharpeCorrectness:
+class TestSharpeRatioCorrectness:
     """
     Against the naive reference oracle and frozen golden-master values.
     """
@@ -180,7 +180,7 @@ class TestSharpeCorrectness:
         assert_matches(apply_expr(values, sharpe_ratio(pl.col(COLUMN_X), periods_per_year=252).round(4)), [2.4285])
 
 
-class TestSharpeProperties:
+class TestSharpeRatioProperties:
     """
     Invariants that must hold for all inputs (property-based).
     """
@@ -215,7 +215,7 @@ class TestSharpeProperties:
         )
 
     @given(case=_cases(subnormal_safe_floats(bound=1e3), min_size=2), exponent=st.sampled_from([-4, -2, -1, 1, 2, 4]))
-    def test_scale_invariant(self, case: list[float], exponent: int) -> None:
+    def test_scale_invariance(self, case: list[float], exponent: int) -> None:
         """
         Verifies that a positive rescale of the returns leaves the Sharpe ratio at a zero risk-free rate unchanged (a
         mean over a standard deviation), using powers of two so the rescaling is lossless.

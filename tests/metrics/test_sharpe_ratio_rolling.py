@@ -63,7 +63,7 @@ def _cases[T](draw: st.DrawFn, values: st.SearchStrategy[T], window_min: int = 2
     return draw(st.lists(values, min_size=length, max_size=length)), window
 
 
-class TestSharpeRollingContract:
+class TestSharpeRatioRollingContract:
     """
     Type, shape, and lazy/eager guarantees.
     """
@@ -107,7 +107,7 @@ class TestSharpeRollingContract:
         assert_matches(grouped, expected, rel_tol=RELATIVE_TOLERANCE_REFERENCE)
 
 
-class TestSharpeRollingEdge:
+class TestSharpeRatioRollingEdge:
     """
     Validation, boundaries, and null / NaN handling.
     """
@@ -182,7 +182,7 @@ class TestSharpeRollingEdge:
         )
 
 
-class TestSharpeRollingCorrectness:
+class TestSharpeRatioRollingCorrectness:
     """
     Against the naive reference oracle and frozen golden-master values.
     """
@@ -212,7 +212,7 @@ class TestSharpeRollingCorrectness:
         )
 
 
-class TestSharpeRollingProperties:
+class TestSharpeRatioRollingProperties:
     """
     Invariants that must hold for all inputs (property-based).
     """

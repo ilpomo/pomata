@@ -284,7 +284,7 @@ class TestInformationRatioProperties:
         )
 
     @given(case=_cases(_PAIR, min_size=2), exponent=st.sampled_from([-4, -2, -1, 1, 2, 4]))
-    def test_scale_invariant(self, case: list[tuple[float, float]], exponent: int) -> None:
+    def test_scale_invariance(self, case: list[tuple[float, float]], exponent: int) -> None:
         """
         Verifies that a joint positive rescale of both legs leaves the ratio unchanged (a mean over a standard
         deviation), using powers of two so the rescaling is lossless.

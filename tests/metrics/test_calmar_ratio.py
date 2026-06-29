@@ -53,7 +53,7 @@ def _cases[T](draw: st.DrawFn, equities: st.SearchStrategy[T], min_size: int = 1
     return draw(st.lists(equities, min_size=min_size, max_size=SERIES_MAX))
 
 
-class TestCalmarContract:
+class TestCalmarRatioContract:
     """
     Type, shape, and lazy/eager guarantees.
     """
@@ -98,7 +98,7 @@ class TestCalmarContract:
         )
 
 
-class TestCalmarEdge:
+class TestCalmarRatioEdge:
     """
     Validation, boundaries, and null / NaN handling.
     """
@@ -144,7 +144,7 @@ class TestCalmarEdge:
         )
 
 
-class TestCalmarCorrectness:
+class TestCalmarRatioCorrectness:
     """
     Against the naive reference oracle and frozen golden-master values.
     """
@@ -169,7 +169,7 @@ class TestCalmarCorrectness:
         assert_matches(apply_expr(values, calmar_ratio(pl.col(COLUMN_X), periods_per_year=1).round(4)), [1.0833])
 
 
-class TestCalmarProperties:
+class TestCalmarRatioProperties:
     """
     Invariants that must hold for all inputs (property-based).
     """
