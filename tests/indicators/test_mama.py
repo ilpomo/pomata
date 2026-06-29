@@ -201,7 +201,7 @@ class TestMamaEdge:
         for field in FIELDS:
             assert_matches(bands[field], [None, None, None, None, None])
 
-    def test_warmup_then_defined(self) -> None:
+    def test_warmup_null_count(self) -> None:
         """
         Verifies that, on each line, the leading-null run is exactly ``32`` and every later row is defined.
         """

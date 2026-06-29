@@ -163,7 +163,7 @@ class TestSortinoRollingEdge:
         """
         assert apply_expr([], sortino_ratio_rolling(pl.col(COLUMN_X), 3, periods_per_year=PERIODS)) == []
 
-    def test_warm_up_is_null(self) -> None:
+    def test_warmup_null_count(self) -> None:
         """
         Verifies that the first ``window - 1`` rows are ``null`` and the rest match the reference.
         """

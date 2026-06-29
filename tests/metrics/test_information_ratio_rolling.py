@@ -176,7 +176,7 @@ class TestInformationRatioRollingEdge:
             == []
         )
 
-    def test_warm_up_is_null(self) -> None:
+    def test_warmup_null_count(self) -> None:
         """
         Verifies that the first ``window - 1`` rows are ``null`` and the rest match the reference.
         """

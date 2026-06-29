@@ -138,7 +138,7 @@ class TestHilbertTrendlineEdge:
         """
         assert_matches(apply_hilbert_trendline([None, None, None, None, None]), [None, None, None, None, None])
 
-    def test_warmup_then_defined(self) -> None:
+    def test_warmup_null_count(self) -> None:
         """
         Verifies that the leading-null run is exactly ``63`` and every later row is defined.
         """

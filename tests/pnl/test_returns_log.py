@@ -115,7 +115,7 @@ class TestReturnsLogEdge:
     Boundaries, warm-up, null / NaN handling, and the positive-price domain.
     """
 
-    def test_warmup_first_row_null(self) -> None:
+    def test_warmup_null_count(self) -> None:
         """
         Verifies the warm-up is exactly one row: the first return is null, the second is defined.
         """

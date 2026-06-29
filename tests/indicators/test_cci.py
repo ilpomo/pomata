@@ -190,7 +190,7 @@ class TestCciEdge:
             cci_reference(high_values, low_values, close_values, 3),
         )
 
-    def test_window_exceeds_length_is_all_null(self) -> None:
+    def test_window_exceeds_length(self) -> None:
         """
         Verifies that a window longer than the series leaves every position in warm-up (all ``null``).
         """

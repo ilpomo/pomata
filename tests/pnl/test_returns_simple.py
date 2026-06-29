@@ -113,7 +113,7 @@ class TestReturnsSimpleEdge:
     Boundaries, warm-up, and null / NaN handling.
     """
 
-    def test_warmup_first_row_null(self) -> None:
+    def test_warmup_null_count(self) -> None:
         """
         Verifies the warm-up is exactly one row: the first return is null, the second is defined.
         """

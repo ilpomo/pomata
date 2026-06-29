@@ -135,7 +135,7 @@ class TestDominantCyclePeriodEdge:
         """
         assert_matches(apply_dominant_cycle_period([None, None, None, None, None]), [None, None, None, None, None])
 
-    def test_warmup_then_defined(self) -> None:
+    def test_warmup_null_count(self) -> None:
         """
         Verifies that the leading-null run is exactly ``32`` and every later row is defined.
         """

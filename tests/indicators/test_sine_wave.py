@@ -159,7 +159,7 @@ class TestSineWaveEdge:
         for field in FIELDS:
             assert_matches(result[field], [None, None, None, None, None])
 
-    def test_warmup_then_defined(self) -> None:
+    def test_warmup_null_count(self) -> None:
         """
         Verifies that the leading-null run is exactly ``63`` on each line and every later row is defined.
         """

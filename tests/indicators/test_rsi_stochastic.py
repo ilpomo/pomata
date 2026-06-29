@@ -297,7 +297,7 @@ class TestRsiStochasticEdge:
         for field in FIELDS:
             assert_matches(result[field], [None, None, None])
 
-    def test_flat_rsi_is_nan(self) -> None:
+    def test_flat_window_is_nan(self) -> None:
         """
         Verifies that a flat RSI (a sustained trend pinning it, so highest equals lowest) yields ``NaN`` on ``k``.
         """

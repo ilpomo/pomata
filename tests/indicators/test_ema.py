@@ -303,7 +303,7 @@ class TestEmaProperties:
         assert_scale_homogeneous(result_scaled, result_base, k=k, degree=1)
 
     @given(case=_cases(subnormal_safe_floats(1e3), window_min=2))
-    def test_warmup_is_window_minus_one(
+    def test_warmup_null_count_property(
         self,
         case: tuple[list[float], int],
     ) -> None:
