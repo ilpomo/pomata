@@ -60,7 +60,7 @@ def _cases[T](draw: st.DrawFn, values: st.SearchStrategy[T]) -> tuple[list[T], i
     return draw(st.lists(values, min_size=length, max_size=length)), window
 
 
-class TestMomentumContract:
+class TestMomContract:
     """
     Type, shape, and lazy/eager guarantees.
     """
@@ -98,7 +98,7 @@ class TestMomentumContract:
         assert_matches(result, [None, None, 2.0, None, None, 20.0])
 
 
-class TestMomentumEdge:
+class TestMomEdge:
     """
     Boundaries, warm-up, and null / NaN handling.
     """
@@ -192,7 +192,7 @@ class TestMomentumEdge:
         )
 
 
-class TestMomentumCorrectness:
+class TestMomCorrectness:
     """
     Against the naive reference oracle and frozen golden-master values.
     """
@@ -215,7 +215,7 @@ class TestMomentumCorrectness:
         )
 
 
-class TestMomentumProperties:
+class TestMomProperties:
     """
     Invariants that must hold for all inputs (property-based).
     """

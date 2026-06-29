@@ -233,7 +233,7 @@ class TestCostFixedProperties:
         )
 
     @given(case=_cases(subnormal_safe_floats()), exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]))
-    def test_scale_invariant(
+    def test_scale_invariance(
         self,
         case: list[float],
         exponent: int,

@@ -256,7 +256,7 @@ class TestProbabilisticSharpeRatioProperties:
     @given(
         case=_cases(standardized_moment_floats(bound=1e3), min_size=2), exponent=st.sampled_from([-4, -2, -1, 1, 2, 4])
     )
-    def test_scale_invariant(self, case: list[float], exponent: int) -> None:
+    def test_scale_invariance(self, case: list[float], exponent: int) -> None:
         """
         Verifies that a positive rescale of the returns leaves the statistic unchanged at a zero risk-free rate (a
         standardized statistic), using powers of two so the rescaling is lossless.

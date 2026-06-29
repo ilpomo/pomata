@@ -95,7 +95,7 @@ def _beta_nondegenerate(returns: Sequence[float | None], benchmark: Sequence[flo
     return abs(covariance / variance) >= _BETA_FLOOR
 
 
-class TestTreynorContract:
+class TestTreynorRatioContract:
     """
     Type, shape, and lazy/eager guarantees.
     """
@@ -158,7 +158,7 @@ class TestTreynorContract:
         )
 
 
-class TestTreynorEdge:
+class TestTreynorRatioEdge:
     """
     Validation, boundaries, and null / NaN handling.
     """
@@ -252,7 +252,7 @@ class TestTreynorEdge:
         )
 
 
-class TestTreynorCorrectness:
+class TestTreynorRatioCorrectness:
     """
     Against the naive reference oracle and frozen golden-master values.
     """
@@ -288,7 +288,7 @@ class TestTreynorCorrectness:
         )
 
 
-class TestTreynorProperties:
+class TestTreynorRatioProperties:
     """
     Invariants that must hold for all inputs (property-based).
     """

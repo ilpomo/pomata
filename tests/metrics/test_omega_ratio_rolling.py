@@ -84,7 +84,7 @@ def _windows_conditioned(values: Sequence[float | None], window: int) -> bool:
     return True
 
 
-class TestOmegaRollingContract:
+class TestOmegaRatioRollingContract:
     """
     Type, shape, and lazy/eager guarantees.
     """
@@ -124,7 +124,7 @@ class TestOmegaRollingContract:
         assert_matches(grouped, expected, rel_tol=RELATIVE_TOLERANCE_REFERENCE)
 
 
-class TestOmegaRollingEdge:
+class TestOmegaRatioRollingEdge:
     """
     Validation, boundaries, and null / NaN handling.
     """
@@ -189,7 +189,7 @@ class TestOmegaRollingEdge:
         assert_matches(apply_expr([0.01, 0.02, 0.03], omega_ratio_rolling(pl.col(COLUMN_X), 3)), [None, None, math.inf])
 
 
-class TestOmegaRollingCorrectness:
+class TestOmegaRatioRollingCorrectness:
     """
     Against the naive reference oracle and frozen golden-master values.
     """
@@ -217,7 +217,7 @@ class TestOmegaRollingCorrectness:
         )
 
 
-class TestOmegaRollingProperties:
+class TestOmegaRatioRollingProperties:
     """
     Invariants that must hold for all inputs (property-based).
     """

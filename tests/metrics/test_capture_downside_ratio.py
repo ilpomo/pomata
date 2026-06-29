@@ -70,7 +70,7 @@ def _has_substantial_loss(returns: Sequence[float | None]) -> bool:
     return any(value is not None and not math.isnan(value) and value < -1e-3 for value in returns)
 
 
-class TestCaptureDownsideContract:
+class TestCaptureDownsideRatioContract:
     """
     Type, shape, and lazy/eager guarantees.
     """
@@ -135,7 +135,7 @@ class TestCaptureDownsideContract:
         )
 
 
-class TestCaptureDownsideEdge:
+class TestCaptureDownsideRatioEdge:
     """
     Validation, boundaries, and null / NaN handling.
     """
@@ -198,7 +198,7 @@ class TestCaptureDownsideEdge:
         )
 
 
-class TestCaptureDownsideCorrectness:
+class TestCaptureDownsideRatioCorrectness:
     """
     Against the naive reference oracle and frozen golden-master values.
     """
@@ -234,7 +234,7 @@ class TestCaptureDownsideCorrectness:
         )
 
 
-class TestCaptureDownsideProperties:
+class TestCaptureDownsideRatioProperties:
     """
     Invariants that must hold for all inputs (property-based).
     """
