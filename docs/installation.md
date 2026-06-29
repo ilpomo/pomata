@@ -16,7 +16,7 @@ Python
 : ≥ 3.12
 
 Polars
-: ≥ 1.42
+: ≥ 1.40
 
 Operating systems
 : Linux · macOS · Windows

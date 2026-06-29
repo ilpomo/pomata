@@ -742,7 +742,7 @@ typecheck = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "polars", specifier = ">=1.42.0" }]
+requires-dist = [{ name = "polars", specifier = ">=1.40.0" }]
 
 [package.metadata.requires-dev]
 coverage = [{ name = "pytest-cov", specifier = ">=7.1.0" }]

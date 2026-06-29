@@ -33,7 +33,7 @@ classifiers = [
 # on -- bisected, not guessed: 1.40.0 is green, 1.32.0 fails on the rolling-window API, and the `floor` CI job proves
 # the floor every run (`uv sync --resolution lowest-direct`). uv.lock pins the current release for everyday installs.
 dependencies = [
-    "polars>=1.42.0",
+    "polars>=1.40.0",
 ]
 
 [project.urls]
