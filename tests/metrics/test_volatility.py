@@ -154,7 +154,7 @@ class TestVolatilityEdge:
             abs_tol=_abs_tol(values),
         )
 
-    def test_nan_propagates(self) -> None:
+    def test_nan_poisons(self) -> None:
         """
         Verifies that a ``NaN`` return propagates, yielding ``NaN``.
         """

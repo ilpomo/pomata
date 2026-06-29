@@ -203,7 +203,7 @@ class TestRsiEdge:
             [None, None, None, None, 100.0, 100.0],
         )
 
-    def test_nan_propagates(self) -> None:
+    def test_nan_latches(self) -> None:
         """
         Verifies that a ``NaN`` poisons the recursion and latches for every subsequent value.
         """

@@ -220,7 +220,7 @@ class TestKamaEdge:
         values = [10.0, 11.0, 12.0, None, 13.0, 14.0, 15.0, 16.0]
         assert_matches(apply_kama(values, 2), kama_reference(values, 2))
 
-    def test_nan_propagates(self) -> None:
+    def test_nan_latches(self) -> None:
         """
         Verifies that a NaN propagates (matching the naive reference).
         """

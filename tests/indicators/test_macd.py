@@ -240,7 +240,7 @@ class TestMacdEdge:
         for field in FIELDS:
             assert_matches(bands[field], reference[field])
 
-    def test_nan_propagates(self) -> None:
+    def test_nan_latches(self) -> None:
         """
         Verifies that a ``NaN`` propagates through the EMAs on every field.
         """

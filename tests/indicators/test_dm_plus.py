@@ -178,7 +178,7 @@ class TestDmPlusEdge:
         low = [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5]
         assert_matches(apply_dm_plus(high, low, 2), dm_plus_reference(high, low, 2))
 
-    def test_nan_propagates(self) -> None:
+    def test_nan_latches(self) -> None:
         """
         Verifies that a NaN propagates (matching the naive reference).
         """

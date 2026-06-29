@@ -284,7 +284,7 @@ class TestAdoscEdge:
             accumulation_distribution_oscillator_reference(high, low, close, volume, 2, 3),
         )
 
-    def test_nan_propagates(self) -> None:
+    def test_nan_latches(self) -> None:
         """
         Verifies that a NaN propagates (matching the naive reference).
         """

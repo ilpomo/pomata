@@ -197,7 +197,7 @@ class TestAtrNormalizedEdge:
             atr_normalized_reference(high, low, close, 2),
         )
 
-    def test_nan_propagates(self) -> None:
+    def test_nan_latches(self) -> None:
         """
         Verifies that a NaN propagates (matching the naive reference).
         """

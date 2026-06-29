@@ -206,7 +206,7 @@ class TestAdxrEdge:
         close = [9.5, 10.5, 11.5, 11.0, 12.5, 12.0, 13.5, 13.0, 14.5, 14.0]
         assert_matches(apply_adxr(high, low, close, 2), adxr_reference(high, low, close, 2))
 
-    def test_nan_propagates(self) -> None:
+    def test_nan_latches(self) -> None:
         """
         Verifies that a NaN propagates (matching the naive reference).
         """

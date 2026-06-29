@@ -291,7 +291,7 @@ class TestAtrEdge:
         assert_matches(apply_atr(high, low, close, 2), atr_reference(high, low, close, 2))
         assert_matches(apply_atr(high, low, close, 2), [None, math.nan, math.nan, math.nan])
 
-    def test_nan_propagates(self) -> None:
+    def test_nan_latches(self) -> None:
         """
         Verifies that a ``NaN`` input poisons the true range and latches for every subsequent value.
         """

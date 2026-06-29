@@ -204,7 +204,7 @@ class TestEmaEdge:
         values = [2.0, 4.0, None, 8.0, 10.0, 12.0]
         assert_matches(apply_expr(values, ema(pl.col(COLUMN_X), 3)), ema_reference(values, 3))
 
-    def test_nan_propagates(self) -> None:
+    def test_nan_latches(self) -> None:
         """
         Verifies that a ``NaN`` latches into the recursion and poisons every subsequent value.
         """

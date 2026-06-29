@@ -218,7 +218,7 @@ class TestTemaEdge:
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
-    def test_nan_propagates(self) -> None:
+    def test_nan_latches(self) -> None:
         """
         Verifies that a ``NaN`` poisons the recursion (latching to ``NaN`` thereafter) and agrees with the reference.
         """
