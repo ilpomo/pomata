@@ -38,6 +38,7 @@ from tests.support import (
     assert_scale_homogeneous,
     coherent_hlcv,
     coherent_hlcv_with_missing,
+    count_leading_nulls,
     materialize,
     split_quads,
 )
@@ -230,6 +231,19 @@ class TestAdoscEdge:
         """
         assert_matches(apply_accumulation_distribution_oscillator([10.0], [8.0], [9.0], [100.0]), [None])
 
+    def test_window_equals_length(self) -> None:
+        """
+        Verifies the single defined value when the slow window equals the series length.
+        """
+        high = [10.2, 10.5, 10.7]
+        low = [9.8, 10.0, 10.2]
+        close = [10.0, 10.3, 10.5]
+        volume = [100.0, 150.0, 120.0]
+        assert_matches(
+            apply_accumulation_distribution_oscillator(high, low, close, volume),
+            accumulation_distribution_oscillator_reference(high, low, close, volume, 2, 3),
+        )
+
     def test_window_exceeds_length(self) -> None:
         """
         Verifies that when the longer (slow) window exceeds the series length the result is all-null (the slow EMA
@@ -397,6 +411,22 @@ class TestAdoscProperties:
             rel_tol=RELATIVE_TOLERANCE_SCALE,
             abs_tol=ABSOLUTE_TOLERANCE_STREAMING,
         )
+
+    @given(case=_cases(coherent_hlcv()))
+    def test_warmup_null_count_property(
+        self,
+        case: list[tuple[float, float, float, float]],
+    ) -> None:
+        """
+        Verifies that the leading-null run is exactly ``min(WARMUP, len(values))``.
+        """
+        rows = case
+        high, low, close, volume = split_quads(rows)
+        result = apply_accumulation_distribution_oscillator(high, low, close, volume)
+        leading_nulls = count_leading_nulls(result)
+        # NOTE: ``_cases`` floors the length at ``WARMUP + 1``, so ``min`` always resolves to ``WARMUP``; the form is
+        # kept to state the exact warm-up rule (the leading-null run is never clamped by a too-short series here).
+        assert leading_nulls == min(WARMUP, len(rows))
 
     @given(case=_cases(coherent_hlcv_with_missing()))
     def test_matches_reference_under_missing_data(

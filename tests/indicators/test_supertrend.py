@@ -129,8 +129,8 @@ class TestSupertrendContract:
 
     def test_over_partitions_independently(self) -> None:
         """
-        Verifies that under ``.over`` the recurrence and ATR do not span group boundaries: a group's line equals that
-        group computed on its own.
+        Verifies that under ``.over`` the recurrence and ATR do not span group boundaries: each group equals that group
+        computed on its own.
         """
         frame = pl.DataFrame(
             {
@@ -140,10 +140,12 @@ class TestSupertrendContract:
                 CLOSE: [9.5, 10.8, 11.8, 10.2, 19.5, 20.8, 21.8, 20.2],
             }
         )
-        expr = supertrend(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), 2).over(GROUP_KEY).struct.field("line")
-        panel = frame.select(expr.alias("y"))["y"].to_list()
-        standalone = apply_supertrend([20.0, 21.0, 22.0, 21.0], [19.0, 20.0, 21.0, 20.0], [19.5, 20.8, 21.8, 20.2], 2)
-        assert_matches(panel[4:], standalone["line"])
+        trend = supertrend(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), 2).over(GROUP_KEY)
+        grouped = {field: frame.select(trend.struct.field(field).alias(field))[field].to_list() for field in FIELDS}
+        group_a = apply_supertrend([10.0, 11.0, 12.0, 11.0], [9.0, 10.0, 11.0, 10.0], [9.5, 10.8, 11.8, 10.2], 2)
+        group_b = apply_supertrend([20.0, 21.0, 22.0, 21.0], [19.0, 20.0, 21.0, 20.0], [19.5, 20.8, 21.8, 20.2], 2)
+        for field in FIELDS:
+            assert_matches(grouped[field], group_a[field] + group_b[field])
 
 
 class TestSupertrendEdge:

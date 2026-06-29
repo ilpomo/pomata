@@ -194,6 +194,16 @@ class TestTemaEdge:
             apply_expr([7.0, 7.0, 7.0, 7.0, 7.0, 7.0], tema(pl.col(COLUMN_X), 2)), [None, None, None, 7.0, 7.0, 7.0]
         )
 
+    def test_null_propagates(self) -> None:
+        """
+        Verifies that an early ``null`` extends the warm-up and yields ``null`` at that position, the value resuming
+        once enough non-null observations have seeded all three EMA passes.
+        """
+        assert_matches(
+            apply_expr([1.0, None, 3.0, 4.0, 5.0], tema(pl.col(COLUMN_X), 2)),
+            [None, None, None, None, 5.037037037037038],
+        )
+
     def test_interior_null(self) -> None:
         """
         Verifies that an interior ``null`` yields ``null`` at that position and agrees with the reference.

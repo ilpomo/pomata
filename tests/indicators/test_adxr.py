@@ -215,6 +215,17 @@ class TestAdxrEdge:
         close = [9.5, 10.5, 11.5, 11.0, 12.5, 12.0, 13.5, 13.0, 14.5, 14.0]
         assert_matches(apply_adxr(high, low, close, 2), adxr_reference(high, low, close, 2))
 
+    def test_flat_window_is_nan(self) -> None:
+        """
+        Verifies that a fully flat window yields ``NaN`` after warm-up: the underlying :func:`dx` is the indeterminate
+        ``0 / 0`` (both directional indicators are zero), which then poisons the smoothing recursion and the averaging.
+        """
+        flat = [10.0] * 11
+        assert_matches(
+            apply_adxr(flat, flat, flat, 3),
+            [None, None, None, None, None, None, None, math.nan, math.nan, math.nan, math.nan],
+        )
+
 
 class TestAdxrCorrectness:
     """

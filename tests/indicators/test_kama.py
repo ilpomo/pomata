@@ -227,6 +227,15 @@ class TestKamaEdge:
         values = [10.0, 11.0, 12.0, 12.5, 13.0, math.nan, 15.0, 16.0]
         assert_matches(apply_kama(values, 2), kama_reference(values, 2))
 
+    def test_interior_null_bridged(self) -> None:
+        """
+        Verifies the warm-up gate and gap-bridging for an interior ``null`` (``[2, 4, None, 8, 10, 12]``, window 2).
+        """
+        assert_matches(
+            apply_kama([2.0, 4.0, None, 8.0, 10.0, 12.0], 2),
+            [None, 4.0, None, None, None, 7.555555555555554],
+        )
+
 
 class TestKamaCorrectness:
     """
