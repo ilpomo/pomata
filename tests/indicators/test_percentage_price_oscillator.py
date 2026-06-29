@@ -198,7 +198,7 @@ class TestPercentagePriceOscillatorEdge:
         )
         assert result[2] is None
 
-    def test_nan_propagates(self) -> None:
+    def test_nan_latches(self) -> None:
         """
         Verifies that a ``NaN`` propagates through both EMAs, yielding ``NaN``.
         """

@@ -201,7 +201,7 @@ class TestDemaEdge:
             [None, None, None, 9.428571428571429, 10.412698412698413, 12.116402116402117],
         )
 
-    def test_nan_propagates(self) -> None:
+    def test_nan_latches(self) -> None:
         """
         Verifies that a ``NaN`` poisons the recursion and latches for every subsequent value.
         """

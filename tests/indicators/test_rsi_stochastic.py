@@ -315,7 +315,7 @@ class TestRsiStochasticEdge:
         reference = rsi_stochastic_reference(values, 2, 2, 2)
         assert_lines_match(applied, reference, values, 2, 2, 2)
 
-    def test_nan_propagates(self) -> None:
+    def test_nan_latches(self) -> None:
         """
         Verifies that a NaN propagates (matching the naive reference).
         """

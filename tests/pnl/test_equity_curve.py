@@ -136,7 +136,7 @@ class TestEquityCurveEdge:
         values = [0.1, None, 0.2, -0.05]
         assert_matches(apply_expr(values, equity_curve(pl.col(COLUMN_X))), equity_curve_reference(values))
 
-    def test_nan_propagates(self) -> None:
+    def test_nan_latches(self) -> None:
         """
         Verifies that a NaN enters the running product and every later row is NaN (matching the naive reference).
         """

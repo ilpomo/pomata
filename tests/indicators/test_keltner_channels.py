@@ -251,7 +251,7 @@ class TestKeltnerChannelsEdge:
         for field in FIELDS:
             assert all(value is not None for value in bands[field][1:])
 
-    def test_nan_propagates(self) -> None:
+    def test_nan_latches(self) -> None:
         """
         Verifies that a ``NaN`` in ``close`` propagates to every band through the recursive ``ema`` / ``atr`` legs,
         poisoning the midline forward (``null`` still takes precedence).

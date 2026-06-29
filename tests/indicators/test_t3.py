@@ -210,7 +210,7 @@ class TestT3Edge:
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
-    def test_nan_propagates(self) -> None:
+    def test_nan_latches(self) -> None:
         """
         Verifies that a ``NaN`` poisons the recursion and latches for every subsequent value.
         """
