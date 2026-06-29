@@ -49,7 +49,7 @@ def _cases[T](draw: st.DrawFn, returns: st.SearchStrategy[T], min_size: int = 1)
     return draw(st.lists(returns, min_size=min_size, max_size=SERIES_MAX))
 
 
-class TestProfitFactorContract:
+class TestProfitRatioContract:
     """
     Type, shape, and lazy/eager guarantees.
     """
@@ -92,7 +92,7 @@ class TestProfitFactorContract:
         )
 
 
-class TestProfitFactorEdge:
+class TestProfitRatioEdge:
     """
     Boundaries and null / NaN handling.
     """
@@ -145,7 +145,7 @@ class TestProfitFactorEdge:
         )
 
 
-class TestProfitFactorCorrectness:
+class TestProfitRatioCorrectness:
     """
     Against the naive reference oracle and frozen golden-master values.
     """
@@ -170,7 +170,7 @@ class TestProfitFactorCorrectness:
         assert_matches(apply_expr(values, profit_ratio(pl.col(COLUMN_X)).round(4)), [1.4444])
 
 
-class TestProfitFactorProperties:
+class TestProfitRatioProperties:
     """
     Invariants that must hold for all inputs (property-based).
     """

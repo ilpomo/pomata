@@ -50,7 +50,7 @@ def _cases[T](draw: st.DrawFn, equities: st.SearchStrategy[T], min_size: int = 1
     return draw(st.lists(equities, min_size=min_size, max_size=SERIES_MAX))
 
 
-class TestRecoveryFactorContract:
+class TestRecoveryRatioContract:
     """
     Type, shape, and lazy/eager guarantees.
     """
@@ -93,7 +93,7 @@ class TestRecoveryFactorContract:
         )
 
 
-class TestRecoveryFactorEdge:
+class TestRecoveryRatioEdge:
     """
     Boundaries and null / NaN handling.
     """
@@ -137,7 +137,7 @@ class TestRecoveryFactorEdge:
         assert_matches(apply_expr([1.1, math.nan, 1.2], recovery_ratio(pl.col(COLUMN_X))), [math.nan])
 
 
-class TestRecoveryFactorCorrectness:
+class TestRecoveryRatioCorrectness:
     """
     Against the naive reference oracle and frozen golden-master values.
     """
@@ -162,7 +162,7 @@ class TestRecoveryFactorCorrectness:
         assert_matches(apply_expr(values, recovery_ratio(pl.col(COLUMN_X)).round(4)), [8.8])
 
 
-class TestRecoveryFactorProperties:
+class TestRecoveryRatioProperties:
     """
     Invariants that must hold for all inputs (property-based).
     """

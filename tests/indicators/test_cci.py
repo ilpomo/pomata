@@ -257,7 +257,7 @@ class TestCciEdge:
         )
         assert_matches(apply_cci(high_values, low_values, close_values, 2), [None, None, None, 66.66666666666674])
 
-    def test_interior_null(self) -> None:
+    def test_interior_null_propagates(self) -> None:
         """
         Verifies that an interior ``null`` yields ``null`` for the windows it reaches and the result recovers after.
         """

@@ -197,7 +197,7 @@ class TestEmaEdge:
             [None, None, 2.0, 3.333333333333333],
         )
 
-    def test_interior_null_matches_reference(self) -> None:
+    def test_interior_null_bridged(self) -> None:
         """
         Verifies the gap-aware recurrence over an interior ``null`` against the naive reference.
         """

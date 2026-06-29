@@ -204,7 +204,7 @@ class TestTemaEdge:
             [None, None, None, None, 5.037037037037038],
         )
 
-    def test_interior_null(self) -> None:
+    def test_interior_null_bridged(self) -> None:
         """
         Verifies that an interior ``null`` yields ``null`` at that position and agrees with the reference.
         """

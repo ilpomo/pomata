@@ -194,7 +194,7 @@ class TestRsiEdge:
             [None, None, None, 100.0, 100.0],
         )
 
-    def test_interior_null(self) -> None:
+    def test_interior_null_bridged(self) -> None:
         """
         Verifies that an interior ``null`` yields ``null`` at its position while the recursion bridges the gap.
         """

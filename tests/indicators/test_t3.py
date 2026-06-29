@@ -199,7 +199,7 @@ class TestT3Edge:
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
-    def test_interior_null(self) -> None:
+    def test_interior_null_bridged(self) -> None:
         """
         Verifies that an interior ``null`` yields ``null`` at its position while the recursion bridges the gap.
         """
