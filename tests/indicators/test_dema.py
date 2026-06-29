@@ -192,7 +192,7 @@ class TestDemaEdge:
             apply_expr([1.0, None, 3.0, 4.0], dema(pl.col(COLUMN_X), 2)), [None, None, None, 3.9999999999999996]
         )
 
-    def test_interior_null(self) -> None:
+    def test_interior_null_bridged(self) -> None:
         """
         Verifies that an interior ``null`` yields ``null`` at its position while the recursion bridges the gap.
         """

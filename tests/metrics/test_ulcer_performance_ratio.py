@@ -54,7 +54,7 @@ def _cases[T](draw: st.DrawFn, equities: st.SearchStrategy[T], min_size: int = 1
     return draw(st.lists(equities, min_size=min_size, max_size=SERIES_MAX))
 
 
-class TestUlcerPerformanceIndexContract:
+class TestUlcerPerformanceRatioContract:
     """
     Type, shape, and lazy/eager guarantees.
     """
@@ -99,7 +99,7 @@ class TestUlcerPerformanceIndexContract:
         )
 
 
-class TestUlcerPerformanceIndexEdge:
+class TestUlcerPerformanceRatioEdge:
     """
     Validation, boundaries, and null / NaN handling.
     """
@@ -160,7 +160,7 @@ class TestUlcerPerformanceIndexEdge:
         )
 
 
-class TestUlcerPerformanceIndexCorrectness:
+class TestUlcerPerformanceRatioCorrectness:
     """
     Against the naive reference oracle and frozen golden-master values.
     """
@@ -187,7 +187,7 @@ class TestUlcerPerformanceIndexCorrectness:
         )
 
 
-class TestUlcerPerformanceIndexProperties:
+class TestUlcerPerformanceRatioProperties:
     """
     Invariants that must hold for all inputs (property-based).
     """

@@ -186,7 +186,7 @@ class TestWmaEdge:
             [None, math.nan, math.nan, 11.0 / 3.0],
         )
 
-    def test_interior_null(self) -> None:
+    def test_interior_null_propagates(self) -> None:
         """
         Verifies that an interior ``null`` nulls every overlapping window (warm-up resumes after the gap).
         """
