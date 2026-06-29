@@ -238,7 +238,7 @@ class TestWilliamsREdge:
             williams_r_reference([10.0, 12.0, 11.0], [8.0, 9.0, 10.0], [9.0, 11.0, 10.5], 3),
         )
 
-    def test_window_exceeds_length_all_null(self) -> None:
+    def test_window_exceeds_length(self) -> None:
         """
         Verifies that a ``window`` larger than the series length yields an all-null output.
         """
@@ -392,7 +392,7 @@ class TestWilliamsREdge:
             williams_r_reference(high_values, low_values, close_values, 2),
         )
 
-    def test_all_nan_series(self) -> None:
+    def test_all_nan(self) -> None:
         """
         Verifies that an all-NaN input yields ``NaN`` after the warm-up.
         """

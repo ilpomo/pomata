@@ -228,7 +228,7 @@ class TestStochasticFastEdge:
         assert result["d"][:3] == [None, None, None]
         assert result["d"][3] is not None
 
-    def test_flat_range_is_nan(self) -> None:
+    def test_flat_window_is_nan(self) -> None:
         """
         Verifies that a flat look-back (highest high equals lowest low) yields ``NaN`` on ``k`` (``0 / 0``).
         """

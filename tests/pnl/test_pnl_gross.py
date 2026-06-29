@@ -145,7 +145,7 @@ class TestPnlGrossEdge:
     Boundaries, warm-up, null / NaN handling, and the multiplier guard.
     """
 
-    def test_warmup_first_row_null(self) -> None:
+    def test_warmup_null_count(self) -> None:
         """
         Verifies the warm-up is exactly one row: the first PnL is null (no previous price), the second is defined.
         """

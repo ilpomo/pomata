@@ -260,7 +260,7 @@ class TestAtrEdge:
         assert_matches(apply_atr(high, low, close, 2), atr_reference(high, low, close, 2))
         assert_matches(apply_atr(high, low, close, 2), [None, 2.5, 2.0, 2.5, 2.75])
 
-    def test_leading_null_run_defers_warmup(self) -> None:
+    def test_leading_null_defers_warmup(self) -> None:
         """
         Verifies that a leading all-null run does not consume warm-up budget: the rma counts only non-null true ranges,
         so the first defined ATR appears once ``window`` non-null true ranges have accrued.
@@ -281,7 +281,7 @@ class TestAtrEdge:
         assert_matches(apply_atr(high, low, close, 2), atr_reference(high, low, close, 2))
         assert_matches(apply_atr(high, low, close, 2), [None, None, None])
 
-    def test_all_nan_latches(self) -> None:
+    def test_all_nan(self) -> None:
         """
         Verifies that an all-NaN OHLC frame poisons every true range, so the result is NaN past the warm-up.
         """
@@ -383,7 +383,7 @@ class TestAtrProperties:
         case=_cases(coherent_hlc()),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
     )
-    def test_scale_homogeneity_positive(
+    def test_scale_homogeneity(
         self,
         case: tuple[list[tuple[float, float, float]], int],
         exponent: int,

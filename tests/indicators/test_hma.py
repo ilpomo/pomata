@@ -298,7 +298,7 @@ class TestHmaProperties:
         assert_scale_homogeneous(result_scaled, result_base, k=k, degree=1)
 
     @given(case=_cases(st.floats(min_value=-1e3, max_value=1e3, allow_nan=False, allow_infinity=False)))
-    def test_warmup_length_is_deterministic(
+    def test_warmup_null_count_property(
         self,
         case: tuple[list[float], int],
     ) -> None:

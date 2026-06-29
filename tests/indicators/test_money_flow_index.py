@@ -432,7 +432,7 @@ class TestMoneyFlowIndexEdge:
             [None, None, None, None],
         )
 
-    def test_all_nan_is_all_null_then_nan(self) -> None:
+    def test_all_nan(self) -> None:
         """
         Verifies the all-NaN input: the warm-up row stays null and the remaining defined rows are ``NaN``.
         """
