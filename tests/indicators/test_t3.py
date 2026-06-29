@@ -187,6 +187,18 @@ class TestT3Edge:
         assert_matches(apply_expr([42.0], t3(pl.col(COLUMN_X), 1)), [42.0])
         assert_matches(apply_expr([42.0], t3(pl.col(COLUMN_X), 2)), [None])
 
+    def test_null_propagates(self) -> None:
+        """
+        Verifies that an early ``null`` extends the warm-up and yields ``null`` at that position, the value resuming
+        once enough non-null observations have seeded all six EMA passes.
+        """
+        assert_matches(
+            apply_expr([1.0, None, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0], t3(pl.col(COLUMN_X), 2)),
+            [None, None, None, None, None, None, None, 7.565358126301888, 8.557239987129336, 9.552943668252915],
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
+        )
+
     def test_interior_null(self) -> None:
         """
         Verifies that an interior ``null`` yields ``null`` at its position while the recursion bridges the gap.

@@ -264,6 +264,23 @@ class TestIchimokuEdge:
         assert_matches(lines["kijun"], lines["tenkan"])
         assert_matches(lines["senkou_a"], lines["tenkan"])
 
+    def test_single_row(self) -> None:
+        """
+        Verifies a one-element series: all windows ``== 1`` give the bar's midprice on every line, a larger window is
+        all warm-up.
+        """
+        for field in FIELDS:
+            assert_matches(apply_ichimoku([11.0], [9.0], 1, 1, 1)[field], [10.0])
+            assert_matches(apply_ichimoku([11.0], [9.0], 2, 3, 4)[field], [None])
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that windows longer than the series yield an all-null result on every line.
+        """
+        lines = apply_ichimoku([10.0, 11.0, 12.0], [9.0, 10.0, 11.0], 4, 5, 6)
+        for field in FIELDS:
+            assert_matches(lines[field], [None, None, None])
+
     def test_flat_window_equals_price(self) -> None:
         """
         Verifies the flat window: over a constant series the high and low extremes coincide, so every line equals the

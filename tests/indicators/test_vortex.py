@@ -170,6 +170,22 @@ class TestVortexEdge:
         for field in FIELDS:
             assert_matches(bands[field], [None, None, None])
 
+    def test_single_row(self) -> None:
+        """
+        Verifies that a one-row series with ``window > 1`` is all warm-up (one null) on both lines.
+        """
+        bands = apply_vortex([2.0], [1.0], [1.5], 2)
+        for field in FIELDS:
+            assert_matches(bands[field], [None])
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that a window exceeding the series length yields an all-null output on both lines.
+        """
+        bands = apply_vortex([2.0, 4.0, 6.0], [1.0, 3.0, 4.0], [1.5, 3.5, 5.0], 5)
+        for field in FIELDS:
+            assert_matches(bands[field], [None, None, None])
+
     def test_warmup_null_count(self) -> None:
         """
         Verifies that both lines are null for the first ``window`` rows (the lag nulls the first movement) and defined
