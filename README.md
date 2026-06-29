@@ -65,12 +65,17 @@ the whole no-look-ahead story: a signal computed at the close acts on the next b
 The only runtime dependency is **Polars**; Python **3.12+**.
 
 ```bash
-# from source (today)
+pip install pomata
+# or
+uv add pomata
+```
+
+To work from source instead:
+
+```bash
 git clone https://github.com/ilpomo/pomata
 cd pomata && uv sync
 ```
-
-Once published to PyPI, the install will be `pip install pomata` (or `uv add pomata`).
 
 Every function is a free-standing `pl.Expr` factory — name it, compose it, run it in any Polars context. Warm-up rows
 are `null` until the window fills, never a fabricated value:
