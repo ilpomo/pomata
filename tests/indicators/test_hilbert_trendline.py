@@ -274,4 +274,9 @@ class TestHilbertTrendlineProperties:
         nothing numeric.
         """
         values = case
-        assert_matches(apply_hilbert_trendline(values), hilbert_trendline_reference(values))
+        assert_matches(
+            apply_hilbert_trendline(values),
+            hilbert_trendline_reference(values),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_EXACT,
+        )

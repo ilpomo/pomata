@@ -361,7 +361,9 @@ class TestSineWaveProperties:
         bands = apply_sine_wave(values)
         reference = sine_wave_reference(values)
         for field in FIELDS:
-            assert_matches(bands[field], reference[field])
+            assert_matches(
+                bands[field], reference[field], rel_tol=RELATIVE_TOLERANCE_REFERENCE, abs_tol=ABSOLUTE_TOLERANCE_EXACT
+            )
 
     @given(case=_cases(st.floats(min_value=1.0, max_value=1e3, allow_nan=False, allow_infinity=False)))
     def test_bounded(self, case: list[float]) -> None:

@@ -276,7 +276,12 @@ class TestTrendModeProperties:
         nothing numeric.
         """
         values = case
-        assert_matches(apply_trend_mode(values), trend_mode_reference(values))
+        assert_matches(
+            apply_trend_mode(values),
+            trend_mode_reference(values),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_EXACT,
+        )
 
     @given(case=_cases(st.floats(min_value=1.0, max_value=1e3, allow_nan=False, allow_infinity=False)))
     def test_flag_membership(self, case: list[float]) -> None:
