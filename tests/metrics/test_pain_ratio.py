@@ -124,6 +124,12 @@ class TestPainRatioEdge:
         """
         assert_matches(apply_expr([], pain_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS)), [None])
 
+    def test_single_row_is_nan(self) -> None:
+        """
+        Verifies that a one-element series has zero excess growth and zero pain index, so the ratio is ``NaN``.
+        """
+        assert_matches(apply_expr([1.0], pain_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS)), [math.nan])
+
     def test_no_drawdown_is_inf(self) -> None:
         """
         Verifies that a monotonically rising curve has a zero pain index with positive growth, so the ratio is ``+inf``.

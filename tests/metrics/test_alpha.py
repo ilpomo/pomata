@@ -180,6 +180,22 @@ class TestAlphaEdge:
             )
             assert_matches(result, [math.nan])
 
+    def test_null_misalignment_drops_pair(self) -> None:
+        """
+        Verifies that an observation with a ``null`` in either leg is dropped, matching the reference over the retained
+        pairs.
+        """
+        returns = [0.01, None, 0.03, -0.01, 0.02]
+        benchmark = [0.008, -0.01, None, -0.005, 0.018]
+        assert_matches(
+            materialize(
+                {RETURNS: returns, BENCHMARK: benchmark},
+                alpha(pl.col(RETURNS), pl.col(BENCHMARK), periods_per_year=PERIODS),
+            ),
+            [alpha_reference(returns, benchmark, PERIODS, 0.0)],
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+        )
+
     def test_all_null(self) -> None:
         """
         Verifies that all-null series yield ``null``.

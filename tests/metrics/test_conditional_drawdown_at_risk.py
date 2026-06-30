@@ -117,6 +117,12 @@ class TestConditionalDrawdownAtRiskEdge:
         """
         assert_matches(apply_expr([], conditional_drawdown_at_risk(pl.col(COLUMN_X), confidence=CONFIDENCE)), [None])
 
+    def test_single_row_is_zero(self) -> None:
+        """
+        Verifies that a one-element series is at its own peak, so the conditional drawdown at risk is ``0``.
+        """
+        assert_matches(apply_expr([1.0], conditional_drawdown_at_risk(pl.col(COLUMN_X), confidence=CONFIDENCE)), [0.0])
+
     def test_no_drawdown_is_zero(self) -> None:
         """
         Verifies that a monotonically rising curve has an all-zero drawdown series, so the measure is ``0``.
@@ -140,6 +146,17 @@ class TestConditionalDrawdownAtRiskEdge:
         values = [1.1, math.nan, 1.2, 0.9]
         assert_matches(
             apply_expr(values, conditional_drawdown_at_risk(pl.col(COLUMN_X), confidence=CONFIDENCE)), [math.nan]
+        )
+
+    def test_null_skipped(self) -> None:
+        """
+        Verifies that null equities are skipped, matching the reference.
+        """
+        values = [1.0, None, 0.9, 0.95, None, 1.1, 1.05]
+        assert_matches(
+            apply_expr(values, conditional_drawdown_at_risk(pl.col(COLUMN_X), confidence=CONFIDENCE)),
+            [conditional_drawdown_at_risk_reference(values, CONFIDENCE)],
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
         )
 
 
