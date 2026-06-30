@@ -9,7 +9,8 @@ are shared across the suite. The rolling null/NaN policy differs from the runnin
 
 The ladder is the canonical one: contract (type / length-preserving / lazy-eager / ``.over`` per-group warm-up), edge
 (validation / empty / warm-up / null-in-window / NaN / window peak), correctness (vs the closed-form reference and a
-frozen golden master), and properties (reference agreement for any input and under missing data). Categories are split
+frozen golden master), and properties (reference agreement for any input and under missing data, scale invariance).
+Categories are split
 into classes; cross-cutting categories use markers.
 """
 
@@ -212,3 +213,15 @@ class TestDrawdownRollingProperties:
             rel_tol=RELATIVE_TOLERANCE_REFERENCE,
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
+
+    @given(case=_cases(_EQUITY), exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]))
+    def test_scale_invariance(self, case: tuple[list[float], int], exponent: int) -> None:
+        """
+        Verifies that a positive rescale of the equity leaves the rolling drawdown unchanged (the window peak ratio
+        cancels), using powers of two so the rescaling is lossless.
+        """
+        values, window = case
+        k = 2.0**exponent
+        base = apply_expr(values, drawdown_rolling(pl.col(COLUMN_X), window))
+        scaled = apply_expr([value * k for value in values], drawdown_rolling(pl.col(COLUMN_X), window))
+        assert_matches(scaled, base, rel_tol=RELATIVE_TOLERANCE_REFERENCE, abs_tol=ABSOLUTE_TOLERANCE_REFERENCE)

@@ -144,6 +144,17 @@ class TestValueAtRiskParametricEdge:
             apply_expr([None, None], value_at_risk_parametric(pl.col(COLUMN_X), confidence=CONFIDENCE)), [None]
         )
 
+    def test_null_skipped(self) -> None:
+        """
+        Verifies that ``null`` returns are skipped (excluded from the value-at-risk), matching the reference.
+        """
+        values = [0.01, None, 0.02, 0.03, None]
+        assert_matches(
+            apply_expr(values, value_at_risk_parametric(pl.col(COLUMN_X), confidence=CONFIDENCE)),
+            [value_at_risk_parametric_reference(values, CONFIDENCE)],
+            abs_tol=_abs_tol(values),
+        )
+
     def test_nan_poisons(self) -> None:
         """
         Verifies that a NaN return poisons the result to NaN.

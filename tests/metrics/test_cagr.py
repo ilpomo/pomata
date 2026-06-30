@@ -120,6 +120,15 @@ class TestCagrEdge:
         """
         assert_matches(apply_expr([None, None], cagr(pl.col(COLUMN_X), periods_per_year=PERIODS)), [None])
 
+    def test_leading_null_uses_last_defined(self) -> None:
+        """
+        Verifies that leading warm-up nulls are skipped; the result uses the last defined equity.
+        """
+        values = [None, 1.1, 1.21]
+        assert_matches(
+            apply_expr(values, cagr(pl.col(COLUMN_X), periods_per_year=PERIODS)), [cagr_reference(values, PERIODS)]
+        )
+
     def test_nan_poisons(self) -> None:
         """
         Verifies that a NaN equity poisons the result to NaN.

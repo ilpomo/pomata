@@ -143,6 +143,17 @@ class TestConditionalValueAtRiskEdge:
             apply_expr([None, None], conditional_value_at_risk(pl.col(COLUMN_X), confidence=CONFIDENCE)), [None]
         )
 
+    def test_null_skipped(self) -> None:
+        """
+        Verifies that ``null`` returns are skipped (excluded from the shortfall mean), matching the reference.
+        """
+        values = [0.01, None, 0.02, 0.03, None]
+        assert_matches(
+            apply_expr(values, conditional_value_at_risk(pl.col(COLUMN_X), confidence=CONFIDENCE)),
+            [conditional_value_at_risk_reference(values, CONFIDENCE)],
+            abs_tol=_abs_tol(values),
+        )
+
     def test_nan_poisons(self) -> None:
         """
         Verifies that a NaN return poisons the result to NaN.

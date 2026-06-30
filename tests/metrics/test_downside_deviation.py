@@ -155,6 +155,17 @@ class TestDownsideDeviationEdge:
         """
         assert_matches(apply_expr([None, None], downside_deviation(pl.col(COLUMN_X), periods_per_year=PERIODS)), [None])
 
+    def test_null_skipped(self) -> None:
+        """
+        Verifies that ``null`` returns are skipped (excluded from the downside deviation), matching the reference.
+        """
+        values = [0.01, None, -0.02, 0.03, None]
+        assert_matches(
+            apply_expr(values, downside_deviation(pl.col(COLUMN_X), periods_per_year=PERIODS)),
+            [downside_deviation_reference(values, PERIODS)],
+            abs_tol=_abs_tol(values),
+        )
+
     def test_nan_poisons(self) -> None:
         """
         Verifies that a NaN return poisons the result to NaN.
