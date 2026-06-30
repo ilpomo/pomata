@@ -41,7 +41,7 @@ def accumulation_distribution_oscillator_reference(
     if window_fast < 1 or window_slow < 1:
         raise ValueError(f"window_fast and window_slow must be >= 1, got {window_fast} and {window_slow}")
     if window_fast > window_slow:
-        raise ValueError(f"window_fast must be <= window_slow, got {window_fast} and {window_slow}")
+        raise ValueError(f"windows must be ordered window_fast <= window_slow, got {window_fast} and {window_slow}")
     line = accumulation_distribution_reference(high, low, close, volume)
     ema_fast = ema_reference(line, window_fast)
     ema_slow = ema_reference(line, window_slow)

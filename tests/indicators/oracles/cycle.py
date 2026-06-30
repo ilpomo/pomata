@@ -15,11 +15,12 @@ _PHASE_WARMUP = 63
 
 def _prefix(values: Sequence[float | None]) -> list[float]:
     """
-    The leading run of finite prices, stopping at the first ``None`` / ``NaN`` (a gap the recurrence cannot bridge).
+    The leading run of finite prices, stopping at the first ``None`` or non-finite value (``NaN`` or ``inf`` -- a gap
+    the recurrence cannot bridge).
     """
     prices: list[float] = []
     for value in values:
-        if value is None or math.isnan(value):
+        if value is None or not math.isfinite(value):
             break
         prices.append(value)
     return prices

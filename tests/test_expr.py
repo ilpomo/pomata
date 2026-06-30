@@ -69,7 +69,9 @@ def test_validate_window_order_accepts_ordered_pair() -> None:
 
 def test_validate_window_order_rejects_unordered_pair() -> None:
     """A fast window larger than the slow window raises, naming both parameters."""
-    with pytest.raises(ValueError, match=r"window_fast must be <= window_slow, got window_fast=5, window_slow=3"):
+    with pytest.raises(
+        ValueError, match=r"windows must be ordered window_fast <= window_slow, got window_fast=5, window_slow=3"
+    ):
         validate_window_order(5, 3)
 
 
@@ -84,6 +86,13 @@ def test_per_period_rate_geometric() -> None:
     """The per-period rate is the geometric de-annualization ``(1 + r)^(1/P) - 1`` and compounds back."""
     period = per_period_rate(0.05, 252)
     assert math.isclose((1.0 + period) ** 252 - 1.0, 0.05, rel_tol=1e-12)
+
+
+def test_per_period_rate_rejects_below_minus_one() -> None:
+    """A rate below ``-1`` is rejected with the canonical message; ``-1`` is the accepted (total-loss) boundary."""
+    with pytest.raises(ValueError, match=r"annual_rate must be >= -1"):
+        per_period_rate(-1.5, 252)
+    assert per_period_rate(-1.0, 252) == -1.0
 
 
 def test_validate_finite() -> None:

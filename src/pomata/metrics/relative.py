@@ -966,8 +966,8 @@ def information_ratio(
     returns = float64_expr(returns)
     benchmark = float64_expr(benchmark)
     validate_periods_per_year(periods_per_year)
-    both_present = returns.is_not_null() & benchmark.is_not_null()
-    active = (returns - benchmark).filter(both_present)
+    returns_paired, benchmark_paired = _paired(returns, benchmark)
+    active = returns_paired - benchmark_paired
     annualized = active.mean() / active.std(ddof=1) * math.sqrt(periods_per_year)
     return pl.when(active.len() < _MINIMUM_PAIRED_OBSERVATIONS).then(None).otherwise(annualized)
 

@@ -418,8 +418,8 @@ def _kama_kernel(
 
 def kama(
     expr: pl.Expr,
-    window: int,
     *,
+    window: int,
     window_fast: int,
     window_slow: int,
 ) -> pl.Expr:
@@ -477,7 +477,7 @@ def kama(
           at that row while the running average holds its state and bridges the gap.
         - **NaN** — a ``NaN`` flows into the recurrence and latches ``NaN`` for every subsequent row.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recurrence does not span
-          series boundaries, e.g. ``kama(pl.col("close"), 10, window_fast=2, window_slow=30).over("ticker")``.
+          series boundaries, e.g. ``kama(pl.col("close"), window=10, window_fast=2, window_slow=30).over("ticker")``.
 
     See Also:
         - :func:`ema`: The fixed-smoothing exponential average KAMA adapts between.
@@ -493,7 +493,7 @@ def kama(
         >>>
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, 11.0, 13.0, 12.5]})
         >>> frame.select(
-        ...     kama(pl.col("close"), 2, window_fast=2, window_slow=30).round(4).alias("kama")
+        ...     kama(pl.col("close"), window=2, window_fast=2, window_slow=30).round(4).alias("kama")
         ... )["kama"].to_list()
         [None, 11.0, 11.4444, 11.4426, 11.5522, 11.724]
 
@@ -503,7 +503,7 @@ def kama(
         ...     {"ticker": ["A"] * 5 + ["B"] * 5, "close": [10.0, 11.0, 12.0, 11.0, 13.0, 20.0, 22.0, 21.0, 23.0, 22.0]}
         ... )
         >>> frame.with_columns(
-        ...     kama(pl.col("close"), 2, window_fast=2, window_slow=30).over("ticker").round(4).alias("kama")
+        ...     kama(pl.col("close"), window=2, window_fast=2, window_slow=30).over("ticker").round(4).alias("kama")
         ... )["kama"].to_list()
         [None, 11.0, 11.4444, 11.4426, 11.5522, None, 22.0, 21.9297, 22.0049, 22.0046]
 
@@ -511,7 +511,7 @@ def kama(
 
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, None, 13.0, float("nan"), 15.0, 16.0]})
         >>> frame.select(
-        ...     kama(pl.col("close"), 2, window_fast=2, window_slow=30).round(4).alias("kama")
+        ...     kama(pl.col("close"), window=2, window_fast=2, window_slow=30).round(4).alias("kama")
         ... )["kama"].to_list()
         [None, 11.0, 11.4444, None, None, None, nan, nan]
     """

@@ -78,7 +78,8 @@ def kama_reference(
         raise ValueError(f"window_slow must be >= 1, got {window_slow}")
     if window_fast > window_slow:
         raise ValueError(
-            f"window_fast must be <= window_slow, got window_fast={window_fast}, window_slow={window_slow}"
+            f"windows must be ordered window_fast <= window_slow, "
+            f"got window_fast={window_fast}, window_slow={window_slow}"
         )
     fast = 2.0 / (window_fast + 1)
     slow = 2.0 / (window_slow + 1)

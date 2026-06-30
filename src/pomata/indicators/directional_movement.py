@@ -966,6 +966,6 @@ def vortex(
     range_flat = range_per_bar.rolling_max(window) == 0
     plus_flat = range_flat & (plus_per_bar.rolling_max(window) == 0)
     minus_flat = range_flat & (minus_per_bar.rolling_max(window) == 0)
-    plus = pl.when(plus_flat & plus_quotient.is_not_null()).then(float("nan")).otherwise(plus_quotient)
-    minus = pl.when(minus_flat & minus_quotient.is_not_null()).then(float("nan")).otherwise(minus_quotient)
+    plus = pl.when(plus_flat).then(float("nan")).otherwise(plus_quotient)
+    minus = pl.when(minus_flat).then(float("nan")).otherwise(minus_quotient)
     return pl.struct(plus=plus, minus=minus)

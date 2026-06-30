@@ -157,7 +157,7 @@ CASES: dict[str, Callable[[], pl.Expr]] = {
     "hilbert_trendline": lambda: hilbert_trendline(CLOSE),
     "hma": lambda: hma(CLOSE, 14),
     "ichimoku": lambda: ichimoku(HIGH, LOW, window_tenkan=9, window_kijun=26, window_senkou=52).struct.field("tenkan"),
-    "kama": lambda: kama(CLOSE, 14, window_fast=2, window_slow=30),
+    "kama": lambda: kama(CLOSE, window=14, window_fast=2, window_slow=30),
     "keltner_channels": lambda: keltner_channels(HIGH, LOW, CLOSE, window=20, window_atr=10).struct.field("lower"),
     "linear_regression": lambda: linear_regression(CLOSE, 14),
     "linear_regression_angle": lambda: linear_regression_angle(CLOSE, 14),

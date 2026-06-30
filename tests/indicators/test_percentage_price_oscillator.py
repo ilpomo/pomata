@@ -134,7 +134,7 @@ class TestPercentagePriceOscillatorEdge:
         Verifies that ``window_fast > window_slow`` raises ``ValueError`` (the fast leg must be the shorter one), while
         the equal-window case is accepted.
         """
-        with pytest.raises(ValueError, match="window_fast must be <= window_slow"):
+        with pytest.raises(ValueError, match="windows must be ordered window_fast <= window_slow"):
             percentage_price_oscillator(pl.col(COLUMN_X), window_fast=5, window_slow=3)
         assert isinstance(percentage_price_oscillator(pl.col(COLUMN_X), window_fast=3, window_slow=3), pl.Expr)
 

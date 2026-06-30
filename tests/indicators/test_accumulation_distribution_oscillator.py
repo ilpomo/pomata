@@ -206,11 +206,11 @@ class TestAccumulationDistributionOscillatorEdge:
         Verifies that ``window_fast > window_slow`` raises ``ValueError`` (a reversed pair flips the oscillator's sign
         and warms up over ``window_fast - 1`` rows rather than the documented ``window_slow - 1``).
         """
-        with pytest.raises(ValueError, match="window_fast must be <= window_slow"):
+        with pytest.raises(ValueError, match="windows must be ordered window_fast <= window_slow"):
             accumulation_distribution_oscillator(
                 pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), pl.col(VOLUME), window_fast=4, window_slow=2
             )
-        with pytest.raises(ValueError, match="window_fast must be <= window_slow"):
+        with pytest.raises(ValueError, match="windows must be ordered window_fast <= window_slow"):
             accumulation_distribution_oscillator(
                 pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), pl.col(VOLUME), window_fast=11, window_slow=10
             )
