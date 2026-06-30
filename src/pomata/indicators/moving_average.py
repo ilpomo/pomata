@@ -105,7 +105,7 @@ def dema(
 
     Args:
         expr: Input series, typically a price column (e.g. ``pl.col("close")``).
-        window: Number of observations in the moving window. Must be ``>= 1``.
+        window: Span of the exponential weighting, mapped to ``alpha = 2 / (window + 1)``. Must be ``>= 1``.
         adjust: When ``False`` (default) use the recursive technical-analysis EMA form; when ``True`` use the
             bias-corrected (adjusted) exponential weighting. The flag is forwarded unchanged to both :func:`ema` passes;
             the canonical DEMA uses ``False``.
@@ -200,10 +200,11 @@ def ema(
 
     Args:
         expr: Input series, typically a price column (e.g. ``pl.col("close")``).
-        window: Number of observations in the moving window. Must be ``>= 1``.
-        adjust: When ``False`` (default) use the recursive form above. When ``True`` use the finite-window unbiased
-            weighting that divides by the decaying sum of weights at each step. The two forms differ at every row, the
-            gap largest near the start of the series and decaying geometrically as the history grows.
+        window: Span of the exponential weighting, mapped to ``alpha = 2 / (window + 1)``. Must be ``>= 1``.
+        adjust: When ``False`` (default) use the recursive form above. When ``True`` use the finite-window
+            bias-corrected (adjusted) weighting that divides by the decaying sum of weights at each step. The two forms
+            differ at every row, the gap largest near the start of the series and decaying geometrically as the history
+            grows.
 
     Returns:
         The EMA for each row, the same length as ``expr``. The first ``window - 1`` values are ``null`` (warm-up),
@@ -773,9 +774,10 @@ def t3(
 
         **Edge-case behavior:**
 
-        - **Null** — a ``null`` yields ``null`` at exactly that position while the recursion resumes afterwards.
-        - **NaN** — the recursive EMA carries state across the whole series, so a single ``NaN`` poisons the recursion
-          and latches ``NaN`` for every subsequent non-null value within the partition.
+        - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
+          ``null`` at that position while the decay continues across the gap.
+        - **NaN** — a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null
+          position.
         - **window == 1** — each EMA reduces to the identity, so the expression reproduces the input up to a
           floating-point rounding (unlike ``dema`` / ``tema``, the coefficient form does not cancel exactly).
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursion does not span
@@ -892,7 +894,7 @@ def tema(
 
     Args:
         expr: Input series, typically a price column (e.g. ``pl.col("close")``).
-        window: Number of observations in the moving window. Must be ``>= 1``.
+        window: Span of the exponential weighting, mapped to ``alpha = 2 / (window + 1)``. Must be ``>= 1``.
         adjust: Whether to use the bias-corrected expanding-weights EMA. ``False`` (the default) selects the recursive
             technical-analysis EMA.
 

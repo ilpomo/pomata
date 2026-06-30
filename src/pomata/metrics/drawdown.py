@@ -128,7 +128,7 @@ def drawdown(
 
     Returns:
         The drawdown for each row, the same length as ``equity_curve``: ``0`` at a running peak and negative while below
-        it. A leading warm-up ``null`` stays ``null``.
+        it. A leading input ``null`` stays ``null``.
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.

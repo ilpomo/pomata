@@ -816,8 +816,9 @@ def probabilistic_sharpe_ratio(
         - **Null** — a ``null`` return is skipped (excluded from every moment).
         - **NaN** — a ``NaN`` return propagates, yielding ``NaN``.
         - **Fewer than two returns** — the sample Sharpe ratio is undefined, so the result is ``null``.
-        - **Degenerate** — a non-positive variance under the inner square root (extreme skewness or kurtosis) yields
-          ``NaN``, reported rather than forced into range.
+        - **Degenerate** — a negative variance under the inner square root (extreme skewness or kurtosis) yields
+          ``NaN``; an exactly-zero inner variance (a measure-zero boundary) yields the limiting ``0`` or ``1``,
+          reported rather than forced into range.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel, e.g.
           ``probabilistic_sharpe_ratio(pl.col("returns"), periods_per_year=252).over("ticker")``.
 

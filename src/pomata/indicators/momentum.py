@@ -53,7 +53,7 @@ def absolute_price_oscillator(
     Args:
         expr: Input series, typically a price column (e.g. ``pl.col("close")``).
         window_fast: Span of the fast EMA (canonically ``12``). Must be ``>= 1``.
-        window_slow: Span of the slow EMA (canonically ``26``). Must be ``>= 1``.
+        window_slow: Span of the slow EMA (canonically ``26``). Must be ``>= 1`` and ``>= window_fast``.
 
     Returns:
         The oscillator for each row, the same length as the input. Values are ``null`` until both EMAs leave their
@@ -1007,7 +1007,7 @@ def macd(
     Args:
         expr: Input series, typically a price column (e.g. ``pl.col("close")``).
         window_fast: Span of the fast EMA (canonically ``12``). Must be ``>= 1``.
-        window_slow: Span of the slow EMA (canonically ``26``). Must be ``>= 1``.
+        window_slow: Span of the slow EMA (canonically ``26``). Must be ``>= 1`` and ``>= window_fast``.
         window_signal: Span of the signal EMA over the MACD line (canonically ``9``). Must be ``>= 1``.
 
     Returns:
@@ -1120,7 +1120,7 @@ def mom(
 
     Args:
         expr: Input series, typically a price column (e.g. ``pl.col("close")``).
-        window: Number of observations in the moving window. Must be ``>= 1``.
+        window: Number of observations to look back. Must be ``>= 1``.
 
     Returns:
         The momentum for each row, the same length as ``expr``. The first ``window`` values are ``null`` (warm-up),
@@ -1207,7 +1207,7 @@ def percentage_price_oscillator(
     Args:
         expr: Input series, typically a price column (e.g. ``pl.col("close")``).
         window_fast: Span of the fast EMA (canonically ``12``). Must be ``>= 1``.
-        window_slow: Span of the slow EMA (canonically ``26``). Must be ``>= 1``.
+        window_slow: Span of the slow EMA (canonically ``26``). Must be ``>= 1`` and ``>= window_fast``.
 
     Returns:
         The oscillator (in percent) for each row, the same length as the input. Values are ``null`` until both EMAs

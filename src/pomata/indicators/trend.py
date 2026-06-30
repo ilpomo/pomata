@@ -306,8 +306,8 @@ def supertrend(
         low: Low-price series (e.g. ``pl.col("low")``).
         close: Close-price series (e.g. ``pl.col("close")``).
         window: Number of observations in the ATR moving window (canonically ``10``). Must be ``>= 1``.
-        multiplier: Band half-width as a multiple of the ATR. Must be a finite number ``> 0`` (a non-positive
-            multiplier would collapse or invert the bands).
+        multiplier: Band half-width as a multiple of the ATR (canonically ``3.0``). Must be a finite number ``> 0`` (a
+            non-positive multiplier would collapse or invert the bands).
 
     Returns:
         A struct ``pl.Expr`` with fields ``line`` (the trailing stop) and ``direction`` (``+1.0`` in an up-trend, the
@@ -337,8 +337,9 @@ def supertrend(
 
         - **Null** — a ``null`` ``high`` / ``low`` / ``close`` yields ``null`` on both fields and is skipped at the row;
           the running state, and the last valid close the ratchet reads, bridge the gap.
-        - **NaN** — a ``NaN`` ``high`` / ``low`` / ``close`` yields ``NaN`` on both fields and latches: it poisons the
-          ATR recurrence, so the band stays ``NaN`` thereafter (only a ``null`` bridges).
+        - **NaN** — a ``NaN`` ``high`` / ``low`` / ``close`` yields ``NaN`` on both fields. For ``window >= 2`` it
+          latches: it poisons the ATR recurrence, so the band stays ``NaN`` thereafter (only a ``null`` bridges). At
+          ``window == 1`` the ATR has no memory term, so the ``NaN`` self-heals once the true range is finite again.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recurrence does not span
           series boundaries, e.g. ``supertrend(pl.col("high"), pl.col("low"), pl.col("close")).over("ticker")``.
 

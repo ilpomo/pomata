@@ -1235,6 +1235,7 @@ def treynor_ratio(
         - **Fewer than two pairs** — the regression slope is undefined, so the result is ``null``.
         - **Zero beta** — a zero systematic risk gives ``+/-inf`` (or ``NaN`` when the excess return is also zero),
           reported rather than clipped.
+        - **Constant benchmark** — a zero-variance benchmark makes :func:`beta` ``NaN``, which propagates here.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel, e.g.
           ``treynor_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252).over("ticker")``.
 
@@ -1342,6 +1343,7 @@ def treynor_ratio_rolling(
         - **Null** — a window with a ``null`` in either leg yields ``null`` (it must hold ``window`` complete pairs).
         - **NaN** — a ``NaN`` in either leg of the window propagates, yielding ``NaN``.
         - **Zero beta** — a window whose slope is zero gives ``+/-inf`` (or ``NaN``), reported rather than clipped.
+        - **Constant benchmark** — a zero-variance window benchmark makes the slope ``NaN``, which propagates here.
         - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries.
 
     See Also:
