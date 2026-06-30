@@ -60,9 +60,11 @@ is the whole no-look-ahead story: a signal computed at the close acts on the nex
 
 - **{doc}`installation`** — one runtime dependency (Polars), Python 3.12+.
 - **{doc}`concepts`** — the five ideas that make everything compose.
+- **{doc}`tutorial`** — raw bars to a costed, look-ahead-free report, end to end.
 - **{doc}`trust`** — what pomata tests, and the precision it is confident to guarantee.
 - **The families** — {doc}`indicators <families/indicators>` · {doc}`pnl <families/pnl>` · {doc}`metrics <families/metrics>`: the catalogs, and how `pomata` solves the classic pains.
 - **{doc}`API reference <api/index>`** — every function, generated from the docstrings.
+- **Guides** — {doc}`faq` · {doc}`troubleshooting` · {doc}`versioning`.
 
 ```{toctree}
 :hidden:
@@ -70,6 +72,7 @@ is the whole no-look-ahead story: a signal computed at the close acts on the nex
 
 installation
 concepts
+tutorial
 ```
 
 ```{toctree}
@@ -80,6 +83,15 @@ trust
 families/indicators
 families/pnl
 families/metrics
+```
+
+```{toctree}
+:hidden:
+:caption: Guides
+
+faq
+troubleshooting
+versioning
 ```
 
 ```{toctree}
