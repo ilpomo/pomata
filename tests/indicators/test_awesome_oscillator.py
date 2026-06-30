@@ -152,7 +152,7 @@ class TestAwesomeOscillatorEdge:
         """
         Verifies that ``window_fast > window_slow`` raises ``ValueError`` (the fast leg must be the shorter one).
         """
-        with pytest.raises(ValueError, match="window_fast must be <= window_slow"):
+        with pytest.raises(ValueError, match="windows must be ordered window_fast <= window_slow"):
             awesome_oscillator(pl.col(HIGH), pl.col(LOW), window_fast=5, window_slow=3)
 
     def test_equal_windows_is_zero(self) -> None:

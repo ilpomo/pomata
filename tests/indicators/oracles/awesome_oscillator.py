@@ -41,7 +41,7 @@ def awesome_oscillator_reference(
     if window_fast < 1 or window_slow < 1:
         raise ValueError(f"window_fast and window_slow must be >= 1, got {window_fast} and {window_slow}")
     if window_fast > window_slow:
-        raise ValueError(f"window_fast must be <= window_slow, got {window_fast} and {window_slow}")
+        raise ValueError(f"windows must be ordered window_fast <= window_slow, got {window_fast} and {window_slow}")
 
     median = price_median_reference(high, low)
     fast = sma_reference(median, window_fast)

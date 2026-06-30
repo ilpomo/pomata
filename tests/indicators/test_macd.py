@@ -170,7 +170,7 @@ class TestMacdEdge:
         Verifies that ``window_fast > window_slow`` raises ``ValueError`` (the fast leg must be the shorter one), while
         the equal-window case is accepted.
         """
-        with pytest.raises(ValueError, match="window_fast must be <= window_slow"):
+        with pytest.raises(ValueError, match="windows must be ordered window_fast <= window_slow"):
             macd(pl.col(COLUMN_X), window_fast=26, window_slow=12, window_signal=9)
         assert isinstance(macd(pl.col(COLUMN_X), window_fast=3, window_slow=3, window_signal=2), pl.Expr)
 

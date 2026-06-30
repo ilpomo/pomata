@@ -288,7 +288,7 @@ SPECS: dict[str, Compare] = {
     "kama": lambda m: [
         (
             "kama",
-            _ours(m["frame"], kama(pl.col("close"), 30, window_fast=2, window_slow=30)),
+            _ours(m["frame"], kama(pl.col("close"), window=30, window_fast=2, window_slow=30)),
             talib.KAMA(m["close"], 30),
         )
     ],

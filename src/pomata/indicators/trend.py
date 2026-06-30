@@ -124,7 +124,7 @@ def parabolic_sar(
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
-        ValueError: If ``acceleration`` or ``maximum`` is not a finite number ``> 0``, if either is ``> 1``, or if
+        ValueError: If ``acceleration`` or ``maximum`` is not in the half-open interval ``(0, 1]``, or if
             ``acceleration > maximum``.
 
     Note:
@@ -201,12 +201,10 @@ def parabolic_sar(
     """
     high = float64_expr(high)
     low = float64_expr(low)
-    validate_positive(acceleration, "acceleration")
-    validate_positive(maximum, "maximum")
-    if acceleration > 1.0:
-        raise ValueError(f"acceleration must be <= 1, got {acceleration}")
-    if maximum > 1.0:
-        raise ValueError(f"maximum must be <= 1, got {maximum}")
+    if not 0.0 < acceleration <= 1.0:
+        raise ValueError(f"acceleration must be in (0, 1], got {acceleration}")
+    if not 0.0 < maximum <= 1.0:
+        raise ValueError(f"maximum must be in (0, 1], got {maximum}")
     if acceleration > maximum:
         raise ValueError(f"acceleration must be <= maximum, got acceleration={acceleration}, maximum={maximum}")
     return pl.struct(high=high, low=low).map_batches(
@@ -272,7 +270,10 @@ def _supertrend_kernel(
             line[index] = final_upper
         direction[index] = trend
         previous_close = close_value
-    rows = [{"line": line[index], "direction": direction[index]} for index in range(len(closes))]
+    rows = [
+        {"line": line_value, "direction": direction_value}
+        for line_value, direction_value in zip(line, direction, strict=True)
+    ]
     return pl.Series(rows, dtype=_SUPERTREND_DTYPE)
 
 

@@ -234,6 +234,18 @@ class TestMamaEdge:
             assert all(value is None for value in bands[field][35:])
             assert_matches(bands[field], reference[field])
 
+    def test_inf_latches(self) -> None:
+        """
+        Verifies that an ``inf`` is a gap the recurrence cannot bridge: it latches ``null`` on each line for every row
+        from there, exactly like a ``NaN`` (matching the naive reference).
+        """
+        values: list[float | None] = [*_SAMPLE[:35], math.inf, *_SAMPLE[36:]]
+        bands = apply_mama(values)
+        reference = mama_reference(values)
+        for field in FIELDS:
+            assert all(value is None for value in bands[field][35:])
+            assert_matches(bands[field], reference[field])
+
 
 class TestMamaCorrectness:
     """

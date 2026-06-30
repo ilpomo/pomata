@@ -120,7 +120,8 @@ def validate_window_order(
     """
     if window_fast > window_slow:
         raise ValueError(
-            f"{fast_name} must be <= {slow_name}, got {fast_name}={window_fast}, {slow_name}={window_slow}"
+            f"windows must be ordered {fast_name} <= {slow_name}, "
+            f"got {fast_name}={window_fast}, {slow_name}={window_slow}"
         )
 
 
@@ -160,7 +161,13 @@ def per_period_rate(
 
     Returns:
         The per-period rate.
+
+    Raises:
+        ValueError: If ``annual_rate < -1`` (then ``1 + annual_rate`` is negative and the fractional power is
+            undefined).
     """
+    if annual_rate < -1.0:
+        raise ValueError(f"annual_rate must be >= -1, got {annual_rate}")
     return math.pow(1.0 + annual_rate, 1.0 / periods_per_year) - 1.0
 
 

@@ -413,7 +413,7 @@ def max_drawdown_duration(
     defined = equity_curve.drop_nulls()
     underwater = defined / defined.cum_max() - 1 < 0
     running = underwater.cum_sum()
-    reset = pl.when(~underwater).then(running).otherwise(None).forward_fill().fill_null(0)
+    reset = pl.when(~underwater).then(running).otherwise(None).forward_fill()
     longest = (running - reset).max().cast(pl.Float64)
     return pl.when(equity_curve.is_nan().any()).then(pl.lit(float("nan"))).otherwise(longest)
 
@@ -488,7 +488,6 @@ def pain_index(
         >>> frame.select(pain_index(pl.col("equity_curve")).round(4)).item()
         nan
     """
-    equity_curve = float64_expr(equity_curve)
     return drawdown(equity_curve).abs().mean()
 
 

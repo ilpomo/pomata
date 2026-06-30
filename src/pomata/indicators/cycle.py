@@ -78,11 +78,12 @@ def _clean_prefix(
     series: pl.Series,
 ) -> list[float]:
     """
-    The leading run of finite prices, stopping at the first ``null`` or ``NaN`` (a gap the recurrence cannot bridge).
+    The leading run of finite prices, stopping at the first ``null`` or non-finite value (``NaN`` or ``inf`` -- a gap
+    the recurrence cannot bridge).
     """
     prices: list[float] = []
     for value in series.to_list():
-        if value is None or math.isnan(value):
+        if value is None or not math.isfinite(value):
             break
         prices.append(value)
     return prices

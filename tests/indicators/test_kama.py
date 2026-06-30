@@ -91,7 +91,7 @@ def apply_kama(
     """
     Materialize ``kama`` over a one-column ``Float64`` frame built from ``values``.
     """
-    return apply_expr(values, kama(pl.col(COLUMN_X), window, window_fast=window_fast, window_slow=window_slow))
+    return apply_expr(values, kama(pl.col(COLUMN_X), window=window, window_fast=window_fast, window_slow=window_slow))
 
 
 class TestKamaContract:
@@ -103,14 +103,14 @@ class TestKamaContract:
         """
         Verifies that the factory returns a ``pl.Expr`` without touching a frame.
         """
-        assert isinstance(kama(pl.col(COLUMN_X), 10, window_fast=2, window_slow=30), pl.Expr)
+        assert isinstance(kama(pl.col(COLUMN_X), window=10, window_fast=2, window_slow=30), pl.Expr)
 
     def test_preserves_length_and_dtype(self) -> None:
         """
         Verifies that the output has one value per input row and is ``Float64``.
         """
         frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [10.0, 11.0, 12.0, 11.0, 13.0])})
-        result = frame.select(kama(pl.col(COLUMN_X), 2, window_fast=2, window_slow=30).alias("y"))
+        result = frame.select(kama(pl.col(COLUMN_X), window=2, window_fast=2, window_slow=30).alias("y"))
         assert result.height == frame.height
         assert result.schema["y"] == pl.Float64
 
@@ -119,7 +119,7 @@ class TestKamaContract:
         Verifies that eager and lazy application produce identical materialized output.
         """
         frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [10.0, 11.0, 12.0, 11.0, 13.0])})
-        expr = kama(pl.col(COLUMN_X), 2, window_fast=2, window_slow=30).alias("y")
+        expr = kama(pl.col(COLUMN_X), window=2, window_fast=2, window_slow=30).alias("y")
         result_eager = frame.select(expr)
         result_lazy = frame.lazy().select(expr).collect()
         assert_frame_equal(result_eager, result_lazy)
@@ -131,9 +131,9 @@ class TestKamaContract:
         frame = pl.DataFrame(
             {GROUP_KEY: ["a"] * 5 + ["b"] * 5, COLUMN_X: [10.0, 11.0, 12.0, 11.0, 13.0, 20.0, 22.0, 21.0, 23.0, 22.0]}
         )
-        result = frame.select(kama(pl.col(COLUMN_X), 2, window_fast=2, window_slow=30).over(GROUP_KEY).alias("y"))[
-            "y"
-        ].to_list()
+        result = frame.select(
+            kama(pl.col(COLUMN_X), window=2, window_fast=2, window_slow=30).over(GROUP_KEY).alias("y")
+        )["y"].to_list()
         group_a = apply_kama([10.0, 11.0, 12.0, 11.0, 13.0], 2)
         group_b = apply_kama([20.0, 22.0, 21.0, 23.0, 22.0], 2)
         assert_matches(result, group_a + group_b)
@@ -149,30 +149,30 @@ class TestKamaEdge:
         Verifies that ``window < 1`` raises ``ValueError``.
         """
         with pytest.raises(ValueError, match="window must be >= 1"):
-            kama(pl.col(COLUMN_X), 0, window_fast=2, window_slow=30)
+            kama(pl.col(COLUMN_X), window=0, window_fast=2, window_slow=30)
 
     def test_window_fast_below_one_raises(self) -> None:
         """
         Verifies that ``window_fast < 1`` raises ``ValueError``.
         """
         with pytest.raises(ValueError, match="window_fast must be >= 1"):
-            kama(pl.col(COLUMN_X), 10, window_fast=0, window_slow=30)
+            kama(pl.col(COLUMN_X), window=10, window_fast=0, window_slow=30)
 
     def test_window_slow_below_one_raises(self) -> None:
         """
         Verifies that ``window_slow < 1`` raises ``ValueError``.
         """
         with pytest.raises(ValueError, match="window_slow must be >= 1"):
-            kama(pl.col(COLUMN_X), 10, window_fast=2, window_slow=0)
+            kama(pl.col(COLUMN_X), window=10, window_fast=2, window_slow=0)
 
     def test_window_fast_above_slow_raises(self) -> None:
         """
         Verifies that ``window_fast > window_slow`` (the bounds reversed) raises ``ValueError``, while the equal-bounds
         boundary is accepted.
         """
-        with pytest.raises(ValueError, match="window_fast must be <= window_slow"):
-            kama(pl.col(COLUMN_X), 10, window_fast=30, window_slow=2)
-        assert isinstance(kama(pl.col(COLUMN_X), 10, window_fast=5, window_slow=5), pl.Expr)
+        with pytest.raises(ValueError, match="windows must be ordered window_fast <= window_slow"):
+            kama(pl.col(COLUMN_X), window=10, window_fast=30, window_slow=2)
+        assert isinstance(kama(pl.col(COLUMN_X), window=10, window_fast=5, window_slow=5), pl.Expr)
 
     def test_warmup_and_seed(self) -> None:
         """
