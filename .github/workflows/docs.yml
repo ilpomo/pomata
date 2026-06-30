@@ -15,10 +15,11 @@ on:
 permissions:
   contents: read
 
-# GitHub's recommended Pages concurrency: never cancel an in-flight deploy.
+# Per-ref concurrency for the build: cancel a superseded PR docs build (as ci.yml does). The Pages single-queue
+# (never cancel an in-flight deploy) is scoped to the deploy job, where it belongs -- so two PRs build in parallel.
 concurrency:
-  group: pages
-  cancel-in-progress: false
+  group: Docs-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
 
 defaults:
   run:
@@ -39,11 +40,9 @@ jobs:
           fetch-depth: 0 # hatch-vcs reads tags to stamp the version shown in the docs
           persist-credentials: false
       - name: "Setup: install uv"
-        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        uses: ./.github/actions/setup
         with:
-          version: "0.11.17"
-          python-version: "3.14"
-          enable-cache: false # no cache in the Pages publish path (cache-poisoning hardening)
+          enable-cache: "false" # no cache in the Pages publish path (cache-poisoning hardening)
       - name: "Setup: sync docs dependencies"
         run: uv sync --locked --no-default-groups --group docs
       - name: "Docs: build (warnings are errors)"
@@ -61,6 +60,10 @@ jobs:
     if: github.ref == 'refs/heads/main' && vars.PAGES_ENABLED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # GitHub's recommended Pages single-queue: never cancel an in-flight deploy.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
     permissions:
       pages: write # publish to Pages
       id-token: write # OIDC token the deploy action verifies

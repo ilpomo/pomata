@@ -46,11 +46,7 @@ jobs:
           fetch-depth: 2 # Codecov reads the parent commit for an accurate PR coverage comparison
           persist-credentials: false
       - name: "Setup: install uv"
-        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
-        with:
-          version: "0.11.17"        # pin uv to match the project / uv.lock
-          python-version: "3.14"    # sets UV_PYTHON; uv provisions managed CPython 3.14 on sync
-          enable-cache: true        # cache key auto-includes OS+arch+python+lock hash (matrix-safe)
+        uses: ./.github/actions/setup
       # Lean install: --no-default-groups drops the `dev` umbrella (and thus `docs`); the project stays editable-installed
       # so mypy / pyright / doctest can import pomata. The test group is required because the type checkers also analyze
       # tests/ (which import hypothesis / pytest).
@@ -60,10 +56,8 @@ jobs:
         run: uv run ruff check
       - name: "Lint: ruff format"
         run: uv run ruff format --check
-      - name: "Types: mypy (package)"
-        run: uv run mypy -p pomata
-      - name: "Types: mypy (tests)"
-        run: uv run mypy tests
+      - name: "Types: mypy (package + tests)"
+        run: uv run mypy -p pomata -p tests
       - name: "Types: pyright"
         run: uv run pyright
       - name: "Types: pyright (public completeness)"
@@ -115,11 +109,9 @@ jobs:
         with:
           persist-credentials: false
       - name: "Setup: install uv"
-        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        uses: ./.github/actions/setup
         with:
-          version: "0.11.17"
           python-version: ${{ matrix.python-version }}
-          enable-cache: true
       - name: "Setup: sync dependencies (test)"
         run: uv sync --locked --no-default-groups --group test
       - name: "Tests: full suite"
@@ -163,11 +155,7 @@ jobs:
         with:
           persist-credentials: false
       - name: "Setup: install uv"
-        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
-        with:
-          version: "0.11.17"
-          python-version: "3.14"
-          enable-cache: true
+        uses: ./.github/actions/setup
       - name: "Setup: sync dependencies (test + differential)"
         run: uv sync --locked --no-default-groups --group test --group differential
       - name: "Differential: parity vs TA-Lib"
@@ -188,11 +176,9 @@ jobs:
         with:
           persist-credentials: false
       - name: "Setup: install uv"
-        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        uses: ./.github/actions/setup
         with:
-          version: "0.11.17"
           python-version: "3.12" # the polars floor predates the 3.14 wheels; pin to a Python the floor supports
-          enable-cache: true
       - name: "Setup: sync lowest-direct dependencies"
         run: uv sync --no-default-groups --group test --resolution lowest-direct
       - name: "Tests: full suite at the dependency floor"

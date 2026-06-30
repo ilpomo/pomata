@@ -8,6 +8,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review] # match the repo-wide draft-skip convention
   schedule:
     - cron: "30 4 * * 1" # Mondays 04:30 UTC; offset from the nightly benchmark cron
   workflow_dispatch:
@@ -23,6 +24,8 @@ concurrency:
 jobs:
   analyze:
     name: analyze (python)
+    # Skip draft PRs like the rest of CI; push, schedule, and dispatch always run. Flipping a PR to ready triggers it.
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
