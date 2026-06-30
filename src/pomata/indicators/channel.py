@@ -299,7 +299,8 @@ def keltner_channels(
         close: Close-price series (e.g. ``pl.col("close")``).
         window: Number of observations in the EMA midline window (canonically ``20``). Must be ``>= 1``.
         window_atr: Number of observations in the ATR window (canonically ``10``). Must be ``>= 1``.
-        multiplier: Number of ATRs between the midline and each band (default ``2.0``). Must be a finite number ``> 0``.
+        multiplier: Number of ATRs between the midline and each band (canonically ``2.0``). Must be a finite number
+            ``> 0``.
 
     Returns:
         A struct column (one struct per row, the same length as the inputs) with three ``Float64`` fields:
@@ -309,8 +310,8 @@ def keltner_channels(
         - ``upper`` — the upper band, ``middle + multiplier * atr``.
 
         Read one band with ``.struct.field("middle")`` (etc.) or split all three into columns with
-        ``.struct.unnest()``. The midline warms up over ``window``, the outer bands over ``max(window, window_atr)``
-        (they also need the ATR); the leading rows are ``null`` accordingly.
+        ``.struct.unnest()``. Each band is ``null`` through its own warm-up: the midline's first ``window - 1`` rows,
+        the outer bands' first ``max(window, window_atr) - 1`` rows (they also need the ATR).
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.

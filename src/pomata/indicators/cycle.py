@@ -319,7 +319,8 @@ def dominant_cycle_period(
         **Edge-case behavior:**
 
         - **Null / NaN** — a ``null`` or ``NaN`` price latches ``null`` for every row from there.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursion re-seeds per
+          series and never spans series boundaries, e.g. ``dominant_cycle_period(pl.col("close")).over("ticker")``.
 
     See Also:
         - :func:`dominant_cycle_phase`: The phase of the same dominant cycle.
@@ -378,7 +379,8 @@ def dominant_cycle_phase(
         **Edge-case behavior:**
 
         - **Null / NaN** — a ``null`` or ``NaN`` price latches ``null`` for every row from there.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursion re-seeds per
+          series and never spans series boundaries, e.g. ``dominant_cycle_phase(pl.col("close")).over("ticker")``.
 
         **When it breaks:**
 
@@ -444,7 +446,8 @@ def hilbert_phasor(
         **Edge-case behavior:**
 
         - **Null / NaN** — a ``null`` or ``NaN`` price latches ``null`` for every row from there.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursion re-seeds per
+          series and never spans series boundaries, e.g. ``hilbert_phasor(pl.col("close")).over("ticker")``.
 
     See Also:
         - :func:`dominant_cycle_period`: Measured from this phasor by the homodyne discriminator.
@@ -505,7 +508,8 @@ def hilbert_trendline(
         **Edge-case behavior:**
 
         - **Null / NaN** — a ``null`` or ``NaN`` price latches ``null`` for every row from there.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursion re-seeds per
+          series and never spans series boundaries, e.g. ``hilbert_trendline(pl.col("close")).over("ticker")``.
 
     See Also:
         - :func:`trend_mode`: Uses the price's deviation from this trendline.
@@ -589,7 +593,8 @@ def mama(
         **Edge-case behavior:**
 
         - **Null / NaN** — a ``null`` or ``NaN`` price latches ``null`` for every row from there.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursion re-seeds per
+          series and never spans series boundaries, e.g. ``mama(pl.col("close")).over("ticker")``.
 
     See Also:
         - :func:`hilbert_phasor`: The phasor whose phase rate sets the smoothing constant.
@@ -657,7 +662,8 @@ def sine_wave(
         **Edge-case behavior:**
 
         - **Null / NaN** — a ``null`` or ``NaN`` price latches ``null`` for every row from there.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursion re-seeds per
+          series and never spans series boundaries, e.g. ``sine_wave(pl.col("close")).over("ticker")``.
 
         The underlying phase branch guards an *exact* zero of the cosine projection (saturating to ``±90`` as that
         projection vanishes), rather than the inventor's fixed ``0.001`` absolute cutoff; this is the continuous limit
@@ -724,7 +730,8 @@ def trend_mode(
         **Edge-case behavior:**
 
         - **Null / NaN** — a ``null`` or ``NaN`` price latches ``null`` for every row from there.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursion re-seeds per
+          series and never spans series boundaries, e.g. ``trend_mode(pl.col("close")).over("ticker")``.
 
         The underlying phase branch guards an *exact* zero of the cosine projection (saturating to ``±90`` as that
         projection vanishes), rather than the inventor's fixed ``0.001`` absolute cutoff; this is the continuous limit

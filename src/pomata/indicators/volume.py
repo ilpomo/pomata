@@ -186,8 +186,8 @@ def accumulation_distribution_oscillator(
         low: Low-price series (e.g. ``pl.col("low")``).
         close: Close-price series (e.g. ``pl.col("close")``).
         volume: Traded-volume series (e.g. ``pl.col("volume")``).
-        window_fast: Span of the fast EMA (canonically ``3``). Must be ``>= 1`` and ``<= window_slow``.
-        window_slow: Span of the slow EMA (canonically ``10``). Must be ``>= 1``.
+        window_fast: Span of the fast EMA (canonically ``3``). Must be ``>= 1``.
+        window_slow: Span of the slow EMA (canonically ``10``). Must be ``>= 1`` and ``>= window_fast``.
 
     Returns:
         The oscillator for each row, the same length as the inputs. The first ``window_slow - 1`` values are ``null``
@@ -764,7 +764,7 @@ def vwap(
         high: High-price series (e.g. ``pl.col("high")``).
         low: Low-price series (e.g. ``pl.col("low")``).
         close: Close-price series (e.g. ``pl.col("close")``).
-        volume: Volume series (e.g. ``pl.col("volume")``); expected non-negative.
+        volume: Traded-volume series (e.g. ``pl.col("volume")``).
 
     Returns:
         The running VWAP for each row, the same length as the inputs. There is no warm-up: row ``0`` is defined as soon

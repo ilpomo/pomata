@@ -649,9 +649,10 @@ def variance_ewma(
         any finite input within a sane dynamic range; ``CORRECTNESS.md`` gives the method and the float-conditioning
         limit beyond it.
 
-        ``window`` must be ``>= 2``: an exponentially-weighted variance is degenerate for a single observation (the
-        unbiased correction divides by zero), unlike the rolling form which is ``0`` there. It is homogeneous of degree
-        ``2`` in ``expr`` (a variance scales with the square of the input).
+        ``window`` must be ``>= 2``: a single observation yields a well-defined ``0`` under the default ``bias=True``,
+        but divides by zero under the unbiased ``bias=False`` correction, so a minimum of ``2`` is enforced uniformly
+        across both paths. It is homogeneous of degree ``2`` in ``expr`` (a variance scales with the square of the
+        input).
 
         **Edge-case behavior:**
 

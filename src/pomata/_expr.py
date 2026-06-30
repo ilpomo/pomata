@@ -58,7 +58,7 @@ def validate_window(
 
     Centralizes the ``window >= minimum`` guard every factory shares, so the bound and the error message stay identical
     across the package and cannot drift as new indicators are added. Most factories accept ``minimum=1``; pass
-    ``minimum=2`` where a single-observation window degenerates (e.g. :func:`dema`, the linear-regression family). Pass
+    ``minimum=2`` where a single-observation window degenerates (e.g. :func:`hma`, the linear-regression family). Pass
     ``name`` to validate a differently-named lookback (e.g. ``window_fast``, ``window_k``) with the same message shape.
 
     Args:

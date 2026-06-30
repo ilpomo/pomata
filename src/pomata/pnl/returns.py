@@ -50,8 +50,9 @@ def returns_log(
           only the positions that reference it and never latches onto the rest of the series.
         - **Domain** — log returns are defined on strictly positive prices. Following the IEEE-754 logarithm, a zero
           price relative (``P_t = 0`` over a positive ``P_{t-1}``) yields ``-inf``, a negative relative (the prices
-          straddle zero) yields ``NaN``, and a zero previous price yields ``+inf`` (the relative is ``+inf``); these are
-          the documented and intended boundary values rather than an error.
+          straddle zero) yields ``NaN``, and a zero previous price yields ``+inf`` only for a positive current price,
+          while ``0/0`` and a negative current price over zero yield ``NaN``; these are the documented and intended
+          boundary values rather than an error.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the lag never reaches across
           series boundaries, e.g. ``returns_log(pl.col("close")).over("ticker")``.
 
