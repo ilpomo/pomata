@@ -359,4 +359,6 @@ class TestMamaProperties:
         bands = apply_mama(values)
         reference = mama_reference(values)
         for field in FIELDS:
-            assert_matches(bands[field], reference[field])
+            assert_matches(
+                bands[field], reference[field], rel_tol=RELATIVE_TOLERANCE_REFERENCE, abs_tol=ABSOLUTE_TOLERANCE_EXACT
+            )

@@ -287,4 +287,9 @@ class TestDominantCyclePhaseProperties:
         well-conditioned and the phase is not compared on its mathematically-undefined flat-run branch.
         """
         values = case
-        assert_matches(apply_dominant_cycle_phase(values), dominant_cycle_phase_reference(values))
+        assert_matches(
+            apply_dominant_cycle_phase(values),
+            dominant_cycle_phase_reference(values),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_EXACT,
+        )

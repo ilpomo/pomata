@@ -256,4 +256,9 @@ class TestDominantCyclePeriodProperties:
         default 1e-12 tolerance.
         """
         values = case
-        assert_matches(apply_dominant_cycle_period(values), dominant_cycle_period_reference(values))
+        assert_matches(
+            apply_dominant_cycle_period(values),
+            dominant_cycle_period_reference(values),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_EXACT,
+        )

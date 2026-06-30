@@ -298,4 +298,6 @@ class TestHilbertPhasorProperties:
         result = apply_hilbert_phasor(values)
         reference = hilbert_phasor_reference(values)
         for field in FIELDS:
-            assert_matches(result[field], reference[field])
+            assert_matches(
+                result[field], reference[field], rel_tol=RELATIVE_TOLERANCE_REFERENCE, abs_tol=ABSOLUTE_TOLERANCE_EXACT
+            )
