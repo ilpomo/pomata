@@ -5,6 +5,12 @@ Most libraries ask you to trust their output. `pomata` proves it. The premise is
 naive *oracle* re-derives the same published formula and shares no code with it. The two must agree — on a fixed
 series, on frozen golden-master numbers, and on thousands of randomly fuzzed inputs — or the build is red.
 
+The same method covers all three families — indicators, PnL, and metrics — but holds each to the standard that
+actually catches its bugs. Indicators must be right *to the digit*: they reproduce a fixed formula, so there is one
+correct number, and even a public reference — TA-Lib — to check it against. PnL and metrics are simpler arithmetic
+whose failures live at the edges — a `null`, a `NaN`, a zero denominator, a warm-up — not in the fifteenth digit. So
+the proof below splits in two: indicators to the last figure, PnL and metrics at the boundaries.
+
 ## What every function survives
 
 The same four-tier ladder runs over all three families, under **100% branch coverage**:
@@ -25,10 +31,11 @@ The same four-tier ladder runs over all three families, under **100% branch cove
   - The same oracle agreement *and* the mathematical invariants (bounds, scale behavior, monotonicity) over the full `[-1e6, 1e6]` fuzz domain, with missing data freely interleaved — driven by Hypothesis.
 ```
 
-## The precision pomata guarantees
+## Indicators: proven to the digit
 
-The headline is **ten significant figures**: every indicator reproduces its oracle to a relative **`1e-10`** on any
-finite input within a sane dynamic range. That number is chosen, not guessed — and enforced:
+Indicators reproduce a fixed formula, so the bar is numeric and absolute. The headline is **ten significant figures**:
+every indicator reproduces its oracle to a relative **`1e-10`** on any finite input within a sane dynamic range. That
+number is chosen, not guessed — and enforced:
 
 - **It dwarfs the data.** Market feeds carry four to eight significant figures. Ten figures means `pomata` never adds
   error you could observe — lossless against its own input, with orders of headroom to spare.
@@ -50,7 +57,7 @@ bound is unconditional — Chande Momentum Oscillator, Money Flow Index, Chaikin
 papered over.
 :::
 
-## The receipt: indicators vs the public reference
+### The receipt: against the public reference
 
 For indicators there is also a public yardstick — **TA-Lib**, the de-facto industry C implementation, a genuinely
 different computation path. Here is `rsi(14)`, the last value of a deterministic 400-bar series, to every digit a

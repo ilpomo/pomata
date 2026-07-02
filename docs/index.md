@@ -34,7 +34,7 @@ from pomata.pnl import returns_simple, returns_gross, returns_net, cost_proporti
 from pomata.metrics import sharpe_ratio, max_drawdown
 
 report = (
-    frame  # a DataFrame (or LazyFrame) with a "close" column
+    ohlcv  # a DataFrame (or LazyFrame) with a "close" column
     .with_columns(
         weight=(rsi(pl.col("close"), 14) < 30).cast(pl.Float64).shift(1),  # long when oversold, act next bar
         asset_returns=returns_simple(pl.col("close")),
@@ -53,8 +53,9 @@ report = (
 ```
 
 The indicator feeds the signal, the signal feeds the PnL, the PnL feeds the metrics — every arrow is a `pl.Expr`, so
-it all fuses into one Polars query (eager or lazy, a single series or a multi-asset panel via `.over`). The `.shift(1)`
-is the whole no-look-ahead story: a signal computed at the close acts on the next bar, by construction.
+it all fuses into one Polars query (eager or lazy, a single series or a multi-asset panel via `.over`).
+
+The `.shift(1)` is the whole no-look-ahead story: a signal computed at the close acts on the next bar, by construction.
 
 ## Start here
 
