@@ -24,24 +24,32 @@ independently — windows and recursions never bleed across a boundary.
 >>> import polars as pl
 >>> from pomata.indicators import sma
 >>>
->>> frame = pl.DataFrame({"ticker": ["A", "A", "A", "B", "B", "B"], "close": [1.0, 2.0, 3.0, 10.0, 20.0, 30.0]})
+>>> frame = pl.DataFrame(
+...     {
+...         "ticker": ["AAPL", "AAPL", "AAPL", "GOOG", "GOOG", "GOOG", "NVDA", "NVDA", "NVDA"],
+...         "close": [1.0, 2.0, 3.0, 10.0, 20.0, 30.0, 100.0, 200.0, 300.0],
+...     }
+... )
 >>> frame.with_columns(sma=sma(pl.col("close"), 2).over("ticker"))
-shape: (6, 3)
-┌────────┬───────┬──────┐
-│ ticker ┆ close ┆ sma  │
-│ ---    ┆ ---   ┆ ---  │
-│ str    ┆ f64   ┆ f64  │
-╞════════╪═══════╪══════╡
-│ A      ┆ 1.0   ┆ null │
-│ A      ┆ 2.0   ┆ 1.5  │
-│ A      ┆ 3.0   ┆ 2.5  │
-│ B      ┆ 10.0  ┆ null │
-│ B      ┆ 20.0  ┆ 15.0 │
-│ B      ┆ 30.0  ┆ 25.0 │
-└────────┴───────┴──────┘
+shape: (9, 3)
+┌────────┬───────┬───────┐
+│ ticker ┆ close ┆ sma   │
+│ ---    ┆ ---   ┆ ---   │
+│ str    ┆ f64   ┆ f64   │
+╞════════╪═══════╪═══════╡
+│ AAPL   ┆ 1.0   ┆ null  │
+│ AAPL   ┆ 2.0   ┆ 1.5   │
+│ AAPL   ┆ 3.0   ┆ 2.5   │
+│ GOOG   ┆ 10.0  ┆ null  │
+│ GOOG   ┆ 20.0  ┆ 15.0  │
+│ GOOG   ┆ 30.0  ┆ 25.0  │
+│ NVDA   ┆ 100.0 ┆ null  │
+│ NVDA   ┆ 200.0 ┆ 150.0 │
+│ NVDA   ┆ 300.0 ┆ 250.0 │
+└────────┴───────┴───────┘
 ```
 
-Ticker `B` starts its own warm-up (`None`) instead of inheriting `A`'s tail.
+Ticker `GOOG` starts its own warm-up (`None`) instead of inheriting `AAPL`'s tail.
 
 ## 3. Warm-up is `null`, never fabricated
 

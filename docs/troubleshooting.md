@@ -20,7 +20,7 @@ You left off `.over`. Without it, a window or a recursion runs down the entire c
 one ticker into the start of the next.
 
 ```python
-# wrong: AAA's last bars leak into BBB's first
+# wrong: AAPL's last bars leak into GOOG's first
 frame.with_columns(sma=sma(pl.col("close"), 20))
 
 # right: each ticker is computed on its own

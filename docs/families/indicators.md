@@ -148,15 +148,18 @@ pipeline — the optimizer fuses the scan, and a single `.collect()` materialize
 
 ```{doctest}
 >>> import polars as pl
+>>> from datetime import datetime
 >>> from pomata.indicators import rsi, sma, atr
 >>>
 >>> prices = pl.LazyFrame(
 ...     {
+...         "datetime": [datetime(2024, 1, d, 17) for d in (2, 3, 4, 5, 8, 9, 10, 11)],
+...         "ticker":   "AAPL",
 ...         "high":  [10.0, 11.0, 12.0, 11.5, 13.0, 14.0, 13.5, 15.0],
 ...         "low":   [ 9.0,  9.5, 10.5, 10.0, 11.0, 12.5, 12.0, 13.5],
 ...         "close": [ 9.5, 10.5, 11.5, 11.0, 12.5, 13.5, 13.0, 14.5],
 ...     }
-... )
+... ).with_columns(pl.col("datetime").dt.replace_time_zone("America/New_York"))
 >>> signals = (
 ...     prices
 ...     .with_columns(
@@ -167,22 +170,22 @@ pipeline — the optimizer fuses the scan, and a single `.collect()` materialize
 ...     .with_columns(long=(pl.col("fast") > pl.col("slow")) & (rsi(pl.col("close"), 3) > 50.0))
 ...     .collect()
 ... )
->>> signals.select(pl.col("close"), pl.col("vol").round(4), pl.col("long"))
-shape: (8, 3)
-┌───────┬────────┬──────┐
-│ close ┆ vol    ┆ long │
-│ ---   ┆ ---    ┆ ---  │
-│ f64   ┆ f64    ┆ bool │
-╞═══════╪════════╪══════╡
-│ 9.5   ┆ null   ┆ null │
-│ 10.5  ┆ null   ┆ null │
-│ 11.5  ┆ 1.3333 ┆ null │
-│ 11.0  ┆ 1.3889 ┆ true │
-│ 12.5  ┆ 1.5926 ┆ true │
-│ 13.5  ┆ 1.5617 ┆ true │
-│ 13.0  ┆ 1.5412 ┆ true │
-│ 14.5  ┆ 1.6941 ┆ true │
-└───────┴────────┴──────┘
+>>> signals.select("datetime", "ticker", pl.col("close"), pl.col("vol").round(4), pl.col("long"))
+shape: (8, 5)
+┌────────────────────────────────┬────────┬───────┬────────┬──────┐
+│ datetime                       ┆ ticker ┆ close ┆ vol    ┆ long │
+│ ---                            ┆ ---    ┆ ---   ┆ ---    ┆ ---  │
+│ datetime[μs, America/New_York] ┆ str    ┆ f64   ┆ f64    ┆ bool │
+╞════════════════════════════════╪════════╪═══════╪════════╪══════╡
+│ 2024-01-02 17:00:00 EST        ┆ AAPL   ┆ 9.5   ┆ null   ┆ null │
+│ 2024-01-03 17:00:00 EST        ┆ AAPL   ┆ 10.5  ┆ null   ┆ null │
+│ 2024-01-04 17:00:00 EST        ┆ AAPL   ┆ 11.5  ┆ 1.3333 ┆ null │
+│ 2024-01-05 17:00:00 EST        ┆ AAPL   ┆ 11.0  ┆ 1.3889 ┆ true │
+│ 2024-01-08 17:00:00 EST        ┆ AAPL   ┆ 12.5  ┆ 1.5926 ┆ true │
+│ 2024-01-09 17:00:00 EST        ┆ AAPL   ┆ 13.5  ┆ 1.5617 ┆ true │
+│ 2024-01-10 17:00:00 EST        ┆ AAPL   ┆ 13.0  ┆ 1.5412 ┆ true │
+│ 2024-01-11 17:00:00 EST        ┆ AAPL   ┆ 14.5  ┆ 1.6941 ┆ true │
+└────────────────────────────────┴────────┴───────┴────────┴──────┘
 ```
 
 The regime filter (`fast > slow`) and the momentum confirmation (`rsi > 50`) compose as ordinary boolean
@@ -199,33 +202,43 @@ recursions restart at every boundary:
 >>>
 >>> panel = pl.DataFrame(
 ...     {
-...         "ticker": ["A", "A", "A", "A", "B", "B", "B", "B"],
-...         "close":  [10.0, 11.0, 12.0, 13.0, 100.0, 90.0, 95.0, 105.0],
+...         "datetime": [datetime(2024, 1, d, 17) for d in (2, 3, 4, 5)] * 3,
+...         "ticker":   ["AAPL"] * 4 + ["GOOG"] * 4 + ["NVDA"] * 4,
+...         "close":    [10.0, 11.0, 12.0, 13.0, 100.0, 90.0, 95.0, 105.0, 50.0, 52.0, 51.0, 53.0],
 ...     }
+... ).with_columns(pl.col("datetime").dt.replace_time_zone("America/New_York"))
+>>> result = (
+...     panel
+...     .with_columns(
+...         clean=ema(pl.col("close"), 3).over("ticker").round(4),
+...         leaky=ema(pl.col("close"), 3).round(4),
+...     )
+...     .sort("datetime", "ticker")
 ... )
->>> panel.with_columns(
-...     clean=ema(pl.col("close"), 3).over("ticker").round(4),
-...     leaky=ema(pl.col("close"), 3).round(4),
-... )
-shape: (8, 4)
-┌────────┬───────┬───────┬───────┐
-│ ticker ┆ close ┆ clean ┆ leaky │
-│ ---    ┆ ---   ┆ ---   ┆ ---   │
-│ str    ┆ f64   ┆ f64   ┆ f64   │
-╞════════╪═══════╪═══════╪═══════╡
-│ A      ┆ 10.0  ┆ null  ┆ null  │
-│ A      ┆ 11.0  ┆ null  ┆ null  │
-│ A      ┆ 12.0  ┆ 11.0  ┆ 11.0  │
-│ A      ┆ 13.0  ┆ 12.0  ┆ 12.0  │
-│ B      ┆ 100.0 ┆ null  ┆ 56.0  │
-│ B      ┆ 90.0  ┆ null  ┆ 73.0  │
-│ B      ┆ 95.0  ┆ 95.0  ┆ 84.0  │
-│ B      ┆ 105.0 ┆ 100.0 ┆ 94.5  │
-└────────┴───────┴───────┴───────┘
+>>> result
+shape: (12, 5)
+┌────────────────────────────────┬────────┬───────┬───────┬─────────┐
+│ datetime                       ┆ ticker ┆ close ┆ clean ┆ leaky   │
+│ ---                            ┆ ---    ┆ ---   ┆ ---   ┆ ---     │
+│ datetime[μs, America/New_York] ┆ str    ┆ f64   ┆ f64   ┆ f64     │
+╞════════════════════════════════╪════════╪═══════╪═══════╪═════════╡
+│ 2024-01-02 17:00:00 EST        ┆ AAPL   ┆ 10.0  ┆ null  ┆ null    │
+│ 2024-01-02 17:00:00 EST        ┆ GOOG   ┆ 100.0 ┆ null  ┆ 56.0    │
+│ 2024-01-02 17:00:00 EST        ┆ NVDA   ┆ 50.0  ┆ null  ┆ 72.25   │
+│ 2024-01-03 17:00:00 EST        ┆ AAPL   ┆ 11.0  ┆ null  ┆ null    │
+│ 2024-01-03 17:00:00 EST        ┆ GOOG   ┆ 90.0  ┆ null  ┆ 73.0    │
+│ …                              ┆ …      ┆ …     ┆ …     ┆ …       │
+│ 2024-01-04 17:00:00 EST        ┆ GOOG   ┆ 95.0  ┆ 95.0  ┆ 84.0    │
+│ 2024-01-04 17:00:00 EST        ┆ NVDA   ┆ 51.0  ┆ 51.0  ┆ 56.5625 │
+│ 2024-01-05 17:00:00 EST        ┆ AAPL   ┆ 13.0  ┆ 12.0  ┆ 12.0    │
+│ 2024-01-05 17:00:00 EST        ┆ GOOG   ┆ 105.0 ┆ 100.0 ┆ 94.5    │
+│ 2024-01-05 17:00:00 EST        ┆ NVDA   ┆ 53.0  ┆ 52.0  ┆ 54.7812 │
+└────────────────────────────────┴────────┴───────┴───────┴─────────┘
 ```
 
-With `.over`, ticker `B` opens its own warm-up (`None, None`) and prices in from `100.0`. Without it, `B`'s first
-value is `56.0` — a number contaminated by `A`'s tail, the cross-asset leak made visible.
+With `.over`, ticker `GOOG` opens its own warm-up (`None, None`) and prices in from `100.0`. Without it, `GOOG`'s
+first value is `56.0` — contaminated by `AAPL`'s tail — and `NVDA`'s `72.25` bleeds the same way out of `GOOG`'s:
+the cross-asset leak made visible.
 
 ### A signal that can't peek at the future
 
@@ -234,28 +247,34 @@ look-ahead that flatters every backtest. `pomata` makes it mechanical: the warm-
 value to trade on), and a single `.shift(1)` moves a close-computed decision onto the next bar:
 
 ```{doctest}
->>> bars = pl.DataFrame({"close": [10.0, 11.0, 12.0, 11.0, 10.0, 9.0, 10.5, 12.0]})
+>>> bars = pl.DataFrame(
+...     {
+...         "datetime": [datetime(2024, 1, d, 17) for d in (2, 3, 4, 5, 8, 9, 10, 11)],
+...         "ticker":   "AAPL",
+...         "close":    [10.0, 11.0, 12.0, 11.0, 10.0, 9.0, 10.5, 12.0],
+...     }
+... ).with_columns(pl.col("datetime").dt.replace_time_zone("America/New_York"))
 >>> signal = (rsi(pl.col("close"), 3) > 50.0).cast(pl.Int8)
 >>> res = bars.with_columns(
 ...     decided_at_close=signal,
 ...     acted_next_bar=signal.shift(1),
 ... )
 >>> res
-shape: (8, 3)
-┌───────┬──────────────────┬────────────────┐
-│ close ┆ decided_at_close ┆ acted_next_bar │
-│ ---   ┆ ---              ┆ ---            │
-│ f64   ┆ i8               ┆ i8             │
-╞═══════╪══════════════════╪════════════════╡
-│ 10.0  ┆ null             ┆ null           │
-│ 11.0  ┆ null             ┆ null           │
-│ 12.0  ┆ null             ┆ null           │
-│ 11.0  ┆ 1                ┆ null           │
-│ 10.0  ┆ 0                ┆ 1              │
-│ 9.0   ┆ 0                ┆ 0              │
-│ 10.5  ┆ 1                ┆ 0              │
-│ 12.0  ┆ 1                ┆ 1              │
-└───────┴──────────────────┴────────────────┘
+shape: (8, 5)
+┌────────────────────────────────┬────────┬───────┬──────────────────┬────────────────┐
+│ datetime                       ┆ ticker ┆ close ┆ decided_at_close ┆ acted_next_bar │
+│ ---                            ┆ ---    ┆ ---   ┆ ---              ┆ ---            │
+│ datetime[μs, America/New_York] ┆ str    ┆ f64   ┆ i8               ┆ i8             │
+╞════════════════════════════════╪════════╪═══════╪══════════════════╪════════════════╡
+│ 2024-01-02 17:00:00 EST        ┆ AAPL   ┆ 10.0  ┆ null             ┆ null           │
+│ 2024-01-03 17:00:00 EST        ┆ AAPL   ┆ 11.0  ┆ null             ┆ null           │
+│ 2024-01-04 17:00:00 EST        ┆ AAPL   ┆ 12.0  ┆ null             ┆ null           │
+│ 2024-01-05 17:00:00 EST        ┆ AAPL   ┆ 11.0  ┆ 1                ┆ null           │
+│ 2024-01-08 17:00:00 EST        ┆ AAPL   ┆ 10.0  ┆ 0                ┆ 1              │
+│ 2024-01-09 17:00:00 EST        ┆ AAPL   ┆ 9.0   ┆ 0                ┆ 0              │
+│ 2024-01-10 17:00:00 EST        ┆ AAPL   ┆ 10.5  ┆ 1                ┆ 0              │
+│ 2024-01-11 17:00:00 EST        ┆ AAPL   ┆ 12.0  ┆ 1                ┆ 1              │
+└────────────────────────────────┴────────┴───────┴──────────────────┴────────────────┘
 ```
 
 `acted_next_bar` is `decided_at_close` slid one bar forward — the decision lands where it can actually be filled, and
@@ -270,44 +289,55 @@ into columns with `.struct.unnest()`:
 ```{doctest}
 >>> from pomata.indicators import macd
 >>>
->>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, 11.0, 12.0, 13.0, 14.0, 13.0, 15.0, 16.0]})
+>>> frame = pl.DataFrame(
+...     {
+...         "datetime": [datetime(2024, 1, d, 17) for d in (2, 3, 4, 5, 8, 9, 10, 11, 12, 16)],
+...         "ticker":   "AAPL",
+...         "close":    [10.0, 11.0, 12.0, 11.0, 12.0, 13.0, 14.0, 13.0, 15.0, 16.0],
+...     }
+... ).with_columns(pl.col("datetime").dt.replace_time_zone("America/New_York"))
 >>> lines = macd(pl.col("close"), window_fast=2, window_slow=4, window_signal=2)
->>> frame.select("close", lines.struct.field("histogram").round(4).alias("hist"))
-shape: (10, 2)
-┌───────┬─────────┐
-│ close ┆ hist    │
-│ ---   ┆ ---     │
-│ f64   ┆ f64     │
-╞═══════╪═════════╡
-│ 10.0  ┆ null    │
-│ 11.0  ┆ null    │
-│ 12.0  ┆ null    │
-│ 11.0  ┆ null    │
-│ 12.0  ┆ 0.0778  │
-│ 13.0  ┆ 0.0965  │
-│ 14.0  ┆ 0.0877  │
-│ 13.0  ┆ -0.1108 │
-│ 15.0  ┆ 0.0879  │
-│ 16.0  ┆ 0.0849  │
-└───────┴─────────┘
->>> frame.select(lines.alias("macd")).unnest("macd").with_columns(pl.all().round(4))
-shape: (10, 3)
-┌────────┬────────┬───────────┐
-│ macd   ┆ signal ┆ histogram │
-│ ---    ┆ ---    ┆ ---       │
-│ f64    ┆ f64    ┆ f64       │
-╞════════╪════════╪═══════════╡
-│ null   ┆ null   ┆ null      │
-│ null   ┆ null   ┆ null      │
-│ null   ┆ null   ┆ null      │
-│ 0.1667 ┆ null   ┆ null      │
-│ 0.3222 ┆ 0.2444 ┆ 0.0778    │
-│ 0.5341 ┆ 0.4375 ┆ 0.0965    │
-│ 0.7007 ┆ 0.613  ┆ 0.0877    │
-│ 0.2805 ┆ 0.3913 ┆ -0.1108   │
-│ 0.655  ┆ 0.5671 ┆ 0.0879    │
-│ 0.8219 ┆ 0.737  ┆ 0.0849    │
-└────────┴────────┴───────────┘
+>>> frame.select("datetime", "ticker", "close", lines.struct.field("histogram").round(4).alias("hist"))
+shape: (10, 4)
+┌────────────────────────────────┬────────┬───────┬─────────┐
+│ datetime                       ┆ ticker ┆ close ┆ hist    │
+│ ---                            ┆ ---    ┆ ---   ┆ ---     │
+│ datetime[μs, America/New_York] ┆ str    ┆ f64   ┆ f64     │
+╞════════════════════════════════╪════════╪═══════╪═════════╡
+│ 2024-01-02 17:00:00 EST        ┆ AAPL   ┆ 10.0  ┆ null    │
+│ 2024-01-03 17:00:00 EST        ┆ AAPL   ┆ 11.0  ┆ null    │
+│ 2024-01-04 17:00:00 EST        ┆ AAPL   ┆ 12.0  ┆ null    │
+│ 2024-01-05 17:00:00 EST        ┆ AAPL   ┆ 11.0  ┆ null    │
+│ 2024-01-08 17:00:00 EST        ┆ AAPL   ┆ 12.0  ┆ 0.0778  │
+│ 2024-01-09 17:00:00 EST        ┆ AAPL   ┆ 13.0  ┆ 0.0965  │
+│ 2024-01-10 17:00:00 EST        ┆ AAPL   ┆ 14.0  ┆ 0.0877  │
+│ 2024-01-11 17:00:00 EST        ┆ AAPL   ┆ 13.0  ┆ -0.1108 │
+│ 2024-01-12 17:00:00 EST        ┆ AAPL   ┆ 15.0  ┆ 0.0879  │
+│ 2024-01-16 17:00:00 EST        ┆ AAPL   ┆ 16.0  ┆ 0.0849  │
+└────────────────────────────────┴────────┴───────┴─────────┘
+>>> (
+...     frame
+...     .select("datetime", "ticker", lines.alias("macd"))
+...     .unnest("macd")
+...     .with_columns(pl.col(pl.Float64).round(4))
+... )
+shape: (10, 5)
+┌────────────────────────────────┬────────┬────────┬────────┬───────────┐
+│ datetime                       ┆ ticker ┆ macd   ┆ signal ┆ histogram │
+│ ---                            ┆ ---    ┆ ---    ┆ ---    ┆ ---       │
+│ datetime[μs, America/New_York] ┆ str    ┆ f64    ┆ f64    ┆ f64       │
+╞════════════════════════════════╪════════╪════════╪════════╪═══════════╡
+│ 2024-01-02 17:00:00 EST        ┆ AAPL   ┆ null   ┆ null   ┆ null      │
+│ 2024-01-03 17:00:00 EST        ┆ AAPL   ┆ null   ┆ null   ┆ null      │
+│ 2024-01-04 17:00:00 EST        ┆ AAPL   ┆ null   ┆ null   ┆ null      │
+│ 2024-01-05 17:00:00 EST        ┆ AAPL   ┆ 0.1667 ┆ null   ┆ null      │
+│ 2024-01-08 17:00:00 EST        ┆ AAPL   ┆ 0.3222 ┆ 0.2444 ┆ 0.0778    │
+│ 2024-01-09 17:00:00 EST        ┆ AAPL   ┆ 0.5341 ┆ 0.4375 ┆ 0.0965    │
+│ 2024-01-10 17:00:00 EST        ┆ AAPL   ┆ 0.7007 ┆ 0.613  ┆ 0.0877    │
+│ 2024-01-11 17:00:00 EST        ┆ AAPL   ┆ 0.2805 ┆ 0.3913 ┆ -0.1108   │
+│ 2024-01-12 17:00:00 EST        ┆ AAPL   ┆ 0.655  ┆ 0.5671 ┆ 0.0879    │
+│ 2024-01-16 17:00:00 EST        ┆ AAPL   ┆ 0.8219 ┆ 0.737  ┆ 0.0849    │
+└────────────────────────────────┴────────┴────────┴────────┴───────────┘
 ```
 
 One expression, one column, three lines inside it — aligned to the same index by construction, so there is no

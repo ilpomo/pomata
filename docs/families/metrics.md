@@ -107,9 +107,19 @@ scaling is applied for you — never a hand-multiplied `* sqrt(252)` you can for
 
 ```{doctest}
 >>> import polars as pl
+>>> from datetime import datetime
 >>> from pomata.metrics import volatility
 >>>
->>> frame = pl.DataFrame({"returns": [0.01, -0.02, 0.015, 0.005, -0.01, 0.02]})
+>>> frame = (
+...     pl.DataFrame(
+...         {
+...             "datetime": [datetime(2024, 1, d, 17) for d in (2, 3, 4, 5, 8, 9)],
+...             "ticker": "AAPL",
+...             "returns": [0.01, -0.02, 0.015, 0.005, -0.01, 0.02],
+...         }
+...     )
+...     .with_columns(pl.col("datetime").dt.replace_time_zone("America/New_York"))
+... )
 >>> annual = frame.select(volatility(pl.col("returns"), periods_per_year=252)).item()
 >>> round(annual, 4)
 0.2442
@@ -129,10 +139,28 @@ but a non-null `NaN` is corrupt data and poisons the result — so you see the p
 ```{doctest}
 >>> from pomata.metrics import sharpe_ratio
 >>>
->>> clean = pl.DataFrame({"returns": [0.03, None, 0.02, -0.015, 0.01, 0.005, -0.02]})
+>>> clean = (
+...     pl.DataFrame(
+...         {
+...             "datetime": [datetime(2024, 1, d, 17) for d in (2, 3, 4, 5, 8, 9, 10)],
+...             "ticker": "AAPL",
+...             "returns": [0.03, None, 0.02, -0.015, 0.01, 0.005, -0.02],
+...         }
+...     )
+...     .with_columns(pl.col("datetime").dt.replace_time_zone("America/New_York"))
+... )
 >>> clean.select(sharpe_ratio(pl.col("returns"), periods_per_year=252).round(4)).item()
 4.0717
->>> poisoned = pl.DataFrame({"returns": [0.03, None, 0.02, -0.015, float("nan"), 0.005, -0.02]})
+>>> poisoned = (
+...     pl.DataFrame(
+...         {
+...             "datetime": [datetime(2024, 1, d, 17) for d in (2, 3, 4, 5, 8, 9, 10)],
+...             "ticker": "AAPL",
+...             "returns": [0.03, None, 0.02, -0.015, float("nan"), 0.005, -0.02],
+...         }
+...     )
+...     .with_columns(pl.col("datetime").dt.replace_time_zone("America/New_York"))
+... )
 >>> poisoned.select(sharpe_ratio(pl.col("returns"), periods_per_year=252).round(4)).item()
 nan
 ```
@@ -148,25 +176,34 @@ earns it has a `_rolling` twin with the identical math over a trailing window.
 ```{doctest}
 >>> from pomata.metrics import sharpe_ratio_rolling
 >>>
->>> frame = pl.DataFrame({"returns": [0.03, -0.01, 0.02, -0.015, 0.01, 0.005, -0.02, 0.012]})
+>>> frame = (
+...     pl.DataFrame(
+...         {
+...             "datetime": [datetime(2024, 1, d, 17) for d in (2, 3, 4, 5, 8, 9, 10, 11)],
+...             "ticker": "AAPL",
+...             "returns": [0.03, -0.01, 0.02, -0.015, 0.01, 0.005, -0.02, 0.012],
+...         }
+...     )
+...     .with_columns(pl.col("datetime").dt.replace_time_zone("America/New_York"))
+... )
 >>> frame.select(sharpe_ratio(pl.col("returns"), periods_per_year=252).round(4)).item()
 3.6098
 >>> frame.with_columns(rolling=sharpe_ratio_rolling(pl.col("returns"), 4, periods_per_year=252).round(4))
-shape: (8, 2)
-┌─────────┬─────────┐
-│ returns ┆ rolling │
-│ ---     ┆ ---     │
-│ f64     ┆ f64     │
-╞═════════╪═════════╡
-│ 0.03    ┆ null    │
-│ -0.01   ┆ null    │
-│ 0.02    ┆ null    │
-│ -0.015  ┆ 4.484   │
-│ 0.01    ┆ 1.2011  │
-│ 0.005   ┆ 5.3923  │
-│ -0.02   ┆ -5.3923 │
-│ 0.012   ┆ 1.8776  │
-└─────────┴─────────┘
+shape: (8, 4)
+┌────────────────────────────────┬────────┬─────────┬─────────┐
+│ datetime                       ┆ ticker ┆ returns ┆ rolling │
+│ ---                            ┆ ---    ┆ ---     ┆ ---     │
+│ datetime[μs, America/New_York] ┆ str    ┆ f64     ┆ f64     │
+╞════════════════════════════════╪════════╪═════════╪═════════╡
+│ 2024-01-02 17:00:00 EST        ┆ AAPL   ┆ 0.03    ┆ null    │
+│ 2024-01-03 17:00:00 EST        ┆ AAPL   ┆ -0.01   ┆ null    │
+│ 2024-01-04 17:00:00 EST        ┆ AAPL   ┆ 0.02    ┆ null    │
+│ 2024-01-05 17:00:00 EST        ┆ AAPL   ┆ -0.015  ┆ 4.484   │
+│ 2024-01-08 17:00:00 EST        ┆ AAPL   ┆ 0.01    ┆ 1.2011  │
+│ 2024-01-09 17:00:00 EST        ┆ AAPL   ┆ 0.005   ┆ 5.3923  │
+│ 2024-01-10 17:00:00 EST        ┆ AAPL   ┆ -0.02   ┆ -5.3923 │
+│ 2024-01-11 17:00:00 EST        ┆ AAPL   ┆ 0.012   ┆ 1.8776  │
+└────────────────────────────────┴────────┴─────────┴─────────┘
 ```
 
 The reducer folds the eight bars to a single `3.6098`; the twin warms up for `window - 1` bars, then re-evaluates the
@@ -181,7 +218,16 @@ higher than its Sharpe Ratio lets on.
 ```{doctest}
 >>> from pomata.metrics import sortino_ratio
 >>>
->>> frame = pl.DataFrame({"returns": [0.05, -0.01, 0.06, -0.012, 0.04, -0.008, 0.05, -0.01]})
+>>> frame = (
+...     pl.DataFrame(
+...         {
+...             "datetime": [datetime(2024, 1, d, 17) for d in (2, 3, 4, 5, 8, 9, 10, 11)],
+...             "ticker": "AAPL",
+...             "returns": [0.05, -0.01, 0.06, -0.012, 0.04, -0.008, 0.05, -0.01],
+...         }
+...     )
+...     .with_columns(pl.col("datetime").dt.replace_time_zone("America/New_York"))
+... )
 >>> frame.select(sharpe_ratio(pl.col("returns"), periods_per_year=252).round(4)).item()
 9.7595
 >>> frame.select(sortino_ratio(pl.col("returns"), periods_per_year=252).round(4)).item()
