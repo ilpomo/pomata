@@ -24,45 +24,7 @@ composable `pl.Expr`, so an entire study is one lazy Polars pipeline, from price
 And it doesn't ask you to trust its numbers — it **proves** them: every function is verified to the `float64` floor
 against an independent reference, under 100% branch coverage.
 
-> **Alpha.** The API is not frozen until `1.0`; expect refinement. The correctness bar holds at every commit regardless.
-
-## From price to performance, in one query
-
-Signal, PnL, and metrics are all plain `pl.Expr`, so an entire study is a single Polars pipeline — no glue code, no
-DataFrame ping-pong, no second dependency between the steps:
-
-```python
-import polars as pl
-from pomata.indicators import rsi
-from pomata.pnl import returns_simple, returns_gross, returns_net, cost_proportional, equity_curve
-from pomata.metrics import sharpe_ratio, max_drawdown
-
-report = (
-    frame  # a DataFrame (or LazyFrame) with a "close" column
-    .with_columns(
-        weight=(rsi(pl.col("close"), 14) < 30).cast(pl.Float64).shift(1),  # go long when oversold, act next bar
-        asset_returns=returns_simple(pl.col("close")),
-    )
-    .with_columns(
-        net=returns_net(
-            returns_gross(pl.col("weight"), pl.col("asset_returns")),
-            cost_proportional(pl.col("weight"), rate=0.001),
-        ),
-    )
-    .select(
-        sharpe=sharpe_ratio(pl.col("net"), periods_per_year=252),
-        max_drawdown=max_drawdown(equity_curve(pl.col("net"))),
-    )
-)
-```
-
-The indicator feeds the signal, the signal feeds the PnL, the PnL feeds the metrics — every arrow is a `pl.Expr`, so it
-all fuses into one Polars query (eager or lazy, single series or a multi-asset panel via `.over`). The `.shift(1)` is
-the whole no-look-ahead story: a signal computed at the close acts on the next bar, by construction.
-
 ## Install
-
-The only runtime dependency is **Polars**; Python **3.12+**.
 
 ```bash
 pip install pomata
@@ -70,42 +32,86 @@ pip install pomata
 uv add pomata
 ```
 
-To work from source instead:
+From source:
 
 ```bash
 git clone https://github.com/ilpomo/pomata
 cd pomata && uv sync
 ```
 
-Every function is a free-standing `pl.Expr` factory — name it, compose it, run it in any Polars context. Warm-up rows
-are `null` until the window fills, never a fabricated value:
+## Dependencies
+
+- **Runtime** — `polars` only (`>= 1.40`). Nothing else is pulled into your environment.
+- **Python** — 3.12, 3.13, 3.14.
+- **Optional** — the `differential` group (TA-Lib) powers the cross-reference parity tier; the other groups are the
+  contributor gate. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## The data
+
+Every snippet below runs on the same sample: a quarter of real daily bars for `AAPL`, `GOOG`, and `NVDA`, shipped with
+these docs. Load it once — or point `read_parquet` at your own OHLCV frame:
 
 ```python
 import polars as pl
-from pomata.indicators import rsi
 
-frame = pl.DataFrame({"close": [44.34, 44.09, 44.15, 43.61, 44.33, 44.83, 45.10, 45.42, 45.84, 46.08, 45.89, 46.03,
-                                45.61, 46.28, 46.28, 46.00, 46.03, 46.41, 46.22, 45.64, 46.21, 46.25, 45.71, 46.45]})
-frame.select(rsi(pl.col("close"), 14).round(2).alias("rsi"))["rsi"].to_list()
-# [None, None, ..., 57.92, 62.88, 63.21, 56.01, 62.34]
+ohlcv = pl.read_parquet("docs/_static/ohlcv_sample.parquet")
+ohlcv.head(9)
 ```
 
-## What's inside
+```text
+shape: (9, 7)
+┌────────────────────────────────┬────────┬────────┬────────┬────────┬────────┬───────────┐
+│ datetime                       ┆ ticker ┆ open   ┆ high   ┆ low    ┆ close  ┆ volume    │
+│ ---                            ┆ ---    ┆ ---    ┆ ---    ┆ ---    ┆ ---    ┆ ---       │
+│ datetime[μs, America/New_York] ┆ str    ┆ f64    ┆ f64    ┆ f64    ┆ f64    ┆ i64       │
+╞════════════════════════════════╪════════╪════════╪════════╪════════╪════════╪═══════════╡
+│ 2024-01-02 17:00:00 EST        ┆ AAPL   ┆ 185.06 ┆ 186.33 ┆ 181.83 ┆ 183.56 ┆ 82488700  │
+│ 2024-01-02 17:00:00 EST        ┆ GOOG   ┆ 138.38 ┆ 139.39 ┆ 136.54 ┆ 138.34 ┆ 20071900  │
+│ 2024-01-02 17:00:00 EST        ┆ NVDA   ┆ 49.16  ┆ 49.21  ┆ 47.51  ┆ 48.08  ┆ 411254000 │
+│ 2024-01-03 17:00:00 EST        ┆ AAPL   ┆ 182.16 ┆ 183.8  ┆ 181.38 ┆ 182.19 ┆ 58414500  │
+│ 2024-01-03 17:00:00 EST        ┆ GOOG   ┆ 137.39 ┆ 139.86 ┆ 137.22 ┆ 139.13 ┆ 18974300  │
+│ 2024-01-03 17:00:00 EST        ┆ NVDA   ┆ 47.4   ┆ 48.1   ┆ 47.24  ┆ 47.48  ┆ 320896000 │
+│ 2024-01-04 17:00:00 EST        ┆ AAPL   ┆ 180.11 ┆ 181.04 ┆ 178.86 ┆ 179.87 ┆ 71983600  │
+│ 2024-01-04 17:00:00 EST        ┆ GOOG   ┆ 138.63 ┆ 139.41 ┆ 136.8  ┆ 136.83 ┆ 18253300  │
+│ 2024-01-04 17:00:00 EST        ┆ NVDA   ┆ 47.68  ┆ 48.41  ┆ 47.42  ┆ 47.91  ┆ 306535000 │
+└────────────────────────────────┴────────┴────────┴────────┴────────┴────────┴───────────┘
+```
 
-Three families, one package. They share a grammar (pure `pl.Expr` factories, one canonical name per concept) and a
-handoff: `pnl` emits exactly the return and equity series `metrics` consumes.
+## Technical Indicators
 
-### indicators — 75 functions
-
-The technical-analysis layer, each indicator a `pl.Expr` checked against TA-Lib to the `float64` floor — most bar-for-bar
-from the first emitted value, a documented minority only on the converged tail (the differential tier is non-gating).
-Multi-output indicators (`bollinger_bands`, `macd`, `stochastic_slow`, …) return a single `pl.Struct` —
-pick a line with `.struct.field(...)` or expand with `.struct.unnest()`.
+75 indicators, each a `pl.Expr` you compute straight on your price frame — checked against **TA-Lib** to the `float64`
+floor. On a multi-ticker panel, wrap the call in `.over("ticker")` so each symbol warms up on its own history (`null`
+until the window fills, never a fabricated value):
 
 ```python
-from pomata.indicators import bollinger_bands
-frame.select(bollinger_bands(pl.col("close"), 20).alias("bb")).unnest("bb")
+from pomata.indicators import rsi
+
+ohlcv.with_columns(
+    rsi=rsi(pl.col("close"), 14).over("ticker").round(2),
+).select("datetime", "ticker", "close", "rsi").tail(9)
 ```
+
+```text
+shape: (9, 4)
+┌────────────────────────────────┬────────┬────────┬───────┐
+│ datetime                       ┆ ticker ┆ close  ┆ rsi   │
+│ ---                            ┆ ---    ┆ ---    ┆ ---   │
+│ datetime[μs, America/New_York] ┆ str    ┆ f64    ┆ f64   │
+╞════════════════════════════════╪════════╪════════╪═══════╡
+│ 2024-03-26 17:00:00 EDT        ┆ AAPL   ┆ 168.02 ┆ 37.64 │
+│ 2024-03-26 17:00:00 EDT        ┆ GOOG   ┆ 150.37 ┆ 64.6  │
+│ 2024-03-26 17:00:00 EDT        ┆ NVDA   ┆ 92.4   ┆ 65.66 │
+│ 2024-03-27 17:00:00 EDT        ┆ AAPL   ┆ 171.59 ┆ 45.62 │
+│ 2024-03-27 17:00:00 EDT        ┆ GOOG   ┆ 150.61 ┆ 64.95 │
+│ 2024-03-27 17:00:00 EDT        ┆ NVDA   ┆ 90.09  ┆ 60.06 │
+│ 2024-03-28 17:00:00 EDT        ┆ AAPL   ┆ 169.78 ┆ 42.64 │
+│ 2024-03-28 17:00:00 EDT        ┆ GOOG   ┆ 150.93 ┆ 65.43 │
+│ 2024-03-28 17:00:00 EDT        ┆ NVDA   ┆ 90.2   ┆ 60.24 │
+└────────────────────────────────┴────────┴────────┴───────┘
+```
+
+Multi-output indicators (`bollinger_bands`, `macd`, `stochastic_slow`, …) return a single `pl.Struct` — pick a line
+with `.struct.field(...)` or expand every line with `.struct.unnest()`.
 
 <details><summary>All 75 indicators, by category</summary>
 
@@ -123,16 +129,50 @@ frame.select(bollinger_bands(pl.col("close"), 20).alias("bb")).unnest("bb")
 
 </details>
 
-### pnl — 18 functions
+## PnL Accounting
 
-Profit-and-loss accounting in two flows: **returns** (a signed `weight` of capital and asset returns) and **cash**
-(a `quantity` of units and a price), with composable transaction-cost models, dividends, and inverse contracts. Every
-degenerate input (`null` / `NaN` / `0` / `±inf` / warm-up) has a defined, documented, tested behavior.
+18 functions that turn a signal into money. An indicator becomes a signed `weight`; `returns_gross` /
+`cost_proportional` / `returns_net` turn that into a costed return, and the `.shift(1)` on the signal is the whole
+no-look-ahead story — a decision at the close acts on the next bar. Every degenerate input (`null` / `NaN` / `0` /
+`±inf` / warm-up) has a defined, documented, tested behavior:
 
 ```python
-from pomata.pnl import returns_net, returns_gross, cost_proportional, equity_curve
-gross = returns_gross(pl.col("weight"), pl.col("asset_returns"))
-frame.select(equity_curve(returns_net(gross, cost_proportional(pl.col("weight"), rate=0.001))))
+from pomata.pnl import returns_simple, returns_gross, returns_net, cost_proportional
+
+pnl = (
+    ohlcv
+    .with_columns(
+        weight=(rsi(pl.col("close"), 14) > 50).cast(pl.Float64).shift(1).over("ticker"),
+        asset_returns=returns_simple(pl.col("close")).over("ticker"),
+    )
+    .with_columns(
+        net=returns_net(
+            returns_gross(pl.col("weight"), pl.col("asset_returns")),
+            cost_proportional(pl.col("weight"), rate=0.001).over("ticker"),
+        ),
+    )
+)
+
+pnl.select("datetime", "ticker", "weight", pl.col("net").round(4)).tail(9)
+```
+
+```text
+shape: (9, 4)
+┌────────────────────────────────┬────────┬────────┬─────────┐
+│ datetime                       ┆ ticker ┆ weight ┆ net     │
+│ ---                            ┆ ---    ┆ ---    ┆ ---     │
+│ datetime[μs, America/New_York] ┆ str    ┆ f64    ┆ f64     │
+╞════════════════════════════════╪════════╪════════╪═════════╡
+│ 2024-03-26 17:00:00 EDT        ┆ AAPL   ┆ 0.0    ┆ -0.0    │
+│ 2024-03-26 17:00:00 EDT        ┆ GOOG   ┆ 1.0    ┆ 0.0036  │
+│ 2024-03-26 17:00:00 EDT        ┆ NVDA   ┆ 1.0    ┆ -0.0257 │
+│ 2024-03-27 17:00:00 EDT        ┆ AAPL   ┆ 0.0    ┆ 0.0     │
+│ 2024-03-27 17:00:00 EDT        ┆ GOOG   ┆ 1.0    ┆ 0.0016  │
+│ 2024-03-27 17:00:00 EDT        ┆ NVDA   ┆ 1.0    ┆ -0.025  │
+│ 2024-03-28 17:00:00 EDT        ┆ AAPL   ┆ 0.0    ┆ -0.0    │
+│ 2024-03-28 17:00:00 EDT        ┆ GOOG   ┆ 1.0    ┆ 0.0021  │
+│ 2024-03-28 17:00:00 EDT        ┆ NVDA   ┆ 1.0    ┆ 0.0012  │
+└────────────────────────────────┴────────┴────────┴─────────┘
 ```
 
 <details><summary>All 18 PnL functions</summary>
@@ -142,15 +182,40 @@ frame.select(equity_curve(returns_net(gross, cost_proportional(pl.col("weight"),
 
 </details>
 
-### metrics — 60 functions
+## Performance & Risk Metrics
 
-Performance & risk statistics as reducing `pl.Expr`: point one at a return series (e.g. `pomata.pnl.returns_net`) or an
-equity curve (e.g. `pomata.pnl.equity_curve`). Sharpe, Sortino, Calmar, drawdown, VaR/CVaR, capture, benchmark-relative
-(alpha/beta/Treynor/information ratio), and a rolling twin for every windowed form.
+60 reducing `pl.Expr` — point one at the net returns and it folds the whole history into the figure you report:
+Sharpe, Sortino, Calmar, drawdown, VaR/CVaR, capture, benchmark-relative, and a rolling twin for every windowed form. A
+`null` is skipped; a non-null `NaN` poisons the result loudly, rather than passing a plausible lie downstream:
 
 ```python
-from pomata.metrics import sharpe_ratio, max_drawdown
-frame.select(sharpe_ratio(pl.col("returns"), periods_per_year=252))
+from pomata.pnl import equity_curve
+from pomata.metrics import sharpe_ratio, total_return, max_drawdown
+
+report = (
+    pnl
+    .group_by("ticker", maintain_order=True)
+    .agg(
+        sharpe=sharpe_ratio(pl.col("net"), periods_per_year=252).round(2),
+        total_return=total_return(equity_curve(pl.col("net"))).round(4),
+        max_drawdown=max_drawdown(equity_curve(pl.col("net"))).round(4),
+    )
+)
+
+report
+```
+
+```text
+shape: (3, 4)
+┌────────┬────────┬──────────────┬──────────────┐
+│ ticker ┆ sharpe ┆ total_return ┆ max_drawdown │
+│ ---    ┆ ---    ┆ ---          ┆ ---          │
+│ str    ┆ f64    ┆ f64          ┆ f64          │
+╞════════╪════════╪══════════════╪══════════════╡
+│ AAPL   ┆ -3.97  ┆ -0.0788      ┆ -0.0773      │
+│ GOOG   ┆ -0.67  ┆ -0.0384      ┆ -0.1359      │
+│ NVDA   ┆ 4.16   ┆ 0.4727       ┆ -0.087       │
+└────────┴────────┴──────────────┴──────────────┘
 ```
 
 <details><summary>All 60 metrics</summary>
@@ -163,39 +228,62 @@ frame.select(sharpe_ratio(pl.col("returns"), periods_per_year=252))
 
 </details>
 
-## Correctness
+## The whole study, one lazy query
 
-**Verified, not asserted.** Every function is checked against an *independent* reference — a second code path that shares
-nothing with the implementation — plus frozen golden-master values and property-based invariants, under **100% branch
-coverage**. A function ships only when that suite is green.
+Every step above is a `pl.Expr`, so the four of them fuse into a single lazy pipeline — no intermediate frames, no glue,
+no second dependency between the steps. Run it on `.lazy()` and `.collect()` the same three-row verdict:
 
-For indicators there is also a public reference to meet: TA-Lib. Here is one figure to every digit a `float64` holds —
-`rsi(14)`, the last value of a deterministic 400-bar series:
-
-```text
-pomata      85.20908701341023
-reference   85.20908701341023   ← independent reimplementation: identical, to the last bit
-TA-Lib      85.20908701341024   ← fifteen figures identical; differs only at the float64 floor
+```python
+report = (
+    ohlcv.lazy()
+    .with_columns(
+        weight=(rsi(pl.col("close"), 14) > 50).cast(pl.Float64).shift(1).over("ticker"),
+        asset_returns=returns_simple(pl.col("close")).over("ticker"),
+    )
+    .with_columns(
+        net=returns_net(
+            returns_gross(pl.col("weight"), pl.col("asset_returns")),
+            cost_proportional(pl.col("weight"), rate=0.001).over("ticker"),
+        ),
+    )
+    .group_by("ticker", maintain_order=True)
+    .agg(
+        sharpe=sharpe_ratio(pl.col("net"), periods_per_year=252).round(2),
+        total_return=total_return(equity_curve(pl.col("net"))).round(4),
+        max_drawdown=max_drawdown(equity_curve(pl.col("net"))).round(4),
+    )
+    .collect()
+)
 ```
 
-The same five indicators on the same series — most reproduce the reference *exactly*, the rest land at the noise floor:
+```text
+shape: (3, 4)
+┌────────┬────────┬──────────────┬──────────────┐
+│ ticker ┆ sharpe ┆ total_return ┆ max_drawdown │
+│ ---    ┆ ---    ┆ ---          ┆ ---          │
+│ str    ┆ f64    ┆ f64          ┆ f64          │
+╞════════╪════════╪══════════════╪══════════════╡
+│ AAPL   ┆ -3.97  ┆ -0.0788      ┆ -0.0773      │
+│ GOOG   ┆ -0.67  ┆ -0.0384      ┆ -0.1359      │
+│ NVDA   ┆ 4.16   ┆ 0.4727       ┆ -0.087       │
+└────────┴────────┴──────────────┴──────────────┘
+```
 
-| indicator | pomata | vs reimplementation | vs TA-Lib |
-| --- | --- | :-: | :-: |
-| `sma(20)` | `105.15146076264764` | exact | `1e-13` |
-| `ema(20)` | `107.7299930892346` | `1e-13` | `1e-14` |
-| `rsi(14)` | `85.20908701341023` | exact | `1e-14` |
-| `atr(14)` | `1.904174462198776` | `9e-16` | `4e-15` |
-| `macd(12,26,9)` | `2.523444380829531` | `1e-13` | `1e-14` |
+Same three numbers, arrived at as one query: the indicator fed the signal, the signal fed the PnL, the PnL fed the
+metrics, and the optimizer fused the lot. Momentum paid in a quarter NVDA ran and cost a little where AAPL slid — the
+`.over("ticker")` keeps a three-name panel, or a five-hundred-name one, equally separate.
 
-The `pomata` and reference columns are pinned in the test suite; regenerate the full table — including the TA-Lib column
-(which needs the optional `differential` dependency) — from a fresh clone with
-`uv run --group differential python scripts/precision_table.py`.
+## Correctness
 
-`pnl` and `metrics` are proven on a different axis — every degenerate input has a defined behavior, matched against an
-independent reference oracle — because their math is simple and their correctness lives at the edges, not in the digits.
-The full method (the precision guarantee, the test-sizing derivations, exactly what is and is not claimed) is in
-**[CORRECTNESS.md](CORRECTNESS.md)**.
+**Verified, not asserted.** Every function is written twice: the shipped `pl.Expr`, and a second, independent *oracle*
+that shares no code with it. The two must agree — on fixed series, frozen golden masters, and thousands of fuzzed
+inputs, under **100% branch coverage** — or the build is red.
+
+Each family is then held to the yardstick that catches its bugs: **indicators to the digit**, against the public TA-Lib 
+reference; **PnL and metrics at the edges**, where every degenerate input has a defined, tested behavior.
+
+The full account — the precision guarantee, the receipts, and exactly what is and is not claimed — is on the 
+[trust page](https://ilpomo.github.io/pomata/trust.html) and in [CORRECTNESS.md](CORRECTNESS.md).
 
 ## Where pomata fits
 
@@ -208,7 +296,6 @@ engine — no order fills, no event loop, no lot accounting.
 
 ## Project
 
-- **Requirements** — Python ≥ 3.12, Polars ≥ 1.40.
 - **Contributing** — see [CONTRIBUTING.md](CONTRIBUTING.md); the full gate (lint, three gating type checkers plus an
   advisory fourth, doctests, 100% branch coverage) runs on every commit.
 - **License** — MIT, see [LICENSE](LICENSE).
