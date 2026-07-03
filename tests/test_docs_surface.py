@@ -18,7 +18,7 @@ _README = Path(__file__).parent.parent / "README.md"
 
 
 def _family_block(header: str) -> str:
-    """The text of the collapsible ``<details>`` block immediately following a ``### <family>`` header."""
+    """The text of the collapsible ``<details>`` block immediately following a family's ``## <section>`` header."""
     text = _README.read_text(encoding="utf-8")
     header_at = text.index(header)
     open_at = text.index("<details>", header_at)
@@ -33,25 +33,25 @@ def _listed_names(header: str) -> set[str]:
 
 def test_readme_indicator_list_matches_all() -> None:
     """The README indicator list equals ``pomata.indicators.__all__``."""
-    assert _listed_names("### indicators") == set(pomata.indicators.__all__)
+    assert _listed_names("## Technical Indicators") == set(pomata.indicators.__all__)
 
 
 def test_readme_metric_list_matches_all() -> None:
     """The README metric list equals ``pomata.metrics.__all__``."""
-    assert _listed_names("### metrics") == set(pomata.metrics.__all__)
+    assert _listed_names("## Performance & Risk Metrics") == set(pomata.metrics.__all__)
 
 
 def test_readme_pnl_list_matches_all() -> None:
     """The README PnL list equals ``pomata.pnl.__all__``."""
-    assert _listed_names("### pnl") == set(pomata.pnl.__all__)
+    assert _listed_names("## PnL Accounting") == set(pomata.pnl.__all__)
 
 
 def test_readme_headline_counts_match_all() -> None:
-    """Each ``### <family> -- N functions`` headline count equals the family's ``__all__`` length."""
+    """Each family's ``<details>`` summary count (``All N ...``) equals the family's ``__all__`` length."""
     text = _README.read_text(encoding="utf-8")
-    assert f"### indicators — {len(pomata.indicators.__all__)} functions" in text
-    assert f"### metrics — {len(pomata.metrics.__all__)} functions" in text
-    assert f"### pnl — {len(pomata.pnl.__all__)} functions" in text
+    assert f"All {len(pomata.indicators.__all__)} indicators" in text
+    assert f"All {len(pomata.pnl.__all__)} PnL functions" in text
+    assert f"All {len(pomata.metrics.__all__)} metrics" in text
 
 
 def _category_counts(header: str) -> list[tuple[str, int, int]]:
@@ -67,7 +67,7 @@ def _category_counts(header: str) -> list[tuple[str, int, int]]:
 
 def test_readme_category_counts_match_listing() -> None:
     """Each ``**category** (N)`` parenthetical equals the number of names listed in that bullet (indicators block)."""
-    counts = _category_counts("### indicators")
+    counts = _category_counts("## Technical Indicators")
     assert counts, "expected per-category (N) counts in the indicators block"
     for name, declared, listed in counts:
         assert declared == listed, f"indicators category {name!r}: declared {declared}, listed {listed}"
