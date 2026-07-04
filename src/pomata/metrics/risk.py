@@ -4,6 +4,7 @@ Risk and dispersion metrics — volatility, downside deviation, distribution sha
 
 import math
 from statistics import NormalDist
+from typing import Literal
 
 import polars as pl
 
@@ -39,25 +40,33 @@ __all__ = (
 )
 
 
-def _rolling_central_moments(
+def _rolling_moment(
     expr: pl.Expr,
     window: int,
-) -> tuple[pl.Expr, pl.Expr, pl.Expr]:
+    *,
+    kind: Literal["skew", "kurtosis"],
+) -> pl.Expr:
     """
-    The rolling second, third, and fourth central moments over a window, from the rolling raw moments.
+    The native rolling skewness or excess kurtosis over a window, guarded against an empty input.
 
-    Computed from ``rolling_mean`` of the first four powers (``min_samples=window``) so the warm-up, null-in-window, and
-    NaN propagation all follow the rolling policy. This is the one-pass route to rolling skewness and kurtosis; it is
-    used in place of Polars' ``rolling_skew`` / ``rolling_kurtosis``, which panic on an empty input series.
+    Routes to Polars' native ``rolling_skew`` / ``rolling_kurtosis`` -- both mean-centered, so they stay numerically
+    stable on a near-constant window far from zero, where the one-pass raw-moment form (``E[x^k]`` less the mean terms)
+    cancels catastrophically. Those two native kernels panic on a length-0 series (unlike ``rolling_var`` /
+    ``rolling_std``), and a ``pl.when`` length guard cannot prevent it (both branches evaluate), so the empty case is
+    short-circuited inside a thin ``map_batches`` wrapper -- one call around a native Rust kernel, faster than the four
+    rolling passes a one-pass moment would need. The population (biased) convention matches the reducing
+    :func:`skewness` / :func:`kurtosis`, and warm-up, ``null``-in-window, and ``NaN`` propagation follow the native
+    rolling policy.
     """
-    moment_1 = expr.rolling_mean(window, min_samples=window)
-    moment_2 = (expr**2).rolling_mean(window, min_samples=window)
-    moment_3 = (expr**3).rolling_mean(window, min_samples=window)
-    moment_4 = (expr**4).rolling_mean(window, min_samples=window)
-    central_2 = moment_2 - moment_1**2
-    central_3 = moment_3 - 3.0 * moment_1 * moment_2 + 2.0 * moment_1**3
-    central_4 = moment_4 - 4.0 * moment_1 * moment_3 + 6.0 * moment_1**2 * moment_2 - 3.0 * moment_1**4
-    return central_2, central_3, central_4
+
+    def _kernel(series: pl.Series) -> pl.Series:
+        if series.len() == 0:
+            return pl.Series(series.name, [], dtype=pl.Float64)
+        if kind == "skew":
+            return series.rolling_skew(window_size=window, bias=True)
+        return series.rolling_kurtosis(window_size=window, fisher=True, bias=True)
+
+    return expr.map_batches(_kernel, return_dtype=pl.Float64)
 
 
 def _rolling_is_constant(
@@ -610,8 +619,8 @@ def kurtosis_rolling(
 
         \mathrm{Kurt}_t = \frac{m_{4,t}}{m_{2,t}^{2}} - 3, \qquad n = \text{window},
 
-    where :math:`m_{k,t}` is the ``k``-th central moment over the window. The moments are formed from the rolling raw
-    moments so an empty input is handled cleanly.
+    where :math:`m_{k,t}` is the ``k``-th central moment over the window, from Polars' native mean-centered rolling
+    kurtosis (numerically stable on a near-constant window, with the empty-series case guarded).
 
     Args:
         returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
@@ -634,8 +643,6 @@ def kurtosis_rolling(
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
         - **Zero variance** — a constant window has an undefined kurtosis (``0 / 0``), yielding ``NaN``.
-        - **Precision** — the one-pass rolling moment loses accuracy when a window's mean dominates its spread (a
-          near-constant window far from zero); the reducing :func:`kurtosis` does not share this limitation.
         - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries.
 
     See Also:
@@ -691,12 +698,7 @@ def kurtosis_rolling(
     """
     returns = float64_expr(returns)
     validate_window(window, minimum=2)
-    central_2, _, central_4 = _rolling_central_moments(returns, window)
-    kurt = central_4 / central_2**2 - 3.0
-    # A constant (zero-variance) window has undefined excess kurtosis -> NaN; guard it explicitly, since the one-pass
-    # central moments leave a cancellation residue on a non-representable constant that would otherwise read as a huge
-    # finite.
-    return pl.when(_rolling_is_constant(returns, window)).then(pl.lit(float("nan"))).otherwise(kurt).name.keep()
+    return _rolling_moment(returns, window, kind="kurtosis")
 
 
 def payoff_ratio(
@@ -1089,8 +1091,8 @@ def skewness_rolling(
 
         \mathrm{Skew}_t = \frac{m_{3,t}}{m_{2,t}^{3/2}}, \qquad n = \text{window},
 
-    where :math:`m_{k,t}` is the ``k``-th central moment over the window. The moments are formed from the rolling raw
-    moments so an empty input is handled cleanly.
+    where :math:`m_{k,t}` is the ``k``-th central moment over the window, from Polars' native mean-centered rolling
+    skewness (numerically stable on a near-constant window, with the empty-series case guarded).
 
     Args:
         returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
@@ -1113,8 +1115,6 @@ def skewness_rolling(
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
         - **Zero variance** — a constant window has an undefined skewness (``0 / 0``), yielding ``NaN``.
-        - **Precision** — the one-pass rolling moment loses accuracy when a window's mean dominates its spread (a
-          near-constant window far from zero); the reducing :func:`skewness` does not share this limitation.
         - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries.
 
     See Also:
@@ -1131,7 +1131,7 @@ def skewness_rolling(
         >>>
         >>> frame = pl.DataFrame({"returns": [0.01, -0.02, 0.03, -0.01, 0.02, 0.0, -0.015]})
         >>> frame.select(skewness_rolling(pl.col("returns"), 4).round(4))["returns"].to_list()
-        [None, None, None, 0.278, 0.0, 0.0, 0.6568]
+        [None, None, None, 0.278, -0.0, -0.0, 0.6568]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up on its own (the ``B`` group never
         borrows ``A``'s tail):
@@ -1159,22 +1159,18 @@ def skewness_rolling(
         ... )
         >>> rolled = skewness_rolling(pl.col("returns"), 4).over("ticker").round(4)
         >>> frame.select(rolled.alias("m"))["m"].to_list()
-        [None, None, None, 0.278, 0.0, 0.0, 0.6568, None, None, None, 0.0, 0.2439, -0.6183, 0.0912]
+        [None, None, None, 0.278, -0.0, -0.0, 0.6568, None, None, None, -0.0, 0.2439, -0.6183, 0.0912]
 
         A leading ``null`` and a later ``NaN`` show the per-window masking, with the result recovering once both
         leave the window:
 
         >>> frame = pl.DataFrame({"returns": [None, 0.01, float("nan"), -0.02, 0.03, -0.01, 0.02, 0.0, -0.015]})
         >>> frame.select(skewness_rolling(pl.col("returns"), 4).round(4))["returns"].to_list()
-        [None, None, None, None, nan, nan, 0.0, 0.0, 0.6568]
+        [None, None, None, None, nan, nan, -0.0, -0.0, 0.6568]
     """
     returns = float64_expr(returns)
     validate_window(window, minimum=2)
-    central_2, central_3, _ = _rolling_central_moments(returns, window)
-    skew = central_3 / central_2**1.5
-    # A constant (zero-variance) window has undefined skewness -> NaN; guard it explicitly, since the one-pass central
-    # moments leave a cancellation residue on a non-representable constant that would otherwise read as a huge finite.
-    return pl.when(_rolling_is_constant(returns, window)).then(pl.lit(float("nan"))).otherwise(skew).name.keep()
+    return _rolling_moment(returns, window, kind="skew")
 
 
 def tail_ratio(

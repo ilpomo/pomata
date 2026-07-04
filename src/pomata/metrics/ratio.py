@@ -664,14 +664,18 @@ def omega_ratio_rolling(
     validate_window(window)
     validate_finite(threshold, "threshold")
     excess = returns - threshold
+    gain = excess.clip(lower_bound=0.0)
     loss = (-excess).clip(lower_bound=0.0)
-    mean_gain = excess.clip(lower_bound=0.0).rolling_mean(window, min_samples=window).clip(lower_bound=0.0)
+    mean_gain_raw = gain.rolling_mean(window, min_samples=window).clip(lower_bound=0.0)
     mean_loss_raw = loss.rolling_mean(window, min_samples=window).clip(lower_bound=0.0)
-    # Force a window with no loss to exactly zero mean loss (a +inf ratio), not the tiny residue the one-pass sliding
-    # sum can leave once a large loss exits the window -- which would otherwise report a huge finite instead of +inf.
+    # Force a window with no gain (resp. no loss) to exactly zero, not the tiny residue the one-pass sliding sum can
+    # leave once a large value exits the window: an all-at-threshold window is then ``0 / 0`` = ``NaN`` (not a spurious
+    # ``+inf`` from a gain residue over a zeroed loss), and a one-sided window gives ``0`` or ``+inf`` as it should.
+    no_gain = gain.rolling_max(window, min_samples=window) == 0.0
     no_loss = loss.rolling_max(window, min_samples=window) == 0.0
+    mean_gain = pl.when(no_gain).then(0.0).otherwise(mean_gain_raw)
     mean_loss = pl.when(no_loss).then(0.0).otherwise(mean_loss_raw)
-    return mean_gain / mean_loss
+    return (mean_gain / mean_loss).name.keep()
 
 
 def pain_ratio(

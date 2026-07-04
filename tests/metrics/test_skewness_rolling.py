@@ -39,10 +39,12 @@ from pomata.metrics import skewness_rolling
 # Test sizing -- skewness_rolling is WINDOWED and series-valued (a standardized third moment per window). Facts:
 #   1. shape   length-preserving: one output row per input row; the first ``window - 1`` rows are warm-up ``null``
 #   2. domain  magnitude-bounded returns (``|r|`` in [0.01, 1], sign-varied) so a window never mixes a subnormal with
-#              an ``O(1)`` value (that mix makes the one-pass cube cancel catastrophically); missing mixes null / NaN
+#              an ``O(1)`` value; missing mixes null / NaN
 #   3. window  window_min = 3 (skewness is degenerate -- identically 0 -- for two points) .. WINDOW_MAX
-# The one-pass rolling moments diverge from the two-pass oracle on ill-conditioned windows, so the property tiers
-# require every window to be well-conditioned (variance a real fraction of the magnitude); agreement is a 1e-6 band.
+# The standardized third moment (``central_3 / central_2**1.5``) is inherently ill-conditioned once a window's variance
+# nears the float floor -- there the native rolling skewness and the two-pass oracle disagree because the quantity, not
+# the algorithm, is unstable -- so the property tiers require every window to be well-conditioned (variance a real
+# fraction of the magnitude); agreement is a 1e-6 band.
 # ----------------------------------------------------------------------------------------------------------------------
 _VALUE = st.one_of(
     st.floats(min_value=0.01, max_value=1.0, allow_nan=False, allow_infinity=False),
@@ -152,12 +154,25 @@ class TestSkewnessRollingEdge:
 
     def test_constant_window_is_nan(self) -> None:
         """
-        Verifies that a constant window has zero variance, so the skewness is ``NaN`` -- the value is not exactly
-        representable, so the one-pass central moments leave a residue that must be guarded, not surfaced as a finite.
+        Verifies that a constant window has zero variance, so the skewness is undefined (``0 / 0``) and the native
+        mean-centered moment yields ``NaN``.
         """
         assert_matches(
             apply_expr([0.3, 0.3, 0.3, 0.3], skewness_rolling(pl.col(COLUMN_X), 3)),
             [None, None, math.nan, math.nan],
+        )
+
+    def test_near_constant_window_is_finite(self) -> None:
+        """
+        Verifies that a near-constant (non-bit-identical) window -- which the exact zero-variance test does not cover --
+        yields the finite reference skewness from the native mean-centered moment, not the spurious huge finite a
+        one-pass raw-moment formula would cancel to.
+        """
+        values = [100.0, 100.0, 100.0, 100.000001]
+        assert_matches(
+            apply_expr(values, skewness_rolling(pl.col(COLUMN_X), 4)),
+            skewness_rolling_reference(values, 4),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
         )
 
 
