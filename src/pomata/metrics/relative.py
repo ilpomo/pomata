@@ -164,7 +164,7 @@ def alpha(
         benchmark: Benchmark per-bar return series, as fractions, aligned row-for-row with ``returns``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         risk_free_rate: The annualized risk-free rate, converted to a per-period rate geometrically (default ``0.0``).
-            Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + risk_free_rate > 0``).
+            Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + risk_free_rate >= 0``).
 
     Returns:
         A single ``Float64`` value: the annualized Jensen's alpha (one value in ``select``, one per group under
@@ -172,7 +172,7 @@ def alpha(
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
-        ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite.
+        ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite or is ``< -1``.
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
@@ -239,7 +239,7 @@ def alpha(
     validate_periods_per_year(periods_per_year)
     validate_finite(risk_free_rate, "risk_free_rate")
     returns_paired, benchmark_paired = _paired(returns, benchmark)
-    rf_period = per_period_rate(risk_free_rate, periods_per_year)
+    rf_period = per_period_rate(risk_free_rate, periods_per_year, name="risk_free_rate")
     slope = _raw_beta(returns_paired, benchmark_paired)
     excess_leg = (returns_paired - rf_period) - slope * (benchmark_paired - rf_period)
     annualized = (1.0 + excess_leg.mean()) ** periods_per_year - 1.0
@@ -272,7 +272,7 @@ def alpha_rolling(
         window: Number of observations in the moving window. Must be ``>= 2``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         risk_free_rate: The annualized risk-free rate, converted to a per-period rate geometrically (default ``0.0``).
-            Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + risk_free_rate > 0``).
+            Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + risk_free_rate >= 0``).
 
     Returns:
         The rolling Jensen's alpha for each row, the same length as the input. The first ``window - 1`` rows are
@@ -280,7 +280,7 @@ def alpha_rolling(
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
-        ValueError: If ``window < 2``, ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite.
+        ValueError: If ``window < 2``, ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite or is ``< -1``.
 
     Note:
         **Correctness** -- each window matches an independent reference oracle (the reducing :func:`alpha` over the
@@ -351,7 +351,7 @@ def alpha_rolling(
     validate_window(window, minimum=2)
     validate_periods_per_year(periods_per_year)
     validate_finite(risk_free_rate, "risk_free_rate")
-    rf_period = per_period_rate(risk_free_rate, periods_per_year)
+    rf_period = per_period_rate(risk_free_rate, periods_per_year, name="risk_free_rate")
     slope = _rolling_raw_beta(returns, benchmark, window)
     mean_returns = returns.rolling_mean(window, min_samples=window)
     mean_benchmark = benchmark.rolling_mean(window, min_samples=window)
@@ -1119,7 +1119,7 @@ def modigliani_risk_adjusted_performance(
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
-        ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite.
+        ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite or is ``< -1``.
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
@@ -1217,7 +1217,7 @@ def treynor_ratio(
         benchmark: Benchmark per-bar return series, as fractions, aligned row-for-row with ``returns``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         risk_free_rate: The annualized risk-free rate, converted to a per-period rate geometrically (default ``0.0``).
-            Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + risk_free_rate > 0``).
+            Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + risk_free_rate >= 0``).
 
     Returns:
         A single ``Float64`` value: the annualized Treynor ratio (one value in ``select``, one per group under
@@ -1225,7 +1225,7 @@ def treynor_ratio(
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
-        ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite.
+        ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite or is ``< -1``.
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
@@ -1295,7 +1295,7 @@ def treynor_ratio(
     validate_periods_per_year(periods_per_year)
     validate_finite(risk_free_rate, "risk_free_rate")
     returns_paired, benchmark_paired = _paired(returns, benchmark)
-    rf_period = per_period_rate(risk_free_rate, periods_per_year)
+    rf_period = per_period_rate(risk_free_rate, periods_per_year, name="risk_free_rate")
     annualized_excess = (returns_paired - rf_period).mean() * periods_per_year
     slope = _raw_beta(returns_paired, benchmark_paired)
     return pl.when(returns_paired.len() < _MINIMUM_PAIRED_OBSERVATIONS).then(None).otherwise(annualized_excess / slope)
@@ -1327,7 +1327,7 @@ def treynor_ratio_rolling(
         window: Number of observations in the moving window. Must be ``>= 2``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         risk_free_rate: The annualized risk-free rate, converted to a per-period rate geometrically (default ``0.0``).
-            Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + risk_free_rate > 0``).
+            Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + risk_free_rate >= 0``).
 
     Returns:
         The rolling Treynor ratio for each row, the same length as the input. The first ``window - 1`` rows are
@@ -1335,7 +1335,7 @@ def treynor_ratio_rolling(
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
-        ValueError: If ``window < 2``, ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite.
+        ValueError: If ``window < 2``, ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite or is ``< -1``.
 
     Note:
         **Correctness** -- each window matches an independent reference oracle (the reducing :func:`treynor_ratio` over
@@ -1408,6 +1408,6 @@ def treynor_ratio_rolling(
     validate_window(window, minimum=2)
     validate_periods_per_year(periods_per_year)
     validate_finite(risk_free_rate, "risk_free_rate")
-    rf_period = per_period_rate(risk_free_rate, periods_per_year)
+    rf_period = per_period_rate(risk_free_rate, periods_per_year, name="risk_free_rate")
     annualized_excess = (returns - rf_period).rolling_mean(window, min_samples=window) * periods_per_year
     return annualized_excess / _rolling_raw_beta(returns, benchmark, window)

@@ -466,7 +466,8 @@ def standard_deviation_rolling(
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
-        ValueError: If ``window < 1``, or if ``ddof >= window`` (the divisor ``window - ddof`` would be non-positive).
+        ValueError: If ``window < 1``, ``ddof < 0``, or if ``ddof >= window`` (the divisor ``window - ddof`` would be
+            non-positive).
 
     Note:
         **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
@@ -729,7 +730,8 @@ def variance_rolling(
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
-        ValueError: If ``window < 1``, or if ``ddof >= window`` (the divisor ``window - ddof`` would be non-positive).
+        ValueError: If ``window < 1``, ``ddof < 0``, or if ``ddof >= window`` (the divisor ``window - ddof`` would be
+            non-positive).
 
     Note:
         **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
