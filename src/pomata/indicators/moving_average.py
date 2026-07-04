@@ -175,7 +175,7 @@ def dema(
     validate_window(window)
     ema_once = ema(expr, window, adjust=adjust)
     ema_twice = ema(ema_once, window, adjust=adjust)
-    return 2 * ema_once - ema_twice
+    return (2 * ema_once - ema_twice).name.keep()
 
 
 def ema(
@@ -380,7 +380,7 @@ def hma(
     half_window = math.floor(window / 2 + 0.5)
     smoothing_window = math.floor(math.sqrt(window) + 0.5)
     raw_expr = 2 * wma(expr, half_window) - wma(expr, window)
-    return wma(raw_expr, smoothing_window)
+    return wma(raw_expr, smoothing_window).name.keep()
 
 
 def _kama_kernel(
@@ -870,7 +870,8 @@ def t3(
     ema_5 = ema(ema_4, window, adjust=adjust)
     ema_6 = ema(ema_5, window, adjust=adjust)
 
-    return coefficient_e6 * ema_6 + coefficient_e5 * ema_5 + coefficient_e4 * ema_4 + coefficient_e3 * ema_3
+    combined = coefficient_e6 * ema_6 + coefficient_e5 * ema_5 + coefficient_e4 * ema_4 + coefficient_e3 * ema_3
+    return combined.name.keep()
 
 
 def tema(
@@ -964,7 +965,7 @@ def tema(
     ema_first = ema(expr, window, adjust=adjust)
     ema_second = ema(ema_first, window, adjust=adjust)
     ema_third = ema(ema_second, window, adjust=adjust)
-    return 3 * ema_first - 3 * ema_second + ema_third
+    return (3 * ema_first - 3 * ema_second + ema_third).name.keep()
 
 
 def trima(
@@ -1155,7 +1156,7 @@ def vwma(
     # a ±inf reading, and return NaN as documented. Gate on the weighted-sum being non-null so a null in expr (which
     # voids that sum) keeps null precedence: a window holding a null still propagates null through the division.
     is_zero_volume = (volume.rolling_max(window_size=window) == 0) & weighted_sum.is_not_null()
-    return pl.when(is_zero_volume).then(float("nan")).otherwise(raw)
+    return pl.when(is_zero_volume).then(float("nan")).otherwise(raw).name.keep()
 
 
 def wma(
