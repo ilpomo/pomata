@@ -202,9 +202,9 @@ def parabolic_sar(
     high = float64_expr(high)
     low = float64_expr(low)
     if not 0.0 < acceleration <= 1.0:
-        raise ValueError(f"acceleration must be in (0, 1], got {acceleration}")
+        raise ValueError(f"acceleration must be in the half-open interval (0, 1], got {acceleration}")
     if not 0.0 < maximum <= 1.0:
-        raise ValueError(f"maximum must be in (0, 1], got {maximum}")
+        raise ValueError(f"maximum must be in the half-open interval (0, 1], got {maximum}")
     if acceleration > maximum:
         raise ValueError(f"acceleration must be <= maximum, got acceleration={acceleration}, maximum={maximum}")
     return pl.struct(high=high, low=low).map_batches(

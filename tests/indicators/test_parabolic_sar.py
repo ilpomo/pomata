@@ -153,7 +153,7 @@ class TestParabolicSarEdge:
         raises ``ValueError``.
         """
         for invalid in (0.0, -0.5, math.nan, math.inf, -math.inf):
-            with pytest.raises(ValueError, match=r"acceleration must be in \(0, 1\]"):
+            with pytest.raises(ValueError, match=r"acceleration must be in the half-open interval \(0, 1\]"):
                 parabolic_sar(pl.col(HIGH), pl.col(LOW), acceleration=invalid)
 
     def test_invalid_maximum_raises(self) -> None:
@@ -162,21 +162,21 @@ class TestParabolicSarEdge:
         raises ``ValueError``.
         """
         for invalid in (0.0, -0.5, math.nan, math.inf, -math.inf):
-            with pytest.raises(ValueError, match=r"maximum must be in \(0, 1\]"):
+            with pytest.raises(ValueError, match=r"maximum must be in the half-open interval \(0, 1\]"):
                 parabolic_sar(pl.col(HIGH), pl.col(LOW), maximum=invalid)
 
     def test_acceleration_above_one_raises(self) -> None:
         """
         Verifies that ``acceleration > 1`` raises ``ValueError`` (the factor is a fraction in ``(0, 1]``).
         """
-        with pytest.raises(ValueError, match=r"acceleration must be in \(0, 1\]"):
+        with pytest.raises(ValueError, match=r"acceleration must be in the half-open interval \(0, 1\]"):
             parabolic_sar(pl.col(HIGH), pl.col(LOW), acceleration=1.5, maximum=2.0)
 
     def test_maximum_above_one_raises(self) -> None:
         """
         Verifies that ``maximum > 1`` raises ``ValueError`` (the factor is a fraction in ``(0, 1]``).
         """
-        with pytest.raises(ValueError, match=r"maximum must be in \(0, 1\]"):
+        with pytest.raises(ValueError, match=r"maximum must be in the half-open interval \(0, 1\]"):
             parabolic_sar(pl.col(HIGH), pl.col(LOW), acceleration=0.02, maximum=1.5)
 
     def test_acceleration_above_maximum_raises(self) -> None:

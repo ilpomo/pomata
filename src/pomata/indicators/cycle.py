@@ -619,9 +619,9 @@ def mama(
     """
     expr = float64_expr(expr)
     if not 0.0 < limit_fast <= 1.0:
-        raise ValueError(f"limit_fast must be in (0, 1], got {limit_fast}")
+        raise ValueError(f"limit_fast must be in the half-open interval (0, 1], got {limit_fast}")
     if not 0.0 < limit_slow <= 1.0:
-        raise ValueError(f"limit_slow must be in (0, 1], got {limit_slow}")
+        raise ValueError(f"limit_slow must be in the half-open interval (0, 1], got {limit_slow}")
     if limit_fast < limit_slow:
         raise ValueError(f"limit_fast must be >= limit_slow, got limit_fast={limit_fast}, limit_slow={limit_slow}")
     return expr.map_batches(

@@ -853,6 +853,18 @@ def _fisher_kernel(
     return pl.Series(result, dtype=pl.Float64)
 
 
+def _fisher_signal_kernel(
+    series: pl.Series,
+) -> pl.Series:
+    """
+    Run the Fisher recurrence once and emit the ``{fisher, signal}`` struct, ``signal`` being ``fisher`` lagged one bar.
+
+    Producing both lines from a single pass avoids re-running the sequential recurrence for the lagged signal line.
+    """
+    fisher = _fisher_kernel(series)
+    return pl.DataFrame({"fisher": fisher, "signal": fisher.shift(1)}).to_struct()
+
+
 def fisher_transform(
     high: pl.Expr,
     low: pl.Expr,
@@ -980,8 +992,9 @@ def fisher_transform(
     lowest = price.rolling_min(window)
     highest = price.rolling_max(window)
     position = 2.0 * (price - lowest) / (highest - lowest) - 1.0
-    fisher = position.map_batches(_fisher_kernel, return_dtype=pl.Float64)
-    return pl.struct(fisher=fisher, signal=fisher.shift(1))
+    return position.map_batches(
+        _fisher_signal_kernel, return_dtype=pl.Struct({"fisher": pl.Float64, "signal": pl.Float64})
+    )
 
 
 def macd(
