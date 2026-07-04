@@ -55,8 +55,8 @@ def cumulative_pnl(
 
         - **Null** — a ``null`` return contributes nothing and emits ``null`` at that row, while the running sum carries
           across it unchanged (the cumulation skips the gap rather than breaking on it).
-        - **NaN** — a ``NaN`` return propagates into the running sum and every later row stays ``NaN`` (it is a real
-          value that contaminates the total, unlike a ``null`` gap).
+        - **NaN** — a ``NaN`` return propagates into the running sum and every later non-null row stays ``NaN`` (a
+          ``null`` row still emits ``null``); it is a real value that contaminates the total, unlike a ``null`` gap.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the running sum restarts per
           series and never carries across boundaries, e.g. ``cumulative_pnl(pl.col("returns")).over("ticker")``.
 
@@ -237,7 +237,8 @@ def equity_curve(
           (a missing bar contributes a neutral factor of one rather than breaking the curve); a leading warm-up ``null``
           (e.g. the first row of :func:`returns_simple`) therefore stays ``null`` and the curve begins at the first
           defined return.
-        - **NaN** — a ``NaN`` return propagates into the running product and every later row stays ``NaN``.
+        - **NaN** — a ``NaN`` return propagates into the running product and every later non-null row stays ``NaN`` (a
+          ``null`` row still emits ``null``).
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the product restarts per series
           and never carries across boundaries, e.g. ``equity_curve(pl.col("returns")).over("ticker")``.
 

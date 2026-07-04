@@ -192,8 +192,8 @@ def burke_ratio(
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
         case (missing data and boundaries) is given a defined behavior.
 
-        The denominator is the sum (not the mean) of squared drawdowns, so it grows with the record length; this is the
-        original Burke definition.
+        The denominator is the sum (not the mean) of the squared drawdowns, taken over the per-period drawdown series
+        (not the maxima of distinct decline episodes, as in some Burke variants), so it grows with the record length.
 
         **Edge-case behavior:**
 

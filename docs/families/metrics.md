@@ -1,7 +1,8 @@
 # Metrics
 
 `pomata.metrics` is the scoring layer — sixty performance and risk statistics, each a reducing `pl.Expr` that
-collapses a series to a single number (and, for the rolling twins, to a windowed series). Point one at a return series
+collapses a series to a single number (with the running `drawdown` and each `*_rolling` twin the series-valued
+exceptions, one value per row or per window). Point one at a return series
 (`pomata.pnl.returns_net`) or an equity curve (`pomata.pnl.equity_curve`) and it folds the whole history into the
 figure you report — in the same Polars query that produced the series, `null`-skipping and `.over`-partitioning
 included.
@@ -35,8 +36,8 @@ Total and annualized growth, and whether the equity line was a steady climb or a
 
 ### Ratio
 
-Return per unit of risk — the reward-to-risk family, each dividing a growth measure by a dispersion, drawdown, or
-tail measure.
+Return per unit of risk — the reward-to-risk family, most dividing a growth measure by a dispersion, drawdown, or
+tail measure (with `probabilistic_sharpe_ratio` the confidence that the Sharpe Ratio is real, in `[0, 1]`).
 
 {py:func}`~pomata.metrics.sharpe_ratio` ·
 {py:func}`~pomata.metrics.sortino_ratio` ·
