@@ -896,9 +896,10 @@ def fisher_transform(
         window: Number of observations in the moving window (canonically ``10``). Must be ``>= 1``.
 
     Returns:
-        A struct ``pl.Expr`` with fields ``fisher`` (the transform) and ``signal`` (``fisher`` lagged one bar), the same
-        length as the inputs. The first ``window - 1`` rows are ``null`` (the channel's warm-up); ``signal`` is ``null``
-        for one further row. Read a field with ``.struct.field("fisher")`` or split both with ``.struct.unnest()``.
+        A struct ``pl.Expr`` with ``Float64`` fields ``fisher`` (the transform) and ``signal`` (``fisher`` lagged one
+        bar), the same length as the inputs. The first ``window - 1`` rows are ``null`` (the channel's warm-up);
+        ``signal`` is ``null`` for one further row. Read a field with ``.struct.field("fisher")`` or split both with
+        ``.struct.unnest()``.
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.

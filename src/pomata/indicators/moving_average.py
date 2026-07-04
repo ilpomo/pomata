@@ -447,9 +447,9 @@ def kama(
         expr: Input series, typically a price column (e.g. ``pl.col("close")``).
         window: Number of observations in the efficiency-ratio look-back. Must be ``>= 1``.
         window_fast: Period of the fast smoothing-constant bound (canonically ``2``), ``2 / (window_fast + 1)``. Must be
-            ``>= 1`` and ``<= window_slow`` (the fast bound is the more responsive end of the adaptive range).
+            ``>= 1`` (the fast bound is the more responsive end of the adaptive range).
         window_slow: Period of the slow smoothing-constant bound (canonically ``30``), ``2 / (window_slow + 1)``.
-            Must be ``>= 1``.
+            Must be ``>= 1`` and ``>= window_fast``.
 
     Returns:
         The KAMA for each row, the same length as ``expr``. The first ``window - 1`` values are ``null`` (warm-up); the

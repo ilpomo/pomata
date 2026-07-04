@@ -158,8 +158,8 @@ def ichimoku(
         window_senkou: Leading-span-B window (canonically ``52``). Must be ``>= 1`` and ``>= window_kijun``.
 
     Returns:
-        A struct ``pl.Expr`` with fields ``tenkan``, ``kijun``, ``senkou_a``, ``senkou_b``, the same length as the
-        inputs. Each line is ``null`` through its own warm-up: ``window_tenkan - 1`` rows for ``tenkan``,
+        A struct ``pl.Expr`` with ``Float64`` fields ``tenkan``, ``kijun``, ``senkou_a``, ``senkou_b``, the same length
+        as the inputs. Each line is ``null`` through its own warm-up: ``window_tenkan - 1`` rows for ``tenkan``,
         ``window_kijun - 1`` for ``kijun`` and ``senkou_a`` (which needs both), ``window_senkou - 1`` for ``senkou_b``.
         Read a field with ``.struct.field("tenkan")`` or split all four with ``.struct.unnest()``.
 

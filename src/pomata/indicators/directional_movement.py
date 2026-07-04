@@ -850,7 +850,7 @@ def vortex(
         high: High-price series (e.g. ``pl.col("high")``).
         low: Low-price series (e.g. ``pl.col("low")``).
         close: Close-price series (e.g. ``pl.col("close")``).
-        window: Number of observations in the moving window (canonically ``14``). Must be ``>= 1``.
+        window: Number of observations in the moving window. Must be ``>= 1``.
 
     Returns:
         A struct column (one struct per row, the same length as the inputs) with two ``Float64`` fields:

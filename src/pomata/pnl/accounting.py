@@ -562,8 +562,9 @@ def pnl_net(
 
         - **Null** — a ``null`` in either input makes that row ``null`` (``null`` takes precedence over ``NaN``).
         - **NaN** — a ``NaN`` in either input (with no ``null``) propagates, yielding ``NaN`` for that row.
-        - **Partitioning** — the subtraction is elementwise (each row uses only its own pair), so ``.over(...)``
-          partitions identically and is optional here, unlike the lagged / cumulative functions.
+        - **Partitioning** — the subtraction is elementwise (each row uses only its own pair), so it is already correct
+          on a multi-series panel: ``.over(...)`` partitions identically and is therefore optional here, unlike the
+          lagged / cumulative functions where it is required.
 
     See Also:
         - :func:`pnl_gross`: The gross position PnL this nets costs from.
