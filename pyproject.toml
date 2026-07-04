@@ -30,8 +30,9 @@ classifiers = [
     "Typing :: Typed",
 ]
 # Runtime dependencies are kept to the absolute minimum. The polars floor is the oldest release the full suite passes
-# on -- bisected, not guessed: 1.40.0 is green, 1.32.0 fails on the rolling-window API, and the `floor` CI job proves
-# the floor every run (`uv sync --resolution lowest-direct`). uv.lock pins the current release for everyday installs.
+# on -- bisected, not guessed: 1.40.0 is green, 1.32.0 fails on the rolling-window API, and the `dependency-floor` job
+# proves the floor on every push to main (`uv sync --resolution lowest-direct`). uv.lock pins the current release for
+# everyday installs.
 dependencies = [
     "polars>=1.40.0",
 ]
@@ -97,8 +98,9 @@ branch = true
 source = ["pomata"]
 
 [tool.hatch.build.targets.sdist]
-# Explicit allowlist (not .gitignore): the source distribution ships ONLY what is needed to build, test, and verify the
-# package from source -- never local working notes, IDE settings, developer tooling, or caches.
+# Explicit allowlist: the source distribution ships only the project files needed to build, test, and verify from
+# source -- no local working notes, IDE settings, or caches. (hatchling always additionally vendors a few of its own
+# metadata files, including the repo .gitignore, which an allowlist cannot exclude.)
 include = [
     "/CORRECTNESS.md",
     "/LICENSE",

@@ -51,7 +51,9 @@ jobs:
       - name: "Build: sdist + wheel"
         run: uv build
       - name: "Build: validate the distribution metadata"
-        run: uvx twine check --strict dist/*
+        # Pin twine so the release path resolves a fixed version rather than whatever is current at run time (a bump is
+        # manual: a version in a `run:` string is outside Dependabot's reach).
+        run: uvx twine@6.2.0 check --strict dist/*
       - name: "Build: attest build provenance (SLSA)"
         uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
         with:
