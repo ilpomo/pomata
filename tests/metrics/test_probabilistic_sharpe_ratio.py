@@ -15,6 +15,7 @@ bound). Categories are split into classes; cross-cutting categories use markers.
 """
 
 import math
+from collections.abc import Sequence
 
 import polars as pl
 import pytest
@@ -55,6 +56,27 @@ _BENCHMARK = st.sampled_from([0.0, 0.05, 0.1])
 def _cases[T](draw: st.DrawFn, returns: st.SearchStrategy[T], min_size: int = 1) -> list[T]:
     """A return series sized from the facts above."""
     return draw(st.lists(returns, min_size=min_size, max_size=SERIES_MAX))
+
+
+def _bounded_excess_sharpe(values: Sequence[float | None], risk_free_rate: float, periods_per_year: int) -> bool:
+    """
+    Whether the per-period excess Sharpe ratio is bounded (``|SR| < 1e6``), so the ``(kurtosis - 1) / 4 * SR ** 2``
+    term of the statistic cannot amplify a sub-ULP kurtosis residue into the sign of the inner variance.
+
+    A near-zero return series against a non-trivial risk-free rate drives the excess to a near-constant with a huge
+    ``SR``; the one-pass and two-pass kurtosis then resolve the last-bit residue with opposite signs, so the paths
+    cannot agree there. ``well_spread`` guards the returns' own conditioning, not this excess blow-up.
+    """
+    finite = [value for value in values if value is not None and not math.isnan(value)]
+    if len(finite) < 2:
+        return True
+    rf_period = math.pow(1.0 + risk_free_rate, 1.0 / periods_per_year) - 1.0
+    excess = [value - rf_period for value in finite]
+    mean = sum(excess) / len(excess)
+    variance = sum((value - mean) ** 2 for value in excess) / (len(excess) - 1)
+    if variance == 0.0:
+        return False
+    return abs(mean / math.sqrt(variance)) < 1e6
 
 
 class TestProbabilisticSharpeRatioContract:
@@ -215,6 +237,7 @@ class TestProbabilisticSharpeRatioProperties:
         Verifies that, for any well-conditioned return series, the implementation matches the naive reference.
         """
         assume(well_spread(case))
+        assume(_bounded_excess_sharpe(case, risk_free, periods))
         assert_matches(
             apply_expr(
                 case,
@@ -241,6 +264,7 @@ class TestProbabilisticSharpeRatioProperties:
         naive reference.
         """
         assume(well_spread(case))
+        assume(_bounded_excess_sharpe(case, risk_free, periods))
         assert_matches(
             apply_expr(
                 case,
