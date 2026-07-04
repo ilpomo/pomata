@@ -188,6 +188,17 @@ class TestOmegaRatioRollingEdge:
         """
         assert_matches(apply_expr([0.01, 0.02, 0.03], omega_ratio_rolling(pl.col(COLUMN_X), 3)), [None, None, math.inf])
 
+    def test_no_activity_window_is_nan(self) -> None:
+        """
+        Verifies that a window with neither a gain nor a loss (every return exactly at the threshold) has zero mean gain
+        and zero mean loss, so the ratio is ``0 / 0`` = ``NaN`` -- not the spurious ``+inf`` a one-pass gain residue,
+        left once a large earlier gain exits the window, would surface over the zeroed loss.
+        """
+        assert_matches(
+            apply_expr([1e9, 0.01, 1e-9, 0.0, 0.0], omega_ratio_rolling(pl.col(COLUMN_X), 2)),
+            [None, math.inf, math.inf, math.inf, math.nan],
+        )
+
 
 class TestOmegaRatioRollingCorrectness:
     """

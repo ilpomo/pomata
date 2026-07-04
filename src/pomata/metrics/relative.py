@@ -61,22 +61,25 @@ def _rolling_raw_beta(
     """
     The population regression slope over each trailing window, from rolling raw moments.
 
-    ``cov / var`` with ``cov = E[rb] - E[r]E[b]`` and ``var = E[b^2] - E[b]^2`` each a ``rolling_mean`` over the
-    window (``min_samples=window``), so any ``null`` in either leg yields ``null`` and the population ``ddof = 0``
-    cancels. The shared core of :func:`beta_rolling`, :func:`alpha_rolling`, and :func:`treynor_ratio_rolling`. A
-    constant (zero-variance) window benchmark is detected exactly via ``rolling_max == rolling_min`` and reported as
-    ``NaN``, because the ``cov / var`` floating-point cancellation cannot be relied on to surface the ``0 / 0``.
+    ``cov / var`` with ``cov = E[rb] - E[r]E[b]`` (rolling means, ``min_samples=window``) and ``var`` the native
+    ``rolling_var(ddof=0)``, which is mean-centered: a near-constant benchmark yields a tiny-but-correct variance, not
+    the wrong-signed residue the one-pass ``E[b^2] - E[b]^2`` leaves. The population ``ddof = 0`` cancels between the
+    two. The shared core of :func:`beta_rolling`, :func:`alpha_rolling`, and :func:`treynor_ratio_rolling`. An
+    incomplete (``null``-containing) window yields ``null``; an exactly-constant (zero-variance) finite benchmark
+    window, detected via ``rolling_max == rolling_min``, yields ``NaN`` (an undefined slope on a flat regressor).
     """
     mean_returns = returns.rolling_mean(window, min_samples=window)
     mean_benchmark = benchmark.rolling_mean(window, min_samples=window)
     covariance = (returns * benchmark).rolling_mean(window, min_samples=window) - mean_returns * mean_benchmark
-    variance = (benchmark**2).rolling_mean(window, min_samples=window) - mean_benchmark**2
+    variance = benchmark.rolling_var(window, ddof=0, min_samples=window)
     benchmark_max = benchmark.rolling_max(window, min_samples=window)
     benchmark_min = benchmark.rolling_min(window, min_samples=window)
     # ``is_finite`` keeps the guard off a NaN-poisoned window (Polars treats ``NaN == NaN`` as true), so only a genuine
     # finite flat window fires it; a NaN window falls through to ``cov / var``, which already propagates NaN.
+    # ``covariance.is_not_null()`` keeps it off an incomplete (null-containing) window, which stays ``null`` under the
+    # pairwise-complete contract rather than being turned into ``NaN`` by the flat-benchmark branch.
     is_flat = (benchmark_max == benchmark_min) & benchmark_max.is_finite()
-    return pl.when(is_flat).then(float("nan")).otherwise(covariance / variance)
+    return pl.when(is_flat & covariance.is_not_null()).then(float("nan")).otherwise(covariance / variance)
 
 
 def _raw_beta(
