@@ -167,12 +167,14 @@ class TestVolatilityRollingEdge:
 
     def test_constant_window_is_zero(self) -> None:
         """
-        Verifies that a window of equal returns has zero dispersion, so the result is ``0``.
+        Verifies that a constant window has zero dispersion -- exactly ``0`` even after a much larger value has left the
+        window, where the incremental rolling standard deviation would otherwise leave a residue.
         """
-        assert_matches(
-            apply_expr([0.5, 0.5, 0.5, 0.5], volatility_rolling(pl.col(COLUMN_X), 3, periods_per_year=PERIODS)),
-            [None, None, 0.0, 0.0],
+        result = apply_expr(
+            [1_000_000.0, 0.1, 0.1, 0.1, 0.1], volatility_rolling(pl.col(COLUMN_X), 3, periods_per_year=PERIODS)
         )
+        assert result[-1] == 0.0
+        assert result[-2] == 0.0
 
 
 class TestVolatilityRollingCorrectness:

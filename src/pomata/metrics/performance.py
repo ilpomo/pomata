@@ -115,10 +115,11 @@ def cagr_rolling(
 
     .. math::
 
-        \mathrm{CAGR}_t = \left(\frac{E_t}{E_{t-n+1}}\right)^{P/n} - 1, \qquad n = \text{window},
+        \mathrm{CAGR}_t = \left(\frac{E_t}{E_{t-n+1}}\right)^{P/(n-1)} - 1, \qquad n = \text{window},
 
-    where :math:`E` is the equity curve and :math:`P` is ``periods_per_year``. As an endpoint quantity it depends only
-    on the first and last equity of the window, not the path between them.
+    where :math:`E` is the equity curve and :math:`P` is ``periods_per_year``. The window's two endpoints span ``n - 1``
+    periods, so the growth ratio is annualized over ``n - 1``; as an endpoint quantity it depends only on the first and
+    last equity of the window, not the path between them.
 
     Args:
         equity_curve: Compounded growth-factor series (e.g. from :func:`equity_curve`), positive.
@@ -157,7 +158,7 @@ def cagr_rolling(
         >>>
         >>> frame = pl.DataFrame({"equity": [1.0, 1.1, 1.05, 1.2, 1.15, 1.3, 1.25]})
         >>> frame.select(cagr_rolling(pl.col("equity"), 3, periods_per_year=4).round(4))["equity"].to_list()
-        [None, None, 0.0672, 0.123, 0.129, 0.1126, 0.1176]
+        [None, None, 0.1025, 0.1901, 0.1995, 0.1736, 0.1815]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
 
@@ -169,18 +170,18 @@ def cagr_rolling(
         ... )
         >>> rolled = cagr_rolling(pl.col("equity"), 3, periods_per_year=4).over("ticker").round(4)
         >>> frame.select(rolled.alias("m"))["m"].to_list()
-        [None, None, 0.0672, 0.123, 0.129, None, None, 0.1081, 0.0394, 0.0497]
+        [None, None, 0.1025, 0.1901, 0.1995, None, None, 0.1664, 0.0597, 0.0754]
 
         A ``null`` or ``NaN`` at a window endpoint propagates, while a ``NaN`` interior to a window is ignored:
 
         >>> frame = pl.DataFrame({"equity": [None, 1.1, 1.05, 1.2, float("nan"), 1.3, 1.25]})
         >>> frame.select(cagr_rolling(pl.col("equity"), 3, periods_per_year=4).round(4))["equity"].to_list()
-        [None, None, None, 0.123, nan, 0.1126, nan]
+        [None, None, None, 0.1901, nan, 0.1736, nan]
     """
     equity_curve = float64_expr(equity_curve)
     validate_window(window, minimum=2)
     validate_periods_per_year(periods_per_year)
-    return (equity_curve / equity_curve.shift(window - 1)) ** (periods_per_year / window) - 1.0
+    return (equity_curve / equity_curve.shift(window - 1)) ** (periods_per_year / (window - 1)) - 1.0
 
 
 def stability(

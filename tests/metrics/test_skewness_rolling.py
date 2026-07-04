@@ -152,10 +152,11 @@ class TestSkewnessRollingEdge:
 
     def test_constant_window_is_nan(self) -> None:
         """
-        Verifies that a constant window has zero variance, so the standardized moment is ``0 / 0`` -- ``NaN``.
+        Verifies that a constant window has zero variance, so the skewness is ``NaN`` -- the value is not exactly
+        representable, so the one-pass central moments leave a residue that must be guarded, not surfaced as a finite.
         """
         assert_matches(
-            apply_expr([0.5, 0.5, 0.5, 0.5], skewness_rolling(pl.col(COLUMN_X), 3)),
+            apply_expr([0.3, 0.3, 0.3, 0.3], skewness_rolling(pl.col(COLUMN_X), 3)),
             [None, None, math.nan, math.nan],
         )
 

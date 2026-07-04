@@ -60,6 +60,20 @@ def _rolling_central_moments(
     return central_2, central_3, central_4
 
 
+def _rolling_is_constant(
+    expr: pl.Expr,
+    window: int,
+) -> pl.Expr:
+    """
+    Whether every value in the trailing ``window`` is identical -- a zero-variance (degenerate) window.
+
+    Compared as ``rolling_max == rolling_min`` (exact and scale-invariant, no epsilon), so it fires only on a
+    bit-identical window: exactly the case where the one-pass central moments or the incremental rolling standard
+    deviation leave a cancellation residue instead of an exact zero.
+    """
+    return expr.rolling_max(window, min_samples=window) == expr.rolling_min(window, min_samples=window)
+
+
 def _rolling_downside_deviation(
     expr: pl.Expr,
     window: int,
@@ -678,7 +692,11 @@ def kurtosis_rolling(
     returns = float64_expr(returns)
     validate_window(window, minimum=2)
     central_2, _, central_4 = _rolling_central_moments(returns, window)
-    return central_4 / central_2**2 - 3.0
+    kurt = central_4 / central_2**2 - 3.0
+    # A constant (zero-variance) window has undefined excess kurtosis -> NaN; guard it explicitly, since the one-pass
+    # central moments leave a cancellation residue on a non-representable constant that would otherwise read as a huge
+    # finite.
+    return pl.when(_rolling_is_constant(returns, window)).then(pl.lit(float("nan"))).otherwise(kurt).name.keep()
 
 
 def payoff_ratio(
@@ -1153,7 +1171,10 @@ def skewness_rolling(
     returns = float64_expr(returns)
     validate_window(window, minimum=2)
     central_2, central_3, _ = _rolling_central_moments(returns, window)
-    return central_3 / central_2**1.5
+    skew = central_3 / central_2**1.5
+    # A constant (zero-variance) window has undefined skewness -> NaN; guard it explicitly, since the one-pass central
+    # moments leave a cancellation residue on a non-representable constant that would otherwise read as a huge finite.
+    return pl.when(_rolling_is_constant(returns, window)).then(pl.lit(float("nan"))).otherwise(skew).name.keep()
 
 
 def tail_ratio(
@@ -1909,7 +1930,18 @@ def volatility_rolling(
     returns = float64_expr(returns)
     validate_window(window, minimum=2)
     validate_periods_per_year(periods_per_year)
-    return returns.rolling_std(window, ddof=1, min_samples=window) * math.sqrt(periods_per_year)
+    dispersion = returns.rolling_std(window, ddof=1, min_samples=window) * math.sqrt(periods_per_year)
+    nan_in_window = returns.is_nan().cast(pl.Float64).rolling_max(window, min_samples=window)
+    # A constant window has zero dispersion -> 0.0; the incremental rolling standard deviation can leave a residue after
+    # a much larger value exits the window, so guard it explicitly. The NaN check comes first: a NaN window stays NaN.
+    return (
+        pl.when(nan_in_window == 1.0)
+        .then(pl.lit(float("nan")))
+        .when(_rolling_is_constant(returns, window))
+        .then(pl.lit(0.0))
+        .otherwise(dispersion)
+        .name.keep()
+    )
 
 
 def win_rate(
