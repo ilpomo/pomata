@@ -86,7 +86,7 @@ def adjusted_sharpe_ratio(
         returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         risk_free_rate: The annualized risk-free rate, converted to a per-period rate geometrically (default ``0.0``).
-            Must be finite.
+            Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + risk_free_rate > 0``).
 
     Returns:
         A single ``Float64`` value: the adjusted Sharpe ratio (one value in ``select``, one per group under ``.over``).
@@ -793,7 +793,7 @@ def probabilistic_sharpe_ratio(
         benchmark_sharpe: The (non-annualized) benchmark Sharpe ratio :math:`\mathrm{SR}^{*}` to beat (default ``0.0``).
             Must be finite.
         risk_free_rate: The annualized risk-free rate, converted to a per-period rate geometrically (default ``0.0``).
-            Must be finite.
+            Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + risk_free_rate > 0``).
 
     Returns:
         A single ``Float64`` value in ``[0, 1]``: the probabilistic Sharpe ratio (one value in ``select``, one per group
@@ -980,7 +980,7 @@ def sharpe_ratio(
         returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         risk_free_rate: The annualized risk-free rate, converted to a per-period rate geometrically (default ``0.0``).
-            Must be finite.
+            Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + risk_free_rate > 0``).
 
     Returns:
         A single ``Float64`` value: the annualized Sharpe ratio (one value in ``select``, one per group under
@@ -1074,7 +1074,7 @@ def sharpe_ratio_rolling(
         window: Number of observations in the moving window. Must be ``>= 2``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         risk_free_rate: The annualized risk-free rate, converted to a per-period rate geometrically (default ``0.0``).
-            Must be finite.
+            Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + risk_free_rate > 0``).
 
     Returns:
         The rolling Sharpe ratio for each row, the same length as the input. The first ``window - 1`` rows are ``null``
@@ -1169,7 +1169,7 @@ def sortino_ratio(
         returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         risk_free_rate: The annualized risk-free rate, converted to a per-period rate geometrically (default ``0.0``).
-            Must be finite.
+            Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + risk_free_rate > 0``).
 
     Returns:
         A single ``Float64`` value: the annualized Sortino ratio (one value in ``select``, one per group under
@@ -1268,7 +1268,7 @@ def sortino_ratio_rolling(
         window: Number of observations in the moving window. Must be ``>= 1``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         risk_free_rate: The annualized risk-free rate, converted to a per-period rate geometrically (default ``0.0``).
-            Must be finite.
+            Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + risk_free_rate > 0``).
 
     Returns:
         The rolling Sortino ratio for each row, the same length as the input. The first ``window - 1`` rows are ``null``
@@ -1353,8 +1353,9 @@ def sterling_ratio(
     r"""
     Sterling Ratio, the excess compound annual growth rate per unit of average drawdown plus a cushion.
 
-    The annualized excess return divided by the average drawdown depth offset by a fixed cushion -- the Deane Sterling
-    Jones return-to-pain ratio, whose ``+10%`` term keeps the denominator away from zero for low-drawdown records:
+    The annualized excess return divided by the average drawdown depth (the pain index) offset by a fixed cushion -- a
+    return-to-pain ratio whose ``+10%`` term keeps the denominator away from zero for low-drawdown records. This is the
+    pain-index variant; the classic Deane Sterling Jones form instead averages the largest per-year drawdowns:
 
     .. math::
 

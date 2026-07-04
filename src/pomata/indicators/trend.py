@@ -311,10 +311,10 @@ def supertrend(
             non-positive multiplier would collapse or invert the bands).
 
     Returns:
-        A struct ``pl.Expr`` with fields ``line`` (the trailing stop) and ``direction`` (``+1.0`` in an up-trend, the
-        line below price; ``-1.0`` in a down-trend, the line above price), the same length as the inputs. The first
-        ``window - 1`` rows are ``null`` (the ATR's warm-up). Read a field with ``.struct.field("line")`` or split both
-        with ``.struct.unnest()``.
+        A struct ``pl.Expr`` with ``Float64`` fields ``line`` (the trailing stop) and ``direction`` (``+1.0`` in an
+        up-trend, the line below price; ``-1.0`` in a down-trend, the line above price), the same length as the inputs.
+        The first ``window - 1`` rows are ``null`` (the ATR's warm-up). Read a field with ``.struct.field("line")`` or
+        split both with ``.struct.unnest()``.
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.

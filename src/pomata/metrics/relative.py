@@ -161,7 +161,7 @@ def alpha(
         benchmark: Benchmark per-bar return series, as fractions, aligned row-for-row with ``returns``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         risk_free_rate: The annualized risk-free rate, converted to a per-period rate geometrically (default ``0.0``).
-            Must be finite.
+            Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + risk_free_rate > 0``).
 
     Returns:
         A single ``Float64`` value: the annualized Jensen's alpha (one value in ``select``, one per group under
@@ -269,7 +269,7 @@ def alpha_rolling(
         window: Number of observations in the moving window. Must be ``>= 2``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         risk_free_rate: The annualized risk-free rate, converted to a per-period rate geometrically (default ``0.0``).
-            Must be finite.
+            Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + risk_free_rate > 0``).
 
     Returns:
         The rolling Jensen's alpha for each row, the same length as the input. The first ``window - 1`` rows are
@@ -1108,7 +1108,7 @@ def modigliani_risk_adjusted_performance(
         benchmark: Benchmark per-bar return series, as fractions, aligned row-for-row with ``returns``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         risk_free_rate: The annualized risk-free rate, used both to form the Sharpe excess (geometrically per period)
-            and as the additive level here (default ``0.0``). Must be finite.
+            and as the additive level here (default ``0.0``). Must be finite and ``>= -1``.
 
     Returns:
         A single ``Float64`` value: the M-squared measure as an annualized return (one value in ``select``, one per
@@ -1214,7 +1214,7 @@ def treynor_ratio(
         benchmark: Benchmark per-bar return series, as fractions, aligned row-for-row with ``returns``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         risk_free_rate: The annualized risk-free rate, converted to a per-period rate geometrically (default ``0.0``).
-            Must be finite.
+            Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + risk_free_rate > 0``).
 
     Returns:
         A single ``Float64`` value: the annualized Treynor ratio (one value in ``select``, one per group under
@@ -1324,7 +1324,7 @@ def treynor_ratio_rolling(
         window: Number of observations in the moving window. Must be ``>= 2``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         risk_free_rate: The annualized risk-free rate, converted to a per-period rate geometrically (default ``0.0``).
-            Must be finite.
+            Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + risk_free_rate > 0``).
 
     Returns:
         The rolling Treynor ratio for each row, the same length as the input. The first ``window - 1`` rows are

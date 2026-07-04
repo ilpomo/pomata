@@ -52,7 +52,8 @@ def returns_log(
           price relative (``P_t = 0`` over a positive ``P_{t-1}``) yields ``-inf``, a negative relative (the prices
           straddle zero) yields ``NaN``, and a zero previous price yields ``+inf`` only for a positive current price,
           while ``0/0`` and a negative current price over zero yield ``NaN``; these are the documented and intended
-          boundary values rather than an error.
+          boundary values rather than an error. A negative-zero ``-0.0`` previous price flips these signs, but does not
+          arise from real price data.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the lag never reaches across
           series boundaries, e.g. ``returns_log(pl.col("close")).over("ticker")``.
 
@@ -138,7 +139,8 @@ def returns_simple(
           only the positions that reference it and never latches onto the rest of the series.
         - **Division by zero** — when the previous price is ``0`` the relative divides by zero following IEEE-754: a
           zero change (``0 / 0``) is ``NaN`` and a non-zero change over zero is ``+/-inf`` (the sign tracks the change).
-          This is the documented and intended behavior rather than an error.
+          This is the documented and intended behavior rather than an error; a negative-zero ``-0.0`` previous price
+          flips the ``+/-inf`` sign, but does not arise from real price data.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the lag never reaches across
           series boundaries, e.g. ``returns_simple(pl.col("close")).over("ticker")``.
 
