@@ -183,6 +183,14 @@ class TestVarianceRollingEdge:
         with pytest.raises(ValueError, match="ddof must be < window"):
             variance_rolling(pl.col(COLUMN_X), 2, ddof=5)
 
+    def test_negative_ddof_raises(self) -> None:
+        """
+        Verifies that a negative ``ddof`` (a sign slip) raises a clean ``ValueError`` at build time rather than the
+        opaque ``OverflowError`` Polars' unsigned-int cast would otherwise surface.
+        """
+        with pytest.raises(ValueError, match="ddof must be >= 0"):
+            variance_rolling(pl.col(COLUMN_X), 3, ddof=-1)
+
     def test_window_exceeds_length(self) -> None:
         """
         Verifies the whole output is null when ``window`` exceeds the series length (no full window ever forms).

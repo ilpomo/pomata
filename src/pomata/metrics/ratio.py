@@ -86,7 +86,7 @@ def adjusted_sharpe_ratio(
         returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         risk_free_rate: The annualized risk-free rate, converted to a per-period rate geometrically (default ``0.0``).
-            Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + risk_free_rate > 0``).
+            Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + risk_free_rate >= 0``).
 
     Returns:
         A single ``Float64`` value: the adjusted Sharpe ratio (one value in ``select``, one per group under ``.over``).
@@ -94,7 +94,7 @@ def adjusted_sharpe_ratio(
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
-        ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite.
+        ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite or is ``< -1``.
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
@@ -797,7 +797,7 @@ def probabilistic_sharpe_ratio(
         benchmark_sharpe: The (non-annualized) benchmark Sharpe ratio :math:`\mathrm{SR}^{*}` to beat (default ``0.0``).
             Must be finite.
         risk_free_rate: The annualized risk-free rate, converted to a per-period rate geometrically (default ``0.0``).
-            Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + risk_free_rate > 0``).
+            Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + risk_free_rate >= 0``).
 
     Returns:
         A single ``Float64`` value in ``[0, 1]``: the probabilistic Sharpe ratio (one value in ``select``, one per group
@@ -805,7 +805,8 @@ def probabilistic_sharpe_ratio(
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
-        ValueError: If ``periods_per_year < 1``, or if ``benchmark_sharpe`` or ``risk_free_rate`` is not finite.
+        ValueError: If ``periods_per_year < 1``, or if ``benchmark_sharpe`` or ``risk_free_rate`` is not finite, or if
+            ``risk_free_rate < -1``.
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
@@ -867,7 +868,7 @@ def probabilistic_sharpe_ratio(
     validate_periods_per_year(periods_per_year)
     validate_finite(benchmark_sharpe, "benchmark_sharpe")
     validate_finite(risk_free_rate, "risk_free_rate")
-    rf_period = per_period_rate(risk_free_rate, periods_per_year)
+    rf_period = per_period_rate(risk_free_rate, periods_per_year, name="risk_free_rate")
     excess = returns - rf_period
     sharpe_ratio = excess.mean() / excess.std(ddof=1)
     raw_kurtosis = returns.kurtosis() + 3.0
@@ -984,7 +985,7 @@ def sharpe_ratio(
         returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         risk_free_rate: The annualized risk-free rate, converted to a per-period rate geometrically (default ``0.0``).
-            Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + risk_free_rate > 0``).
+            Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + risk_free_rate >= 0``).
 
     Returns:
         A single ``Float64`` value: the annualized Sharpe ratio (one value in ``select``, one per group under
@@ -992,7 +993,7 @@ def sharpe_ratio(
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
-        ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite.
+        ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite or is ``< -1``.
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
@@ -1048,7 +1049,7 @@ def sharpe_ratio(
     returns = float64_expr(returns)
     validate_periods_per_year(periods_per_year)
     validate_finite(risk_free_rate, "risk_free_rate")
-    rf_period = per_period_rate(risk_free_rate, periods_per_year)
+    rf_period = per_period_rate(risk_free_rate, periods_per_year, name="risk_free_rate")
     excess = returns - rf_period
     return excess.mean() * periods_per_year / volatility(excess, periods_per_year=periods_per_year)
 
@@ -1078,7 +1079,7 @@ def sharpe_ratio_rolling(
         window: Number of observations in the moving window. Must be ``>= 2``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         risk_free_rate: The annualized risk-free rate, converted to a per-period rate geometrically (default ``0.0``).
-            Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + risk_free_rate > 0``).
+            Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + risk_free_rate >= 0``).
 
     Returns:
         The rolling Sharpe ratio for each row, the same length as the input. The first ``window - 1`` rows are ``null``
@@ -1086,7 +1087,7 @@ def sharpe_ratio_rolling(
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
-        ValueError: If ``window < 2``, ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite.
+        ValueError: If ``window < 2``, ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite or is ``< -1``.
 
     Note:
         **Correctness** -- each window matches an independent reference oracle (the reducing :func:`sharpe_ratio`
@@ -1140,7 +1141,7 @@ def sharpe_ratio_rolling(
     validate_window(window, minimum=2)
     validate_periods_per_year(periods_per_year)
     validate_finite(risk_free_rate, "risk_free_rate")
-    rf_period = per_period_rate(risk_free_rate, periods_per_year)
+    rf_period = per_period_rate(risk_free_rate, periods_per_year, name="risk_free_rate")
     excess = returns - rf_period
     return (
         excess.rolling_mean(window, min_samples=window)
@@ -1173,7 +1174,7 @@ def sortino_ratio(
         returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         risk_free_rate: The annualized risk-free rate, converted to a per-period rate geometrically (default ``0.0``).
-            Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + risk_free_rate > 0``).
+            Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + risk_free_rate >= 0``).
 
     Returns:
         A single ``Float64`` value: the annualized Sortino ratio (one value in ``select``, one per group under
@@ -1181,7 +1182,7 @@ def sortino_ratio(
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
-        ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite.
+        ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite or is ``< -1``.
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
@@ -1238,7 +1239,7 @@ def sortino_ratio(
     returns = float64_expr(returns)
     validate_periods_per_year(periods_per_year)
     validate_finite(risk_free_rate, "risk_free_rate")
-    rf_period = per_period_rate(risk_free_rate, periods_per_year)
+    rf_period = per_period_rate(risk_free_rate, periods_per_year, name="risk_free_rate")
     excess = returns - rf_period
     return (
         excess.mean()
@@ -1272,7 +1273,7 @@ def sortino_ratio_rolling(
         window: Number of observations in the moving window. Must be ``>= 1``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         risk_free_rate: The annualized risk-free rate, converted to a per-period rate geometrically (default ``0.0``).
-            Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + risk_free_rate > 0``).
+            Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + risk_free_rate >= 0``).
 
     Returns:
         The rolling Sortino ratio for each row, the same length as the input. The first ``window - 1`` rows are ``null``
@@ -1280,7 +1281,7 @@ def sortino_ratio_rolling(
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
-        ValueError: If ``window < 1``, ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite.
+        ValueError: If ``window < 1``, ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite or is ``< -1``.
 
     Note:
         **Correctness** -- each window matches an independent reference oracle (the reducing :func:`sortino_ratio`
@@ -1338,7 +1339,7 @@ def sortino_ratio_rolling(
     validate_window(window)
     validate_periods_per_year(periods_per_year)
     validate_finite(risk_free_rate, "risk_free_rate")
-    rf_period = per_period_rate(risk_free_rate, periods_per_year)
+    rf_period = per_period_rate(risk_free_rate, periods_per_year, name="risk_free_rate")
     excess = returns - rf_period
     return (
         excess.rolling_mean(window, min_samples=window)

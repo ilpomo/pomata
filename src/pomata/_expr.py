@@ -78,18 +78,21 @@ def validate_ddof(
     window: int,
 ) -> None:
     """
-    Validate that the delta degrees of freedom leave a positive divisor, raising the canonical message on failure.
+    Validate that the delta degrees of freedom are non-negative and leave a positive divisor, raising the canonical
+    message on failure.
 
-    Centralizes the ``ddof < window`` guard the rolling-variance factories share, so the divisor ``window - ddof``
-    stays positive and the bound and its message stay identical across the package.
+    Centralizes the ``0 <= ddof < window`` bound the rolling-variance factories share, so ``ddof`` is a valid count and
+    the divisor ``window - ddof`` stays positive, and the bounds and their messages stay identical across the package.
 
     Args:
         ddof: Delta degrees of freedom; the divisor is ``window - ddof``.
         window: Number of observations in the moving window.
 
     Raises:
-        ValueError: If ``ddof >= window``.
+        ValueError: If ``ddof < 0`` or ``ddof >= window``.
     """
+    if ddof < 0:
+        raise ValueError(f"ddof must be >= 0, got {ddof}")
     if ddof >= window:
         raise ValueError(f"ddof must be < window, got ddof={ddof}, window={window}")
 
@@ -147,27 +150,31 @@ def validate_periods_per_year(
 def per_period_rate(
     annual_rate: float,
     periods_per_year: int,
+    *,
+    name: str = "annual_rate",
 ) -> float:
     """
     Convert an annualized rate to its per-period equivalent geometrically.
 
     The geometric (compounding) conversion ``(1 + annual_rate)^(1 / P) - 1`` the annualized ratios share for their
     risk-free-rate handling (Sharpe, Sortino, alpha, Treynor, ...), so the convention stays identical across the
-    package. The caller validates ``periods_per_year`` separately (via :func:`validate_periods_per_year`).
+    package. The caller validates ``periods_per_year`` separately (via :func:`validate_periods_per_year`); pass ``name``
+    so the domain error names the caller's public parameter (e.g. ``risk_free_rate``) rather than the internal one.
 
     Args:
         annual_rate: The annualized rate (e.g. a risk-free rate).
         periods_per_year: Observations per year used to de-annualize.
+        name: The caller's parameter name, for the error message.
 
     Returns:
         The per-period rate.
 
     Raises:
         ValueError: If ``annual_rate < -1`` (then ``1 + annual_rate`` is negative and the fractional power is
-            undefined).
+            undefined); the message names ``name``.
     """
     if annual_rate < -1.0:
-        raise ValueError(f"annual_rate must be >= -1, got {annual_rate}")
+        raise ValueError(f"{name} must be >= -1, got {annual_rate}")
     return math.pow(1.0 + annual_rate, 1.0 / periods_per_year) - 1.0
 
 

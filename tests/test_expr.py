@@ -61,6 +61,12 @@ def test_validate_ddof_rejects_at_or_above_window() -> None:
         validate_ddof(2, 2)
 
 
+def test_validate_ddof_rejects_negative() -> None:
+    """A negative ``ddof`` (a sign slip) raises a clean ``ValueError``, not an opaque Polars ``OverflowError``."""
+    with pytest.raises(ValueError, match=r"ddof must be >= 0, got -1"):
+        validate_ddof(-1, 3)
+
+
 def test_validate_window_order_accepts_ordered_pair() -> None:
     """An ordered (``fast <= slow``) window pair passes, including the equal case."""
     validate_window_order(3, 5)
@@ -93,6 +99,12 @@ def test_per_period_rate_rejects_below_minus_one() -> None:
     with pytest.raises(ValueError, match=r"annual_rate must be >= -1"):
         per_period_rate(-1.5, 252)
     assert per_period_rate(-1.0, 252) == -1.0
+
+
+def test_per_period_rate_names_the_caller_parameter() -> None:
+    """``name`` puts the caller's public parameter in the domain error, not the internal ``annual_rate``."""
+    with pytest.raises(ValueError, match=r"risk_free_rate must be >= -1, got -1.5"):
+        per_period_rate(-1.5, 252, name="risk_free_rate")
 
 
 def test_validate_finite() -> None:
