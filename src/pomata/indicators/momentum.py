@@ -74,7 +74,8 @@ def absolute_price_oscillator(
 
         **Edge-case behavior:**
 
-        - **Null** — a ``null`` contaminates the recursive EMA state and yields ``null`` for subsequent rows.
+        - **Null** — a ``null`` is skipped and the recursive EMA bridges the gap, resuming on the next non-null row
+          (only a ``NaN`` latches).
         - **NaN** — a ``NaN`` propagates through both EMAs, yielding ``NaN``.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so neither EMA spans series
           boundaries, e.g. ``absolute_price_oscillator(pl.col("close")).over("ticker")``.
@@ -107,7 +108,7 @@ def absolute_price_oscillator(
         >>> frame.with_columns(expr.alias("apo"))["apo"].to_list()
         [None, None, 0.5, 0.1667, None, None, 1.0, 0.3333]
 
-        A ``null`` (which the recursive EMA latches on) and a ``NaN`` (which propagates) make the handling visible:
+        A ``null`` (which the recursive EMA bridges) and a ``NaN`` (which latches) make the handling visible:
 
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, None, 13.0, float("nan"), 15.0]})
         >>> expr = absolute_price_oscillator(pl.col("close"), window_fast=2, window_slow=3).round(4)
@@ -1048,7 +1049,8 @@ def macd(
 
         **Edge-case behavior:**
 
-        - **Null** — a ``null`` contaminates the recursive EMAs and yields ``null`` for subsequent rows on every field.
+        - **Null** — a ``null`` is skipped and the recursive EMAs bridge the gap on every field, resuming on the next
+          non-null row (only a ``NaN`` latches).
         - **NaN** — a ``NaN`` propagates through the EMAs, yielding ``NaN``.
         - **Fast equals slow** — when ``window_fast == window_slow`` the MACD line is identically zero, and so are the
           signal and histogram.
@@ -1241,7 +1243,8 @@ def percentage_price_oscillator(
 
         **Edge-case behavior:**
 
-        - **Null** — a ``null`` contaminates the recursive EMA state and yields ``null`` for subsequent rows.
+        - **Null** — a ``null`` is skipped and the recursive EMA bridges the gap, resuming on the next non-null row
+          (only a ``NaN`` latches).
         - **NaN** — a ``NaN`` propagates through both EMAs, yielding ``NaN``.
         - **Division by zero** — when the slow EMA is ``0`` the ratio divides by zero following IEEE-754: a zero gap
           (``0 / 0``) is ``NaN`` and a non-zero gap over zero is ``+/-inf``. This is the documented and intended
@@ -1277,7 +1280,7 @@ def percentage_price_oscillator(
         >>> frame.with_columns(expr.alias("ppo"))["ppo"].to_list()
         [None, None, 4.5455, 1.5152, None, None, 4.5455, 1.5152]
 
-        A ``null`` (which the recursive EMA latches on) and a ``NaN`` (which propagates) make the handling visible:
+        A ``null`` (which the recursive EMA bridges) and a ``NaN`` (which latches) make the handling visible:
 
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, None, 13.0, float("nan"), 15.0]})
         >>> expr = percentage_price_oscillator(pl.col("close"), window_fast=2, window_slow=3).round(4)
@@ -1651,9 +1654,12 @@ def trix(
 
         **Edge-case behavior:**
 
-        - **Null** — a ``null`` contaminates the recursive EMA chain and yields ``null`` for subsequent rows.
+        - **Null** — a ``null`` is skipped and the recursive EMA chain bridges the gap, resuming on the next non-null
+          row (only a ``NaN`` latches).
         - **NaN** — a ``NaN`` propagates through the chain, yielding ``NaN``.
         - **window == 1** — each EMA pass is the identity, so TRIX is the one-period rate of change of ``expr``.
+        - **Division by zero** — when the prior triple EMA is ``0`` the rate of change divides by zero following
+          IEEE-754: ``+/-inf`` for a non-zero change, ``NaN`` for a zero change.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the chain re-seeds per series,
           e.g. ``trix(pl.col("close"), 15).over("ticker")``.
 
@@ -1689,7 +1695,7 @@ def trix(
         >>> frame.with_columns(expr.alias("trix"))["trix"].to_list()
         [None, None, None, None, 8.6957, 8.0, None, None, None, None, 8.6957, 8.0]
 
-        A ``null`` (which the EMA chain latches on) and a ``NaN`` (which propagates) make the handling visible:
+        A ``null`` (which the EMA chain bridges) and a ``NaN`` (which latches) make the handling visible:
 
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, None, 14.0, float("nan"), 16.0, 17.0]})
         >>> frame.select(trix(pl.col("close"), 2).round(4).alias("trix"))["trix"].to_list()
@@ -1931,9 +1937,11 @@ def williams_r(
 
         **Edge-case behavior:**
 
-        - **Null** — a window in which any of ``high``, ``low``, or ``close`` contains a ``null`` yields ``null``;
-          ``null`` takes precedence over ``NaN``.
-        - **NaN** — a window containing a ``NaN`` (and no ``null``) yields ``NaN``.
+        - **Null** — ``high`` and ``low`` are windowed, so a ``null`` in either nulls every window that covers it; the
+          ``close`` enters elementwise, so a ``null`` ``close`` nulls only its own bar. ``null`` takes precedence over
+          ``NaN``.
+        - **NaN** — likewise a ``NaN`` in ``high`` or ``low`` yields ``NaN`` for every covering window, while a ``NaN``
+          ``close`` yields ``NaN`` only at its own bar.
         - **HH == LL** — when the windowed range collapses (:math:`\mathrm{HH} = \mathrm{LL}`, e.g. a flat high-low
           over the whole window) the denominator is zero and the result follows IEEE-754: ``0 / 0`` (the close also
           equal to that level) is ``NaN``, and a non-zero numerator over zero is ``+/-inf``.

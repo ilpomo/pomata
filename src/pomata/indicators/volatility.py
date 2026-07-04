@@ -67,8 +67,9 @@ def atr(
 
         **Scaling:**
 
-        Scaling is homogeneous of degree ``1`` only for a positive factor: the true range is built from absolute
-        differences, so multiplying every price by ``k`` scales the ATR by ``|k|``, not by ``k``.
+        Scaling is homogeneous of degree ``1`` only for a positive factor: multiplying every price by ``k > 0`` scales
+        the ATR by ``k``. A negative factor makes the bar incoherent (``high`` falls below ``low``), so it is not a
+        clean rescale.
 
         **Seeding:**
 
@@ -428,7 +429,8 @@ def true_range(
         - **Null** — null handling follows ``pl.max_horizontal``, which **skips** ``null`` candidates rather than
           propagating them: a ``null`` in ``high`` or ``low`` (or a ``null`` previous ``close``) simply drops that
           candidate, so the row still resolves from whichever distances remain. The result is ``null`` only when all
-          three candidates are ``null`` (``high`` and ``low`` both ``null`` at the row, and no usable previous close).
+          three candidates are ``null`` (``high`` and ``low`` are both ``null`` at the row, which voids all three
+          distances regardless of the previous close).
         - **NaN** — a ``NaN`` is **not** skipped: it dominates the maximum, so any row whose surviving candidates
           include a ``NaN`` yields ``NaN`` (a ``NaN`` ``close`` therefore contaminates the two gap terms of the **next**
           row only, not the whole series).

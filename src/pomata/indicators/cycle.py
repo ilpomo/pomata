@@ -295,7 +295,7 @@ def dominant_cycle_period(
         \mathrm{Period}_t = \frac{360}{\arctan(\mathrm{Im}_t / \mathrm{Re}_t)},
 
     with :math:`\arctan` returning **degrees**, which is then clamped to ``[6, 50]`` bars (and to between ``0.67`` and
-    ``1.5`` times the previous bar — ``+50%`` up, ``-33%`` down) and exponentially smoothed.
+    ``1.5`` times the previous bar — ``+50%`` up, ``-33%`` down) and doubly smoothed (the reported ``SmoothPeriod``).
 
     Args:
         expr: Input series, typically a price column (e.g. ``pl.col("close")``).

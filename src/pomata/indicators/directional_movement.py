@@ -259,8 +259,8 @@ def di_minus(
         window: Number of observations in the Wilder moving window. Must be ``>= 1``.
 
     Returns:
-        The minus directional indicator for each row, the same length as the inputs, in ``[0, 100]``. The first
-        ``window - 1`` values are ``null`` (warm-up).
+        The minus directional indicator for each row, the same length as the inputs, in ``[0, 100]`` on complete bars.
+        The first ``window - 1`` values are ``null`` (warm-up).
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
@@ -281,8 +281,9 @@ def di_minus(
         **Edge-case behavior:**
 
         - **Flat window** — when the window is fully flat the average true range is zero, so the result follows
-          IEEE-754: the smoothed movement is also zero, hence ``0 / 0`` is ``NaN`` (the ``[0, 100]`` bound holds
-          wherever the value is finite).
+          IEEE-754: the smoothed movement is also zero, hence ``0 / 0`` is ``NaN``. The ``[0, 100]`` bound holds on
+          complete coherent bars; a ``null`` prior close drops the close-based true-range terms and shrinks the ATR,
+          so on a gap the ratio can exceed ``100``.
         - **Null** — a ``null`` in the smoothed movement or the ATR at a row yields ``null`` there.
         - **NaN** — a ``NaN`` propagates, yielding ``NaN``.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursions never span
@@ -373,8 +374,8 @@ def di_plus(
         window: Number of observations in the Wilder moving window. Must be ``>= 1``.
 
     Returns:
-        The plus directional indicator for each row, the same length as the inputs, in ``[0, 100]``. The first
-        ``window - 1`` values are ``null`` (warm-up).
+        The plus directional indicator for each row, the same length as the inputs, in ``[0, 100]`` on complete bars.
+        The first ``window - 1`` values are ``null`` (warm-up).
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
@@ -395,8 +396,9 @@ def di_plus(
         **Edge-case behavior:**
 
         - **Flat window** — when the window is fully flat the average true range is zero, so the result follows
-          IEEE-754: the smoothed movement is also zero, hence ``0 / 0`` is ``NaN`` (the ``[0, 100]`` bound holds
-          wherever the value is finite).
+          IEEE-754: the smoothed movement is also zero, hence ``0 / 0`` is ``NaN``. The ``[0, 100]`` bound holds on
+          complete coherent bars; a ``null`` prior close drops the close-based true-range terms and shrinks the ATR,
+          so on a gap the ratio can exceed ``100``.
         - **Null** — a ``null`` in the smoothed movement or the ATR at a row yields ``null`` there.
         - **NaN** — a ``NaN`` propagates, yielding ``NaN``.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursions never span

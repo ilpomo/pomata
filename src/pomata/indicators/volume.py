@@ -208,7 +208,8 @@ def accumulation_distribution_oscillator(
 
         **Edge-case behavior:**
 
-        - **Null** — a ``null`` contaminates the accumulation/distribution line and the EMAs, yielding ``null``.
+        - **Null** — a ``null`` is skipped and the accumulation/distribution line and its EMAs bridge the gap (only a
+          ``NaN`` latches).
         - **NaN** — a ``NaN`` propagates through the line and the EMAs, yielding ``NaN``.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the running sum and the EMAs do
           not span series boundaries.
