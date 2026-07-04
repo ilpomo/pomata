@@ -191,8 +191,18 @@ class TestCagrRollingCorrectness:
         values = [1.0, 1.1, 1.05, 1.2, 1.15, 1.3, 1.25]
         assert_matches(
             apply_expr(values, cagr_rolling(pl.col(COLUMN_X), 3, periods_per_year=4).round(4)),
-            [None, None, 0.0672, 0.123, 0.129, 0.1126, 0.1176],
+            [None, None, 0.1025, 0.1901, 0.1995, 0.1736, 0.1815],
         )
+
+    def test_recovers_the_constant_growth_rate(self) -> None:
+        """
+        Verifies the annualization spans ``window - 1`` periods: on an equity curve compounding at a constant per-period
+        rate (a real curve, not one starting at ``1.0``), every window recovers exactly that rate -- here ``0.10`` per
+        period at ``periods_per_year = 1``.
+        """
+        equity = [1.1**step for step in range(1, 8)]
+        result = apply_expr(equity, cagr_rolling(pl.col(COLUMN_X), 4, periods_per_year=1).round(10))
+        assert result[3:] == [0.1, 0.1, 0.1, 0.1]
 
 
 class TestCagrRollingProperties:

@@ -152,10 +152,11 @@ class TestKurtosisRollingEdge:
 
     def test_constant_window_is_nan(self) -> None:
         """
-        Verifies that a constant window has zero variance, so the standardized moment is ``0 / 0`` -- ``NaN``.
+        Verifies that a constant window has zero variance, so the excess kurtosis is ``NaN`` -- the value is not
+        exactly representable, so the one-pass central moments leave a residue that must be guarded, not surfaced.
         """
         assert_matches(
-            apply_expr([0.5, 0.5, 0.5, 0.5, 0.5], kurtosis_rolling(pl.col(COLUMN_X), 4)),
+            apply_expr([0.1, 0.1, 0.1, 0.1, 0.1], kurtosis_rolling(pl.col(COLUMN_X), 4)),
             [None, None, None, math.nan, math.nan],
         )
 
