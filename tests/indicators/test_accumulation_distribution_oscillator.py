@@ -384,34 +384,6 @@ class TestAccumulationDistributionOscillatorProperties:
         )
         assert_scale_homogeneous(scaled, base, k=k, degree=1)
 
-    @given(
-        case=_cases(coherent_hlcv()),
-        # The bar prices reach 1e3, so the scale tops out at 1e6 (price * scale <= 1e9): the oscillator is a difference
-        # of two EMAs of a money-flow accumulation, and past ~1e9 that subtraction loses its few significant digits to
-        # catastrophic cancellation, so the one-pass and two-pass forms diverge on the residual — a precision limit, not
-        # a bug. 1e-9 still exercises the tiny end.
-        scale=st.sampled_from([1e-9, 1e6]),
-    )
-    def test_matches_reference_at_large_magnitude(
-        self,
-        case: list[tuple[float, float, float, float]],
-        scale: float,
-    ) -> None:
-        """
-        Verifies that at extreme magnitudes the implementation stays finite where the reference is and agrees.
-        """
-        rows = case
-        high = [row[0] * scale for row in rows]
-        low = [row[1] * scale for row in rows]
-        close = [row[2] * scale for row in rows]
-        volume = [row[3] * scale for row in rows]
-        assert_matches(
-            apply_accumulation_distribution_oscillator(high, low, close, volume),
-            accumulation_distribution_oscillator_reference(high, low, close, volume, 2, 3),
-            rel_tol=RELATIVE_TOLERANCE_SCALE,
-            abs_tol=ABSOLUTE_TOLERANCE_STREAMING,
-        )
-
     @given(case=_cases(coherent_hlcv()))
     def test_warmup_null_count_property(
         self,
@@ -443,4 +415,32 @@ class TestAccumulationDistributionOscillatorProperties:
             accumulation_distribution_oscillator_reference(high, low, close, volume, 2, 3),
             rel_tol=RELATIVE_TOLERANCE_PROPERTY,
             abs_tol=ABSOLUTE_TOLERANCE_SCALE,
+        )
+
+    @given(
+        case=_cases(coherent_hlcv()),
+        # The bar prices reach 1e3, so the scale tops out at 1e6 (price * scale <= 1e9): the oscillator is a difference
+        # of two EMAs of a money-flow accumulation, and past ~1e9 that subtraction loses its few significant digits to
+        # catastrophic cancellation, so the one-pass and two-pass forms diverge on the residual — a precision limit, not
+        # a bug. 1e-9 still exercises the tiny end.
+        scale=st.sampled_from([1e-9, 1e6]),
+    )
+    def test_matches_reference_at_large_magnitude(
+        self,
+        case: list[tuple[float, float, float, float]],
+        scale: float,
+    ) -> None:
+        """
+        Verifies that at extreme magnitudes the implementation stays finite where the reference is and agrees.
+        """
+        rows = case
+        high = [row[0] * scale for row in rows]
+        low = [row[1] * scale for row in rows]
+        close = [row[2] * scale for row in rows]
+        volume = [row[3] * scale for row in rows]
+        assert_matches(
+            apply_accumulation_distribution_oscillator(high, low, close, volume),
+            accumulation_distribution_oscillator_reference(high, low, close, volume, 2, 3),
+            rel_tol=RELATIVE_TOLERANCE_SCALE,
+            abs_tol=ABSOLUTE_TOLERANCE_STREAMING,
         )

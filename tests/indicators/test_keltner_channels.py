@@ -309,6 +309,28 @@ class TestKeltnerChannelsCorrectness:
         for field in FIELDS:
             assert_matches(bands[field], [None, 4.0, 4.0, 4.0])
 
+    def test_multiplier_scales_width(self) -> None:
+        """
+        Verifies the band half-width is linear in ``multiplier``: doubling it doubles the gap to the center.
+        """
+        high = [11.0, 12.0, 13.0, 12.0, 14.0]
+        low = [9.0, 10.0, 11.0, 10.0, 12.0]
+        close = [10.0, 11.0, 12.0, 11.0, 13.0]
+        narrow = apply_keltner_channels(high, low, close, 3, window_atr=3, multiplier=1.0)
+        wide = apply_keltner_channels(high, low, close, 3, window_atr=3, multiplier=2.0)
+        for index in range(len(close)):
+            center = narrow["middle"][index]
+            if center is None:
+                assert wide["upper"][index] is None
+                continue
+            narrow_upper = narrow["upper"][index]
+            wide_upper = wide["upper"][index]
+            assert narrow_upper is not None
+            assert wide_upper is not None
+            narrow_gap = narrow_upper - center
+            wide_gap = wide_upper - center
+            assert math.isclose(wide_gap, 2.0 * narrow_gap, rel_tol=RELATIVE_TOLERANCE_SCALE)
+
 
 class TestKeltnerChannelsProperties:
     """

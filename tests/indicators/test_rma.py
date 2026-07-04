@@ -193,14 +193,6 @@ class TestRmaEdge:
             [None, None, 2.0, 3.0],
         )
 
-    def test_nan_latches(self) -> None:
-        """
-        Verifies that a ``NaN`` latches into the recursion and poisons every subsequent value.
-        """
-        assert_matches(
-            apply_expr([1.0, math.nan, 3.0, 4.0], rma(pl.col(COLUMN_X), 2)), [None, math.nan, math.nan, math.nan]
-        )
-
     def test_interior_null_bridged(self) -> None:
         """
         Verifies the warm-up gate and gap-bridging for an interior ``null`` (``[2, 4, None, 8, 10, 12]``, window 3).
@@ -208,6 +200,14 @@ class TestRmaEdge:
         assert_matches(
             apply_expr([2.0, 4.0, None, 8.0, 10.0, 12.0], rma(pl.col(COLUMN_X), 3)),
             [None, None, None, 4.666666666666666, 6.444444444444444, 8.296296296296296],
+        )
+
+    def test_nan_latches(self) -> None:
+        """
+        Verifies that a ``NaN`` latches into the recursion and poisons every subsequent value.
+        """
+        assert_matches(
+            apply_expr([1.0, math.nan, 3.0, 4.0], rma(pl.col(COLUMN_X), 2)), [None, math.nan, math.nan, math.nan]
         )
 
 

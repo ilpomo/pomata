@@ -220,13 +220,6 @@ class TestKamaEdge:
         values = [10.0, 11.0, 12.0, None, 13.0, 14.0, 15.0, 16.0]
         assert_matches(apply_kama(values, 2), kama_reference(values, 2))
 
-    def test_nan_latches(self) -> None:
-        """
-        Verifies that a NaN propagates (matching the naive reference).
-        """
-        values = [10.0, 11.0, 12.0, 12.5, 13.0, math.nan, 15.0, 16.0]
-        assert_matches(apply_kama(values, 2), kama_reference(values, 2))
-
     def test_interior_null_bridged(self) -> None:
         """
         Verifies the warm-up gate and gap-bridging for an interior ``null`` (``[2, 4, None, 8, 10, 12]``, window 2).
@@ -235,6 +228,13 @@ class TestKamaEdge:
             apply_kama([2.0, 4.0, None, 8.0, 10.0, 12.0], 2),
             [None, 4.0, None, None, None, 7.555555555555554],
         )
+
+    def test_nan_latches(self) -> None:
+        """
+        Verifies that a NaN propagates (matching the naive reference).
+        """
+        values = [10.0, 11.0, 12.0, 12.5, 13.0, math.nan, 15.0, 16.0]
+        assert_matches(apply_kama(values, 2), kama_reference(values, 2))
 
 
 class TestKamaCorrectness:
@@ -312,6 +312,17 @@ class TestKamaProperties:
         scaled_result = apply_kama(scaled, window)
         assert_scale_homogeneous(scaled_result, base, k=k, degree=1)
 
+    @given(case=_cases(positive_missing_data()))
+    def test_matches_reference_under_missing_data(
+        self,
+        case: tuple[list[float | None], int],
+    ) -> None:
+        """
+        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
+        """
+        values, window = case
+        assert_matches(apply_kama(values, window), kama_reference(values, window))
+
     @given(
         case=_cases(st.floats(min_value=1e-3, max_value=1.0, allow_nan=False, allow_infinity=False)),
         scale=st.sampled_from([1e-6, 1e6, 1e9]),
@@ -332,14 +343,3 @@ class TestKamaProperties:
             rel_tol=RELATIVE_TOLERANCE_REFERENCE,
             abs_tol=input_scale(scaled) * EXACT_TOLERANCE_FACTOR,
         )
-
-    @given(case=_cases(positive_missing_data()))
-    def test_matches_reference_under_missing_data(
-        self,
-        case: tuple[list[float | None], int],
-    ) -> None:
-        """
-        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
-        """
-        values, window = case
-        assert_matches(apply_kama(values, window), kama_reference(values, window))
