@@ -26,6 +26,7 @@ from tests.support import (
     COLUMN_X,
     GROUP_KEY,
     RELATIVE_TOLERANCE_REFERENCE,
+    RELATIVE_TOLERANCE_SCALE,
     WINDOW_MAX,
     apply_expr,
     assert_matches,
@@ -204,3 +205,15 @@ class TestTailRatioRollingProperties:
             rel_tol=RELATIVE_TOLERANCE_REFERENCE,
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
+
+    @given(case=_cases(subnormal_safe_floats(bound=1e3)), exponent=st.sampled_from([-4, -2, -1, 1, 2, 4]))
+    def test_scale_invariance(self, case: tuple[list[float], int], exponent: int) -> None:
+        """
+        Verifies that a positive rescale of the returns leaves the rolling tail ratio unchanged (a ratio of quantiles),
+        using powers of two so the rescaling is lossless.
+        """
+        values, window = case
+        k = 2.0**exponent
+        base = apply_expr(values, tail_ratio_rolling(pl.col(COLUMN_X), window))
+        scaled = apply_expr([value * k for value in values], tail_ratio_rolling(pl.col(COLUMN_X), window))
+        assert_matches(scaled, base, rel_tol=RELATIVE_TOLERANCE_SCALE, abs_tol=ABSOLUTE_TOLERANCE_REFERENCE)

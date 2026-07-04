@@ -230,21 +230,6 @@ class TestTreynorRatioRollingEdge:
             rel_tol=RELATIVE_TOLERANCE_REFERENCE,
         )
 
-    def test_constant_benchmark_window_is_nan(self) -> None:
-        """
-        Verifies that a window whose benchmark is constant makes the embedded slope ``NaN`` (via the
-        ``rolling_max == rolling_min`` guard, regardless of the constant's magnitude, here ``0.1``), which propagates.
-        """
-        returns = [0.01, -0.02, 0.03, -0.01]
-        benchmark = [0.1, 0.1, 0.1, 0.1]
-        assert_matches(
-            materialize(
-                {RETURNS: returns, BENCHMARK: benchmark},
-                treynor_ratio_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 3, periods_per_year=PERIODS),
-            ),
-            treynor_ratio_rolling_reference(returns, benchmark, 3, PERIODS),
-        )
-
     def test_null_in_window_is_null(self) -> None:
         """
         Verifies that a window with a ``null`` in either leg yields ``null`` (the window must hold ``window`` pairs).
@@ -266,6 +251,21 @@ class TestTreynorRatioRollingEdge:
         """
         returns = [0.01, math.nan, 0.03, -0.01, 0.02]
         benchmark = [0.008, -0.015, 0.025, -0.008, 0.018]
+        assert_matches(
+            materialize(
+                {RETURNS: returns, BENCHMARK: benchmark},
+                treynor_ratio_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 3, periods_per_year=PERIODS),
+            ),
+            treynor_ratio_rolling_reference(returns, benchmark, 3, PERIODS),
+        )
+
+    def test_constant_benchmark_window_is_nan(self) -> None:
+        """
+        Verifies that a window whose benchmark is constant makes the embedded slope ``NaN`` (via the
+        ``rolling_max == rolling_min`` guard, regardless of the constant's magnitude, here ``0.1``), which propagates.
+        """
+        returns = [0.01, -0.02, 0.03, -0.01]
+        benchmark = [0.1, 0.1, 0.1, 0.1]
         assert_matches(
             materialize(
                 {RETURNS: returns, BENCHMARK: benchmark},
