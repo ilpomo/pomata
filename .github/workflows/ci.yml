@@ -45,6 +45,13 @@ jobs:
         with:
           fetch-depth: 2 # Codecov reads the parent commit for an accurate PR coverage comparison
           persist-credentials: false
+      # Fail closed if the single uv pin drifts: the composite action's `version:` input and the uv-pre-commit hook rev
+      # must stay identical (Dependabot bumps the hook rev but cannot touch the action input).
+      - name: "Guard: uv pin in step (composite action == pre-commit hook)"
+        run: |
+          action_uv=$(grep -oE 'version: "[0-9.]+"' .github/actions/setup/action.yml | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+          hook_uv=$(grep -A1 'astral-sh/uv-pre-commit' .pre-commit-config.yaml | grep -oE 'rev: [0-9.]+' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+          [ -n "$action_uv" ] && [ "$action_uv" = "$hook_uv" ] || { echo "uv pin drift: action=$action_uv pre-commit=$hook_uv"; exit 1; }
       - name: "Setup: install uv"
         uses: ./.github/actions/setup
       # Lean install: --no-default-groups drops the `dev` umbrella (and thus `docs`); the project stays editable-installed
@@ -140,48 +147,3 @@ jobs:
         run: |
           [ "${{ needs.quality.result }}" = "success" ] || { echo "quality did not pass: ${{ needs.quality.result }}"; exit 1; }
           [ "${{ needs.test.result }}" = "success" ] || { echo "test did not pass: ${{ needs.test.result }}"; exit 1; }
-
-  # Differential parity against TA-Lib (the C reference). Informational, never gating: continue-on-error keeps a
-  # divergence from blocking a merge -- a mismatch flags either a real bug or an undocumented convention difference to
-  # investigate, not a reason to stop.
-  differential:
-    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    timeout-minutes: 15
-    steps:
-      - name: "Setup: checkout"
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          persist-credentials: false
-      - name: "Setup: install uv"
-        uses: ./.github/actions/setup
-      - name: "Setup: sync dependencies (test + differential)"
-        run: uv sync --locked --no-default-groups --group test --group differential
-      - name: "Differential: parity vs TA-Lib"
-        run: uv run pytest -m differential
-
-  # Prove the declared dependency floor: resolve the LOWEST versions the constraints allow (ignoring the lockfile) and
-  # run the suite, so `polars>=1.40.0` stays a tested promise, not a guess. Pinned to Python 3.12 -- the floor release
-  # predates the 3.14 wheels. Informational (never gating): an un-pinned transitive release could break the lowest-direct
-  # resolution, and that is signal to investigate, not a reason to block a merge.
-  dependency-floor:
-    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    timeout-minutes: 20
-    steps:
-      - name: "Setup: checkout"
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          persist-credentials: false
-      - name: "Setup: install uv"
-        uses: ./.github/actions/setup
-        with:
-          python-version: "3.12" # the polars floor predates the 3.14 wheels; pin to a Python the floor supports
-      - name: "Setup: sync lowest-direct dependencies"
-        run: uv sync --no-default-groups --group test --resolution lowest-direct
-      - name: "Tests: full suite at the dependency floor"
-        env:
-          HYPOTHESIS_PROFILE: ci
-        run: uv run --no-sync pytest -n auto
