@@ -1,14 +1,15 @@
 """
-The self-check for the edge-case contract registry (:mod:`tests.support.registry`).
+The self-check for the declared null / NaN policies (:mod:`tests.support.policies`).
 
-The registry is the single source of truth the shared contracts read; this module keeps it honest. It proves three
-things, so a row that lies about its function -- or a function that is added without a row -- is a red build:
+The policy map is the one place a function's null / NaN behaviour is *stated*; this module keeps it honest. It proves
+three things, so a policy that lies about its function -- or a function added without a policy -- is a red build:
 
-- **bijection** -- every public ``__all__`` name has exactly one row, and no row is an orphan;
-- **oracle integrity** -- every declared ``*_reference`` oracle is importable from its family's ``oracles`` package;
+- **coverage** -- every public ``__all__`` name has exactly one policy entry, and there are no orphan entries;
+- **oracle integrity** -- unless a function is golden-only (``NO_ORACLE``), its ``<name>_reference`` oracle imports
+  from its family's ``oracles`` package;
 - **policy is real** -- each function's *actual* ``null`` / ``NaN`` behaviour, observed on a well-conditioned series,
-  matches the ``null_policy`` / ``nan_policy`` and ``shape`` it declares. Only the null/NaN *flow* is read (which rows
-  become null/NaN, and whether the effect recovers), never a value, so the check is exact and platform-stable.
+  matches the ``(null_policy, nan_policy)`` it declares. Only the null/NaN *flow* is read (which rows become null/NaN,
+  and whether the effect recovers), never a value, so the check is exact and platform-stable.
 """
 
 import importlib
@@ -18,7 +19,7 @@ from collections.abc import Callable
 
 import polars as pl
 import pytest
-from tests.support.registry import REGISTRY, NanPolicy, NullPolicy, Shape
+from tests.support.policies import NO_ORACLE, POLICIES, NanPolicy, NullPolicy
 
 from pomata import indicators, metrics, pnl
 
@@ -39,6 +40,13 @@ def _factory(name: str) -> Callable[..., pl.Expr]:
     for family in _FAMILIES.values():
         if name in family.__all__:
             return getattr(family, name)  # type: ignore[no-any-return]
+    raise KeyError(name)
+
+
+def _family_of(name: str) -> str:
+    for family, module in _FAMILIES.items():
+        if name in module.__all__:
+            return family
     raise KeyError(name)
 
 
@@ -160,39 +168,36 @@ class _Observation:
         return max(spans, default=0)
 
 
-def test_registry_is_in_bijection_with_public_surface() -> None:
+def test_policies_cover_the_public_surface() -> None:
     """
-    Verifies the registry has exactly one row per public function and no orphan rows.
+    Verifies every public function has exactly one policy entry and there are no orphan entries.
     """
-    assert set(REGISTRY) == _public_names()
+    assert set(POLICIES) == _public_names()
 
 
-@pytest.mark.parametrize("name", sorted(REGISTRY))
+@pytest.mark.parametrize("name", sorted(POLICIES))
 def test_declared_oracle_is_importable(name: str) -> None:
     """
-    Verifies that where a row names a ``*_reference`` oracle, it is importable from its family's ``oracles`` package.
+    Verifies that unless a function is golden-only (``NO_ORACLE``), its ``<name>_reference`` oracle is importable.
     """
-    oracle = REGISTRY[name].oracle
-    if oracle is None:
+    if name in NO_ORACLE:
         pytest.skip("correctness pinned by component-definition / golden master, not a standalone oracle")
-    module = importlib.import_module(f"tests.{REGISTRY[name].macro.value}.oracles.{name}")
-    assert hasattr(module, oracle)
+    module = importlib.import_module(f"tests.{_family_of(name)}.oracles.{name}")
+    assert hasattr(module, f"{name}_reference")
 
 
-@pytest.mark.parametrize("name", sorted(REGISTRY))
+@pytest.mark.parametrize("name", sorted(POLICIES))
 def test_declared_policy_matches_actual_behaviour(name: str) -> None:
     """
-    Verifies each function's observed ``null`` / ``NaN`` flow matches the ``shape`` and policies its row declares.
+    Verifies each function's observed ``null`` / ``NaN`` flow matches the policy it declares in ``POLICIES``.
     """
-    profile = REGISTRY[name]
+    null_policy, nan_policy = POLICIES[name]
     observation = _Observation(_factory(name))
 
-    assert observation.reducing == (profile.shape is Shape.REDUCING), f"{name}: shape/reducing mismatch"
-
-    if profile.shape is Shape.REDUCING:
-        assert profile.null_policy is NullPolicy.SKIPPED, f"{name}: a reducing metric declares {profile.null_policy}"
+    if observation.reducing:
+        assert null_policy is NullPolicy.SKIPPED, f"{name}: a reducing function declares {null_policy}"
         assert observation.reduction_skips_null(_factory(name)), f"{name}: a dropped null changes the reduction"
-        assert profile.nan_policy is NanPolicy.POISONS, f"{name}: a reducing metric declares {profile.nan_policy}"
+        assert nan_policy is NanPolicy.POISONS, f"{name}: a reducing function declares {nan_policy}"
         assert observation.reduction_poisons_on_nan, f"{name}: a NaN does not poison the reduction"
         return
 
@@ -201,20 +206,20 @@ def test_declared_policy_matches_actual_behaviour(name: str) -> None:
     # final row, or a latch check would pass on an all-null baseline while verifying nothing.
     assert _defined(observation.clean[-1]), f"{name}: the probe series is too short to clear the warm-up"
     span = observation.null_span
-    if profile.null_policy is NullPolicy.LATCHES:
+    if null_policy is NullPolicy.LATCHES:
         assert not observation.null_recovers, f"{name}: declares null LATCHES but the output recovers"
     else:
-        assert observation.null_recovers, f"{name}: declares null {profile.null_policy} but it never recovers"
-        if profile.null_policy is NullPolicy.IN_WINDOW_IS_NULL:
+        assert observation.null_recovers, f"{name}: declares null {null_policy} but it never recovers"
+        if null_policy is NullPolicy.IN_WINDOW_IS_NULL:
             assert span >= 2, f"{name}: declares IN_WINDOW_IS_NULL but a null spans only {span} row(s)"
-        elif profile.null_policy is NullPolicy.PROPAGATES:
+        elif null_policy is NullPolicy.PROPAGATES:
             assert span <= 2, f"{name}: declares PROPAGATES but a null spans {span} rows (windowed?)"
 
-    if profile.nan_policy is NanPolicy.LATCHES:
+    if nan_policy is NanPolicy.LATCHES:
         assert not observation.nan_recovers, f"{name}: declares nan LATCHES but the output recovers"
     else:
-        assert observation.nan_recovers, f"{name}: declares nan {profile.nan_policy} but it never recovers"
+        assert observation.nan_recovers, f"{name}: declares nan {nan_policy} but it never recovers"
 
     # a recursion that bridges a null is exactly one that latches a NaN -- the two must be declared together.
-    if profile.null_policy is NullPolicy.BRIDGED:
-        assert profile.nan_policy is NanPolicy.LATCHES, f"{name}: BRIDGED null must pair with LATCHES nan"
+    if null_policy is NullPolicy.BRIDGED:
+        assert nan_policy is NanPolicy.LATCHES, f"{name}: BRIDGED null must pair with LATCHES nan"
