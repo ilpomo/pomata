@@ -99,6 +99,18 @@ class TestSortinoRatioEdge:
             apply_expr([0.01, 0.02, 0.03], sortino_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS)), [math.inf]
         )
 
+    def test_null_skipped(self) -> None:
+        """
+        Verifies that a ``null`` observation is skipped (excluded from the reduction), matching the reference.
+        """
+        values = [0.012, -0.008, 0.02, None, 0.005, 0.0, -0.02, 0.018]
+        assert_matches(
+            apply_expr(values, sortino_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS, risk_free_rate=0.02)),
+            [sortino_ratio_reference(values, PERIODS, 0.02)],
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
+        )
+
     def test_nan_poisons(self) -> None:
         """
         Verifies that a NaN return poisons the result to NaN.

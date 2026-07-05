@@ -79,6 +79,18 @@ class TestRecoveryRatioEdge:
         """
         assert_matches(apply_expr([1.0, 0.9, 0.95, 0.7], recovery_ratio(pl.col(COLUMN_X))), [-1.0])
 
+    def test_null_skipped(self) -> None:
+        """
+        Verifies that a ``null`` observation is skipped (excluded from the reduction), matching the reference.
+        """
+        values = [1.0, 1.1, 1.05, None, 1.15, 1.3, 1.25]
+        assert_matches(
+            apply_expr(values, recovery_ratio(pl.col(COLUMN_X))),
+            [recovery_ratio_reference(values)],
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
+        )
+
     def test_nan_poisons(self) -> None:
         """
         Verifies that a NaN equity poisons the result to NaN.
