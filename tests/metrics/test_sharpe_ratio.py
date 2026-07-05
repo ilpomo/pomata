@@ -18,12 +18,10 @@ import polars as pl
 import pytest
 from hypothesis import assume, given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.metrics.oracles import sharpe_ratio_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
     COLUMN_X,
-    GROUP_KEY,
     RELATIVE_TOLERANCE_PROPERTY,
     RELATIVE_TOLERANCE_REFERENCE,
     RELATIVE_TOLERANCE_SCALE,
@@ -61,45 +59,6 @@ class TestSharpeRatioContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(sharpe_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS), pl.Expr)
-
-    def test_reduces_to_scalar(self) -> None:
-        """
-        Verifies that the metric reduces a series to one ``Float64`` row.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [0.01, -0.02, 0.015, -0.03], dtype=pl.Float64)})
-        result = frame.select(sharpe_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS).alias("s"))
-        assert result.height == 1
-        assert result.schema["s"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [0.01, -0.02, 0.015, -0.03], dtype=pl.Float64)})
-        expr = sharpe_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS).alias("s")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
-
-    def test_over_partitions_independently(self) -> None:
-        """
-        Verifies that under ``.over`` the ratio is computed per group (broadcast) and never spans boundaries.
-        """
-        group_a = [0.01, -0.02, 0.015, -0.03, 0.005, 0.04]
-        group_b = [0.02, -0.05, 0.01, -0.01, 0.03]
-        frame = pl.DataFrame({GROUP_KEY: ["a"] * len(group_a) + ["b"] * len(group_b), COLUMN_X: group_a + group_b})
-        grouped = frame.select(sharpe_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS).over(GROUP_KEY).alias("s"))[
-            "s"
-        ].to_list()
-        expected_a = sharpe_ratio_reference(group_a, PERIODS, 0.0)
-        expected_b = sharpe_ratio_reference(group_b, PERIODS, 0.0)
-        assert_matches(
-            grouped, [expected_a] * len(group_a) + [expected_b] * len(group_b), rel_tol=RELATIVE_TOLERANCE_REFERENCE
-        )
-
 
 class TestSharpeRatioEdge:
     """
@@ -121,12 +80,6 @@ class TestSharpeRatioEdge:
             with pytest.raises(ValueError, match="risk_free_rate must be a finite number"):
                 sharpe_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS, risk_free_rate=invalid)
 
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty series yields ``null``.
-        """
-        assert_matches(apply_expr([], sharpe_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS)), [None])
-
     def test_single_row(self) -> None:
         """
         Verifies that a one-element series yields ``null`` (the sample standard deviation needs two observations).
@@ -140,12 +93,6 @@ class TestSharpeRatioEdge:
         assert_matches(
             apply_expr([0.5, 0.5, 0.5, 0.5], sharpe_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS)), [math.inf]
         )
-
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null series yields ``null``.
-        """
-        assert_matches(apply_expr([None, None], sharpe_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS)), [None])
 
     def test_nan_poisons(self) -> None:
         """

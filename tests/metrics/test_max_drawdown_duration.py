@@ -17,11 +17,9 @@ import math
 import polars as pl
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.metrics.oracles import max_drawdown_duration_reference
 from tests.support import (
     COLUMN_X,
-    GROUP_KEY,
     RELATIVE_TOLERANCE_REFERENCE,
     apply_expr,
     assert_matches,
@@ -52,52 +50,11 @@ class TestMaxDrawdownDurationContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(max_drawdown_duration(pl.col(COLUMN_X)), pl.Expr)
-
-    def test_reduces_to_scalar(self) -> None:
-        """
-        Verifies that the metric reduces a series to one ``Float64`` row.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 0.9, 0.8, 1.1], dtype=pl.Float64)})
-        result = frame.select(max_drawdown_duration(pl.col(COLUMN_X)).alias("d"))
-        assert result.height == 1
-        assert result.schema["d"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 0.9, 0.8, 1.1], dtype=pl.Float64)})
-        expr = max_drawdown_duration(pl.col(COLUMN_X)).alias("d")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
-
-    def test_over_partitions_independently(self) -> None:
-        """
-        Verifies that under ``.over`` the duration is computed per group (broadcast) and never spans boundaries.
-        """
-        group_a = [1.0, 0.9, 0.8, 0.85, 1.1, 1.05]
-        group_b = [1.0, 1.1, 0.95, 1.2]
-        frame = pl.DataFrame({GROUP_KEY: ["a"] * len(group_a) + ["b"] * len(group_b), COLUMN_X: group_a + group_b})
-        grouped = frame.select(max_drawdown_duration(pl.col(COLUMN_X)).over(GROUP_KEY).alias("d"))["d"].to_list()
-        expected_a = max_drawdown_duration_reference(group_a)
-        expected_b = max_drawdown_duration_reference(group_b)
-        assert_matches(grouped, [expected_a] * len(group_a) + [expected_b] * len(group_b))
-
 
 class TestMaxDrawdownDurationEdge:
     """
     Boundaries and null / NaN handling.
     """
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty series yields ``null``.
-        """
-        assert_matches(apply_expr([], max_drawdown_duration(pl.col(COLUMN_X))), [None])
 
     def test_single_row_is_zero(self) -> None:
         """
@@ -110,12 +67,6 @@ class TestMaxDrawdownDurationEdge:
         Verifies that a monotonically rising curve is never underwater, so the duration is ``0``.
         """
         assert_matches(apply_expr([1.0, 1.1, 1.21], max_drawdown_duration(pl.col(COLUMN_X))), [0.0])
-
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null series yields ``null``.
-        """
-        assert_matches(apply_expr([None, None], max_drawdown_duration(pl.col(COLUMN_X))), [None])
 
     def test_nan_poisons(self) -> None:
         """

@@ -41,7 +41,7 @@ def test_lazy_eager_parity(name: str) -> None:
 @pytest.mark.parametrize("name", _PNL)
 def test_empty(name: str) -> None:
     """Verifies an empty series yields an empty result."""
-    contracts.assert_empty(getattr(pnl, name))
+    contracts.assert_empty(getattr(pnl, name), REGISTRY[name])
 
 
 @pytest.mark.parametrize("name", _PNL)

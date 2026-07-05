@@ -18,12 +18,10 @@ import math
 import polars as pl
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.metrics.oracles import recovery_ratio_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
     COLUMN_X,
-    GROUP_KEY,
     RELATIVE_TOLERANCE_PROPERTY,
     RELATIVE_TOLERANCE_REFERENCE,
     apply_expr,
@@ -55,54 +53,11 @@ class TestRecoveryRatioContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(recovery_ratio(pl.col(COLUMN_X)), pl.Expr)
-
-    def test_reduces_to_scalar(self) -> None:
-        """
-        Verifies that the metric reduces a series to one ``Float64`` row.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.1, 1.05, 1.2, 1.15], dtype=pl.Float64)})
-        result = frame.select(recovery_ratio(pl.col(COLUMN_X)).alias("r"))
-        assert result.height == 1
-        assert result.schema["r"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.1, 1.05, 1.2, 1.15], dtype=pl.Float64)})
-        expr = recovery_ratio(pl.col(COLUMN_X)).alias("r")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
-
-    def test_over_partitions_independently(self) -> None:
-        """
-        Verifies that under ``.over`` the ratio is computed per group (broadcast) and never spans boundaries.
-        """
-        group_a = [1.1, 1.05, 1.2, 1.15, 1.3]
-        group_b = [1.0, 0.9, 1.05, 1.1]
-        frame = pl.DataFrame({GROUP_KEY: ["a"] * len(group_a) + ["b"] * len(group_b), COLUMN_X: group_a + group_b})
-        grouped = frame.select(recovery_ratio(pl.col(COLUMN_X)).over(GROUP_KEY).alias("r"))["r"].to_list()
-        expected_a = recovery_ratio_reference(group_a)
-        expected_b = recovery_ratio_reference(group_b)
-        assert_matches(
-            grouped, [expected_a] * len(group_a) + [expected_b] * len(group_b), rel_tol=RELATIVE_TOLERANCE_REFERENCE
-        )
-
 
 class TestRecoveryRatioEdge:
     """
     Boundaries and null / NaN handling.
     """
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty series yields ``null``.
-        """
-        assert_matches(apply_expr([], recovery_ratio(pl.col(COLUMN_X))), [None])
 
     def test_single_row_is_nan(self) -> None:
         """
@@ -123,12 +78,6 @@ class TestRecoveryRatioEdge:
         keeps its sign (here ``-0.3``) over the magnitude of the drawdown (``0.3``), giving ``-1.0``.
         """
         assert_matches(apply_expr([1.0, 0.9, 0.95, 0.7], recovery_ratio(pl.col(COLUMN_X))), [-1.0])
-
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null series yields ``null``.
-        """
-        assert_matches(apply_expr([None, None], recovery_ratio(pl.col(COLUMN_X))), [None])
 
     def test_nan_poisons(self) -> None:
         """

@@ -20,12 +20,10 @@ import polars as pl
 import pytest
 from hypothesis import assume, given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.metrics.oracles import information_ratio_rolling_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
     BENCHMARK,
-    GROUP_KEY,
     RELATIVE_TOLERANCE_REFERENCE,
     RELATIVE_TOLERANCE_SCALE,
     RETURNS,
@@ -82,68 +80,6 @@ class TestInformationRatioRollingContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(
-            information_ratio_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 3, periods_per_year=PERIODS), pl.Expr
-        )
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the metric maps the two series to a ``Float64`` series of the same length.
-        """
-        frame = pl.DataFrame(
-            {
-                RETURNS: pl.Series(RETURNS, [0.01, -0.02, 0.03, -0.01, 0.02], dtype=pl.Float64),
-                BENCHMARK: pl.Series(BENCHMARK, [0.008, -0.015, 0.025, -0.008, 0.018], dtype=pl.Float64),
-            }
-        )
-        result = frame.select(
-            information_ratio_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 3, periods_per_year=PERIODS).alias("i")
-        )
-        assert result.height == frame.height
-        assert result.schema["i"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame(
-            {
-                RETURNS: pl.Series(RETURNS, [0.01, -0.02, 0.03, -0.01, 0.02], dtype=pl.Float64),
-                BENCHMARK: pl.Series(BENCHMARK, [0.008, -0.015, 0.025, -0.008, 0.018], dtype=pl.Float64),
-            }
-        )
-        expr = information_ratio_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 3, periods_per_year=PERIODS).alias("i")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
-
-    def test_over_partitions_independently(self) -> None:
-        """
-        Verifies that under ``.over`` each group warms up independently and the window never spans a boundary.
-        """
-        returns_a = [0.01, -0.02, 0.03, -0.01]
-        benchmark_a = [0.008, -0.015, 0.025, -0.008]
-        returns_b = [0.02, -0.05, 0.01, -0.01]
-        benchmark_b = [0.018, -0.04, 0.012, -0.008]
-        frame = pl.DataFrame(
-            {
-                GROUP_KEY: ["a"] * len(returns_a) + ["b"] * len(returns_b),
-                RETURNS: returns_a + returns_b,
-                BENCHMARK: benchmark_a + benchmark_b,
-            }
-        )
-        grouped = frame.select(
-            information_ratio_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 2, periods_per_year=PERIODS)
-            .over(GROUP_KEY)
-            .alias("i")
-        )["i"].to_list()
-        expected = information_ratio_rolling_reference(returns_a, benchmark_a, 2, PERIODS) + (
-            information_ratio_rolling_reference(returns_b, benchmark_b, 2, PERIODS)
-        )
-        assert_matches(grouped, expected, rel_tol=RELATIVE_TOLERANCE_REFERENCE)
-
 
 class TestInformationRatioRollingEdge:
     """
@@ -163,18 +99,6 @@ class TestInformationRatioRollingEdge:
         """
         with pytest.raises(ValueError, match="periods_per_year must be >= 1"):
             information_ratio_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 3, periods_per_year=0)
-
-    def test_empty(self) -> None:
-        """
-        Verifies that empty series yield an empty result.
-        """
-        assert (
-            materialize(
-                {RETURNS: [], BENCHMARK: []},
-                information_ratio_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 3, periods_per_year=PERIODS),
-            )
-            == []
-        )
 
     def test_warmup_null_count(self) -> None:
         """

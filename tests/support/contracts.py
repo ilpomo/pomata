@@ -13,17 +13,26 @@ from collections.abc import Callable
 
 import polars as pl
 from polars.testing import assert_frame_equal
-from tests.support.columns import COLUMN_X
+from tests.support.asserts import assert_matches
+from tests.support.columns import COLUMN_X, GROUP_KEY
 from tests.support.registry import FunctionProfile, Shape
 from tests.support.synthesis import synthesize_call
 
 _SERIES: list[float | None] = [100.0, 105.0, 102.0, 108.0, 110.0]
+_GROUP_A: list[float | None] = [100.0, 105.0, 102.0, 108.0, 110.0, 103.0]
+_GROUP_B: list[float | None] = [50.0, 52.0, 51.0, 55.0, 53.0]
 
 
 def _materialize(factory: Callable[..., pl.Expr], series: list[float | None]) -> pl.DataFrame:
     positional, keywords = synthesize_call(factory)
     frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, series, dtype=pl.Float64)})
     return frame.select(factory(*positional, **keywords).alias("y"))
+
+
+def _values(result: pl.DataFrame) -> list[float | None]:
+    """The output column as a flat list, unnesting a struct's first field so struct and series read alike."""
+    column = result.unnest("y").to_series(0) if isinstance(result.schema["y"], pl.Struct) else result["y"]
+    return column.to_list()
 
 
 def assert_returns_expr(factory: Callable[..., pl.Expr]) -> None:
@@ -58,9 +67,34 @@ def assert_lazy_eager_parity(factory: Callable[..., pl.Expr]) -> None:
     assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
 
 
-def assert_empty(factory: Callable[..., pl.Expr]) -> None:
-    """An empty input yields an empty result."""
-    assert _materialize(factory, []).height == 0
+def assert_empty(factory: Callable[..., pl.Expr], profile: FunctionProfile) -> None:
+    """An empty input yields an empty result -- or one null scalar for a reducing factory (nothing reduced)."""
+    result = _materialize(factory, [])
+    if profile.shape is Shape.REDUCING:
+        assert result.height == 1
+        assert result["y"].to_list() == [None]
+    else:
+        assert result.height == 0
+
+
+def assert_over_partitions(factory: Callable[..., pl.Expr], profile: FunctionProfile) -> None:
+    """Under ``.over`` the factory is computed per group and never spans a boundary: the two groups' outputs on one
+    frame match what each group produces on its own (a reducing factory broadcasts its scalar across the group).
+    """
+    positional, keywords = synthesize_call(factory)
+    frame = pl.DataFrame(
+        {
+            GROUP_KEY: ["a"] * len(_GROUP_A) + ["b"] * len(_GROUP_B),
+            COLUMN_X: pl.Series(COLUMN_X, _GROUP_A + _GROUP_B, dtype=pl.Float64),
+        }
+    )
+    grouped = _values(frame.select(factory(*positional, **keywords).over(GROUP_KEY).alias("y")))
+    alone_a, alone_b = _values(_materialize(factory, _GROUP_A)), _values(_materialize(factory, _GROUP_B))
+    if profile.shape is Shape.REDUCING:
+        expected = alone_a * len(_GROUP_A) + alone_b * len(_GROUP_B)
+    else:
+        expected = alone_a + alone_b
+    assert_matches(grouped, expected)
 
 
 def assert_all_null(factory: Callable[..., pl.Expr], profile: FunctionProfile) -> None:
