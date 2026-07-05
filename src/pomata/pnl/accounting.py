@@ -335,7 +335,8 @@ def pnl_gross(
 
         - **Null** — a ``null`` in ``quantity``, ``price``, or the previous ``price`` makes that row ``null`` (``null``
           takes precedence over ``NaN``).
-        - **NaN** — a ``NaN`` in either input (with no ``null``) propagates, yielding ``NaN`` for that row.
+        - **NaN** — a ``NaN`` in ``quantity``, ``price``, or the previous ``price`` (with no ``null``) propagates,
+          yielding ``NaN`` for that row and, via the previous ``price``, the next.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the one-bar price change never
           reaches across series boundaries, e.g. ``pnl_gross(pl.col("quantity"), pl.col("price")).over("ticker")``.
 
@@ -459,7 +460,8 @@ def pnl_gross_inverse(
 
         - **Null** — a ``null`` in ``quantity``, ``price``, or the previous ``price`` makes that row ``null`` (``null``
           takes precedence over ``NaN``).
-        - **NaN** — a ``NaN`` in either input (with no ``null``) propagates, yielding ``NaN`` for that row.
+        - **NaN** — a ``NaN`` in ``quantity``, ``price``, or the previous ``price`` (with no ``null``) propagates,
+          yielding ``NaN`` for that row and, via the previous ``price``, the next.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the one-bar price change never
           reaches across series boundaries, e.g.
           ``pnl_gross_inverse(pl.col("quantity"), pl.col("price")).over("ticker")``.

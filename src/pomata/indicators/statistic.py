@@ -131,7 +131,8 @@ def linear_regression_angle(
         limit beyond it.
 
         Unlike the other regression outputs, the angle is **not** homogeneous in ``expr``: the arctangent is non-linear,
-        so scaling the input does not scale the angle (it bends it towards :math:`\pm 90`). The angle depends on the
+        so scaling the input does not scale the angle: amplifying it steepens the angle toward :math:`\pm 90`,
+        attenuating it flattens the angle toward :math:`0`. The angle depends on the
         numeric scale of ``expr`` versus its bar spacing, so it is most meaningful on a chart's own price/time units.
 
         **Edge-case behavior:**
