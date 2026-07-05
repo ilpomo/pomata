@@ -338,7 +338,7 @@ class TestObvProperties:
         ),
         shift=st.floats(min_value=-1e3, max_value=1e3, allow_nan=False, allow_infinity=False),
     )
-    def test_price_shift_invariance(
+    def test_additive_shift_invariance(
         self,
         case: list[tuple[float, float]],
         shift: float,

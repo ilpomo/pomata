@@ -254,7 +254,7 @@ class TestVwapProperties:
         rows=_cases(coherent_hlcv()),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
     )
-    def test_price_homogeneity(
+    def test_price_scale_homogeneity(
         self,
         rows: list[tuple[float, float, float, float]],
         exponent: int,
@@ -273,7 +273,7 @@ class TestVwapProperties:
         rows=_cases(coherent_hlcv()),
         exponent=st.sampled_from([-4, -2, 1, 3, 6]),
     )
-    def test_volume_invariance(
+    def test_volume_scale_invariance(
         self,
         rows: list[tuple[float, float, float, float]],
         exponent: int,

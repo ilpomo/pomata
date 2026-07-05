@@ -62,10 +62,13 @@ coordinates → same tests, same names, same order. The axes are the fields of `
 - **null_policy** / **nan_policy** — how an interior `null` / `NaN` flows (defined crisply in §3).
 - **oracle** — the independent `*_reference` it is checked against, or `None` (component-definition / golden only).
 
-A **scale** axis — a function's rescaling homogeneity and boundedness — belongs here too, but is intentionally left for
-its own phase: it needs a richer per-input-degree model (a variance is degree-2; a VWAP is degree-1 in price and
-degree-0 in volume; some oscillators are bounded only for well-formed bars) and its verification *is* the numeric scale
-contract (`f(k·x)` vs `k^degree·f(x)`), not the structural flow probe the other axes use. It lands with that contract.
+A function's **scale** behaviour — its rescaling homogeneity — is deliberately *not* a registry field. Its degree is
+per-input and family-specific (a variance is degree-2; a VWAP is degree-1 in price and degree-0 in volume; a borrow cost
+is degree-1 in quantity; a return is invariant), so a single typed value cannot state it without being lossy or awkward.
+The scale tests therefore stay in each function's own file, and only the one durably-enforceable dimension — the rung
+**name** — is held uniform, by the grammar guard in [`tests/test_scale_grammar.py`](test_scale_grammar.py) (§6). Order,
+docstring, and the shared assertion are normalized by convention (§4), not machine-checked, because a per-file rung has
+no single place to enforce them from.
 
 ## 3. The null and NaN policies, defined crisply
 
@@ -110,7 +113,11 @@ only where the axes say they apply.
   → `window_equals_length` → `window_one_*` → `constant_window_is_nan` → *(singularity guards)*.
 - **Correctness** — `matches_reference` → `golden_master`.
 - **Properties** — `matches_reference_for_any_input` → `matches_reference_under_missing_data`
-  → `scale_homogeneity` | `scale_invariance` → `matches_reference_at_large_magnitude`.
+  → `scale_homogeneity` | `scale_invariance` → `matches_reference_at_large_magnitude`. The scale rung is spelled from one
+  vocabulary: `scale_homogeneity` (degree ≥ 1) | `scale_invariance` (degree 0); for a per-input OHLCV function,
+  `price_scale_*` and `volume_scale_*`; for a per-input pnl function, `scale_homogeneity_in_<role>` (`in_quantity` /
+  `in_weight` / `in_each_input`); for an additive offset, `additive_shift_invariance`. `tests/test_scale_grammar.py`
+  makes any other spelling a red build (§6).
 
 **The naming law.** A rung has exactly **one** name across the whole suite. `single_row` is never also
 `single_row_is_nan`; `window_one` is never also `window_one_is_identity`; a `nan_*` name is never used for the wrong
@@ -135,7 +142,7 @@ Each rung is placed by how much of it is shared:
 
 ## 6. How this is enforced (so audits become natural, not heroic)
 
-`tests/test_registry.py` is the guard. It proves, on every run:
+Two source-only guards enforce this, on every run. `tests/test_registry.py` proves three things:
 
 1. **bijection** — the registry is in exact bijection with the three public `__all__` tuples: no function without a
    row, no row without a function. A new public function fails the build until it is profiled.
@@ -144,16 +151,25 @@ Each rung is placed by how much of it is shared:
    the `shape` and policies it declares. Only the flow is read (which rows go null/NaN, and whether the effect
    recovers), never a value, so the check is exact and platform-stable.
 
-The consequence: a function cannot silently drift from its declared behaviour, and a new function cannot slip in
-untested. The next audit does not *hunt* for parity — the suite has already asserted it.
+`tests/test_scale_grammar.py` proves the fourth, for the one axis that stays per-file (§2):
+
+4. **scale names are canonical** — parsing every test module's source, each scale-family rung it finds is drawn from
+   the one vocabulary (§4) and sits in a `Test*Properties` class. The `test_price_homogeneity` / `test_volume_invariance`
+   / `test_scale_behavior` drift a past audit re-found is now a red build, not the next audit's finding.
+
+The consequence: a function cannot silently drift from its declared behaviour, a new function cannot slip in untested,
+and a scale rung cannot be spelled a new way. The next audit does not *hunt* for parity — the suite has already
+asserted it.
 
 ## 7. Roadmap
 
-- **P1 — foundation** *(this change)*: `POLICY.md`, the registry (six self-verified axes), and the self-check. No
-  existing test is touched.
-- **P-scale — the scale axis**: add the richer per-input-degree `scale` field to the registry, its numeric scale
-  contract, and the self-check that ties the two together.
-- **P2 — universal contracts**: the universal rungs move into shared modules; the per-file copies are deleted.
+- **P1 — foundation**: `POLICY.md`, the registry (six self-verified axes), and the self-check. No existing test is
+  touched.
+- **P2 — universal contracts**: the universal rungs move into shared per-family modules; the per-file copies are deleted.
+- **P-scale — the scale axis** *(this change)*: the scale tests stay per-file (the degree is per-input and
+  family-specific, not a registry field); their names are settled to one vocabulary (§4) and enforced by
+  `tests/test_scale_grammar.py`. Routing every scale check through the shared homogeneity assertion, and unifying the
+  exponent set, tolerance tier, and order, are behavior-neutral follow-up sweeps.
 - **P3 / P4 / P5 — class-parametrized contracts** per family, driven by the registry.
 - **P6 — singularity + floor sweep**: for each guard class, ensure every member both *handles* and *tests* it, and
   lift any below-floor assertion to its tier.
