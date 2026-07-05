@@ -26,16 +26,20 @@ def conditional_drawdown_at_risk(
     r"""
     Conditional Drawdown at Risk (CDaR), the mean of the worst drawdowns beyond a confidence level.
 
-    The average of the drawdowns at or beyond the ``1 - confidence`` quantile of the drawdown distribution -- the
-    expected depth of the worst ``1 - confidence`` of drawdowns, the drawdown analog of conditional value-at-risk:
+    The Rockafellar-Uryasev average of the worst ``1 - confidence`` of drawdowns -- the expected depth of the deepest
+    drawdowns, the drawdown analog of conditional value-at-risk. With the drawdowns sorted ascending and
+    :math:`k = (1 - c)\,n`, the worst :math:`\lfloor k \rfloor` are averaged in full and the next carries the fractional
+    weight :math:`k - \lfloor k \rfloor`:
 
     .. math::
 
-        \mathrm{CDaR}_{c} = \operatorname{mean}\{\, D_i : D_i \le Q_{1 - c}(D) \,\},
-        \qquad D_i = \frac{E_i}{\max_{j \le i} E_j} - 1,
+        \mathrm{CDaR}_{c} = \frac{1}{k} \left( \sum_{i=1}^{\lfloor k \rfloor} D_{(i)}
+        + (k - \lfloor k \rfloor)\, D_{(\lfloor k \rfloor + 1)} \right), \qquad
+        D_i = \frac{E_i}{\max_{j \le i} E_j} - 1, \quad k = (1 - c)\, n,
 
-    where :math:`Q_{p}` is the type-7 (linear-interpolation) empirical quantile of the drawdown series :math:`D` and
-    :math:`c` is ``confidence``. The value is non-positive (a drawdown).
+    where :math:`D_{(1)} \le D_{(2)} \le \dots` are the order statistics of the drawdown series and :math:`c` is
+    ``confidence``. The fractional boundary weight makes the estimator continuous in the data. The value is non-positive
+    (a drawdown).
 
     Args:
         equity_curve: Compounded growth-factor series (e.g. from :func:`equity_curve`), positive.
@@ -102,8 +106,15 @@ def conditional_drawdown_at_risk(
     equity_curve = float64_expr(equity_curve)
     validate_confidence(confidence)
     declines = drawdown(equity_curve)
-    threshold = declines.quantile(1.0 - confidence, interpolation="linear")
-    tail_mean = declines.filter(declines <= threshold).mean()
+    # Rockafellar-Uryasev empirical tail average of the drawdowns (as in :func:`conditional_value_at_risk`): the worst
+    # ``1 - confidence`` of drawdowns, weighting the boundary order statistic by the fractional part of
+    # ``k = (1 - confidence) * n`` -- ``weight = clip(k - rank, 0, 1)`` -- so the estimator is continuous in the data.
+    rank = declines.rank(method="ordinal") - 1
+    count = declines.count()
+    weight = ((1.0 - confidence) * count - rank).clip(lower_bound=0.0, upper_bound=1.0)
+    tail_mean = (weight * declines).sum() / weight.sum()
+    # An empty (or all-null) series has ``weight.sum() == 0``; report ``null`` rather than the ``0 / 0`` NaN.
+    tail_mean = pl.when(count == 0).then(pl.lit(None, dtype=pl.Float64)).otherwise(tail_mean)
     return pl.when(equity_curve.is_nan().any()).then(pl.lit(float("nan"))).otherwise(tail_mean)
 
 
