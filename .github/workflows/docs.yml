@@ -15,11 +15,13 @@ on:
 permissions:
   contents: read
 
-# Per-ref concurrency for the build: cancel a superseded PR docs build (as ci.yml does). The Pages single-queue
-# (never cancel an in-flight deploy) is scoped to the deploy job, where it belongs -- so two PRs build in parallel.
+# Per-ref concurrency: cancel a superseded PR docs build (as ci.yml does), but never cancel a run on main -- the
+# workflow-level cancel would otherwise kill an in-flight Pages deploy, which the deploy job's own `pages` queue cannot
+# prevent (that queue guards deploys against each other, not against the parent run's cancellation). So PR builds
+# supersede; main runs serialize.
 concurrency:
   group: Docs-${{ github.head_ref || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 defaults:
   run:
