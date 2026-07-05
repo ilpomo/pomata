@@ -157,7 +157,7 @@ class TestAroonOscillatorEdge:
         expected = [None if u is None or d is None else u - d for u, d in zip(up, down, strict=True)]
         assert_matches(oscillator, expected)
 
-    def test_null_propagates(self) -> None:
+    def test_null_in_window_is_null(self) -> None:
         """
         Verifies that a ``null`` anywhere in the look-back yields ``null``.
         """

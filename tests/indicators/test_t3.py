@@ -156,7 +156,7 @@ class TestT3Edge:
         assert_matches(apply_expr([42.0], t3(pl.col(COLUMN_X), 1)), [42.0])
         assert_matches(apply_expr([42.0], t3(pl.col(COLUMN_X), 2)), [None])
 
-    def test_null_propagates(self) -> None:
+    def test_null_bridged(self) -> None:
         """
         Verifies that an early ``null`` extends the warm-up and yields ``null`` at that position, the value resuming
         once enough non-null observations have seeded all six EMA passes.

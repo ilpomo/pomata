@@ -189,7 +189,7 @@ class TestAroonEdge:
         bands = apply_aroon([5.0, 5.0, 3.0], [1.0, 2.0, 3.0], 2)
         assert_matches(bands["up"], [None, None, 50.0])
 
-    def test_null_propagates(self) -> None:
+    def test_null_in_window_is_null(self) -> None:
         """
         Verifies that a ``null`` anywhere in the look-back yields ``null`` on the affected line.
         """

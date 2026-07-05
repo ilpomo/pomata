@@ -153,7 +153,7 @@ class TestRmaEdge:
         """
         assert_matches(apply_expr([5.0, 5.0, 5.0, 5.0], rma(pl.col(COLUMN_X), 3)), [None, None, 5.0, 5.0])
 
-    def test_null_propagates(self) -> None:
+    def test_null_bridged(self) -> None:
         """
         Verifies that an interior ``null`` yields ``null`` at that row while the recursion is bridged across the gap.
         """

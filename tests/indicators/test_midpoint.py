@@ -124,7 +124,7 @@ class TestMidpointEdge:
         """
         assert_matches(apply_expr([1.0, 2.0, 3.0], midpoint(pl.col(COLUMN_X), 5)), [None, None, None])
 
-    def test_null_propagates(self) -> None:
+    def test_null_in_window_is_null(self) -> None:
         """
         Verifies that a ``null`` inside the window yields ``null`` there, and the value returns once the window clears.
         """

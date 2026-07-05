@@ -204,9 +204,9 @@ class TestStochasticFastEdge:
         assert result["k"][1] is not None
         assert math.isnan(result["k"][1])
 
-    def test_null_propagates(self) -> None:
+    def test_null_in_window_is_null(self) -> None:
         """
-        Verifies that a null propagates (matching the naive reference).
+        Verifies that an interior ``null`` nulls every window that overlaps it, then the output recovers.
         """
         high = [10.0, 11.0, 12.0, None, 13.0, 13.0, 14.0, 13.5]
         low = [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5]

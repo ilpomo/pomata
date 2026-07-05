@@ -127,7 +127,7 @@ class TestTrimaEdge:
         assert_matches(apply_expr([42.0], trima(pl.col(COLUMN_X), 1)), [42.0])
         assert_matches(apply_expr([42.0], trima(pl.col(COLUMN_X), 3)), [None])
 
-    def test_null_propagates(self) -> None:
+    def test_null_in_window_is_null(self) -> None:
         """
         Verifies that a ``null`` inside the window yields ``null`` there, and the value returns once the window clears.
         """

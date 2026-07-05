@@ -120,8 +120,12 @@ only where the axes say they apply.
   makes any other spelling a red build (§6).
 
 **The naming law.** A rung has exactly **one** name across the whole suite. `single_row` is never also
-`single_row_is_nan`; `window_one` is never also `window_one_is_identity`; a `nan_*` name is never used for the wrong
-policy. Test-local variables follow **`{WHO}_{QUALIFIER}`** — `group_primary` / `expected_primary`, not `values` /
+`single_row_is_nan`; `window_one` is never also `window_one_is_identity`. The null/NaN flow anchor is spelled from one
+**reserved** vocabulary — `null_skipped` · `null_propagates` · `null_in_window_is_null` · `null_bridged` ·
+`null_latches`, and `nan_poisons` · `nan_propagates` · `nan_latches` — each usable **only** by a function that declares
+that policy (a multi-input factory may still test a per-input case under a descriptive name such as
+`null_in_volume_propagates`); `tests/test_policy_grammar.py` makes a canonical name that lies about its policy a red
+build (§6). Test-local variables follow **`{WHO}_{QUALIFIER}`** — `group_primary` / `expected_primary`, not `values` /
 `case` — so two files read the same top to bottom. A contributor opening two families side by side never has to hold
 "which edge is tested how, where" in their head. They read the row and the rung.
 
@@ -142,7 +146,7 @@ Each rung is placed by how much of it is shared:
 
 ## 6. How this is enforced (so audits become natural, not heroic)
 
-Two source-only guards enforce this, on every run. `tests/test_registry.py` proves three things:
+Three source-only guards enforce this, on every run. `tests/test_registry.py` proves three things:
 
 1. **bijection** — the registry is in exact bijection with the three public `__all__` tuples: no function without a
    row, no row without a function. A new public function fails the build until it is profiled.
@@ -157,22 +161,30 @@ Two source-only guards enforce this, on every run. `tests/test_registry.py` prov
    the one vocabulary (§4) and sits in a `Test*Properties` class. The `test_price_homogeneity` / `test_volume_invariance`
    / `test_scale_behavior` drift a past audit re-found is now a red build, not the next audit's finding.
 
+And `tests/test_policy_grammar.py` proves the fifth, for the null/NaN value anchors that stay per-file (§2, §5):
+
+5. **null/NaN names do not lie** — every use of a reserved canonical `test_null_*` / `test_nan_*` name (§4) is matched
+   against the registry: a windowed or recursive factory can no longer call its null anchor `test_null_propagates` while
+   declaring `IN_WINDOW_IS_NULL` or `BRIDGED`. Descriptive per-input names are left free; only the canonical ones are held.
+
 The consequence: a function cannot silently drift from its declared behaviour, a new function cannot slip in untested,
-and a scale rung cannot be spelled a new way. The next audit does not *hunt* for parity — the suite has already
-asserted it.
+and neither a scale rung nor a null/NaN anchor can be spelled a way that contradicts the registry. The next audit does
+not *hunt* for parity — the suite has already asserted it.
 
 ## 7. Roadmap
 
 - **P1 — foundation**: `POLICY.md`, the registry (six self-verified axes), and the self-check. No existing test is
   touched.
 - **P2 — universal contracts**: the universal rungs move into shared per-family modules; the per-file copies are deleted.
-- **P-scale — the scale axis** *(this change)*: the scale tests stay per-file (the degree is per-input and
-  family-specific, not a registry field); their names are settled to one vocabulary (§4) and enforced by
-  `tests/test_scale_grammar.py`. Routing every scale check through the shared homogeneity assertion, and unifying the
-  exponent set, tolerance tier, and order, are behavior-neutral follow-up sweeps.
-- **P3 / P4 / P5 — class-parametrized contracts** per family, driven by the registry.
-- **P6 — singularity + floor sweep**: for each guard class, ensure every member both *handles* and *tests* it, and
-  lift any below-floor assertion to its tier.
+- **P-scale — the scale axis**: the scale tests stay per-file (the degree is per-input and family-specific, not a
+  registry field); their names are settled to one vocabulary (§4) and enforced by `tests/test_scale_grammar.py`.
+- **P3 — the null/NaN policy tier** *(this change)*: the flow contract already exists (the self-check), so this fixes
+  its one vacuous case (a probe series too short for the deepest warm-up) and keeps the per-file value anchors — settling
+  their names to the reserved policy vocabulary (§4) and enforcing it with `tests/test_policy_grammar.py`. The anchors
+  earn their keep: they pin an exact gap value the value-blind flow guard and the oracle-relative reference tier cannot.
+- **P6 — singularity + parity + floor sweep**: for each guard class, ensure every member both *handles* and *tests* it
+  (e.g. a reducing metric's deterministic `null_skipped` anchor, absent on a few today), and lift any below-floor
+  assertion to its tier.
 
 The whole program runs on an integration branch (`test-methodology`): each phase is a sub-PR merged into it one at a
 time, and it reaches `main` as a single coherent change only once complete.

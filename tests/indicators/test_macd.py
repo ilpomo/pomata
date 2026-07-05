@@ -197,7 +197,7 @@ class TestMacdEdge:
             if value is not None:
                 assert value == 0.0
 
-    def test_null_propagates(self) -> None:
+    def test_null_bridged(self) -> None:
         """
         Verifies that a ``null`` contaminates the recursive EMAs, yielding ``null`` on every field.
         """

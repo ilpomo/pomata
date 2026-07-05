@@ -181,9 +181,9 @@ class TestKamaEdge:
         result = apply_kama([5.0, 5.0, 5.0, 5.0], 2)
         assert_matches(result, [None, 5.0, 5.0, 5.0])
 
-    def test_null_propagates(self) -> None:
+    def test_null_bridged(self) -> None:
         """
-        Verifies that a null propagates (matching the naive reference).
+        Verifies that an interior ``null`` is bridged: the recursion carries its state across the gap.
         """
         values = [10.0, 11.0, 12.0, None, 13.0, 14.0, 15.0, 16.0]
         assert_matches(apply_kama(values, 2), kama_reference(values, 2))

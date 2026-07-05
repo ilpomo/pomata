@@ -154,7 +154,7 @@ class TestAbsolutePriceOscillatorEdge:
             [None, None, None],
         )
 
-    def test_null_propagates(self) -> None:
+    def test_null_bridged(self) -> None:
         """
         Verifies that an interior ``null`` is bridged: it yields ``null`` at its own row while the recursive EMAs resume
         afterward (matching the naive reference), rather than contaminating every later row.

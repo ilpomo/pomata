@@ -142,9 +142,9 @@ class TestDiMinusEdge:
         assert result[0] is None
         assert result[1] is not None
 
-    def test_null_propagates(self) -> None:
+    def test_null_bridged(self) -> None:
         """
-        Verifies that a null propagates (matching the naive reference).
+        Verifies that an interior ``null`` is bridged: the recursion carries its state across the gap.
         """
         high = [10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 14.0, 13.5]
         low = [9.0, 10.0, 11.0, None, 12.0, 12.5, 13.0, 12.5]

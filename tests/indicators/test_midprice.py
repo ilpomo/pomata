@@ -147,7 +147,7 @@ class TestMidpriceEdge:
         """
         assert_matches(apply_midprice([11.0, 12.0, 13.0], [9.0, 10.0, 11.0], 5), [None, None, None])
 
-    def test_null_propagates(self) -> None:
+    def test_null_in_window_is_null(self) -> None:
         """
         Verifies that a ``null`` in either input's window yields ``null`` there, recovering once the window clears.
         """

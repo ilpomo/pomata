@@ -153,9 +153,9 @@ class TestAtrNormalizedEdge:
             apply_atr_normalized([None, None, None], [None, None, None], [None, None, None], 2), [None, None, None]
         )
 
-    def test_null_propagates(self) -> None:
+    def test_null_bridged(self) -> None:
         """
-        Verifies that a null propagates (matching the naive reference).
+        Verifies that an interior ``null`` is bridged: the recursion carries its state across the gap.
         """
         high = [10.2, 10.5, 10.7, 10.3, 10.8]
         low = [9.8, 10.0, 10.2, 9.9, 10.3]
