@@ -75,13 +75,18 @@ Four tiers, each aimed at a different threat:
 
 ### A differential against the industry reference
 
-Separately, and without gating the build, each indicator is compared to TA-Lib — the reference the industry has used
-since 2007. With the canonical seeding most indicators match TA-Lib **bar for bar, from the first defined value**, so
-the comparison runs over the whole series at the same `1e-10` band as the internal oracle. A documented minority is
-checked only on the converged tail — each a case where TA-Lib itself deviates from the indicator's author over the
-warm-up (Wilder's first true range, the independent MACD / Chaikin EMAs) or carries a long, implementation-specific
-lead-in (the Hilbert cycle pipeline, the Parabolic SAR cold start). Where pomata chooses a different default, the
-divergence is documented and justified against the charting authorities, not hidden.
+Separately, and without gating the build, each indicator that TA-Lib also implements is compared to it — the reference
+the industry has used since 2007 — which covers **58 of the 75**. With the canonical seeding most of them match TA-Lib
+**bar for bar, from the first defined value**, so the comparison runs over the whole series at the same `1e-10` band as
+the internal oracle. A documented minority is checked only on the converged tail — each a case where TA-Lib itself
+deviates from the indicator's author over the warm-up (Wilder's first true range, the independent MACD / Chaikin EMAs)
+or carries a long, implementation-specific lead-in (the Hilbert cycle pipeline, the Parabolic SAR cold start). Three
+more map to a TA-Lib function but keep a deliberate convention of their own — ADXR's averaging lag, the Chande momentum
+oscillator's smoothing, OBV's origin — so only their steady state is expected to agree; each divergence is documented
+and justified against the charting authorities, not hidden. The remaining **14 have no TA-Lib twin at all** (SuperTrend,
+VWAP, Ichimoku, Vortex, the Hull and Keltner / Donchian families, the volume-normalized CMF, the EWMA variance /
+deviation pair, and a few more): the differential tier cannot reach them, and they rest on the independent oracle and
+their golden masters instead.
 
 ## How much precision we guarantee, and where
 
@@ -283,8 +288,8 @@ We prove, and you can re-run:
 - the exact warmup, and that a `null` or `NaN` propagates as specified;
 - agreement with an independent oracle to a stated floating-point tolerance, across the valid input domain;
 - the documented invariants — scale behavior, bounds, monotonicity where it applies;
-- parity with TA-Lib from the first defined value (a documented minority only on the converged tail), every deliberate
-  divergence documented.
+- parity with TA-Lib, where a counterpart exists (58 of the 75), from the first defined value — a documented minority
+  only on the converged tail, every deliberate divergence documented.
 
 We do **not** claim the absence of all bugs, or correctness on inputs outside the documented domain. One limit is worth
 naming plainly: for the irreducibly-sequential indicators (KAMA, the parabolic SAR, the Hilbert cycle cluster) the oracle

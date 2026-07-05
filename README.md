@@ -44,12 +44,13 @@ cd pomata && uv sync
 - **Runtime** — `polars` only (`>= 1.40`). Nothing else is pulled into your environment.
 - **Python** — 3.12, 3.13, 3.14.
 - **Optional** — the `differential` group (TA-Lib) powers the cross-reference parity tier; the other groups are the
-  contributor gate. See [CONTRIBUTING.md](CONTRIBUTING.md).
+  contributor gate. See [CONTRIBUTING.md](https://github.com/ilpomo/pomata/blob/main/CONTRIBUTING.md).
 
 ## The data
 
-Every snippet below runs on the same sample: a quarter of real daily bars for `AAPL`, `GOOG`, and `NVDA`, shipped with
-these docs. Load it once — or point `read_parquet` at your own OHLCV frame:
+Every snippet below runs on the same sample: a quarter of real daily bars for `AAPL`, `GOOG`, and `NVDA`, checked into
+the repo at [`docs/_static/ohlcv_sample.parquet`](https://github.com/ilpomo/pomata/blob/main/docs/_static/ohlcv_sample.parquet).
+Clone the repo to run the snippets as-is, or point `read_parquet` at your own OHLCV frame:
 
 ```python
 import polars as pl
@@ -79,9 +80,10 @@ shape: (9, 7)
 
 ## Technical Indicators
 
-75 indicators, each a `pl.Expr` you compute straight on your price frame — checked against **TA-Lib** to the `float64`
-floor. On a multi-ticker panel, wrap the call in `.over("ticker")` so each symbol warms up on its own history (`null`
-until the window fills, never a fabricated value):
+75 indicators, each a `pl.Expr` you compute straight on your price frame, each verified against an independent oracle —
+and 58 of the 75 cross-checked against **TA-Lib** too, at a relative `1e-10` (the other 17 have no TA-Lib twin or a
+documented divergence). On a multi-ticker panel, wrap the call in `.over("ticker")` so each symbol warms up on its own
+history (`null` until the window fills, never a fabricated value):
 
 ```python
 from pomata.indicators import rsi
@@ -279,11 +281,13 @@ metrics, and the optimizer fused the lot. Momentum paid in a quarter NVDA ran an
 that shares no code with it. The two must agree — on fixed series, frozen golden masters, and thousands of fuzzed
 inputs, under **100% branch coverage** — or the build is red.
 
-Each family is then held to the yardstick that catches its bugs: **indicators to the digit**, against the public TA-Lib 
-reference; **PnL and metrics at the edges**, where every degenerate input has a defined, tested behavior.
+Each family is then held to the yardstick that catches its bugs: **indicators to the digit** against an independent
+oracle — and, for the 58 of 75 with a twin, against the public **TA-Lib** reference too; **PnL and metrics at the
+edges**, where every degenerate input has a defined, tested behavior.
 
 The full account — the precision guarantee, the receipts, and exactly what is and is not claimed — is on the 
-[trust page](https://ilpomo.github.io/pomata/trust.html) and in [CORRECTNESS.md](CORRECTNESS.md).
+[trust page](https://ilpomo.github.io/pomata/trust.html) and in
+[CORRECTNESS.md](https://github.com/ilpomo/pomata/blob/main/CORRECTNESS.md).
 
 ## Where pomata fits
 
@@ -296,7 +300,7 @@ engine — no order fills, no event loop, no lot accounting.
 
 ## Project
 
-- **Contributing** — see [CONTRIBUTING.md](CONTRIBUTING.md); the full gate (lint, three gating type checkers plus an
-  advisory fourth, doctests, 100% branch coverage) runs on every commit.
-- **License** — MIT, see [LICENSE](LICENSE).
-- **Citation** — [CITATION.cff](CITATION.cff).
+- **Contributing** — see [CONTRIBUTING.md](https://github.com/ilpomo/pomata/blob/main/CONTRIBUTING.md); the full gate
+  (lint, three gating type checkers plus an advisory fourth, doctests, 100% branch coverage) runs on every commit.
+- **License** — MIT, see [LICENSE](https://github.com/ilpomo/pomata/blob/main/LICENSE).
+- **Citation** — [CITATION.cff](https://github.com/ilpomo/pomata/blob/main/CITATION.cff).

@@ -16,7 +16,7 @@ Releases use GitHub's native release notes, grouped by label — see the
 
 If `pomata` supports your research, please cite it: the repository ships a
 [`CITATION.cff`](https://github.com/ilpomo/pomata/blob/main/CITATION.cff) that GitHub renders into APA and BibTeX, and
-a DOI will be minted once the project is archived.
+the release is archived on Zenodo under DOI [`10.5281/zenodo.20980041`](https://doi.org/10.5281/zenodo.20980041).
 
 ## License
 
