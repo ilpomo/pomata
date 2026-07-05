@@ -870,11 +870,11 @@ def probabilistic_sharpe_ratio(
     validate_finite(risk_free_rate, "risk_free_rate")
     rf_period = per_period_rate(risk_free_rate, periods_per_year, name="risk_free_rate")
     excess = returns - rf_period
-    sharpe_ratio = excess.mean() / excess.std(ddof=1)
+    sharpe = excess.mean() / excess.std(ddof=1)
     raw_kurtosis = returns.kurtosis() + 3.0
     observations = returns.drop_nulls().len().cast(pl.Int64)
-    standard_error = (1.0 - returns.skew() * sharpe_ratio + (raw_kurtosis - 1.0) / 4.0 * sharpe_ratio**2).sqrt()
-    argument = (sharpe_ratio - benchmark_sharpe) * (observations - 1).cast(pl.Float64).sqrt() / standard_error
+    standard_error = (1.0 - returns.skew() * sharpe + (raw_kurtosis - 1.0) / 4.0 * sharpe**2).sqrt()
+    argument = (sharpe - benchmark_sharpe) * (observations - 1).cast(pl.Float64).sqrt() / standard_error
     return argument.map_batches(_normal_cdf, return_dtype=pl.Float64, returns_scalar=True)
 
 

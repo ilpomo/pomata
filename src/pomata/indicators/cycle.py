@@ -248,36 +248,23 @@ def _struct_kernel(
     *,
     fields: tuple[str, str],
     warmup: int,
+    limit_fast: float = _MAMA_FAST_LIMIT,
+    limit_slow: float = _MAMA_SLOW_LIMIT,
 ) -> pl.Series:
     """
     Run the shared pipeline and emit a two-field struct output, warm-up-masked and gap-latched.
 
-    The pipeline attribute names in ``fields`` double as the output struct field names.
+    The pipeline attribute names in ``fields`` double as the output struct field names. ``limit_fast`` / ``limit_slow``
+    default to the MAMA alpha bounds; only the MAMA/FAMA pair overrides them with its caller-supplied limits.
     """
     prices = _clean_prefix(series)
-    pipeline = _ehlers_pipeline(prices, _MAMA_FAST_LIMIT, _MAMA_SLOW_LIMIT)
+    pipeline = _ehlers_pipeline(prices, limit_fast, limit_slow)
     length = len(series)
     return pl.DataFrame(
         {
             fields[0]: _emit(getattr(pipeline, fields[0]), length, warmup),
             fields[1]: _emit(getattr(pipeline, fields[1]), length, warmup),
         }
-    ).to_struct()
-
-
-def _mama_kernel(
-    series: pl.Series,
-    limit_fast: float,
-    limit_slow: float,
-) -> pl.Series:
-    """
-    Run the shared pipeline with the MAMA limits and emit the ``{mama, fama}`` struct, warm-up-masked and gap-latched.
-    """
-    prices = _clean_prefix(series)
-    pipeline = _ehlers_pipeline(prices, limit_fast, limit_slow)
-    length = len(series)
-    return pl.DataFrame(
-        {"mama": _emit(pipeline.mama, length, _DIRECT_WARMUP), "fama": _emit(pipeline.fama, length, _DIRECT_WARMUP)}
     ).to_struct()
 
 
@@ -627,7 +614,13 @@ def mama(
     if limit_fast < limit_slow:
         raise ValueError(f"limit_fast must be >= limit_slow, got limit_fast={limit_fast}, limit_slow={limit_slow}")
     return expr.map_batches(
-        partial(_mama_kernel, limit_fast=limit_fast, limit_slow=limit_slow),
+        partial(
+            _struct_kernel,
+            fields=("mama", "fama"),
+            warmup=_DIRECT_WARMUP,
+            limit_fast=limit_fast,
+            limit_slow=limit_slow,
+        ),
         return_dtype=pl.Struct({"mama": pl.Float64, "fama": pl.Float64}),
     )
 
