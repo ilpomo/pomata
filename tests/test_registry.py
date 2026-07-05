@@ -25,8 +25,10 @@ from pomata import indicators, metrics, pnl
 
 _FAMILIES = {"indicators": indicators, "pnl": pnl, "metrics": metrics}
 # A well-spread strictly-positive series: enough variation that no windowed statistic degenerates, values irrelevant.
-_SERIES: list[float | None] = [100.0 + 5.0 * math.sin(i) + 0.3 * i for i in range(40)]
-_GAP = 12  # an interior index, far from both ends
+# It must be long enough that the gap lands *after* every function's warm-up -- the deepest is the 63-bar Hilbert
+# pipeline -- so the flow read is never taken on an all-null baseline (which would pass a latch check vacuously).
+_SERIES: list[float | None] = [100.0 + 5.0 * math.sin(i) + 0.3 * i for i in range(96)]
+_GAP = 75  # an interior index past the deepest warm-up, with room after it for the recovery / span read
 _SPREAD = 3.0  # keeps a coherent bar's high strictly above its low, so a directional movement is never degenerate
 
 
@@ -196,6 +198,9 @@ def test_declared_policy_matches_actual_behaviour(name: str) -> None:
         return
 
     # elementwise / struct: the null policy is fixed by (recovers?, span) and the nan policy by (recovers?).
+    # Guard against a vacuous read: the clean (un-gapped) run must clear this function's warm-up and emit a defined
+    # final row, or a latch check would pass on an all-null baseline while verifying nothing.
+    assert _defined(observation.clean[-1]), f"{name}: the probe series is too short to clear the warm-up"
     span = observation.null_span
     if profile.null_policy is NullPolicy.LATCHES:
         assert not observation.null_recovers, f"{name}: declares null LATCHES but the output recovers"
