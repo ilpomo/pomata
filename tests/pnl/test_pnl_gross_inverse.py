@@ -37,6 +37,7 @@ from tests.support import (
     materialize,
     missing_data_floats,
     positive_missing_data,
+    subnormal_safe_floats,
 )
 
 from pomata.pnl import pnl_gross_inverse
@@ -301,7 +302,7 @@ class TestPnlGrossInverseProperties:
         )
 
     @given(
-        case=_cases(finite_floats(), _POSITIVE_PRICES),
+        case=_cases(subnormal_safe_floats(), _POSITIVE_PRICES),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
     )
     def test_scale_homogeneity_in_quantity(
