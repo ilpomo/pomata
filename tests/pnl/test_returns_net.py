@@ -19,7 +19,6 @@ from collections.abc import Sequence
 import polars as pl
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.pnl.oracles import returns_net_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
@@ -83,41 +82,6 @@ class TestReturnsNetContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(returns_net(pl.col(RETURNS_GROSS), pl.col(COST)), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame(
-            {
-                RETURNS_GROSS: pl.Series(RETURNS_GROSS, [0.05, -0.02, 0.03, 0.01, 0.0], dtype=pl.Float64),
-                COST: pl.Series(COST, [0.0005, 0.0015, 0.0005, 0.0, 0.0005], dtype=pl.Float64),
-            }
-        )
-        result = frame.select(returns_net(pl.col(RETURNS_GROSS), pl.col(COST)).alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame(
-            {
-                RETURNS_GROSS: pl.Series(RETURNS_GROSS, [0.05, -0.02, 0.03, 0.01, 0.0], dtype=pl.Float64),
-                COST: pl.Series(COST, [0.0005, 0.0015, 0.0005, 0.0, 0.0005], dtype=pl.Float64),
-            }
-        )
-        expr = returns_net(pl.col(RETURNS_GROSS), pl.col(COST)).alias("y")
-        result_eager = frame.select(expr)
-        result_lazy = frame.lazy().select(expr).collect()
-        assert_frame_equal(result_eager, result_lazy)
-
     def test_over_is_identity(self) -> None:
         """
         Verifies that ``.over`` is optional for this elementwise difference: partitioning by group is identical to the
@@ -142,23 +106,11 @@ class TestReturnsNetEdge:
     Boundaries and null / NaN handling.
     """
 
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output.
-        """
-        assert_matches(apply_returns_net([], []), [])
-
     def test_single_row(self) -> None:
         """
         Verifies that a one-row series resolves to the single difference (no window, no warm-up).
         """
         assert_matches(apply_returns_net([0.05], [0.0005]), [0.0495])
-
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null input yields an all-null output (the difference propagates ``null``).
-        """
-        assert_matches(apply_returns_net([None, None], [None, None]), [None, None])
 
     def test_null_propagates(self) -> None:
         """

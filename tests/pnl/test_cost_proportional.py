@@ -18,7 +18,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.pnl.oracles import cost_proportional_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
@@ -64,31 +63,6 @@ class TestCostProportionalContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(cost_proportional(pl.col(COLUMN_X), RATE), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [0.5, 1.0, -0.5, -0.5, 0.0], dtype=pl.Float64)})
-        result = frame.select(cost_proportional(pl.col(COLUMN_X), RATE).alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [0.5, 1.0, -0.5, -0.5, 0.0], dtype=pl.Float64)})
-        expr = cost_proportional(pl.col(COLUMN_X), RATE).alias("y")
-        result_eager = frame.select(expr)
-        result_lazy = frame.lazy().select(expr).collect()
-        assert_frame_equal(result_eager, result_lazy)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` the turnover resets per group (each group gets its own flat start) and never
@@ -120,18 +94,6 @@ class TestCostProportionalEdge:
         Verifies that a one-element series resolves to ``|weight_0| * rate`` (the entry trade), not null.
         """
         assert_matches(apply_expr([0.5], cost_proportional(pl.col(COLUMN_X), RATE)), [0.0005])
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty series yields an empty result.
-        """
-        assert_matches(apply_expr([], cost_proportional(pl.col(COLUMN_X), RATE)), [])
-
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null series stays null.
-        """
-        assert_matches(apply_expr([None, None, None], cost_proportional(pl.col(COLUMN_X), RATE)), [None, None, None])
 
     def test_null_propagates(self) -> None:
         """

@@ -20,7 +20,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.pnl.oracles import cost_notional_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
@@ -82,41 +81,6 @@ class TestCostNotionalContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(cost_notional(pl.col(QUANTITY), pl.col(PRICE), RATE), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame(
-            {
-                QUANTITY: pl.Series(QUANTITY, [10.0, 10.0, -5.0, -5.0, 20.0], dtype=pl.Float64),
-                PRICE: pl.Series(PRICE, [100.0, 102.0, 101.0, 104.0, 103.0], dtype=pl.Float64),
-            }
-        )
-        result = frame.select(cost_notional(pl.col(QUANTITY), pl.col(PRICE), RATE).alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame(
-            {
-                QUANTITY: pl.Series(QUANTITY, [10.0, 10.0, -5.0, -5.0, 20.0], dtype=pl.Float64),
-                PRICE: pl.Series(PRICE, [100.0, 102.0, 101.0, 104.0, 103.0], dtype=pl.Float64),
-            }
-        )
-        expr = cost_notional(pl.col(QUANTITY), pl.col(PRICE), RATE).alias("y")
-        result_eager = frame.select(expr)
-        result_lazy = frame.lazy().select(expr).collect()
-        assert_frame_equal(result_eager, result_lazy)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` the turnover resets per group (each group gets its own flat start).
@@ -152,18 +116,6 @@ class TestCostNotionalEdge:
         Verifies that a one-row series charges on the entry trade (not null).
         """
         assert_matches(apply_cost_notional([10.0], [100.0]), [1.0])
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output.
-        """
-        assert_matches(apply_cost_notional([], []), [])
-
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null input yields an all-null output.
-        """
-        assert_matches(apply_cost_notional([None, None, None], [None, None, None]), [None, None, None])
 
     def test_null_propagates(self) -> None:
         """

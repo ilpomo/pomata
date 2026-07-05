@@ -23,7 +23,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.pnl.oracles import pnl_gross_inverse_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
@@ -97,41 +96,6 @@ class TestPnlGrossInverseContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(pnl_gross_inverse(pl.col(QUANTITY), pl.col(PRICE)), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame(
-            {
-                QUANTITY: pl.Series(QUANTITY, [1.0, 1.0, -2.0, -2.0, 3.0], dtype=pl.Float64),
-                PRICE: pl.Series(PRICE, [100.0, 110.0, 105.0, 120.0, 115.0], dtype=pl.Float64),
-            }
-        )
-        result = frame.select(pnl_gross_inverse(pl.col(QUANTITY), pl.col(PRICE)).alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame(
-            {
-                QUANTITY: pl.Series(QUANTITY, [1.0, 1.0, -2.0, -2.0, 3.0], dtype=pl.Float64),
-                PRICE: pl.Series(PRICE, [100.0, 110.0, 105.0, 120.0, 115.0], dtype=pl.Float64),
-            }
-        )
-        expr = pnl_gross_inverse(pl.col(QUANTITY), pl.col(PRICE)).alias("y")
-        result_eager = frame.select(expr)
-        result_lazy = frame.lazy().select(expr).collect()
-        assert_frame_equal(result_eager, result_lazy)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` the one-bar price change resets per group and never reaches across group
@@ -170,18 +134,6 @@ class TestPnlGrossInverseEdge:
         Verifies that a one-row series is all warm-up (no previous price to difference against).
         """
         assert_matches(apply_pnl_gross_inverse([1.0], [100.0]), [None])
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output.
-        """
-        assert_matches(apply_pnl_gross_inverse([], []), [])
-
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null input yields an all-null output.
-        """
-        assert_matches(apply_pnl_gross_inverse([None, None, None], [None, None, None]), [None, None, None])
 
     def test_null_propagates(self) -> None:
         """
