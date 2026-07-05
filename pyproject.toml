@@ -148,7 +148,7 @@ module = [
     "tests.indicators.test_differential",
     "tests.support.synthesis",
     "tests.support.contracts",
-    "tests.test_registry",
+    "tests.test_policies",
 ]
 
 [tool.pyright]
