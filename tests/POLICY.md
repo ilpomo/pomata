@@ -1,9 +1,9 @@
 # The pomata test policy
 
-This document is the method of record for how pomata is tested. It exists to end a specific failure mode: an audit
-finds an edge case handled or tested one way in one function and another way in its neighbour, a fix lands for that one
-function, and the next audit finds the same class of difference in the function next door. That loop is not a shortage
-of effort -- it is the absence of a *method*. The method is this:
+This document is the method of record for how pomata is tested. It exists to end a specific failure mode: an edge case
+is handled or tested one way in one function and another way in its neighbour, a fix lands for that one function, and
+the same class of difference persists in the function next door. That drift is not a shortage of effort -- it is the
+absence of a *method*. The method is this:
 
 > **We believe the registry and test everything uniformly. Where a function's edge-case logic genuinely differs -- and
 > it will, because a rolling mean, an EMA, and a reducing ratio cannot treat a `null` identically -- we make that
@@ -14,7 +14,7 @@ The single source of truth is [`tests/support/registry.py`](support/registry.py)
 public function. The shared contract suite reads each row and tests each function *by its own declared rules*, so the
 whole package is exercised from one place and every genuine difference is stated, not scattered. The registry is kept
 honest by [`tests/test_registry.py`](test_registry.py): a function that behaves differently from the profile it
-declares -- or is added without a row -- is a red build, not a finding for the next audit.
+declares -- or is added without a row -- is a red build.
 
 ---
 
@@ -40,7 +40,7 @@ cancel toward zero or approach the subnormal range.
 - **No bit-exact / sub-ULP / `== 0.0` assertion on fuzzed or cross-platform inputs.** A sub-ULP result depends on the
   CPU (x86 vs arm64), FMA contraction, the Polars version, and the order the query optimizer chooses -- none of which
   pomata owns. Asserting it is a test *designed* to flake across the CI matrix (this is the exact shape of the CDaR
-  knife-edge flake that a prior audit chased for a full cycle).
+  knife-edge flake that once churned a full cycle before it was pinned down).
 - **Golden masters are rounded** (`.round(n)`) to a sane precision, so a frozen value never flakes between macOS-arm64,
   ubuntu-x86, and windows.
 - **A magnitude-dependent band is sized to the data** (`input_scale ** degree * factor`), never fixed, so it is right
@@ -144,7 +144,7 @@ Each rung is placed by how much of it is shared:
   named, documented test in that function's own file, in the same tiered class, in the same order. Explicit, never
   implicit.
 
-## 6. How this is enforced (so audits become natural, not heroic)
+## 6. How this is enforced (so parity holds by construction, not by vigilance)
 
 Three source-only guards enforce this, on every run. `tests/test_registry.py` proves three things:
 
@@ -158,8 +158,8 @@ Three source-only guards enforce this, on every run. `tests/test_registry.py` pr
 `tests/test_scale_grammar.py` proves the fourth, for the one axis that stays per-file (§2):
 
 4. **scale names are canonical** — parsing every test module's source, each scale-family rung it finds is drawn from
-   the one vocabulary (§4) and sits in a `Test*Properties` class. The `test_price_homogeneity` / `test_volume_invariance`
-   / `test_scale_behavior` drift a past audit re-found is now a red build, not the next audit's finding.
+   the one vocabulary (§4) and sits in a `Test*Properties` class. A name like `test_price_homogeneity` /
+   `test_volume_invariance` / `test_scale_behavior` that departs from that vocabulary is a red build.
 
 And `tests/test_policy_grammar.py` proves the fifth, for the null/NaN value anchors that stay per-file (§2, §5):
 
@@ -168,23 +168,5 @@ And `tests/test_policy_grammar.py` proves the fifth, for the null/NaN value anch
    declaring `IN_WINDOW_IS_NULL` or `BRIDGED`. Descriptive per-input names are left free; only the canonical ones are held.
 
 The consequence: a function cannot silently drift from its declared behaviour, a new function cannot slip in untested,
-and neither a scale rung nor a null/NaN anchor can be spelled a way that contradicts the registry. The next audit does
-not *hunt* for parity — the suite has already asserted it.
-
-## 7. Roadmap
-
-- **P1 — foundation**: `POLICY.md`, the registry (six self-verified axes), and the self-check. No existing test is
-  touched.
-- **P2 — universal contracts**: the universal rungs move into shared per-family modules; the per-file copies are deleted.
-- **P-scale — the scale axis**: the scale tests stay per-file (the degree is per-input and family-specific, not a
-  registry field); their names are settled to one vocabulary (§4) and enforced by `tests/test_scale_grammar.py`.
-- **P3 — the null/NaN policy tier** *(this change)*: the flow contract already exists (the self-check), so this fixes
-  its one vacuous case (a probe series too short for the deepest warm-up) and keeps the per-file value anchors — settling
-  their names to the reserved policy vocabulary (§4) and enforcing it with `tests/test_policy_grammar.py`. The anchors
-  earn their keep: they pin an exact gap value the value-blind flow guard and the oracle-relative reference tier cannot.
-- **P6 — singularity + parity + floor sweep**: for each guard class, ensure every member both *handles* and *tests* it
-  (e.g. a reducing metric's deterministic `null_skipped` anchor, absent on a few today), and lift any below-floor
-  assertion to its tier.
-
-The whole program runs on an integration branch (`test-methodology`): each phase is a sub-PR merged into it one at a
-time, and it reaches `main` as a single coherent change only once complete.
+and neither a scale rung nor a null/NaN anchor can be spelled a way that contradicts the registry. Parity is not
+something to hunt for — the suite has already asserted it.

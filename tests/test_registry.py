@@ -2,8 +2,7 @@
 The self-check for the edge-case contract registry (:mod:`tests.support.registry`).
 
 The registry is the single source of truth the shared contracts read; this module keeps it honest. It proves three
-things, so a row that lies about its function -- or a function that is added without a row -- is a red build rather than
-a finding for the next audit:
+things, so a row that lies about its function -- or a function that is added without a row -- is a red build:
 
 - **bijection** -- every public ``__all__`` name has exactly one row, and no row is an orphan;
 - **oracle integrity** -- every declared ``*_reference`` oracle is importable from its family's ``oracles`` package;

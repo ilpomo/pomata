@@ -3,9 +3,9 @@ Universal structural contract for the public metrics factories -- the rungs iden
 
 Every metric owes the same six structural guarantees; rather than copy them into all 60 test modules, this contract
 parametrizes over the metrics subset of the registry (:mod:`tests.support.registry`) and applies the shared, shape-aware
-assertions in :mod:`tests.support.contracts`. Metrics migrate one rung the other families keep per-file: ``.over`` is
-universal here (every metric -- reducing or rolling -- partitions per group), and ``all_null`` is closed for the rolling
-metrics that lacked it (``sharpe_ratio_rolling``, ``beta_rolling``, ...); a new metric is swept in automatically.
+assertions in :mod:`tests.support.contracts`. Metrics share one rung the other families keep per-file: ``.over`` is
+universal here (every metric -- reducing or rolling -- partitions per group), and ``all_null`` covers every metric,
+rolling ones included (``sharpe_ratio_rolling``, ``beta_rolling``, ...); a new metric is swept in automatically.
 
 The function-specific rungs stay in each function's own file: the validation raises, the null / NaN policy, correctness
 (golden masters), and the property tiers. Dtype and name-preservation stay in ``test_dtype.py`` / ``test_naming.py``.
