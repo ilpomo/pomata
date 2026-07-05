@@ -83,6 +83,19 @@ def _rolling_is_constant(
     return expr.rolling_max(window, min_samples=window) == expr.rolling_min(window, min_samples=window)
 
 
+def _rolling_has_nan(
+    expr: pl.Expr,
+    window: int,
+) -> pl.Expr:
+    """
+    Whether the trailing ``window`` holds any ``NaN`` -- the rolling counterpart of the whole-series NaN-poison guard.
+
+    A single ``NaN`` anywhere in the window poisons that window's rolling statistic, so it is mapped to a ``NaN`` result
+    rather than a spuriously finite one; detected as the ``rolling_max`` of the ``NaN`` indicator reaching ``1``.
+    """
+    return expr.is_nan().cast(pl.Float64).rolling_max(window, min_samples=window) == 1.0
+
+
 def _rolling_downside_deviation(
     expr: pl.Expr,
     window: int,
@@ -1358,8 +1371,7 @@ def tail_ratio_rolling(
     right_tail = returns.rolling_quantile(0.95, interpolation="linear", window_size=window, min_samples=window)
     left_tail = returns.rolling_quantile(0.05, interpolation="linear", window_size=window, min_samples=window)
     ratio = (right_tail / left_tail).abs()
-    nan_in_window = returns.is_nan().cast(pl.Float64).rolling_max(window, min_samples=window)
-    return pl.when(nan_in_window == 1.0).then(pl.lit(float("nan"))).otherwise(ratio)
+    return pl.when(_rolling_has_nan(returns, window)).then(pl.lit(float("nan"))).otherwise(ratio)
 
 
 def value_at_risk(
@@ -1752,8 +1764,7 @@ def value_at_risk_rolling(
     quantile = returns.rolling_quantile(
         1.0 - confidence, interpolation="linear", window_size=window, min_samples=window
     )
-    nan_in_window = returns.is_nan().cast(pl.Float64).rolling_max(window, min_samples=window)
-    return pl.when(nan_in_window == 1.0).then(pl.lit(float("nan"))).otherwise(quantile)
+    return pl.when(_rolling_has_nan(returns, window)).then(pl.lit(float("nan"))).otherwise(quantile)
 
 
 def volatility(
@@ -1936,11 +1947,10 @@ def volatility_rolling(
     validate_window(window, minimum=2)
     validate_periods_per_year(periods_per_year)
     dispersion = returns.rolling_std(window, ddof=1, min_samples=window) * math.sqrt(periods_per_year)
-    nan_in_window = returns.is_nan().cast(pl.Float64).rolling_max(window, min_samples=window)
     # A constant window has zero dispersion -> 0.0; the incremental rolling standard deviation can leave a residue after
     # a much larger value exits the window, so guard it explicitly. The NaN check comes first: a NaN window stays NaN.
     return (
-        pl.when(nan_in_window == 1.0)
+        pl.when(_rolling_has_nan(returns, window))
         .then(pl.lit(float("nan")))
         .when(_rolling_is_constant(returns, window))
         .then(pl.lit(0.0))

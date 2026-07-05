@@ -429,7 +429,7 @@ def chaikin_money_flow(
     # so missing data propagates to a null/NaN money-flow volume rather than being silently zeroed.
     high_low_range = high - low
     money_flow_multiplier = (
-        pl.when(high_low_range == 0).then(0.0).otherwise(((close - low) - (high - close)) / high_low_range)
+        pl.when(high_low_range == 0).then(pl.lit(0.0)).otherwise(((close - low) - (high - close)) / high_low_range)
     )
     money_flow_volume = money_flow_multiplier * volume
     weighted_sum = money_flow_volume.rolling_sum(window_size=window)
