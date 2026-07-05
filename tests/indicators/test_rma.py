@@ -12,11 +12,12 @@ from hypothesis import given
 from hypothesis import strategies as st
 from tests.indicators.oracles import rma_reference
 from tests.support import (
-    ABSOLUTE_TOLERANCE_EXACT,
+    ABSOLUTE_TOLERANCE_REFERENCE,
     COLUMN_X,
     EXACT_TOLERANCE_FACTOR,
     GROUP_KEY,
     RELATIVE_TOLERANCE_PROPERTY,
+    RELATIVE_TOLERANCE_REFERENCE,
     RELATIVE_TOLERANCE_SCALE,
     SUBNORMAL_FLOOR,
     WINDOW_MAX,
@@ -199,7 +200,7 @@ class TestRmaCorrectness:
         """
         result = apply_expr([2.0, 4.0, 6.0, 8.0, 10.0], rma(pl.col(COLUMN_X), 3))
         expected = [None, None, 4.0, 5.333333333333333, 6.888888888888888]
-        assert_matches(result, expected, rel_tol=1e-12, abs_tol=ABSOLUTE_TOLERANCE_EXACT)
+        assert_matches(result, expected, rel_tol=RELATIVE_TOLERANCE_REFERENCE, abs_tol=ABSOLUTE_TOLERANCE_REFERENCE)
 
 
 class TestRmaProperties:

@@ -289,7 +289,12 @@ class TestKamaProperties:
         Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
         """
         values, window = case
-        assert_matches(apply_kama(values, window), kama_reference(values, window))
+        assert_matches(
+            apply_kama(values, window),
+            kama_reference(values, window),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_EXACT,
+        )
 
     @given(
         case=_cases(st.floats(min_value=1e-3, max_value=1.0, allow_nan=False, allow_infinity=False)),

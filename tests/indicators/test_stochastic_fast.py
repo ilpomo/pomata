@@ -352,4 +352,9 @@ class TestStochasticFastProperties:
         applied = apply_stochastic_fast(high, low, close, window_k=window_k, window_d=window_d)
         reference = stochastic_fast_reference(high, low, close, window_k, window_d)
         for field in FIELDS:
-            assert_matches(applied[field], reference[field])
+            assert_matches(
+                applied[field],
+                reference[field],
+                rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+                abs_tol=ABSOLUTE_TOLERANCE_PROPERTY,
+            )

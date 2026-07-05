@@ -20,9 +20,11 @@ from hypothesis import given
 from hypothesis import strategies as st
 from tests.indicators.oracles import standard_deviation_ewma_reference
 from tests.support import (
+    ABSOLUTE_TOLERANCE_REFERENCE,
     COLUMN_X,
     GROUP_KEY,
     RELATIVE_TOLERANCE_PROPERTY,
+    RELATIVE_TOLERANCE_REFERENCE,
     RELATIVE_TOLERANCE_SCALE,
     STREAMING_TOLERANCE_FACTOR,
     SUBNORMAL_FLOOR,
@@ -179,7 +181,12 @@ class TestStandardDeviationEwmaCorrectness:
         ``ignore_nulls=False`` aging that an equal-weight or null-collapsing form would miss.
         """
         result = apply_expr([10.0, None, 11.0, 13.0, 12.0], standard_deviation_ewma(pl.col(COLUMN_X), 3))
-        assert_matches(result, [None, None, None, 1.2133516482134197, 0.8620067027323833])
+        assert_matches(
+            result,
+            [None, None, None, 1.2133516482134197, 0.8620067027323833],
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
+        )
 
 
 class TestStandardDeviationEwmaProperties:

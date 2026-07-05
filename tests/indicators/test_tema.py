@@ -239,6 +239,8 @@ class TestTemaCorrectness:
         assert_matches(
             apply_expr([2.0, 4.0, 6.0, 8.0, 10.0, 12.0], tema(pl.col(COLUMN_X), 2)),
             [None, None, None, 8.0, 10.0, 12.0],
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
     def test_golden_master_window_three(self) -> None:
@@ -259,6 +261,8 @@ class TestTemaCorrectness:
                 5.081452546296296,
                 3.234953703703704,
             ],
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
 

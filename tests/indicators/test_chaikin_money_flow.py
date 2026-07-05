@@ -25,6 +25,7 @@ from tests.support import (
     HIGH,
     LOW,
     RELATIVE_TOLERANCE_PROPERTY,
+    RELATIVE_TOLERANCE_REFERENCE,
     VOLUME,
     WINDOW_MAX,
     assert_matches,
@@ -391,6 +392,8 @@ class TestChaikinMoneyFlowCorrectness:
                 3,
             ),
             [None, None, 0.14814814814814814, 0.2564102564102564, 0.26190476190476186],
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
 

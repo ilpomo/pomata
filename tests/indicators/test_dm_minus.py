@@ -258,4 +258,9 @@ class TestDmMinusProperties:
         """
         rows, window = case
         high, low = split_pairs(rows)
-        assert_matches(apply_dm_minus(high, low, window), dm_minus_reference(high, low, window))
+        assert_matches(
+            apply_dm_minus(high, low, window),
+            dm_minus_reference(high, low, window),
+            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+            abs_tol=input_scale([*high, *low]) * EXACT_TOLERANCE_FACTOR,
+        )

@@ -16,6 +16,7 @@ from hypothesis import strategies as st
 from tests.indicators.oracles import ema_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_EXACT,
+    ABSOLUTE_TOLERANCE_REFERENCE,
     COLUMN_X,
     EXACT_TOLERANCE_FACTOR,
     GROUP_KEY,
@@ -213,6 +214,8 @@ class TestEmaCorrectness:
         assert_matches(
             apply_expr([2.0, 4.0, 6.0, 8.0, 10.0], ema(pl.col(COLUMN_X), 3)),
             [None, None, 4.0, 6.0, 8.0],
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
     def test_golden_master_adjusted(self) -> None:
@@ -223,6 +226,8 @@ class TestEmaCorrectness:
         assert_matches(
             apply_expr([2.0, 4.0, 6.0, 8.0, 10.0], ema(pl.col(COLUMN_X), 3, adjust=True)),
             [None, None, 4.857142857142857, 6.533333333333333, 8.32258064516129],
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
 
