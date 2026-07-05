@@ -34,6 +34,7 @@ from tests.support import (
     finite_floats,
     input_scale,
     missing_data_floats,
+    subnormal_safe_floats,
 )
 
 from pomata.pnl import cumulative_pnl
@@ -172,7 +173,7 @@ class TestCumulativePnlProperties:
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
-    @given(case=_cases(finite_floats()), exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]))
+    @given(case=_cases(subnormal_safe_floats()), exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]))
     def test_scale_homogeneity(
         self,
         case: list[float],

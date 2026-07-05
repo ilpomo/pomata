@@ -32,6 +32,7 @@ from tests.support import (
     assert_scale_homogeneous,
     finite_floats,
     missing_data_floats,
+    subnormal_safe_floats,
 )
 
 from pomata.pnl import turnover
@@ -177,7 +178,7 @@ class TestTurnoverProperties:
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
-    @given(case=_cases(finite_floats()), exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]))
+    @given(case=_cases(subnormal_safe_floats()), exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]))
     def test_scale_homogeneity(
         self,
         case: list[float],

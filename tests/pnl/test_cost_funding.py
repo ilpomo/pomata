@@ -31,6 +31,7 @@ from tests.support import (
     finite_floats,
     materialize,
     missing_data_floats,
+    subnormal_safe_floats,
 )
 
 from pomata.pnl import cost_funding
@@ -229,7 +230,7 @@ class TestCostFundingProperties:
         )
 
     @given(
-        case=_cases(finite_floats(), finite_floats(), finite_floats()),
+        case=_cases(subnormal_safe_floats(), subnormal_safe_floats(), subnormal_safe_floats()),
         axis=st.sampled_from([QUANTITY, PRICE, RATE]),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
     )

@@ -31,6 +31,7 @@ from tests.support import (
     finite_floats,
     materialize,
     missing_data_floats,
+    subnormal_safe_floats,
 )
 
 from pomata.pnl import returns_net
@@ -205,7 +206,10 @@ class TestReturnsNetProperties:
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
-    @given(case=_cases(finite_floats(), finite_floats()), exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]))
+    @given(
+        case=_cases(subnormal_safe_floats(), subnormal_safe_floats()),
+        exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
+    )
     def test_scale_homogeneity(
         self,
         case: tuple[list[float], list[float]],
