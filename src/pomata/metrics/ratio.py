@@ -153,7 +153,9 @@ def adjusted_sharpe_ratio(
     # Pezier & White correct the PER-PERIOD Sharpe -- so the skew/kurtosis penalty reflects the distribution shape and
     # not the annualization factor -- then the corrected ratio is annualized by the square-root-of-time rule.
     sharpe = sharpe_ratio(returns, periods_per_year=periods_per_year, risk_free_rate=risk_free_rate) / annualization
-    return annualization * sharpe * (1.0 + returns.skew() / 6.0 * sharpe - returns.kurtosis() / 24.0 * sharpe**2)
+    return (
+        annualization * sharpe * (1.0 + returns.skew() / 6.0 * sharpe - returns.kurtosis() / 24.0 * sharpe**2)
+    ).name.keep()
 
 
 def burke_ratio(
@@ -242,9 +244,10 @@ def burke_ratio(
     equity_curve = float64_expr(equity_curve)
     validate_periods_per_year(periods_per_year)
     validate_finite(risk_free_rate, "risk_free_rate")
-    return (cagr(equity_curve, periods_per_year=periods_per_year) - risk_free_rate) / (
-        drawdown(equity_curve) ** 2
-    ).sum().sqrt()
+    return (
+        (cagr(equity_curve, periods_per_year=periods_per_year) - risk_free_rate)
+        / (drawdown(equity_curve) ** 2).sum().sqrt()
+    ).name.keep()
 
 
 def calmar_ratio(
@@ -330,7 +333,7 @@ def calmar_ratio(
     """
     equity_curve = float64_expr(equity_curve)
     validate_periods_per_year(periods_per_year)
-    return cagr(equity_curve, periods_per_year=periods_per_year) / max_drawdown(equity_curve).abs()
+    return (cagr(equity_curve, periods_per_year=periods_per_year) / max_drawdown(equity_curve).abs()).name.keep()
 
 
 def common_sense_ratio(
@@ -761,7 +764,9 @@ def pain_ratio(
     equity_curve = float64_expr(equity_curve)
     validate_periods_per_year(periods_per_year)
     validate_finite(risk_free_rate, "risk_free_rate")
-    return (cagr(equity_curve, periods_per_year=periods_per_year) - risk_free_rate) / pain_index(equity_curve)
+    return (
+        (cagr(equity_curve, periods_per_year=periods_per_year) - risk_free_rate) / pain_index(equity_curve)
+    ).name.keep()
 
 
 def probabilistic_sharpe_ratio(
@@ -958,7 +963,7 @@ def recovery_ratio(
     """
     equity_curve = float64_expr(equity_curve)
     # The numerator keeps its sign (a losing curve reports a negative factor); only the drawdown is taken in magnitude.
-    return total_return(equity_curve) / max_drawdown(equity_curve).abs()
+    return (total_return(equity_curve) / max_drawdown(equity_curve).abs()).name.keep()
 
 
 def sharpe_ratio(
@@ -1436,9 +1441,9 @@ def sterling_ratio(
     validate_periods_per_year(periods_per_year)
     validate_finite(risk_free_rate, "risk_free_rate")
     validate_finite(excess, "excess")
-    return (cagr(equity_curve, periods_per_year=periods_per_year) - risk_free_rate) / (
-        pain_index(equity_curve) + excess
-    )
+    return (
+        (cagr(equity_curve, periods_per_year=periods_per_year) - risk_free_rate) / (pain_index(equity_curve) + excess)
+    ).name.keep()
 
 
 def ulcer_performance_ratio(
@@ -1526,4 +1531,6 @@ def ulcer_performance_ratio(
     equity_curve = float64_expr(equity_curve)
     validate_periods_per_year(periods_per_year)
     validate_finite(risk_free_rate, "risk_free_rate")
-    return (cagr(equity_curve, periods_per_year=periods_per_year) - risk_free_rate) / ulcer_index(equity_curve)
+    return (
+        (cagr(equity_curve, periods_per_year=periods_per_year) - risk_free_rate) / ulcer_index(equity_curve)
+    ).name.keep()

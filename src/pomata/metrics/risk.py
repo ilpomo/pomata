@@ -231,7 +231,7 @@ def conditional_value_at_risk(
     shortfall = (weight * returns).sum() / weight.sum()
     # An empty (or all-null) series has ``weight.sum() == 0``; report ``null`` rather than the ``0 / 0`` NaN.
     shortfall = pl.when(count == 0).then(pl.lit(None, dtype=pl.Float64)).otherwise(shortfall)
-    return pl.when(returns.is_nan().any()).then(pl.lit(float("nan"))).otherwise(shortfall)
+    return pl.when(returns.is_nan().any()).then(pl.lit(float("nan"))).otherwise(shortfall).name.keep()
 
 
 def downside_deviation(
@@ -432,7 +432,7 @@ def downside_deviation_rolling(
     validate_window(window)
     validate_periods_per_year(periods_per_year)
     validate_finite(threshold, "threshold")
-    return _rolling_downside_deviation(returns, window, periods_per_year, threshold)
+    return _rolling_downside_deviation(returns, window, periods_per_year, threshold).name.keep()
 
 
 def kelly_criterion(
@@ -531,7 +531,7 @@ def kelly_criterion(
     """
     returns = float64_expr(returns)
     probability = win_rate(returns)
-    return probability - (1.0 - probability) / payoff_ratio(returns)
+    return (probability - (1.0 - probability) / payoff_ratio(returns)).name.keep()
 
 
 def kurtosis(
@@ -818,7 +818,7 @@ def payoff_ratio(
     average_win = returns.filter(returns > 0.0).mean()
     average_loss = returns.filter(returns < 0.0).mean()
     ratio = average_win / -average_loss
-    return pl.when(returns.is_nan().any()).then(pl.lit(float("nan"))).otherwise(ratio)
+    return pl.when(returns.is_nan().any()).then(pl.lit(float("nan"))).otherwise(ratio).name.keep()
 
 
 def profit_ratio(
@@ -1005,7 +1005,7 @@ def risk_of_ruin(
     observations = returns.drop_nulls().len()
     # Gambler's-ruin ratio q/p = (1 - p)/p raised to the capital cushion in unit bets; a system with no edge
     # (p <= 0.5) gives a ratio >= 1, so the probability is capped at 1 (ruin is certain at p <= 0.5).
-    return ((1.0 - probability) / probability).pow(observations).clip(upper_bound=1.0)
+    return ((1.0 - probability) / probability).pow(observations).clip(upper_bound=1.0).name.keep()
 
 
 def skewness(
@@ -1273,7 +1273,7 @@ def tail_ratio(
     right_tail = returns.quantile(0.95, interpolation="linear")
     left_tail = returns.quantile(0.05, interpolation="linear")
     ratio = (right_tail / left_tail).abs()
-    return pl.when(returns.is_nan().any()).then(pl.lit(float("nan"))).otherwise(ratio)
+    return pl.when(returns.is_nan().any()).then(pl.lit(float("nan"))).otherwise(ratio).name.keep()
 
 
 def tail_ratio_rolling(
@@ -1371,7 +1371,7 @@ def tail_ratio_rolling(
     right_tail = returns.rolling_quantile(0.95, interpolation="linear", window_size=window, min_samples=window)
     left_tail = returns.rolling_quantile(0.05, interpolation="linear", window_size=window, min_samples=window)
     ratio = (right_tail / left_tail).abs()
-    return pl.when(_rolling_has_nan(returns, window)).then(pl.lit(float("nan"))).otherwise(ratio)
+    return pl.when(_rolling_has_nan(returns, window)).then(pl.lit(float("nan"))).otherwise(ratio).name.keep()
 
 
 def value_at_risk(
@@ -1460,7 +1460,7 @@ def value_at_risk(
     returns = float64_expr(returns)
     validate_confidence(confidence)
     quantile = returns.quantile(1.0 - confidence, interpolation="linear")
-    return pl.when(returns.is_nan().any()).then(pl.lit(float("nan"))).otherwise(quantile)
+    return pl.when(returns.is_nan().any()).then(pl.lit(float("nan"))).otherwise(quantile).name.keep()
 
 
 def value_at_risk_modified(
@@ -1764,7 +1764,7 @@ def value_at_risk_rolling(
     quantile = returns.rolling_quantile(
         1.0 - confidence, interpolation="linear", window_size=window, min_samples=window
     )
-    return pl.when(_rolling_has_nan(returns, window)).then(pl.lit(float("nan"))).otherwise(quantile)
+    return pl.when(_rolling_has_nan(returns, window)).then(pl.lit(float("nan"))).otherwise(quantile).name.keep()
 
 
 def volatility(
@@ -2050,4 +2050,4 @@ def win_rate(
     wins = (returns > 0.0).sum()
     decisive = (returns != 0.0).sum()
     ratio = pl.when(decisive == 0).then(None).otherwise(wins / decisive)
-    return pl.when(returns.is_nan().any()).then(pl.lit(float("nan"))).otherwise(ratio)
+    return pl.when(returns.is_nan().any()).then(pl.lit(float("nan"))).otherwise(ratio).name.keep()
