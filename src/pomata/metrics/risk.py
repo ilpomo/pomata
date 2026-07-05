@@ -111,19 +111,21 @@ def conditional_value_at_risk(
     confidence: float = 0.95,
 ) -> pl.Expr:
     r"""
-    Historical Conditional Value-at-Risk (a.k.a. Expected Shortfall), the mean loss beyond the value-at-risk quantile.
+    Historical Conditional Value-at-Risk (a.k.a. Expected Shortfall), the average of the worst-tail losses.
 
-    The average of the returns at or below the historical :func:`value_at_risk` threshold -- the expected loss in the
-    worst ``1 - confidence`` of cases. Unlike value-at-risk it is a coherent risk measure and reflects the severity of
-    losses in the tail, not merely their cutoff:
+    The Rockafellar-Uryasev average of the worst ``1 - confidence`` of returns -- a coherent risk measure that reflects
+    the severity of losses in the tail, not merely their cutoff. With the returns sorted ascending and
+    :math:`k = (1 - c)\,n`, the worst :math:`\lfloor k \rfloor` are averaged in full and the next order statistic
+    carries the fractional weight :math:`k - \lfloor k \rfloor`:
 
     .. math::
 
-        \mathrm{CVaR}_{c} = \operatorname{mean}\{\, r_i : r_i \le \mathrm{VaR}_{c} \,\}, \qquad
-        \mathrm{VaR}_{c} = Q_{1 - c}(r),
+        \mathrm{CVaR}_{c} = \frac{1}{k} \left( \sum_{i=1}^{\lfloor k \rfloor} r_{(i)}
+        + (k - \lfloor k \rfloor)\, r_{(\lfloor k \rfloor + 1)} \right), \qquad k = (1 - c)\, n,
 
-    where :math:`Q_{p}` is the type-7 (linear-interpolation) empirical quantile and :math:`c` is ``confidence``. The
-    value is on the same scale as the returns and is negative for a loss.
+    where :math:`r_{(1)} \le r_{(2)} \le \dots` are the order statistics of the ``n`` returns and :math:`c` is
+    ``confidence``. The fractional boundary weight makes the estimator continuous in the data. The value is on the same
+    scale as the returns and is negative for a loss.
 
     Args:
         returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
@@ -144,8 +146,8 @@ def conditional_value_at_risk(
 
         **Edge-case behavior:**
 
-        - **Null** — a ``null`` return is skipped (excluded from both the quantile and the mean), so a leading warm-up
-          ``null`` does not affect the result.
+        - **Null** — a ``null`` return is skipped (excluded from the count ``n`` and the tail average), so a leading
+          warm-up ``null`` does not affect the result.
         - **NaN** — a ``NaN`` return propagates, yielding ``NaN``.
         - **Historical, not parametric** — the shortfall is taken over the empirical return distribution, with no
           normality or other distributional assumption. An empty (or all-null) series yields ``null``.
@@ -153,7 +155,7 @@ def conditional_value_at_risk(
           ``conditional_value_at_risk(pl.col("returns")).over("ticker")``.
 
     See Also:
-        - :func:`value_at_risk`: The quantile threshold this averages beyond.
+        - :func:`value_at_risk`: The tail cutoff quantile; this coherent average of the tail is always at least as deep.
         - :func:`conditional_drawdown_at_risk`: The same tail-averaging applied to the drawdown curve.
         - :func:`value_at_risk_parametric`: A parametric alternative to this historical tail estimate.
 
@@ -207,9 +209,16 @@ def conditional_value_at_risk(
     """
     returns = float64_expr(returns)
     validate_confidence(confidence)
-    threshold = value_at_risk(returns, confidence=confidence)
-    shortfall_mean = returns.filter(returns <= threshold).mean()
-    return pl.when(returns.is_nan().any()).then(pl.lit(float("nan"))).otherwise(shortfall_mean)
+    # Rockafellar-Uryasev empirical expected shortfall: average the worst ``1 - confidence`` of returns, weighting the
+    # boundary order statistic by the fractional part of ``k = (1 - confidence) * n`` (the 0-based rank-``r`` return
+    # gets weight ``clip(k - r, 0, 1)``), so the estimator is continuous in the data (no quantile-tie knife-edge).
+    rank = returns.rank(method="ordinal") - 1
+    count = returns.count()
+    weight = ((1.0 - confidence) * count - rank).clip(lower_bound=0.0, upper_bound=1.0)
+    shortfall = (weight * returns).sum() / weight.sum()
+    # An empty (or all-null) series has ``weight.sum() == 0``; report ``null`` rather than the ``0 / 0`` NaN.
+    shortfall = pl.when(count == 0).then(pl.lit(None, dtype=pl.Float64)).otherwise(shortfall)
+    return pl.when(returns.is_nan().any()).then(pl.lit(float("nan"))).otherwise(shortfall)
 
 
 def downside_deviation(

@@ -186,6 +186,17 @@ class TestConditionalDrawdownAtRiskCorrectness:
             apply_expr(values, conditional_drawdown_at_risk(pl.col(COLUMN_X), confidence=0.95).round(4)), [-0.0455]
         )
 
+    def test_fractional_weight_golden(self) -> None:
+        """
+        Verifies the Rockafellar-Uryasev fractional boundary weight: the curve's drawdowns are
+        ``{-0.3, -0.2, -0.1, 0, 0, 0}`` and with ``k = (1 - 0.75) * 6 = 1.5`` the worst is averaged in full and the
+        second-worst at weight ``0.5``, so ``(-0.3 + 0.5 * -0.2) / 1.5 = -0.2667``.
+        """
+        values = [1.0, 0.8, 1.0, 0.9, 0.7, 1.0]
+        assert_matches(
+            apply_expr(values, conditional_drawdown_at_risk(pl.col(COLUMN_X), confidence=0.75).round(4)), [-0.2667]
+        )
+
 
 class TestConditionalDrawdownAtRiskProperties:
     """

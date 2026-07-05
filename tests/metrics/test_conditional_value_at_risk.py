@@ -183,11 +183,22 @@ class TestConditionalValueAtRiskCorrectness:
 
     def test_golden_master(self) -> None:
         """
-        Verifies the frozen reference: the mean of the two worst returns below the 25th-percentile cutoff is -0.07.
+        Verifies the frozen reference: with ``k = (1 - 0.75) * 8 = 2``, the average of the two worst returns is -0.07.
         """
         values = [0.03, -0.05, 0.02, -0.08, 0.01, -0.06, 0.04, -0.02]
         assert_matches(
             apply_expr(values, conditional_value_at_risk(pl.col(COLUMN_X), confidence=0.75).round(4)), [-0.07]
+        )
+
+    def test_fractional_weight_golden(self) -> None:
+        """
+        Verifies the Rockafellar-Uryasev fractional boundary weight: with ``k = (1 - 0.7) * 5 = 1.5`` the worst return
+        is averaged in full and the second-worst at weight ``0.5``, so the shortfall is
+        ``(-0.10 + 0.5 * -0.06) / 1.5 = -0.0867`` -- not the worst alone, as a hard tail cutoff would give.
+        """
+        values = [-0.10, -0.06, 0.0, 0.05, 0.10]
+        assert_matches(
+            apply_expr(values, conditional_value_at_risk(pl.col(COLUMN_X), confidence=0.7).round(4)), [-0.0867]
         )
 
 
