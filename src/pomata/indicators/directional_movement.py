@@ -280,10 +280,11 @@ def di_minus(
 
         **Edge-case behavior:**
 
-        - **Flat window** — when the window is fully flat the average true range is zero, so the result follows
-          IEEE-754: the smoothed movement is also zero, hence ``0 / 0`` is ``NaN``. The ``[0, 100]`` bound holds on
-          complete coherent bars; a ``null`` prior close drops the close-based true-range terms and shrinks the ATR,
-          so on a gap the ratio can exceed ``100``.
+        - **Flat series** — the ATR is an infinite-memory Wilder RMA, so ``0 / 0`` = ``NaN`` needs the whole series so
+          far to be flat (both the ATR and the smoothed movement zero); a merely local flat patch after earlier
+          movement leaves the ATR small-but-positive and the DI finite. The ``[0, 100]`` bound holds on complete
+          coherent bars; a ``null`` prior close drops the close-based true-range terms and shrinks the ATR, so on a gap
+          the ratio can exceed ``100``.
         - **Null** — a ``null`` in the smoothed movement or the ATR at a row yields ``null`` there.
         - **NaN** — a ``NaN`` propagates, yielding ``NaN``.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursions never span
@@ -395,10 +396,11 @@ def di_plus(
 
         **Edge-case behavior:**
 
-        - **Flat window** — when the window is fully flat the average true range is zero, so the result follows
-          IEEE-754: the smoothed movement is also zero, hence ``0 / 0`` is ``NaN``. The ``[0, 100]`` bound holds on
-          complete coherent bars; a ``null`` prior close drops the close-based true-range terms and shrinks the ATR,
-          so on a gap the ratio can exceed ``100``.
+        - **Flat series** — the ATR is an infinite-memory Wilder RMA, so ``0 / 0`` = ``NaN`` needs the whole series so
+          far to be flat (both the ATR and the smoothed movement zero); a merely local flat patch after earlier
+          movement leaves the ATR small-but-positive and the DI finite. The ``[0, 100]`` bound holds on complete
+          coherent bars; a ``null`` prior close drops the close-based true-range terms and shrinks the ATR, so on a gap
+          the ratio can exceed ``100``.
         - **Null** — a ``null`` in the smoothed movement or the ATR at a row yields ``null`` there.
         - **NaN** — a ``NaN`` propagates, yielding ``NaN``.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursions never span
@@ -523,7 +525,8 @@ def dm_minus(
 
         - **First bar** — row ``0`` has no previous bar, so its raw movement is ``0`` and seeds the smoothing.
         - **Null** — a ``null`` in ``high`` or ``low`` makes the affected raw movement ``0`` for the rows whose
-          difference it touches, while a ``null`` reaching the :func:`rma` recursion yields ``null`` there.
+          difference it touches, so the raw movement carries no interior nulls and the only nulls emitted are the
+          ``window - 1`` warm-up nulls from :func:`rma`.
         - **NaN** — a ``NaN`` in ``low`` (the own-side input) poisons the recursion and yields ``NaN`` for every
           subsequent non-null row; a ``NaN`` in ``high`` (the opposing side) instead makes the directional comparison
           false, so the affected raw movement is sent to ``0`` and genuine downward movement is silently dropped there.
@@ -645,7 +648,8 @@ def dm_plus(
 
         - **First bar** — row ``0`` has no previous bar, so its raw movement is ``0`` and seeds the smoothing.
         - **Null** — a ``null`` in ``high`` or ``low`` makes the affected raw movement ``0`` for the rows whose
-          difference it touches, while a ``null`` reaching the :func:`rma` recursion yields ``null`` there.
+          difference it touches, so the raw movement carries no interior nulls and the only nulls emitted are the
+          ``window - 1`` warm-up nulls from :func:`rma`.
         - **NaN** — a ``NaN`` in ``high`` (the own-side input) poisons the recursion and yields ``NaN`` for every
           subsequent non-null row; a ``NaN`` in ``low`` (the opposing side) instead makes the directional comparison
           false, so the affected raw movement is sent to ``0`` and genuine upward movement is silently dropped there.

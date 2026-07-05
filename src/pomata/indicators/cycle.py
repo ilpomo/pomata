@@ -6,7 +6,8 @@ a homodyne discriminator (multiplying the complex signal by its one-bar-lagged c
 dominant-cycle period, and the dominant-cycle phase, sine wave, instantaneous trendline, trend/cycle flag, and the MESA
 adaptive moving average all follow from it. The recurrence is sequential, so a single shared pure-Python pipeline runs
 it once via ``map_batches`` (like :func:`kama`); each indicator reads its own output and masks its
-warm-up. A ``null`` or ``NaN`` price latches ``null`` from there, since the adaptive recurrence cannot bridge a gap.
+warm-up. A ``null``, ``NaN``, or ``inf`` price latches ``null`` from there, since the adaptive recurrence cannot bridge
+a gap.
 """
 
 import math
@@ -301,8 +302,9 @@ def dominant_cycle_period(
         expr: Input series, typically a price column (e.g. ``pl.col("close")``).
 
     Returns:
-        The dominant-cycle period for each row, the same length as ``expr``, in ``[6, 50]``. The first ``32`` rows are
-        ``null`` (the warm-up the recursive smoothers need to settle).
+        The dominant-cycle period for each row, the same length as ``expr``, settling into ``[6, 50]`` (the raw
+        estimate is clamped there before the reported double-smoothing, so the first emitted rows may sit marginally
+        below ``6``). The first ``32`` rows are ``null`` (the warm-up the recursive smoothers need to settle).
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
@@ -319,7 +321,7 @@ def dominant_cycle_period(
 
         **Edge-case behavior:**
 
-        - **Null / NaN** — a ``null`` or ``NaN`` price latches ``null`` for every row from there.
+        - **Null / NaN / inf** — a ``null``, ``NaN``, or ``inf`` price latches ``null`` for every row from there.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursion re-seeds per
           series and never spans series boundaries, e.g. ``dominant_cycle_period(pl.col("close")).over("ticker")``.
 
@@ -379,7 +381,7 @@ def dominant_cycle_phase(
 
         **Edge-case behavior:**
 
-        - **Null / NaN** — a ``null`` or ``NaN`` price latches ``null`` for every row from there.
+        - **Null / NaN / inf** — a ``null``, ``NaN``, or ``inf`` price latches ``null`` for every row from there.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursion re-seeds per
           series and never spans series boundaries, e.g. ``dominant_cycle_phase(pl.col("close")).over("ticker")``.
 
@@ -446,7 +448,7 @@ def hilbert_phasor(
 
         **Edge-case behavior:**
 
-        - **Null / NaN** — a ``null`` or ``NaN`` price latches ``null`` for every row from there.
+        - **Null / NaN / inf** — a ``null``, ``NaN``, or ``inf`` price latches ``null`` for every row from there.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursion re-seeds per
           series and never spans series boundaries, e.g. ``hilbert_phasor(pl.col("close")).over("ticker")``.
 
@@ -508,7 +510,7 @@ def hilbert_trendline(
 
         **Edge-case behavior:**
 
-        - **Null / NaN** — a ``null`` or ``NaN`` price latches ``null`` for every row from there.
+        - **Null / NaN / inf** — a ``null``, ``NaN``, or ``inf`` price latches ``null`` for every row from there.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursion re-seeds per
           series and never spans series boundaries, e.g. ``hilbert_trendline(pl.col("close")).over("ticker")``.
 
@@ -593,7 +595,7 @@ def mama(
 
         **Edge-case behavior:**
 
-        - **Null / NaN** — a ``null`` or ``NaN`` price latches ``null`` for every row from there.
+        - **Null / NaN / inf** — a ``null``, ``NaN``, or ``inf`` price latches ``null`` for every row from there.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursion re-seeds per
           series and never spans series boundaries, e.g. ``mama(pl.col("close")).over("ticker")``.
 
@@ -662,7 +664,7 @@ def sine_wave(
 
         **Edge-case behavior:**
 
-        - **Null / NaN** — a ``null`` or ``NaN`` price latches ``null`` for every row from there.
+        - **Null / NaN / inf** — a ``null``, ``NaN``, or ``inf`` price latches ``null`` for every row from there.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursion re-seeds per
           series and never spans series boundaries, e.g. ``sine_wave(pl.col("close")).over("ticker")``.
 
@@ -730,7 +732,7 @@ def trend_mode(
 
         **Edge-case behavior:**
 
-        - **Null / NaN** — a ``null`` or ``NaN`` price latches ``null`` for every row from there.
+        - **Null / NaN / inf** — a ``null``, ``NaN``, or ``inf`` price latches ``null`` for every row from there.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursion re-seeds per
           series and never spans series boundaries, e.g. ``trend_mode(pl.col("close")).over("ticker")``.
 
@@ -748,7 +750,8 @@ def trend_mode(
         - Ehlers, John F. (2001). *Rocket Science for Traders*.
 
     Examples:
-        A pure cycle is never in a trend, so the mode flag stays ``0`` over a clean period-20 sine:
+        A small pure cycle -- its swing below ~1.5% of price -- stays in cycle mode, so the flag stays ``0`` over a
+        clean low-amplitude period-20 sine:
 
         >>> import math
         >>> import polars as pl

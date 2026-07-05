@@ -20,8 +20,8 @@ def _raw_percent_k(
     Raw stochastic %K: the close's position within the ``window_k`` high-low range, scaled to ``[0, 100]``.
 
     The shared first step of :func:`stochastic_fast` (which smooths it into %D) and :func:`stochastic_slow` (which
-    slows it before smoothing). A flat range (``highest_high == lowest_low``) gives ``0 / 0`` per IEEE, surfaced as
-    each factory documents.
+    slows it before smoothing). A flat range (``highest_high == lowest_low``) gives ``0 / 0`` = ``NaN`` on the flat
+    level and nonzero/0 = ``±inf`` off it (per IEEE), surfaced as each factory documents.
     """
     lowest_low = low.rolling_min(window_k)
     highest_high = high.rolling_max(window_k)

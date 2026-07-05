@@ -208,8 +208,8 @@ def validate_positive(
     """
     Validate a scalar tuning parameter is a finite, positive number, raising the canonical message on failure.
 
-    Shared by the factories that take a finite magnitude knob (``multiplier``, ``rate``, ``fee``, ``acceleration``, …),
-    so a ``NaN``, ``inf``, or out-of-sign value is rejected at the call site rather than silently poisoning the result.
+    Shared by the factories that take a finite magnitude knob (``multiplier``, ``rate``, ``fee``, …), so a ``NaN``,
+    ``inf``, or out-of-sign value is rejected at the call site rather than silently poisoning the result.
     Pass ``allow_zero=True`` where zero is a valid no-op (e.g. a zero cost ``rate``).
 
     Args:

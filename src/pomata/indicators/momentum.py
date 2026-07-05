@@ -641,7 +641,8 @@ def cci(
         - **Flat window** — when every typical price in the window is equal there is no spread to normalize by (the
           ``0 / 0`` degenerate); the window is detected exactly (its rolling maximum equals its rolling minimum) and the
           result is ``NaN``, not the rounding noise a sub-ULP denominator residual would otherwise produce.
-        - **window == 1** — every one-bar window is trivially flat, so every result is ``NaN``.
+        - **window == 1** — every one-bar window is trivially flat, so every non-null result is ``NaN`` (a ``null`` row
+          stays ``null``).
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so neither the rolling mean nor
           the shifts span series boundaries, e.g.
           ``cci(pl.col("high"), pl.col("low"), pl.col("close"), 20).over("ticker")``.
@@ -918,7 +919,7 @@ def fisher_transform(
         The smoothed position is held to a symmetric ``[-0.999, 0.999]`` -- a monotone clamp at the threshold, keeping
         the argument strictly inside the log's domain. Ehlers' original snaps any value past ``\pm 0.99`` straight to
         ``\pm 0.999``; pomata uses the monotone form (the modern convention), which agrees everywhere except on the thin
-        ``(0.99, 0.999]`` band the original discontinuously lifts.
+        ``(0.99, 0.999)`` band the original discontinuously lifts (at ``0.999`` both map to ``0.999``).
 
         **Seeding:**
 
@@ -1095,7 +1096,7 @@ def macd(
         >>> frame.with_columns(expr.over("ticker").struct.field("macd").round(4).alias("macd"))["macd"].to_list()
         [None, None, 0.5, 0.1667, None, None, 1.0, 0.3333]
 
-        A ``null`` (which the recursive EMAs latch on) and a ``NaN`` (which propagates) make the handling visible on
+        A ``null`` (which the recursive EMAs bridge) and a ``NaN`` (which latches) make the handling visible on
         the MACD line:
 
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, None, 13.0, float("nan"), 15.0]})

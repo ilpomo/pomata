@@ -113,8 +113,8 @@ def dema(
     Returns:
         The DEMA for each row, the same length as ``expr``. The first ``2 * (window - 1)`` values are ``null``
         (warm-up), clamped to the series length: the value is composed from two chained :func:`ema` passes of the same
-        ``window`` (each carrying a ``window - 1`` warm-up), so the warm-up is twice that of a plain EMA. Each EMA is
-        seeded with the SMA of the first ``window`` observations.
+        ``window`` (each carrying a ``window - 1`` warm-up), so the warm-up is twice that of a plain EMA. Under the
+        default ``adjust=False``, each pass is seeded with the SMA of the first ``window`` observations.
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
@@ -203,8 +203,8 @@ def ema(
         window: Span of the exponential weighting, mapped to ``alpha = 2 / (window + 1)``. Must be ``>= 1``.
         adjust: When ``False`` (default) use the recursive form above. When ``True`` use the finite-window
             bias-corrected (adjusted) weighting that divides by the decaying sum of weights at each step. The two forms
-            differ at every row, the gap largest near the start of the series and decaying geometrically as the history
-            grows.
+            differ at every row in general (coinciding only for ``window == 1`` or a constant series), the gap largest
+            near the start of the series and decaying geometrically as the history grows.
 
     Returns:
         The EMA for each row, the same length as ``expr``. The first ``window - 1`` values are ``null`` (warm-up),
@@ -902,8 +902,8 @@ def tema(
     Returns:
         The TEMA for each row, the same length as ``expr``. The first ``3 * (window - 1)`` values are ``null``
         (warm-up), clamped to the series length: the value is composed from three chained :func:`ema` passes of the same
-        ``window`` (each carrying a ``window - 1`` warm-up), so the warm-up is three times that of a plain EMA. Each
-        EMA is seeded with the SMA of the first ``window`` observations.
+        ``window`` (each carrying a ``window - 1`` warm-up), so the warm-up is three times that of a plain EMA. Under
+        the default ``adjust=False``, each pass is seeded with the SMA of the first ``window`` observations.
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
