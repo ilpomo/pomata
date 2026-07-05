@@ -26,7 +26,8 @@ external differential — never a weaker value-agreement.
   `pytest -m differential`.
 - `benchmark` — performance & complexity-scaling, needs `POMATA_BENCHMARKS=1`: `pytest -m benchmark`.
 
-`oracles/` holds the naive reference implementations (also the pure-Python fallback) and the golden datasets.
+`oracles/` holds the naive reference implementations (also the pure-Python fallback); the golden masters are pinned
+inline in the test modules.
 
 **Oracle policy:** the source of truth is the *mathematical definition*, not another implementation. The gating
 correctness tests depend only on `polars` and `hypothesis`; external libraries are an optional, non-gating lens.

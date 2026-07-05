@@ -101,10 +101,11 @@ The same five indicators on the same series — most reproduce the reference *ex
   - `1e-14`
 ```
 
-The differential tier (non-gating) compares most indicators against TA-Lib **bar-for-bar, from the first defined
-value**. A documented minority is compared only on the converged tail — always with a reason its warm-up differs from
-TA-Lib's (Wilder's first True Range, the independent MACD/Chaikin EMAs, the Ehlers Hilbert pipeline's long warm-up, the
-Parabolic SAR cold start) — never a steady-state disagreement.
+The differential tier (non-gating) compares the **58 of 75** indicators with a TA-Lib counterpart against it
+**bar-for-bar, from the first defined value**. A documented minority is compared only on the converged tail — always
+with a reason its warm-up differs from TA-Lib's (Wilder's first True Range, the independent MACD/Chaikin EMAs, the
+Ehlers Hilbert pipeline's long warm-up, the Parabolic SAR cold start) — never a steady-state disagreement. The other 17
+have no TA-Lib twin or keep a deliberate, documented convention of their own, and rest on the independent oracle instead.
 
 ## PnL and metrics: proven at the edges, not in the digits
 
