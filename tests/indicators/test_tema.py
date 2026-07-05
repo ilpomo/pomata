@@ -163,7 +163,7 @@ class TestTemaEdge:
             apply_expr([7.0, 7.0, 7.0, 7.0, 7.0, 7.0], tema(pl.col(COLUMN_X), 2)), [None, None, None, 7.0, 7.0, 7.0]
         )
 
-    def test_null_propagates(self) -> None:
+    def test_null_bridged(self) -> None:
         """
         Verifies that an early ``null`` extends the warm-up and yields ``null`` at that position, the value resuming
         once enough non-null observations have seeded all three EMA passes.

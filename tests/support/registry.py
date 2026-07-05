@@ -17,7 +17,7 @@ they read the row.
 The map is kept honest by :mod:`tests.test_registry`, the self-check: it asserts the registry is in bijection with the
 three public ``__all__`` tuples (no function missing, no orphan row), that every declared oracle is importable, and --
 the load-bearing guarantee -- that each function's *actual* ``null`` / ``NaN`` behaviour matches the policy it declares
-here. A row that lies about its function is a red build, not a finding for the next audit.
+here. A row that lies about its function is a red build.
 
 The axes (each defined crisply, with its per-member meaning, in ``tests/POLICY.md``):
 
@@ -33,10 +33,10 @@ The axes (each defined crisply, with its per-member meaning, in ``tests/POLICY.m
 - **oracle** -- the name of the independent ``*_reference`` implementation in ``tests/<macro>/oracles/``, or ``None``
   where correctness is pinned by component-definition / golden masters instead.
 
-A **scale** axis (per-input rescaling homogeneity and boundedness) is deliberately not modelled here yet: it needs a
-richer per-input-degree representation (a variance is degree-2, a VWAP is degree-1 in price and degree-0 in volume) and
-is verified by the numeric scale contract, so it lands as its own follow-up alongside that contract -- see
-``tests/POLICY.md``.
+A function's **scale** behaviour (rescaling homogeneity) is deliberately not a field here: its degree is per-input and
+family-specific (a variance is degree-2, a VWAP is degree-1 in price and degree-0 in volume, a borrow cost is degree-1
+in quantity), so a single typed value cannot state it. The scale tests stay per-file, and only their names are held to
+one vocabulary, by :mod:`tests.test_scale_grammar` -- see ``tests/POLICY.md``.
 """
 
 from enum import Enum

@@ -273,9 +273,9 @@ class TestRsiStochasticEdge:
         assert defined
         assert all(math.isnan(value) for value in defined)
 
-    def test_null_propagates(self) -> None:
+    def test_null_bridged(self) -> None:
         """
-        Verifies that a null propagates (matching the naive reference).
+        Verifies that an interior ``null`` is bridged: the recursion carries its state across the gap.
         """
         values = [50.0, 51.0, 50.5, None, 52.0, 52.5, 53.0, 52.0, 54.0]
         applied = apply_rsi_stochastic(values, window_rsi=2, window_k=2, window_d=2)

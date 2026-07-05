@@ -177,7 +177,7 @@ class TestBollingerBandsEdge:
         for field in FIELDS:
             assert_matches(bands[field], [None, None, None])
 
-    def test_null_propagates(self) -> None:
+    def test_null_in_window_is_null(self) -> None:
         """
         Verifies that a ``null`` in the window yields ``null`` on every band, recovering once the window clears.
         """

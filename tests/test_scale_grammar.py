@@ -1,14 +1,14 @@
 """
 The scale-property naming grammar, enforced across the whole suite.
 
-The scale axis is the one edge-case family that is *not* migrated to a shared, registry-driven contract: a function's
+The scale axis is the one edge-case family that does *not* live in a shared, registry-driven contract: a function's
 homogeneity degree is per-input and family-specific (a variance is degree-2, a VWAP is degree-1 in price and degree-0
 in volume, a borrow cost is degree-1 in quantity), so the scale tests stay in each function's own file -- see
-:doc:`the policy <POLICY>` (`tests/POLICY.md`), §2. What *can* be held uniform, and is the drift a past audit kept
-re-finding, is the **name**: the same two-axis price/volume property was once spelled four ways. This meta-test
-turns that into a red build. It reads every test module's source with :mod:`ast` and asserts that every scale-family
-rung it finds is drawn from the one canonical vocabulary and lives in a ``Test*Properties`` class -- so a future
-``test_scale_behavior`` or ``test_price_homogeneity`` fails here instead of surviving to the next audit.
+:doc:`the policy <POLICY>` (`tests/POLICY.md`), §2. What *can* be held uniform is the **name**: the same two-axis
+price/volume property is otherwise easy to spell four different ways. This meta-test turns that into a red build. It
+reads every test module's source with :mod:`ast` and asserts that every scale-family rung it finds is drawn from the
+one canonical vocabulary and lives in a ``Test*Properties`` class -- so a future ``test_scale_behavior`` or
+``test_price_homogeneity`` fails the build.
 
 It is the scale analogue of the registry bijection in :mod:`tests.test_registry`: structural, source-only, and exact.
 """

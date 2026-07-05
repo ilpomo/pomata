@@ -5,11 +5,10 @@ Every indicator owes the same four structural guarantees; rather than copy them 
 parametrizes over the indicators subset of the registry (:mod:`tests.support.registry`) and applies the shared,
 shape-aware assertions in :mod:`tests.support.contracts`. A newly added indicator is swept in automatically.
 
-``all_null`` is **not** migrated for indicators: it is not universal here -- ``dm_plus`` / ``dm_minus`` absorb a null
-directional movement to ``0`` rather than staying null, a genuine per-function variant -- so it stays in each file
-(the class-parametrized phase folds in the ones that do share the behaviour). The ``.over`` rung also stays per-file:
-indicators partition, anchor per session, or reduce to identity by class. Warm-up, the ``null`` / ``NaN`` policy,
-struct field names, correctness, and the property tiers likewise stay per-file.
+``all_null`` is **not** shared for indicators: it is not universal here -- ``dm_plus`` / ``dm_minus`` absorb a null
+directional movement to ``0`` rather than staying null, a genuine per-function variant -- so it stays in each file. The
+``.over`` rung also stays per-file: indicators partition, anchor per session, or reduce to identity by class. Warm-up,
+the ``null`` / ``NaN`` policy, struct field names, correctness, and the property tiers likewise stay per-file.
 """
 
 import pytest

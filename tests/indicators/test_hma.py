@@ -147,9 +147,9 @@ class TestHmaEdge:
         """
         assert_matches(apply_expr([42.0], hma(pl.col(COLUMN_X), 2)), [None])
 
-    def test_null_propagates(self) -> None:
+    def test_null_in_window_is_null(self) -> None:
         """
-        Verifies that an interior ``null`` propagates through every window that reaches it.
+        Verifies that an interior ``null`` nulls every window that overlaps it, then the output recovers.
         """
         values = [2.0, 4.0, None, 8.0, 10.0, 12.0]
         assert_matches(apply_expr(values, hma(pl.col(COLUMN_X), 4)), hma_reference(values, 4))

@@ -201,7 +201,7 @@ class TestCciEdge:
             [None, math.nan, math.nan],
         )
 
-    def test_null_propagates(self) -> None:
+    def test_null_in_window_is_null(self) -> None:
         """
         Verifies that a ``null`` in any leg taints exactly the windows (and shifts) that reach it.
         """

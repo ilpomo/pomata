@@ -140,7 +140,7 @@ class TestWmaEdge:
         """
         assert_matches(apply_expr([1.0, 1.0, 4.0], wma(pl.col(COLUMN_X), 3)), [None, None, 15.0 / 6.0])
 
-    def test_null_propagates(self) -> None:
+    def test_null_in_window_is_null(self) -> None:
         """
         Verifies that a ``null`` inside the window yields ``null`` there, and the value returns once the window clears.
         """

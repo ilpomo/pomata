@@ -106,9 +106,9 @@ class TestLinearRegressionEdge:
         assert result[:2] == [None, None]
         assert result[2] is not None
 
-    def test_null_propagates(self) -> None:
+    def test_null_in_window_is_null(self) -> None:
         """
-        Verifies that a null propagates (matching the naive reference).
+        Verifies that an interior ``null`` nulls every window that overlaps it, then the output recovers.
         """
         values = [10.0, 11.0, 13.0, None, 14.0, 15.0, 16.0]
         assert_matches(
