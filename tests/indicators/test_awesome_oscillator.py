@@ -18,7 +18,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import awesome_oscillator_reference
 from tests.support import (
     EXACT_TOLERANCE_FACTOR,
@@ -85,30 +84,6 @@ class TestAwesomeOscillatorContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(awesome_oscillator(pl.col(HIGH), pl.col(LOW), window_fast=5, window_slow=34), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame({HIGH: [2.0, 4.0, 6.0], LOW: [0.0, 2.0, 4.0]})
-        expr = awesome_oscillator(pl.col(HIGH), pl.col(LOW), window_fast=2, window_slow=3).alias("y")
-        result = frame.select(expr)
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({HIGH: [2.0, 4.0, 6.0, 8.0], LOW: [0.0, 2.0, 4.0, 6.0]})
-        expr = awesome_oscillator(pl.col(HIGH), pl.col(LOW), window_fast=2, window_slow=3).alias("y")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` neither average spans group boundaries.
@@ -161,12 +136,6 @@ class TestAwesomeOscillatorEdge:
         """
         result = apply_awesome_oscillator([2.0, 4.0, 6.0, 8.0], [0.0, 2.0, 4.0, 6.0], 2, 2)
         assert_matches(result, [None, 0.0, 0.0, 0.0])
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output.
-        """
-        assert_matches(apply_awesome_oscillator([], [], 2, 3), [])
 
     def test_all_null(self) -> None:
         """

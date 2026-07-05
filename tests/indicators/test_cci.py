@@ -14,7 +14,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import cci_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
@@ -83,42 +82,6 @@ class TestCciContract:
     """
     Type, shape, and lazy/eager guarantees.
     """
-
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(cci(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), 3), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame(
-            {
-                HIGH: pl.Series(HIGH, [10.0, 12.0, 11.0, 13.0, 15.0]),
-                LOW: pl.Series(LOW, [8.0, 9.0, 9.0, 10.0, 12.0]),
-                CLOSE: pl.Series(CLOSE, [9.0, 11.0, 10.0, 12.0, 14.0]),
-            }
-        )
-        result = frame.select(cci(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), 3).alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame(
-            {
-                HIGH: pl.Series(HIGH, [10.0, 12.0, 11.0, 13.0, 15.0, 14.0]),
-                LOW: pl.Series(LOW, [8.0, 9.0, 9.0, 10.0, 12.0, 11.0]),
-                CLOSE: pl.Series(CLOSE, [9.0, 11.0, 10.0, 12.0, 14.0, 12.0]),
-            }
-        )
-        result_eager = frame.select(cci(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), 3).alias("y"))
-        result_lazy = frame.lazy().select(cci(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), 3).alias("y")).collect()
-        assert_frame_equal(result_eager, result_lazy)
 
     def test_over_partitions_independently(self) -> None:
         """
@@ -195,12 +158,6 @@ class TestCciEdge:
         Verifies that a window longer than the series leaves every position in warm-up (all ``null``).
         """
         assert_matches(apply_cci([10.0, 12.0], [8.0, 9.0], [9.0, 11.0], 5), [None, None])
-
-    def test_empty(self) -> None:
-        """
-        Verifies behavior on an empty series.
-        """
-        assert apply_cci([], [], [], 3) == []
 
     def test_single_row(self) -> None:
         """

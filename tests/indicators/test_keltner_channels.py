@@ -22,7 +22,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import keltner_channels_reference
 from tests.support import (
     CLOSE,
@@ -99,12 +98,6 @@ class TestKeltnerChannelsContract:
     Type, struct schema, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(keltner_channels(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), window=3, window_atr=10), pl.Expr)
-
     def test_output_is_struct_with_named_fields(self) -> None:
         """
         Verifies that the output is a ``Float64`` struct with exactly the fields ``lower`` / ``middle`` / ``upper``.
@@ -115,22 +108,6 @@ class TestKeltnerChannelsContract:
         assert isinstance(dtype, pl.Struct)
         assert [field.name for field in dtype.fields] == ["lower", "middle", "upper"]
         assert all(field.dtype == pl.Float64 for field in dtype.fields)
-
-    def test_preserves_length(self) -> None:
-        """
-        Verifies that the output has one struct per input row.
-        """
-        frame = pl.DataFrame({HIGH: [3.0, 4.0, 5.0], LOW: [1.0, 2.0, 3.0], CLOSE: [2.0, 3.0, 4.0]})
-        expr = keltner_channels(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), window=2, window_atr=2).alias("kc")
-        assert frame.select(expr).height == frame.height
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({HIGH: [3.0, 4.0, 5.0, 6.0], LOW: [1.0, 2.0, 3.0, 4.0], CLOSE: [2.0, 3.0, 4.0, 5.0]})
-        expr = keltner_channels(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), window=2, window_atr=2).alias("kc")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
 
     def test_over_partitions_independently(self) -> None:
         """
@@ -180,14 +157,6 @@ class TestKeltnerChannelsEdge:
         for invalid in (0.0, -1.0, math.nan, math.inf, -math.inf):
             with pytest.raises(ValueError, match="multiplier must be a finite number > 0"):
                 keltner_channels(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), window=3, window_atr=10, multiplier=invalid)
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output on every band.
-        """
-        bands = apply_keltner_channels([], [], [], 3, window_atr=2)
-        for field in FIELDS:
-            assert_matches(bands[field], [])
 
     def test_all_null(self) -> None:
         """

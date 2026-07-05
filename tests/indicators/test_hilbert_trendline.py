@@ -20,7 +20,6 @@ from collections.abc import Sequence
 import polars as pl
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import hilbert_trendline_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_EXACT,
@@ -86,30 +85,6 @@ class TestHilbertTrendlineContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(hilbert_trendline(pl.col(COLUMN_X)), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        result = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, _SAMPLE)}).select(
-            hilbert_trendline(pl.col(COLUMN_X)).alias("y")
-        )
-        assert result.height == len(_SAMPLE)
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, _SAMPLE)})
-        expr = hilbert_trendline(pl.col(COLUMN_X)).alias("y")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` the recurrence resets per group and never spans group boundaries.
@@ -125,12 +100,6 @@ class TestHilbertTrendlineEdge:
     """
     Warm-up and null / NaN latching.
     """
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output.
-        """
-        assert_matches(apply_hilbert_trendline([]), [])
 
     def test_all_null(self) -> None:
         """

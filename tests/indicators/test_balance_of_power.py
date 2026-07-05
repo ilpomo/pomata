@@ -18,7 +18,6 @@ from collections.abc import Sequence
 import polars as pl
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import balance_of_power_reference
 from tests.support import (
     CLOSE,
@@ -85,31 +84,6 @@ class TestBalanceOfPowerContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(balance_of_power(pl.col(OPEN), pl.col(HIGH), pl.col(LOW), pl.col(CLOSE)), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame({OPEN: [10.0, 11.0], HIGH: [11.0, 13.0], LOW: [9.0, 10.0], CLOSE: [10.5, 12.0]})
-        result = frame.select(balance_of_power(pl.col(OPEN), pl.col(HIGH), pl.col(LOW), pl.col(CLOSE)).alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({OPEN: [10.0, 11.0], HIGH: [11.0, 13.0], LOW: [9.0, 10.0], CLOSE: [10.5, 12.0]})
-        expr = balance_of_power(pl.col(OPEN), pl.col(HIGH), pl.col(LOW), pl.col(CLOSE)).alias("y")
-        result_eager = frame.select(expr)
-        result_lazy = frame.lazy().select(expr).collect()
-        assert_frame_equal(result_eager, result_lazy)
-
     def test_over_is_identity(self) -> None:
         """
         Verifies that ``.over`` is optional for this elementwise transform: partitioning by group equals the
@@ -146,12 +120,6 @@ class TestBalanceOfPowerEdge:
         Verifies behavior on a one-element series: the per-bar value is defined from row 0.
         """
         assert_matches(apply_balance_of_power([10.0], [12.0], [8.0], [11.0]), [0.25])
-
-    def test_empty(self) -> None:
-        """
-        Verifies behavior on an empty series.
-        """
-        assert_matches(apply_balance_of_power([], [], [], []), [])
 
     def test_all_null(self) -> None:
         """

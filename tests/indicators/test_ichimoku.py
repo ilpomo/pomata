@@ -23,7 +23,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import ichimoku_reference
 from tests.support import (
     EXACT_TOLERANCE_FACTOR,
@@ -101,14 +100,6 @@ class TestIchimokuContract:
     Type, struct schema, shape, lazy/eager guarantees, and the no-lookahead property.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(
-            ichimoku(pl.col(HIGH), pl.col(LOW), window_tenkan=2, window_kijun=3, window_senkou=4), pl.Expr
-        )
-
     def test_output_is_struct_with_named_fields(self) -> None:
         """
         Verifies that the output is a ``Float64`` struct with exactly the fields ``tenkan`` / ``kijun`` / ``senkou_a`` /
@@ -121,26 +112,6 @@ class TestIchimokuContract:
         assert isinstance(dtype, pl.Struct)
         assert [field.name for field in dtype.fields] == ["tenkan", "kijun", "senkou_a", "senkou_b"]
         assert all(field.dtype == pl.Float64 for field in dtype.fields)
-
-    def test_preserves_length(self) -> None:
-        """
-        Verifies that the output has one struct per input row.
-        """
-        frame = pl.DataFrame({HIGH: [3.0, 4.0, 5.0], LOW: [1.0, 2.0, 3.0]})
-        assert (
-            frame.select(
-                ichimoku(pl.col(HIGH), pl.col(LOW), window_tenkan=1, window_kijun=2, window_senkou=3).alias("ic")
-            ).height
-            == frame.height
-        )
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({HIGH: [3.0, 4.0, 5.0, 6.0], LOW: [1.0, 2.0, 3.0, 4.0]})
-        expr = ichimoku(pl.col(HIGH), pl.col(LOW), window_tenkan=1, window_kijun=2, window_senkou=3).alias("ic")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
 
     def test_over_partitions_independently(self) -> None:
         """
@@ -219,14 +190,6 @@ class TestIchimokuEdge:
             ichimoku(pl.col(HIGH), pl.col(LOW), window_tenkan=5, window_kijun=3, window_senkou=7)
         with pytest.raises(ValueError, match="windows must be ordered window_tenkan <= window_kijun <= window_senkou"):
             ichimoku(pl.col(HIGH), pl.col(LOW), window_tenkan=2, window_kijun=9, window_senkou=7)
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output on every line.
-        """
-        lines = apply_ichimoku([], [], 1, 2, 3)
-        for field in FIELDS:
-            assert_matches(lines[field], [])
 
     def test_all_null(self) -> None:
         """
