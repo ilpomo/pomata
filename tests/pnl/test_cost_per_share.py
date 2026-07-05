@@ -141,6 +141,15 @@ class TestCostPerShareEdge:
         values = [10.0, math.nan, -5.0, 20.0]
         assert_matches(apply_expr(values, cost_per_share(pl.col(COLUMN_X), FEE)), cost_per_share_reference(values, FEE))
 
+    def test_consecutive_infinities_make_nan(self) -> None:
+        """
+        Verifies the turnover basis carries Polars' IEEE result into the cost: two consecutive equal-sign infinities
+        make ``inf - inf = NaN`` turnover at the second bar, so the cost there is ``NaN`` (matching the reference). The
+        property tiers cannot reach this (their strategies set ``allow_infinity=False``), so it is pinned here.
+        """
+        values = [math.inf, math.inf, 1.0, -math.inf]
+        assert_matches(apply_expr(values, cost_per_share(pl.col(COLUMN_X), FEE)), cost_per_share_reference(values, FEE))
+
     def test_invalid_fee_raises(self) -> None:
         """
         Verifies that a fee that is not a finite number ``>= 0`` (negative, ``NaN``, or ``±inf``) raises

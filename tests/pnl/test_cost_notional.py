@@ -181,6 +181,16 @@ class TestCostNotionalEdge:
         price = [100.0, 102.0, math.nan, 104.0]
         assert_matches(apply_cost_notional(quantity, price), cost_notional_reference(quantity, price, RATE))
 
+    def test_consecutive_infinities_make_nan(self) -> None:
+        """
+        Verifies the turnover basis carries Polars' IEEE result into the cost: two consecutive equal-sign infinities
+        make ``inf - inf = NaN`` turnover at the second bar, so the cost there is ``NaN`` (matching the reference). The
+        property tiers cannot reach this (their strategies set ``allow_infinity=False``), so it is pinned here.
+        """
+        quantity = [math.inf, math.inf, 1.0, -math.inf]
+        price = [100.0, 100.0, 100.0, 100.0]
+        assert_matches(apply_cost_notional(quantity, price), cost_notional_reference(quantity, price, RATE))
+
     def test_invalid_rate_raises(self) -> None:
         """
         Verifies that a rate that is not a finite number ``>= 0`` (negative, ``NaN``, or ``±inf``) raises

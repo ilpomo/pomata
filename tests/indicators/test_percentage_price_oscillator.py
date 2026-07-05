@@ -191,12 +191,14 @@ class TestPercentagePriceOscillatorEdge:
 
     def test_null_propagates(self) -> None:
         """
-        Verifies that a ``null`` contaminates the recursive EMA state and yields ``null`` for subsequent rows.
+        Verifies that an interior ``null`` is bridged: it yields ``null`` at its own row while the recursive EMAs resume
+        afterward (matching the naive reference), rather than contaminating every later row.
         """
-        result = apply_expr(
-            [10.0, 11.0, None, 13.0, 15.0], percentage_price_oscillator(pl.col(COLUMN_X), window_fast=2, window_slow=3)
+        values = [10.0, 11.0, 12.0, None, 14.0, 15.0, 16.0, 17.0]
+        assert_matches(
+            apply_expr(values, percentage_price_oscillator(pl.col(COLUMN_X), window_fast=2, window_slow=3)),
+            percentage_price_oscillator_reference(values, 2, 3),
         )
-        assert result[2] is None
 
     def test_nan_latches(self) -> None:
         """
