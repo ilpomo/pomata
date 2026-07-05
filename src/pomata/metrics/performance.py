@@ -99,7 +99,7 @@ def cagr(
     validate_periods_per_year(periods_per_year)
     defined = equity_curve.drop_nulls()
     growth = defined.last() ** (periods_per_year / defined.count()) - 1
-    return pl.when(equity_curve.is_nan().any()).then(pl.lit(float("nan"))).otherwise(growth)
+    return pl.when(equity_curve.is_nan().any()).then(pl.lit(float("nan"))).otherwise(growth).name.keep()
 
 
 def cagr_rolling(
@@ -292,6 +292,7 @@ def stability(
         .when(cumulative_log.n_unique() <= 1)
         .then(pl.lit(float("nan")))
         .otherwise(r_squared)
+        .name.keep()
     )
 
 
@@ -371,7 +372,7 @@ def total_return(
     """
     equity_curve = float64_expr(equity_curve)
     growth = equity_curve.drop_nulls().last() - 1
-    return pl.when(equity_curve.is_nan().any()).then(pl.lit(float("nan"))).otherwise(growth)
+    return pl.when(equity_curve.is_nan().any()).then(pl.lit(float("nan"))).otherwise(growth).name.keep()
 
 
 def total_return_rolling(

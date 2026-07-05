@@ -243,7 +243,7 @@ def alpha(
     slope = _raw_beta(returns_paired, benchmark_paired)
     excess_leg = (returns_paired - rf_period) - slope * (benchmark_paired - rf_period)
     annualized = (1.0 + excess_leg.mean()) ** periods_per_year - 1.0
-    return pl.when(returns_paired.len() < _MINIMUM_PAIRED_OBSERVATIONS).then(None).otherwise(annualized)
+    return pl.when(returns_paired.len() < _MINIMUM_PAIRED_OBSERVATIONS).then(None).otherwise(annualized).name.keep()
 
 
 def alpha_rolling(
@@ -356,7 +356,7 @@ def alpha_rolling(
     mean_returns = returns.rolling_mean(window, min_samples=window)
     mean_benchmark = benchmark.rolling_mean(window, min_samples=window)
     alpha_period = (mean_returns - rf_period) - slope * (mean_benchmark - rf_period)
-    return (1.0 + alpha_period) ** periods_per_year - 1.0
+    return ((1.0 + alpha_period) ** periods_per_year - 1.0).name.keep()
 
 
 def beta(
@@ -455,6 +455,7 @@ def beta(
         pl.when(returns_paired.len() < _MINIMUM_PAIRED_OBSERVATIONS)
         .then(None)
         .otherwise(_raw_beta(returns_paired, benchmark_paired))
+        .name.keep()
     )
 
 
@@ -548,7 +549,7 @@ def beta_rolling(
     returns = float64_expr(returns)
     benchmark = float64_expr(benchmark)
     validate_window(window, minimum=2)
-    return _rolling_raw_beta(returns, benchmark, window)
+    return _rolling_raw_beta(returns, benchmark, window).name.keep()
 
 
 def capture_downside_ratio(
@@ -656,7 +657,7 @@ def capture_downside_ratio(
     benchmark = float64_expr(benchmark)
     validate_periods_per_year(periods_per_year)
     returns_paired, benchmark_paired = _paired(returns, benchmark)
-    return _capture(returns_paired, benchmark_paired, periods_per_year, upside=False)
+    return _capture(returns_paired, benchmark_paired, periods_per_year, upside=False).name.keep()
 
 
 def capture_ratio(
@@ -755,9 +756,10 @@ def capture_ratio(
     returns = float64_expr(returns)
     benchmark = float64_expr(benchmark)
     validate_periods_per_year(periods_per_year)
-    return capture_upside_ratio(returns, benchmark, periods_per_year=periods_per_year) / capture_downside_ratio(
-        returns, benchmark, periods_per_year=periods_per_year
-    )
+    return (
+        capture_upside_ratio(returns, benchmark, periods_per_year=periods_per_year)
+        / capture_downside_ratio(returns, benchmark, periods_per_year=periods_per_year)
+    ).name.keep()
 
 
 def capture_upside_ratio(
@@ -865,7 +867,7 @@ def capture_upside_ratio(
     benchmark = float64_expr(benchmark)
     validate_periods_per_year(periods_per_year)
     returns_paired, benchmark_paired = _paired(returns, benchmark)
-    return _capture(returns_paired, benchmark_paired, periods_per_year, upside=True)
+    return _capture(returns_paired, benchmark_paired, periods_per_year, upside=True).name.keep()
 
 
 def information_ratio(
@@ -972,7 +974,7 @@ def information_ratio(
     returns_paired, benchmark_paired = _paired(returns, benchmark)
     active = returns_paired - benchmark_paired
     annualized = active.mean() / active.std(ddof=1) * math.sqrt(periods_per_year)
-    return pl.when(active.len() < _MINIMUM_PAIRED_OBSERVATIONS).then(None).otherwise(annualized)
+    return pl.when(active.len() < _MINIMUM_PAIRED_OBSERVATIONS).then(None).otherwise(annualized).name.keep()
 
 
 def information_ratio_rolling(
@@ -1188,7 +1190,7 @@ def modigliani_risk_adjusted_performance(
     returns_paired, benchmark_paired = _paired(returns, benchmark)
     base_ratio = sharpe_ratio(returns_paired, periods_per_year=periods_per_year, risk_free_rate=risk_free_rate)
     benchmark_volatility = volatility(benchmark_paired, periods_per_year=periods_per_year)
-    return risk_free_rate + base_ratio * benchmark_volatility
+    return (risk_free_rate + base_ratio * benchmark_volatility).name.keep()
 
 
 def treynor_ratio(
@@ -1298,7 +1300,12 @@ def treynor_ratio(
     rf_period = per_period_rate(risk_free_rate, periods_per_year, name="risk_free_rate")
     annualized_excess = (returns_paired - rf_period).mean() * periods_per_year
     slope = _raw_beta(returns_paired, benchmark_paired)
-    return pl.when(returns_paired.len() < _MINIMUM_PAIRED_OBSERVATIONS).then(None).otherwise(annualized_excess / slope)
+    return (
+        pl.when(returns_paired.len() < _MINIMUM_PAIRED_OBSERVATIONS)
+        .then(None)
+        .otherwise(annualized_excess / slope)
+        .name.keep()
+    )
 
 
 def treynor_ratio_rolling(
