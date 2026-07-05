@@ -315,8 +315,10 @@ class TestAccumulationDistributionOscillatorProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that, for positive ``k``, the oscillator is homogeneous of degree 1: scaling all inputs by ``k`` scales
-        the result by ``k``. ``k`` is a power of two so the rescaling is lossless and cannot introduce a sub-ULP drift.
+        Verifies that ``accumulation_distribution_oscillator`` is homogeneous of degree 1: scaling every input value
+        by a constant ``k`` scales the output by the same ``k`` -- ``accumulation_distribution_oscillator(k * x) ==
+        k * accumulation_distribution_oscillator(x)``. ``k`` is a power of two, so the rescale is exact and adds no
+        floating-point error.
         """
         k = 2.0**exponent
         rows = case

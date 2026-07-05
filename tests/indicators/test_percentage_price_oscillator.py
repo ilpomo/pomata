@@ -258,10 +258,10 @@ class TestPercentagePriceOscillatorProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that PPO is scale-invariant:
-        ``percentage_price_oscillator(k * x) == percentage_price_oscillator(x)`` for positive ``k`` (the price's
-        unit cancels). ``k`` is a power of two so the rescaling is lossless and cannot perturb the result through
-        floating-point drift.
+        Verifies that ``percentage_price_oscillator`` is scale-invariant: scaling every input value by a constant
+        ``k`` leaves the output unchanged -- ``percentage_price_oscillator(k * x) ==
+        percentage_price_oscillator(x)``. ``k`` is a power of two, so the rescale is exact and adds no
+        floating-point error.
         """
         k = 2.0**exponent
         values, window_fast, window_slow = case

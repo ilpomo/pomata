@@ -215,8 +215,10 @@ class TestLinearRegressionInterceptProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that, for positive ``k``, the intercept is homogeneous of degree 1: ``f(k * x) == k * f(x)``. ``k`` is
-        a power of two so the rescaling is lossless and cannot introduce a floating-point artifact.
+        Verifies that ``linear_regression_intercept`` is homogeneous of degree 1: scaling every input value by a
+        constant ``k`` scales the output by the same ``k`` -- ``linear_regression_intercept(k * x) == k *
+        linear_regression_intercept(x)``. ``k`` is a power of two, so the rescale is exact and adds no
+        floating-point error.
         """
         k = 2.0**exponent
         values, window = case

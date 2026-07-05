@@ -216,8 +216,9 @@ class TestReturnsNetProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies degree-1 homogeneity: scaling both inputs by a constant scales the net return by the same constant.
-        ``k`` is a power of two so the rescaling is lossless.
+        Verifies that ``returns_net`` is homogeneous of degree 1: scaling every input value by a constant ``k``
+        scales the output by the same ``k`` -- ``returns_net(k * x) == k * returns_net(x)``. ``k`` is a power of
+        two, so the rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         returns_gross, cost = case

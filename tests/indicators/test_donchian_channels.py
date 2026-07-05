@@ -317,8 +317,9 @@ class TestDonchianChannelsProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that, for positive ``k``, every band is homogeneous of degree 1: ``band(k * h, k * l) == k * band``.
-        ``k`` is a power of two so the rescaling is lossless and cannot perturb the windowed extremes.
+        Verifies that ``donchian_channels`` is homogeneous of degree 1: scaling every input value by a constant
+        ``k`` scales the output by the same ``k`` -- ``donchian_channels(k * x) == k * donchian_channels(x)``. ``k``
+        is a power of two, so the rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         rows, window = case

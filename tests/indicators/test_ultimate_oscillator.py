@@ -327,8 +327,9 @@ class TestUltimateOscillatorProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that ``ultimate_oscillator`` is scale-invariant under a positive common rescaling of the bars. ``k`` is
-        a power of two so the rescaling is lossless and cannot introduce a floating-point artifact.
+        Verifies that ``ultimate_oscillator`` is scale-invariant: scaling every input value by a constant ``k``
+        leaves the output unchanged -- ``ultimate_oscillator(k * x) == ultimate_oscillator(x)``. ``k`` is a power of
+        two, so the rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         rows, window_short, window_medium, window_long = case

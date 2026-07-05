@@ -272,12 +272,9 @@ class TestSineWaveProperties:
     )
     def test_scale_invariance(self, case: list[float], exponent: int) -> None:
         """
-        Verifies that the sine wave is scale-invariant: ``sine_wave(k * x) == sine_wave(x)``, for ANY carrier.
-
-        The factor is a power of two, so the rescaling is lossless and the whole pipeline is exactly scale-equivariant:
-        the phase that fixes both lines is unchanged to the bit. This holds for every carrier, including a low-amplitude
-        one, because the phase guard tests the imaginary part against an EXACT zero rather than a fixed magnitude
-        threshold (a fixed cutoff would snap a small-amplitude carrier to a different branch under the rescale).
+        Verifies that ``sine_wave`` is scale-invariant: scaling every input value by a constant ``k`` leaves the
+        output unchanged -- ``sine_wave(k * x) == sine_wave(x)``. ``k`` is a power of two, so the rescale is exact
+        and adds no floating-point error.
         """
         factor = 2.0**exponent
         values = case

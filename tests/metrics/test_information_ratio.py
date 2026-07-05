@@ -214,11 +214,12 @@ class TestInformationRatioProperties:
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
-    @given(case=_cases(_PAIR, min_size=2), exponent=st.sampled_from([-4, -2, -1, 1, 2, 4]))
+    @given(case=_cases(_PAIR, min_size=2), exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]))
     def test_scale_invariance(self, case: list[tuple[float, float]], exponent: int) -> None:
         """
-        Verifies that a joint positive rescale of both legs leaves the ratio unchanged (a mean over a standard
-        deviation), using powers of two so the rescaling is lossless.
+        Verifies that ``information_ratio`` is scale-invariant: scaling every input value by a constant ``k`` leaves
+        the output unchanged -- ``information_ratio(k * x) == information_ratio(x)``. ``k`` is a power of two, so
+        the rescale is exact and adds no floating-point error.
         """
         returns, benchmark = split_pairs(case)
         assume(well_spread(_complete_active(returns, benchmark)))

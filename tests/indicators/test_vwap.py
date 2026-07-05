@@ -260,8 +260,9 @@ class TestVwapProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies degree-1 homogeneity in price: ``VWAP(k * prices, volume) == k * VWAP``. ``k`` is a power of two so the
-        rescaling is lossless.
+        Verifies that ``vwap`` is homogeneous of degree 1 in price: scaling the price inputs by a constant ``k``
+        scales the output by the same ``k``, while the volume is untouched. ``k`` is a power of two, so the rescale
+        is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         high, low, close, volume = split_quads(rows)
@@ -271,7 +272,7 @@ class TestVwapProperties:
 
     @given(
         rows=_cases(coherent_hlcv()),
-        exponent=st.sampled_from([-4, -2, 1, 3, 6]),
+        exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
     )
     def test_volume_scale_invariance(
         self,
@@ -279,8 +280,9 @@ class TestVwapProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies degree-0 invariance in volume: rescaling volume by any positive ``k`` leaves VWAP bit-identical (the
-        weight cancels in the ratio). ``k`` is a power of two so the rescaling is lossless.
+        Verifies that ``vwap`` is invariant to a volume rescale: scaling the volume by a constant ``k`` leaves the
+        output unchanged, while the prices are untouched. ``k`` is a power of two, so the rescale is exact and adds
+        no floating-point error.
         """
         k = 2.0**exponent
         high, low, close, volume = split_quads(rows)

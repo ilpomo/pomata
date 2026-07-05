@@ -291,8 +291,9 @@ class TestT3Properties:
         exponent: int,
     ) -> None:
         """
-        Verifies that T3 is homogeneous of degree 1: ``t3(k * x) == k * t3(x)``. ``k`` is a power of two so the
-        rescaling is lossless.
+        Verifies that ``t3`` is homogeneous of degree 1: scaling every input value by a constant ``k`` scales the
+        output by the same ``k`` -- ``t3(k * x) == k * t3(x)``. ``k`` is a power of two, so the rescale is exact and
+        adds no floating-point error.
         """
         k = 2.0**exponent
         values, window = case

@@ -284,12 +284,9 @@ class TestMamaProperties:
     )
     def test_scale_homogeneity(self, case: list[float], exponent: int) -> None:
         """
-        Verifies that both lines are homogeneous of degree 1: ``mama(k * x) == k * mama(x)`` (and likewise for FAMA).
-
-        The smoothing constant is fixed by the phasor-phase rate, which is scale-invariant, so each line is exactly
-        linear in the price. The factor is a power of two, so the rescaling is lossless: on a near-constant series the
-        in-phase component is a sub-machine-epsilon cancellation residual whose vanishing flips the ``inphase != 0``
-        branch under a non-dyadic rescale, and only a bit-exact factor keeps the two recurrences on the same branch.
+        Verifies that ``mama`` is homogeneous of degree 1: scaling every input value by a constant ``k`` scales the
+        output by the same ``k`` -- ``mama(k * x) == k * mama(x)``. ``k`` is a power of two, so the rescale is exact
+        and adds no floating-point error.
         """
         k = 2.0**exponent
         values = case

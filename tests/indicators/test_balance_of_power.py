@@ -202,8 +202,9 @@ class TestBalanceOfPowerProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that ``balance_of_power`` is scale-invariant: scaling all of OHLC by a positive ``k`` leaves it
-        unchanged. ``k`` is a power of two so the rescaling is lossless and cannot introduce a floating-point artifact.
+        Verifies that ``balance_of_power`` is scale-invariant: scaling every input value by a constant ``k`` leaves
+        the output unchanged -- ``balance_of_power(k * x) == balance_of_power(x)``. ``k`` is a power of two, so the
+        rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         rows = case

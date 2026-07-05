@@ -220,9 +220,9 @@ class TestReturnsSimpleProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that the return is scale-invariant: rescaling the whole price series by a constant leaves every return
-        unchanged (``returns_simple(k * P) == returns_simple(P)``), because the scale cancels in the ratio. ``k`` is a
-        power of two so the rescaling is lossless and cannot introduce a floating-point artifact.
+        Verifies that ``returns_simple`` is scale-invariant: scaling every input value by a constant ``k`` leaves
+        the output unchanged -- ``returns_simple(k * x) == returns_simple(x)``. ``k`` is a power of two, so the
+        rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         values = case

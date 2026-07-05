@@ -219,8 +219,9 @@ class TestMidpriceProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that, for positive ``k``, midprice is homogeneous of degree 1: ``midprice(k * h, k * l) == k * …``.
-        ``k`` is a power of two so the rescaling is lossless and cannot perturb the windowed extremes.
+        Verifies that ``midprice`` is homogeneous of degree 1: scaling every input value by a constant ``k`` scales
+        the output by the same ``k`` -- ``midprice(k * x) == k * midprice(x)``. ``k`` is a power of two, so the
+        rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         rows, window = case

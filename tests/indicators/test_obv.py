@@ -320,8 +320,9 @@ class TestObvProperties:
         sign: float,
     ) -> None:
         """
-        Verifies that OBV is homogeneous of degree 1 in volume: ``obv(c, k * v) == k * obv(c, v)``. ``k`` is a signed
-        power of two so the rescaling is lossless and the shared assertion's ``|k|``-scaled floor never underflows.
+        Verifies that ``obv`` is homogeneous of degree 1 in volume: scaling the volume by a constant ``k`` scales
+        the output by the same ``k``, while the prices are untouched. ``k`` is a power of two, so the rescale is
+        exact and adds no floating-point error.
         """
         k = sign * 2.0**exponent
         close_values, volume_values = split_pairs(case)
@@ -344,21 +345,15 @@ class TestObvProperties:
         shift: float,
     ) -> None:
         """
-        Verifies that OBV is invariant to an additive shift of the price level: ``obv(c + t, v) == obv(c, v)``.
-
-        Only the sign of the bar-to-bar change drives OBV, so a constant offset on every close leaves it unchanged.
+        Verifies that ``obv`` is invariant to a common additive shift: adding the same constant to every input value
+        leaves the output unchanged, because the shift cancels.
         """
         close_values, volume_values = split_pairs(case)
         close_values = [round(value, 4) for value in close_values]  # realistic price precision: diffs survive the shift
         result_base = apply_obv(close_values, volume_values)
         result_shifted = apply_obv([value + shift for value in close_values], volume_values)
         tolerance = input_scale(volume_values) * EXACT_TOLERANCE_FACTOR
-        for value_shifted, value_base in zip(result_shifted, result_base, strict=True):
-            if value_base is None:
-                assert value_shifted is None
-            else:
-                assert value_shifted is not None
-                assert math.isclose(value_shifted, value_base, rel_tol=RELATIVE_TOLERANCE_SCALE, abs_tol=tolerance)
+        assert_matches(result_shifted, result_base, rel_tol=RELATIVE_TOLERANCE_SCALE, abs_tol=tolerance)
 
     @given(
         case=_cases(

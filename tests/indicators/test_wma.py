@@ -219,8 +219,9 @@ class TestWmaProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that WMA is homogeneous of degree 1: ``wma(k * x) == k * wma(x)``. ``k`` is a power of two so the
-        rescaling is lossless and cannot introduce a floating-point artifact.
+        Verifies that ``wma`` is homogeneous of degree 1: scaling every input value by a constant ``k`` scales the
+        output by the same ``k`` -- ``wma(k * x) == k * wma(x)``. ``k`` is a power of two, so the rescale is exact
+        and adds no floating-point error.
         """
         k = 2.0**exponent
         values, window = case

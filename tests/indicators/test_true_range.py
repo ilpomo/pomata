@@ -280,8 +280,9 @@ class TestTrueRangeProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that True Range is homogeneous of degree 1 under positive scaling: ``tr(k * x) == k * tr(x)``. ``k`` is
-        a power of two so the rescaling is lossless and cannot introduce a sub-ULP drift.
+        Verifies that ``true_range`` is homogeneous of degree 1: scaling every input value by a constant ``k``
+        scales the output by the same ``k`` -- ``true_range(k * x) == k * true_range(x)``. ``k`` is a power of two,
+        so the rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         rows = case

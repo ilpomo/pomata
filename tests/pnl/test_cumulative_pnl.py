@@ -180,8 +180,9 @@ class TestCumulativePnlProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies degree-1 homogeneity: scaling the returns by a constant scales the cumulative P&L by the same
-        constant. ``k`` is a power of two so the rescaling is lossless.
+        Verifies that ``cumulative_pnl`` is homogeneous of degree 1: scaling every input value by a constant ``k``
+        scales the output by the same ``k`` -- ``cumulative_pnl(k * x) == k * cumulative_pnl(x)``. ``k`` is a power
+        of two, so the rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         values = case

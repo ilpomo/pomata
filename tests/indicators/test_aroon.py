@@ -276,9 +276,9 @@ class TestAroonProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that Aroon is scale-invariant: scaling ``high`` and ``low`` by a positive ``k`` leaves both lines
-        unchanged (only the positions of the extremes matter). ``k`` is a power of two so the rescaling is lossless and
-        cannot round two near-tied extremes to the same value and flip which position wins.
+        Verifies that ``aroon`` is scale-invariant: scaling every input value by a constant ``k`` leaves the output
+        unchanged -- ``aroon(k * x) == aroon(x)``. ``k`` is a power of two, so the rescale is exact and adds no
+        floating-point error.
         """
         k = 2.0**exponent
         rows, window = case

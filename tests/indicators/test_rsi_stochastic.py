@@ -372,7 +372,9 @@ class TestRsiStochasticProperties:
         k: float,
     ) -> None:
         """
-        Verifies that both lines are scale-invariant under a positive rescaling of the input (the RSI already is).
+        Verifies that ``rsi_stochastic`` is scale-invariant: scaling every input value by a constant ``k`` leaves
+        the output unchanged -- ``rsi_stochastic(k * x) == rsi_stochastic(x)``. ``k`` is a power of two, so the
+        rescale is exact and adds no floating-point error.
         """
         values, window_rsi, window_k, window_d = case
         base = apply_rsi_stochastic(values, window_rsi=window_rsi, window_k=window_k, window_d=window_d)

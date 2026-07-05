@@ -252,9 +252,9 @@ class TestAtrNormalizedProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that NATR is scale-invariant: scaling all of high / low / close by a positive ``k`` leaves it
-        unchanged (the ATR and the close scale together). ``k`` is a power of two so the rescaling is lossless and
-        cannot perturb the ratio through floating-point rounding.
+        Verifies that ``atr_normalized`` is scale-invariant: scaling every input value by a constant ``k`` leaves
+        the output unchanged -- ``atr_normalized(k * x) == atr_normalized(x)``. ``k`` is a power of two, so the
+        rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         rows, window = case

@@ -507,7 +507,9 @@ class TestMoneyFlowIndexProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that a positive rescaling of all prices leaves the MFI unchanged (the up/down ratio is scale-free).
+        Verifies that ``money_flow_index`` is invariant to a price rescale: scaling the price inputs by a constant
+        ``k`` leaves the output unchanged, while the volume is untouched. ``k`` is a power of two, so the rescale is
+        exact and adds no floating-point error.
         """
         k = 2.0**exponent
         rows, window = case
@@ -532,7 +534,9 @@ class TestMoneyFlowIndexProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that a positive global rescaling of volume leaves the MFI unchanged (both flows scale together).
+        Verifies that ``money_flow_index`` is invariant to a volume rescale: scaling the volume by a constant ``k``
+        leaves the output unchanged, while the prices are untouched. ``k`` is a power of two, so the rescale is
+        exact and adds no floating-point error.
         """
         c = 2.0**exponent
         rows, window = case

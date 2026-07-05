@@ -326,10 +326,9 @@ class TestParabolicSarProperties:
         factors: tuple[float, float],
     ) -> None:
         """
-        Verifies that, for positive ``k``, ``parabolic_sar`` is homogeneous of degree 1: ``sar(k * x) == k * sar(x)``.
-        ``k`` is a power of two so the rescaling is lossless and cannot perturb the stop-and-reverse recurrence; the
-        acceleration / maximum factors are drawn too, so the invariant is checked across the factor space, not only the
-        defaults.
+        Verifies that ``parabolic_sar`` is homogeneous of degree 1: scaling every input value by a constant ``k``
+        scales the output by the same ``k`` -- ``parabolic_sar(k * x) == k * parabolic_sar(x)``. ``k`` is a power of
+        two, so the rescale is exact and adds no floating-point error.
         """
         acceleration, maximum = factors
         k = 2.0**exponent

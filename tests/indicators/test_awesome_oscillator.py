@@ -233,8 +233,9 @@ class TestAwesomeOscillatorProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that, for positive ``k``, the oscillator is homogeneous of degree 1: ``AO(k * bars) == k * AO``. ``k``
-        is a power of two so the rescaling is lossless.
+        Verifies that ``awesome_oscillator`` is homogeneous of degree 1: scaling every input value by a constant
+        ``k`` scales the output by the same ``k`` -- ``awesome_oscillator(k * x) == k * awesome_oscillator(x)``.
+        ``k`` is a power of two, so the rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         rows, window_fast, window_slow = case

@@ -250,8 +250,10 @@ class TestStandardDeviationRollingProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that the deviation is homogeneous of degree 1 in magnitude: ``std(k * x) == abs(k) * std(x)``. ``k`` is
-        a power of two so the rescaling is lossless and cannot perturb the deviation by a floating-point artifact.
+        Verifies that ``standard_deviation_rolling`` is homogeneous of degree 1: scaling every input value by a
+        constant ``k`` scales the output by the same ``k`` -- ``standard_deviation_rolling(k * x) == k *
+        standard_deviation_rolling(x)``. ``k`` is a power of two, so the rescale is exact and adds no floating-point
+        error.
         """
         k = 2.0**exponent
         values, window = case

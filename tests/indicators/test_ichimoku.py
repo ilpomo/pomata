@@ -362,8 +362,9 @@ class TestIchimokuProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that, for positive ``k``, every line is homogeneous of degree 1: ``line(k * bars) == k * line``. ``k``
-        is a power of two so the rescaling is lossless and the match is exact.
+        Verifies that ``ichimoku`` is homogeneous of degree 1: scaling every input value by a constant ``k`` scales
+        the output by the same ``k`` -- ``ichimoku(k * x) == k * ichimoku(x)``. ``k`` is a power of two, so the
+        rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         rows, window_tenkan, window_kijun, window_senkou = case

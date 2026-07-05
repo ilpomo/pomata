@@ -234,8 +234,9 @@ class TestPriceAverageProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that the transform is homogeneous of degree 1: ``f(k * prices) == k * f(prices)``. ``k`` is a power of
-        two so the rescaling is lossless and cannot introduce a floating-point artifact.
+        Verifies that ``price_average`` is homogeneous of degree 1: scaling every input value by a constant ``k``
+        scales the output by the same ``k`` -- ``price_average(k * x) == k * price_average(x)``. ``k`` is a power of
+        two, so the rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         rows = case
