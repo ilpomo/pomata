@@ -184,10 +184,9 @@ class TestDominantCyclePeriodProperties:
     )
     def test_scale_invariance(self, case: list[float], exponent: int) -> None:
         """
-        Verifies that the period is scale-invariant: ``dominant_cycle_period(k * x) == dominant_cycle_period(x)``.
-
-        The factor is a power of two, so the rescaling is lossless and the in-phase / quadrature ratio that fixes the
-        period is unchanged to the bit, not merely within a tolerance.
+        Verifies that ``dominant_cycle_period`` is scale-invariant: scaling every input value by a constant ``k``
+        leaves the output unchanged -- ``dominant_cycle_period(k * x) == dominant_cycle_period(x)``. ``k`` is a
+        power of two, so the rescale is exact and adds no floating-point error.
         """
         factor = 2.0**exponent
         values = case

@@ -211,8 +211,9 @@ class TestCostSlippageProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies degree-1 homogeneity in the weight: scaling the weight by a constant scales the cost by the same
-        constant (the half-spread held fixed). ``k`` is a power of two so the rescaling is lossless.
+        Verifies that ``cost_slippage`` is homogeneous of degree 1: scaling every input value by a constant ``k``
+        scales the output by the same ``k`` -- ``cost_slippage(k * x) == k * cost_slippage(x)``. ``k`` is a power of
+        two, so the rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         values = case

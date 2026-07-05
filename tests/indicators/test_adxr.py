@@ -255,8 +255,9 @@ class TestAdxrProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that ``adxr`` is scale-invariant under a positive common rescaling of high / low / close. ``k`` is a
-        power of two so the rescaling is lossless and cannot introduce a floating-point artifact.
+        Verifies that ``adxr`` is scale-invariant: scaling every input value by a constant ``k`` leaves the output
+        unchanged -- ``adxr(k * x) == adxr(x)``. ``k`` is a power of two, so the rescale is exact and adds no
+        floating-point error.
         """
         k = 2.0**exponent
         rows, window = case

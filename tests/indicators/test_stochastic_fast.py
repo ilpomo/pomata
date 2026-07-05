@@ -305,9 +305,9 @@ class TestStochasticFastProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that both lines are scale-invariant under a positive common rescaling of high / low / close. ``k`` is a
-        power of two so the rescaling is lossless: the lines pick the extremes of the look-back, and an arbitrary factor
-        can round two near-tied bars to the same value and flip which one wins, changing the result.
+        Verifies that ``stochastic_fast`` is scale-invariant: scaling every input value by a constant ``k`` leaves
+        the output unchanged -- ``stochastic_fast(k * x) == stochastic_fast(x)``. ``k`` is a power of two, so the
+        rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         rows, window_k, window_d = case

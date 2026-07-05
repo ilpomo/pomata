@@ -215,8 +215,9 @@ class TestMomProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that momentum is homogeneous of degree 1: ``mom(k * x) == k * mom(x)``. ``k`` is a power
-        of two so the rescaling is lossless and cannot introduce a floating-point artifact.
+        Verifies that ``mom`` is homogeneous of degree 1: scaling every input value by a constant ``k`` scales the
+        output by the same ``k`` -- ``mom(k * x) == k * mom(x)``. ``k`` is a power of two, so the rescale is exact
+        and adds no floating-point error.
         """
         k = 2.0**exponent
         values, window = case

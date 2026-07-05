@@ -142,11 +142,15 @@ class TestGainToPainRatioProperties:
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
-    @given(case=_cases(subnormal_safe_floats(bound=1e3), min_size=2), exponent=st.sampled_from([-4, -2, -1, 1, 2, 4]))
+    @given(
+        case=_cases(subnormal_safe_floats(bound=1e3), min_size=2),
+        exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
+    )
     def test_scale_invariance(self, case: list[float], exponent: int) -> None:
         """
-        Verifies that a positive rescale of the returns leaves the gain to pain ratio unchanged (a ratio of sums),
-        using powers of two so the rescaling is lossless.
+        Verifies that ``gain_to_pain_ratio`` is scale-invariant: scaling every input value by a constant ``k``
+        leaves the output unchanged -- ``gain_to_pain_ratio(k * x) == gain_to_pain_ratio(x)``. ``k`` is a power of
+        two, so the rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         base = apply_expr(case, gain_to_pain_ratio(pl.col(COLUMN_X)))

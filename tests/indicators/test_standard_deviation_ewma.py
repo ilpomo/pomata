@@ -226,8 +226,10 @@ class TestStandardDeviationEwmaProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that the deviation is homogeneous of degree 1: ``std_ewma(k * x) == abs(k) * std_ewma(x)``. ``k`` is a
-        power of two so the rescaling is lossless and cannot perturb the recurrence by a sub-ULP drift.
+        Verifies that ``standard_deviation_ewma`` is homogeneous of degree 1: scaling every input value by a
+        constant ``k`` scales the output by the same ``k`` -- ``standard_deviation_ewma(k * x) == k *
+        standard_deviation_ewma(x)``. ``k`` is a power of two, so the rescale is exact and adds no floating-point
+        error.
         """
         k = 2.0**exponent
         values, window = case

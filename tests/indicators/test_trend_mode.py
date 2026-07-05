@@ -201,10 +201,9 @@ class TestTrendModeProperties:
     )
     def test_scale_invariance(self, case: list[float], exponent: int) -> None:
         """
-        Verifies that the flag is scale-invariant: ``trend_mode(k * x) == trend_mode(x)``.
-
-        The factor is a power of two, so the rescaling is lossless and the sine-wave crossings, phase rate, and relative
-        trendline deviation that fix the flag are unchanged to the bit, not merely within a tolerance.
+        Verifies that ``trend_mode`` is scale-invariant: scaling every input value by a constant ``k`` leaves the
+        output unchanged -- ``trend_mode(k * x) == trend_mode(x)``. ``k`` is a power of two, so the rescale is exact
+        and adds no floating-point error.
         """
         factor = 2.0**exponent
         values = case

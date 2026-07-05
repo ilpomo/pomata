@@ -266,7 +266,9 @@ class TestDemaProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that DEMA is homogeneous of degree 1: ``dema(k * x) == k * dema(x)``.
+        Verifies that ``dema`` is homogeneous of degree 1: scaling every input value by a constant ``k`` scales the
+        output by the same ``k`` -- ``dema(k * x) == k * dema(x)``. ``k`` is a power of two, so the rescale is exact
+        and adds no floating-point error.
         """
         k = 2.0**exponent
         values, window = case

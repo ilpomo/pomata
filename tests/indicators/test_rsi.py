@@ -279,9 +279,9 @@ class TestRsiProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that RSI is invariant under a positive rescaling of the series: ``rsi(k * x) == rsi(x)`` for ``k > 0``
-        (both gains and losses scale by ``k``, so the relative strength — and thus the RSI — is unchanged). ``k`` is a
-        power of two so the rescaling is lossless and cannot introduce a floating-point artifact.
+        Verifies that ``rsi`` is scale-invariant: scaling every input value by a constant ``k`` leaves the output
+        unchanged -- ``rsi(k * x) == rsi(x)``. ``k`` is a power of two, so the rescale is exact and adds no
+        floating-point error.
         """
         k = 2.0**exponent
         values, window = case

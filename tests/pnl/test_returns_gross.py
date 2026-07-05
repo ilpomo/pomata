@@ -216,8 +216,9 @@ class TestReturnsGrossProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies degree-1 homogeneity in the weight: scaling the weight by a constant scales the gross return by
-        the same constant. ``k`` is a power of two so the rescaling is lossless.
+        Verifies that ``returns_gross`` is homogeneous of degree 1 in the weight: scaling the weight by a constant
+        ``k``, with the other inputs untouched, scales the output by the same ``k``. ``k`` is a power of two, so the
+        rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         weight, asset_returns = case

@@ -284,9 +284,9 @@ class TestChandeMomentumOscillatorProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that CMO is scale-invariant:
-        ``chande_momentum_oscillator(k * x) == chande_momentum_oscillator(x)`` (gains and losses scale together).
-        ``k`` is a power of two so the rescaling is lossless and cannot perturb the gain/loss totals.
+        Verifies that ``chande_momentum_oscillator`` is scale-invariant: scaling every input value by a constant
+        ``k`` leaves the output unchanged -- ``chande_momentum_oscillator(k * x) == chande_momentum_oscillator(x)``.
+        ``k`` is a power of two, so the rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         values, window = case

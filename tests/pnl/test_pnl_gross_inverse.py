@@ -311,8 +311,9 @@ class TestPnlGrossInverseProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies degree-1 homogeneity in the quantity: scaling the quantity by a constant scales the PnL by the same
-        constant (the price held fixed). ``k`` is a power of two so the rescaling is lossless.
+        Verifies that ``pnl_gross_inverse`` is homogeneous of degree 1 in the quantity: scaling the quantity by a
+        constant ``k``, with the other inputs untouched, scales the output by the same ``k``. ``k`` is a power of
+        two, so the rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         quantity, price = case

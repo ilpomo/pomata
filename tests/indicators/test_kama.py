@@ -270,8 +270,9 @@ class TestKamaProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that ``kama`` is homogeneous of degree 1: ``kama(k * x) == k * kama(x)``. ``k`` is a power of two so
-        the rescaling is lossless and cannot introduce a sub-ULP drift into the adaptive recurrence.
+        Verifies that ``kama`` is homogeneous of degree 1: scaling every input value by a constant ``k`` scales the
+        output by the same ``k`` -- ``kama(k * x) == k * kama(x)``. ``k`` is a power of two, so the rescale is exact
+        and adds no floating-point error.
         """
         k = 2.0**exponent
         values, window = case

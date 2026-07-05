@@ -241,8 +241,9 @@ class TestCostFundingProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies degree-1 homogeneity in each input: scaling any one of quantity, price, or rate by a constant scales
-        the funding cost by the same constant. ``k`` is a power of two so the rescaling is lossless.
+        Verifies that ``cost_funding`` is homogeneous of degree 1 in each input: scaling any single input by a
+        constant ``k``, with the others untouched, scales the output by the same ``k``. ``k`` is a power of two, so
+        the rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         quantity, price, rate = case

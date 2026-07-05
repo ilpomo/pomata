@@ -448,8 +448,9 @@ class TestChaikinMoneyFlowProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that the CMF is invariant under a positive global rescaling of all prices: scaling ``high``, ``low``
-        and ``close`` by ``k > 0`` leaves the multiplier (a ratio of price differences) unchanged.
+        Verifies that ``chaikin_money_flow`` is invariant to a price rescale: scaling the price inputs by a constant
+        ``k`` leaves the output unchanged, while the volume is untouched. ``k`` is a power of two, so the rescale is
+        exact and adds no floating-point error.
         """
         k = 2.0**exponent
         rows, window = case
@@ -474,8 +475,9 @@ class TestChaikinMoneyFlowProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that the CMF is invariant under a positive global rescaling of volume: both rolling sums scale by
-        ``c > 0``, so their ratio is unchanged.
+        Verifies that ``chaikin_money_flow`` is invariant to a volume rescale: scaling the volume by a constant
+        ``k`` leaves the output unchanged, while the prices are untouched. ``k`` is a power of two, so the rescale
+        is exact and adds no floating-point error.
         """
         c = 2.0**exponent
         rows, window = case

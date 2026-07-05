@@ -228,9 +228,9 @@ class TestAroonOscillatorProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that the oscillator is scale-invariant: scaling ``high`` and ``low`` by a positive ``k`` leaves it
-        unchanged. ``k`` is a power of two so the rescaling is lossless: the indicator is an argmax/argmin, and an
-        arbitrary factor can round two near-tied highs to the same value and flip which one wins, changing the result.
+        Verifies that ``aroon_oscillator`` is scale-invariant: scaling every input value by a constant ``k`` leaves
+        the output unchanged -- ``aroon_oscillator(k * x) == aroon_oscillator(x)``. ``k`` is a power of two, so the
+        rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         rows, window = case

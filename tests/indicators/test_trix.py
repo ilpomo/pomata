@@ -192,8 +192,9 @@ class TestTrixProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that TRIX is scale-invariant: ``trix(k * x) == trix(x)`` for positive ``k`` (the rate of change cancels
-        the price's unit). ``k`` is a power of two so the rescaling is lossless and cannot introduce a sub-ULP drift.
+        Verifies that ``trix`` is scale-invariant: scaling every input value by a constant ``k`` leaves the output
+        unchanged -- ``trix(k * x) == trix(x)``. ``k`` is a power of two, so the rescale is exact and adds no
+        floating-point error.
         """
         k = 2.0**exponent
         values, window = case

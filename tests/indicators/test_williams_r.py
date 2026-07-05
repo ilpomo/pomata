@@ -449,7 +449,9 @@ class TestWilliamsRProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that %R is invariant to a common positive rescaling of ``high``, ``low``, and ``close``.
+        Verifies that ``williams_r`` is scale-invariant: scaling every input value by a constant ``k`` leaves the
+        output unchanged -- ``williams_r(k * x) == williams_r(x)``. ``k`` is a power of two, so the rescale is exact
+        and adds no floating-point error.
         """
         k = 2.0**exponent
         rows, window = case
@@ -473,7 +475,8 @@ class TestWilliamsRProperties:
         shift: float,
     ) -> None:
         """
-        Verifies that %R is invariant to a common additive shift of ``high``, ``low``, and ``close``.
+        Verifies that ``williams_r`` is invariant to a common additive shift: adding the same constant to every
+        input value leaves the output unchanged, because the shift cancels.
         """
         rows, window = case
         high_values, low_values, close_values = split_triples(rows)
@@ -484,14 +487,7 @@ class TestWilliamsRProperties:
             [value + shift for value in close_values],
             window,
         )
-        for value_shifted, value_base in zip(result_shifted, result_base, strict=True):
-            if value_base is None:
-                assert value_shifted is None
-            else:
-                assert value_shifted is not None
-                assert math.isclose(
-                    value_shifted, value_base, rel_tol=RELATIVE_TOLERANCE_SCALE, abs_tol=ABSOLUTE_TOLERANCE_SCALE
-                )
+        assert_matches(result_shifted, result_base, rel_tol=RELATIVE_TOLERANCE_SCALE, abs_tol=ABSOLUTE_TOLERANCE_SCALE)
 
     @given(case=_cases(well_formed_bar()))
     def test_warmup_null_count_property(

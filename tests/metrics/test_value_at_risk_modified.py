@@ -172,8 +172,10 @@ class TestValueAtRiskModifiedProperties:
     @given(case=_cases(standardized_moment_floats(bound=1e3)), exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]))
     def test_scale_homogeneity(self, case: list[float], exponent: int) -> None:
         """
-        Verifies degree-1 homogeneity: ``value_at_risk_modified(k * r) == k * value_at_risk_modified(r)`` for positive
-        powers of two ``k``.
+        Verifies that ``value_at_risk_modified`` is homogeneous of degree 1: scaling every input value by a constant
+        ``k`` scales the output by the same ``k`` -- ``value_at_risk_modified(k * x) == k *
+        value_at_risk_modified(x)``. ``k`` is a power of two, so the rescale is exact and adds no floating-point
+        error.
         """
         k = 2.0**exponent
         base = apply_expr(case, value_at_risk_modified(pl.col(COLUMN_X), confidence=CONFIDENCE))

@@ -237,12 +237,14 @@ class TestProbabilisticSharpeRatioProperties:
         )
 
     @given(
-        case=_cases(standardized_moment_floats(bound=1e3), min_size=2), exponent=st.sampled_from([-4, -2, -1, 1, 2, 4])
+        case=_cases(standardized_moment_floats(bound=1e3), min_size=2),
+        exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
     )
     def test_scale_invariance(self, case: list[float], exponent: int) -> None:
         """
-        Verifies that a positive rescale of the returns leaves the statistic unchanged at a zero risk-free rate (a
-        standardized statistic), using powers of two so the rescaling is lossless.
+        Verifies that ``probabilistic_sharpe_ratio`` is scale-invariant: scaling every input value by a constant
+        ``k`` leaves the output unchanged -- ``probabilistic_sharpe_ratio(k * x) == probabilistic_sharpe_ratio(x)``.
+        ``k`` is a power of two, so the rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         base = apply_expr(case, probabilistic_sharpe_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS))

@@ -352,8 +352,9 @@ class TestVwmaProperties:
         sign: float,
     ) -> None:
         """
-        Verifies that VWMA is homogeneous of degree 1 in price: ``vwma(k * p, v) == k * vwma(p, v)``. ``k`` is a signed
-        power of two so the rescaling is lossless and the shared assertion's ``|k|``-scaled floor never underflows.
+        Verifies that ``vwma`` is homogeneous of degree 1 in price: scaling the price inputs by a constant ``k``
+        scales the output by the same ``k``, while the volume is untouched. ``k`` is a power of two, so the rescale
+        is exact and adds no floating-point error.
         """
         k = sign * 2.0**exponent
         rows, window = case
@@ -377,8 +378,9 @@ class TestVwmaProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that VWMA is invariant to a positive global rescaling of volume: ``vwma(p, c * v) == vwma(p, v)``.
-        ``c`` is a power of two so the rescaling is lossless and the shared assertion's floor never underflows.
+        Verifies that ``vwma`` is invariant to a volume rescale: scaling the volume by a constant ``k`` leaves the
+        output unchanged, while the prices are untouched. ``k`` is a power of two, so the rescale is exact and adds
+        no floating-point error.
         """
         c = 2.0**exponent
         rows, window = case

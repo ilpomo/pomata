@@ -194,8 +194,9 @@ class TestDownsideDeviationProperties:
     @given(case=_cases(subnormal_safe_floats(bound=1e3)), exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]))
     def test_scale_homogeneity(self, case: list[float], exponent: int) -> None:
         """
-        Verifies degree-1 homogeneity at threshold 0: ``downside_deviation(k * r) == k * downside_deviation(r)`` for
-        positive powers of two ``k``.
+        Verifies that ``downside_deviation`` is homogeneous of degree 1: scaling every input value by a constant
+        ``k`` scales the output by the same ``k`` -- ``downside_deviation(k * x) == k * downside_deviation(x)``.
+        ``k`` is a power of two, so the rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         base = apply_expr(case, downside_deviation(pl.col(COLUMN_X), periods_per_year=PERIODS))

@@ -218,8 +218,9 @@ class TestTimeSeriesForecastProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that, for positive ``k``, the forecast is homogeneous of degree 1: ``f(k * x) == k * f(x)``. ``k`` is a
-        power of two so the rescaling is lossless and cannot introduce a sub-ULP drift in the least-squares fit.
+        Verifies that ``time_series_forecast`` is homogeneous of degree 1: scaling every input value by a constant
+        ``k`` scales the output by the same ``k`` -- ``time_series_forecast(k * x) == k * time_series_forecast(x)``.
+        ``k`` is a power of two, so the rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         values, window = case

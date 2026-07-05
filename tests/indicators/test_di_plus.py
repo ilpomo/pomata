@@ -238,8 +238,9 @@ class TestDiPlusProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that ``di_plus`` is scale-invariant: scaling all of high / low / close by a positive ``k`` leaves it
-        unchanged. ``k`` is a power of two so the rescaling is lossless.
+        Verifies that ``di_plus`` is scale-invariant: scaling every input value by a constant ``k`` leaves the
+        output unchanged -- ``di_plus(k * x) == di_plus(x)``. ``k`` is a power of two, so the rescale is exact and
+        adds no floating-point error.
         """
         k = 2.0**exponent
         rows, window = case

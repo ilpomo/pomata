@@ -141,8 +141,9 @@ class TestDrawdownProperties:
     @given(case=_cases(_EQUITY), exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]))
     def test_scale_invariance(self, case: list[float], exponent: int) -> None:
         """
-        Verifies that a positive rescale of the equity leaves the drawdown unchanged (the peak ratio cancels), using
-        powers of two so the rescaling is lossless.
+        Verifies that ``drawdown`` is scale-invariant: scaling every input value by a constant ``k`` leaves the
+        output unchanged -- ``drawdown(k * x) == drawdown(x)``. ``k`` is a power of two, so the rescale is exact and
+        adds no floating-point error.
         """
         k = 2.0**exponent
         base = apply_expr(case, drawdown(pl.col(COLUMN_X)))

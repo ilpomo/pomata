@@ -335,9 +335,9 @@ class TestCciProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that CCI is invariant to a positive common rescaling of all three legs: numerator and denominator
-        scale together, so ``cci(k * h, k * l, k * c) == cci(h, l, c)`` for ``k > 0``. ``window >= 2`` excludes the
-        trivially-flat one-bar window, whose ``0 / 0`` NaN this invariance assertion would otherwise compare.
+        Verifies that ``cci`` is scale-invariant: scaling every input value by a constant ``k`` leaves the output
+        unchanged -- ``cci(k * x) == cci(x)``. ``k`` is a power of two, so the rescale is exact and adds no
+        floating-point error.
         """
         k = 2.0**exponent
         rows, window = case

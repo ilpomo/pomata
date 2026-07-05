@@ -370,8 +370,9 @@ class TestAccumulationDistributionProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that the line is homogeneous of degree 1 in volume: scaling every volume by ``c`` scales the line by
-        ``c`` (the multiplier is independent of volume).
+        Verifies that ``accumulation_distribution`` is homogeneous of degree 1 in volume: scaling the volume by a
+        constant ``k`` scales the output by the same ``k``, while the prices are untouched. ``k`` is a power of two,
+        so the rescale is exact and adds no floating-point error.
         """
         c = 2.0**exponent
         high_values, low_values, close_values, volume_values = split_quads(case)

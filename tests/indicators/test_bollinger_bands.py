@@ -281,8 +281,9 @@ class TestBollingerBandsProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that, for positive ``k``, every band is homogeneous of degree 1: ``band(k * x) == k * band(x)``. ``k``
-        is a power of two so the rescaling is lossless and cannot introduce a sub-ULP drift.
+        Verifies that ``bollinger_bands`` is homogeneous of degree 1: scaling every input value by a constant ``k``
+        scales the output by the same ``k`` -- ``bollinger_bands(k * x) == k * bollinger_bands(x)``. ``k`` is a
+        power of two, so the rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         values, window = case

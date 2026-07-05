@@ -164,11 +164,12 @@ class TestTailRatioRollingProperties:
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
-    @given(case=_cases(subnormal_safe_floats(bound=1e3)), exponent=st.sampled_from([-4, -2, -1, 1, 2, 4]))
+    @given(case=_cases(subnormal_safe_floats(bound=1e3)), exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]))
     def test_scale_invariance(self, case: tuple[list[float], int], exponent: int) -> None:
         """
-        Verifies that a positive rescale of the returns leaves the rolling tail ratio unchanged (a ratio of quantiles),
-        using powers of two so the rescaling is lossless.
+        Verifies that ``tail_ratio_rolling`` is scale-invariant: scaling every input value by a constant ``k``
+        leaves the output unchanged -- ``tail_ratio_rolling(k * x) == tail_ratio_rolling(x)``. ``k`` is a power of
+        two, so the rescale is exact and adds no floating-point error.
         """
         values, window = case
         k = 2.0**exponent

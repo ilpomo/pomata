@@ -205,8 +205,9 @@ class TestHilbertTrendlineProperties:
     )
     def test_scale_homogeneity(self, case: list[float], exponent: int) -> None:
         """
-        Verifies that ``hilbert_trendline`` is homogeneous of degree 1: ``hilbert_trendline(k * x) == k *
-        hilbert_trendline(x)``. ``k`` is a power of two so the rescaling is lossless.
+        Verifies that ``hilbert_trendline`` is homogeneous of degree 1: scaling every input value by a constant
+        ``k`` scales the output by the same ``k`` -- ``hilbert_trendline(k * x) == k * hilbert_trendline(x)``. ``k``
+        is a power of two, so the rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         values = case

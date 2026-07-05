@@ -178,8 +178,9 @@ class TestVolatilityProperties:
     @given(case=_cases(subnormal_safe_floats(bound=1e3)), exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]))
     def test_scale_homogeneity(self, case: list[float], exponent: int) -> None:
         """
-        Verifies degree-1 homogeneity: ``volatility(k * r) == k * volatility(r)`` for positive powers of two ``k``
-        (a lossless rescaling that cannot perturb the dispersion).
+        Verifies that ``volatility`` is homogeneous of degree 1: scaling every input value by a constant ``k``
+        scales the output by the same ``k`` -- ``volatility(k * x) == k * volatility(x)``. ``k`` is a power of two,
+        so the rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         base = apply_expr(case, volatility(pl.col(COLUMN_X), periods_per_year=PERIODS))

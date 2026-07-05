@@ -35,6 +35,7 @@ from tests.support import (
     RELATIVE_TOLERANCE_SCALE,
     WINDOW_MAX,
     assert_matches,
+    assert_scale_homogeneous,
     coherent_hlc,
     coherent_hlc_with_missing,
     input_scale,
@@ -341,21 +342,16 @@ class TestSupertrendProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that the ``line`` is homogeneous of degree 1 (``line(k * bars) == k * line``) while ``direction`` is
-        invariant. ``k`` is a power of two so the rescaling is lossless and the match is exact.
+        Verifies that ``supertrend`` is homogeneous of degree 1 in its ``line`` and invariant in its ``direction``:
+        scaling every input value by a constant ``k`` scales the ``line`` by the same ``k`` and leaves the ``direction``
+        unchanged. ``k`` is a power of two, so the rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         rows, window = case
         high, low, close = split_triples(rows)
         base = apply_supertrend(high, low, close, window)
         scaled = apply_supertrend([v * k for v in high], [v * k for v in low], [v * k for v in close], window)
-        tolerance = input_scale([v * k for v in close]) * EXACT_TOLERANCE_FACTOR
-        for value_scaled, value_base in zip(scaled["line"], base["line"], strict=True):
-            if value_base is None:
-                assert value_scaled is None
-            else:
-                assert value_scaled is not None
-                assert math.isclose(value_scaled, value_base * k, rel_tol=RELATIVE_TOLERANCE_SCALE, abs_tol=tolerance)
+        assert_scale_homogeneous(scaled["line"], base["line"], k=k, degree=1)
         assert_matches(scaled["direction"], base["direction"])
 
     @given(case=_cases(coherent_hlc_with_missing()))

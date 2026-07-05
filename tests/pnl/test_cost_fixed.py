@@ -201,10 +201,9 @@ class TestCostFixedProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies scale-invariance in the quantity: scaling it by a positive constant leaves the set of trade-bars (and
-        so the fixed cost) unchanged. ``k`` is a power of two so the rescaling is lossless; the quantity is drawn from
-        ``subnormal_safe_floats`` so that down-scaling never underflows a nonzero quantity to ``0.0`` and silently
-        erases a trade (cost_fixed is discontinuous, so that would flip the fee — a floating-point artifact, not a bug).
+        Verifies that ``cost_fixed`` is scale-invariant: scaling every input value by a constant ``k`` leaves the
+        output unchanged -- ``cost_fixed(k * x) == cost_fixed(x)``. ``k`` is a power of two, so the rescale is exact
+        and adds no floating-point error.
         """
         k = 2.0**exponent
         values = case

@@ -287,8 +287,9 @@ class TestFisherTransformProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that the transform is scale-invariant under a positive common rescaling of high / low (the channel
-        normalization cancels the scale). ``k`` is a power of two so the rescaling is lossless and the match is exact.
+        Verifies that ``fisher_transform`` is scale-invariant: scaling every input value by a constant ``k`` leaves
+        the output unchanged -- ``fisher_transform(k * x) == fisher_transform(x)``. ``k`` is a power of two, so the
+        rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         rows, window = case
