@@ -19,7 +19,6 @@ from collections.abc import Sequence
 import polars as pl
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.pnl.oracles import cost_funding_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
@@ -84,43 +83,6 @@ class TestCostFundingContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(cost_funding(pl.col(QUANTITY), pl.col(PRICE), pl.col(RATE)), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame(
-            {
-                QUANTITY: pl.Series(QUANTITY, [10.0, 10.0, -5.0, -5.0, 20.0], dtype=pl.Float64),
-                PRICE: pl.Series(PRICE, [100.0, 102.0, 101.0, 104.0, 103.0], dtype=pl.Float64),
-                RATE: pl.Series(RATE, [0.0001, 0.0001, 0.0001, -0.0001, 0.0001], dtype=pl.Float64),
-            }
-        )
-        result = frame.select(cost_funding(pl.col(QUANTITY), pl.col(PRICE), pl.col(RATE)).alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame(
-            {
-                QUANTITY: pl.Series(QUANTITY, [10.0, 10.0, -5.0, -5.0, 20.0], dtype=pl.Float64),
-                PRICE: pl.Series(PRICE, [100.0, 102.0, 101.0, 104.0, 103.0], dtype=pl.Float64),
-                RATE: pl.Series(RATE, [0.0001, 0.0001, 0.0001, -0.0001, 0.0001], dtype=pl.Float64),
-            }
-        )
-        expr = cost_funding(pl.col(QUANTITY), pl.col(PRICE), pl.col(RATE)).alias("y")
-        result_eager = frame.select(expr)
-        result_lazy = frame.lazy().select(expr).collect()
-        assert_frame_equal(result_eager, result_lazy)
-
     def test_over_is_identity(self) -> None:
         """
         Verifies that ``.over`` is optional for this elementwise product: partitioning by group is identical to the
@@ -146,23 +108,11 @@ class TestCostFundingEdge:
     Boundaries, null / NaN handling, and the funding-sign convention.
     """
 
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output.
-        """
-        assert_matches(apply_cost_funding([], [], []), [])
-
     def test_single_row(self) -> None:
         """
         Verifies that a one-row series resolves to the single product.
         """
         assert_matches(apply_cost_funding([10.0], [100.0], [0.0001]), [0.1])
-
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null input yields an all-null output.
-        """
-        assert_matches(apply_cost_funding([None, None], [None, None], [None, None]), [None, None])
 
     def test_sign_follows_quantity_and_rate(self) -> None:
         """

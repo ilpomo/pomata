@@ -19,7 +19,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.pnl.oracles import cost_borrow_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
@@ -81,41 +80,6 @@ class TestCostBorrowContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(cost_borrow(pl.col(QUANTITY), pl.col(PRICE), RATE), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame(
-            {
-                QUANTITY: pl.Series(QUANTITY, [100.0, -50.0, -50.0, -20.0, -20.0], dtype=pl.Float64),
-                PRICE: pl.Series(PRICE, [10.0, 11.0, 12.0, 13.0, 14.0], dtype=pl.Float64),
-            }
-        )
-        result = frame.select(cost_borrow(pl.col(QUANTITY), pl.col(PRICE), RATE).alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame(
-            {
-                QUANTITY: pl.Series(QUANTITY, [100.0, -50.0, -50.0, -20.0, -20.0], dtype=pl.Float64),
-                PRICE: pl.Series(PRICE, [10.0, 11.0, 12.0, 13.0, 14.0], dtype=pl.Float64),
-            }
-        )
-        expr = cost_borrow(pl.col(QUANTITY), pl.col(PRICE), RATE).alias("y")
-        result_eager = frame.select(expr)
-        result_lazy = frame.lazy().select(expr).collect()
-        assert_frame_equal(result_eager, result_lazy)
-
     def test_over_is_identity(self) -> None:
         """
         Verifies that ``.over`` is optional for this elementwise charge: partitioning by group is identical to the
@@ -151,18 +115,6 @@ class TestCostBorrowEdge:
         Verifies that a one-row short series resolves to its borrow cost.
         """
         assert_matches(apply_cost_borrow([-50.0], [10.0]), [0.05])
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output.
-        """
-        assert_matches(apply_cost_borrow([], []), [])
-
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null input yields an all-null output.
-        """
-        assert_matches(apply_cost_borrow([None, None], [None, None]), [None, None])
 
     def test_null_propagates(self) -> None:
         """

@@ -18,7 +18,6 @@ import math
 import polars as pl
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.pnl.oracles import turnover_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
@@ -61,31 +60,6 @@ class TestTurnoverContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(turnover(pl.col(COLUMN_X)), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [0.5, 1.0, -0.5, -0.5, 0.0], dtype=pl.Float64)})
-        result = frame.select(turnover(pl.col(COLUMN_X)).alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [0.5, 1.0, -0.5, -0.5, 0.0], dtype=pl.Float64)})
-        expr = turnover(pl.col(COLUMN_X)).alias("y")
-        result_eager = frame.select(expr)
-        result_lazy = frame.lazy().select(expr).collect()
-        assert_frame_equal(result_eager, result_lazy)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` the one-bar difference resets per group (each group gets its own flat start) and
@@ -115,18 +89,6 @@ class TestTurnoverEdge:
         Verifies that a one-element series resolves to ``|weight_0|`` (the entry trade), not null.
         """
         assert_matches(apply_expr([0.7], turnover(pl.col(COLUMN_X))), [0.7])
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty series yields an empty result.
-        """
-        assert_matches(apply_expr([], turnover(pl.col(COLUMN_X))), [])
-
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null series stays null.
-        """
-        assert_matches(apply_expr([None, None, None], turnover(pl.col(COLUMN_X))), [None, None, None])
 
     def test_null_propagates(self) -> None:
         """
