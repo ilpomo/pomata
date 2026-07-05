@@ -335,7 +335,7 @@ class TestSupertrendProperties:
         case=_cases(coherent_hlc()),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
     )
-    def test_scale_behavior(
+    def test_scale_homogeneity(
         self,
         case: tuple[list[tuple[float, float, float]], int],
         exponent: int,
