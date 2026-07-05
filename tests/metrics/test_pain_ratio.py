@@ -89,6 +89,18 @@ class TestPainRatioEdge:
         """
         assert_matches(apply_expr([1.0, 1.1, 1.21], pain_ratio(pl.col(COLUMN_X), periods_per_year=1)), [math.inf])
 
+    def test_null_skipped(self) -> None:
+        """
+        Verifies that a ``null`` observation is skipped (excluded from the reduction), matching the reference.
+        """
+        values = [1.0, 1.1, 1.05, None, 1.15, 1.3, 1.25]
+        assert_matches(
+            apply_expr(values, pain_ratio(pl.col(COLUMN_X), periods_per_year=4, risk_free_rate=0.02)),
+            [pain_ratio_reference(values, 4, 0.02)],
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
+        )
+
     def test_nan_poisons(self) -> None:
         """
         Verifies that a NaN equity poisons the result to NaN.

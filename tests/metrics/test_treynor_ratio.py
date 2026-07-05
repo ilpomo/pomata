@@ -154,6 +154,22 @@ class TestTreynorRatioEdge:
             )
             assert_matches(result, [math.nan])
 
+    def test_null_skipped(self) -> None:
+        """
+        Verifies that a ``null`` in either leg drops that pair (excluded from the reduction), matching the reference.
+        """
+        returns = [0.012, -0.008, 0.02, None, 0.005, 0.0, -0.02, 0.018]
+        benchmark = [0.01, -0.006, 0.018, -0.012, 0.004, 0.002, -0.018, 0.015]
+        assert_matches(
+            materialize(
+                {RETURNS: returns, BENCHMARK: benchmark},
+                treynor_ratio(pl.col(RETURNS), pl.col(BENCHMARK), periods_per_year=PERIODS, risk_free_rate=0.02),
+            ),
+            [treynor_ratio_reference(returns, benchmark, PERIODS, 0.02)],
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
+        )
+
     def test_nan_poisons(self) -> None:
         """
         Verifies that a NaN in either leg of a retained pair poisons the result to NaN.

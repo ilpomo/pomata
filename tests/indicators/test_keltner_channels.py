@@ -220,6 +220,20 @@ class TestKeltnerChannelsEdge:
         for field in FIELDS:
             assert all(value is not None for value in bands[field][1:])
 
+    def test_null_bridged(self) -> None:
+        """
+        Verifies that an interior ``null`` in ``close`` is bridged by the recursive ``ema`` / ``atr`` legs: after the
+        gap the midline recovers to a defined value, matching the reference.
+        """
+        high = [3.0, 4.0, 5.0, 6.0, 7.0]
+        low = [1.0, 2.0, 3.0, 4.0, 5.0]
+        close = [2.0, None, 4.0, 5.0, 6.0]
+        bands = apply_keltner_channels(high, low, close, 2, window_atr=2)
+        assert bands["middle"][-1] is not None
+        reference = keltner_channels_reference(high, low, close, 2, 2, 2.0)
+        for field in FIELDS:
+            assert_matches(bands[field], reference[field])
+
     def test_nan_latches(self) -> None:
         """
         Verifies that a ``NaN`` in ``close`` propagates to every band through the recursive ``ema`` / ``atr`` legs,

@@ -124,6 +124,20 @@ class TestProbabilisticSharpeRatioEdge:
             [math.nan],
         )
 
+    def test_null_skipped(self) -> None:
+        """
+        Verifies that a ``null`` observation is skipped (excluded from the reduction), matching the reference.
+        """
+        values = [0.012, -0.008, 0.02, None, 0.005, 0.0, -0.02, 0.018, 0.01, -0.004]
+        assert_matches(
+            apply_expr(
+                values, probabilistic_sharpe_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS, benchmark_sharpe=0.05)
+            ),
+            [probabilistic_sharpe_ratio_reference(values, PERIODS, 0.05, 0.0)],
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
+        )
+
     def test_nan_poisons(self) -> None:
         """
         Verifies that a NaN return poisons the result to NaN.
