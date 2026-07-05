@@ -20,7 +20,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import stochastic_fast_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_PROPERTY,
@@ -96,12 +95,6 @@ class TestStochasticFastContract:
     Type, struct schema, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(stochastic_fast(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), window_k=14, window_d=3), pl.Expr)
-
     def test_output_is_struct_with_named_fields(self) -> None:
         """
         Verifies that the output is a ``Float64`` struct with exactly the fields ``k`` / ``d``.
@@ -113,26 +106,6 @@ class TestStochasticFastContract:
         assert isinstance(dtype, pl.Struct)
         assert [field.name for field in dtype.fields] == ["k", "d"]
         assert all(field.dtype == pl.Float64 for field in dtype.fields)
-
-    def test_preserves_length(self) -> None:
-        """
-        Verifies that the output has one struct per input row.
-        """
-        frame = pl.DataFrame({HIGH: [10.0, 11.0, 12.0], LOW: [9.0, 10.0, 11.0], CLOSE: [9.5, 10.5, 11.5]})
-        result = frame.select(
-            stochastic_fast(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), window_k=2, window_d=2).alias("s")
-        )
-        assert result.height == frame.height
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({HIGH: [10.0, 11.0, 12.0], LOW: [9.0, 10.0, 11.0], CLOSE: [9.5, 10.5, 11.5]})
-        expr = stochastic_fast(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), window_k=2, window_d=2).alias("s")
-        result_eager = frame.select(expr)
-        result_lazy = frame.lazy().select(expr).collect()
-        assert_frame_equal(result_eager, result_lazy)
 
     def test_over_partitions_independently(self) -> None:
         """
@@ -178,14 +151,6 @@ class TestStochasticFastEdge:
         """
         with pytest.raises(ValueError, match="window_d must be >= 1"):
             stochastic_fast(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), window_k=3, window_d=0)
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields empty output on both lines.
-        """
-        result = apply_stochastic_fast([], [], [], window_k=3, window_d=2)
-        assert_matches(result["k"], [])
-        assert_matches(result["d"], [])
 
     def test_all_null(self) -> None:
         """

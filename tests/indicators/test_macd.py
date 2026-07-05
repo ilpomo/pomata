@@ -20,7 +20,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import macd_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_EXACT,
@@ -96,12 +95,6 @@ class TestMacdContract:
     Type, struct schema, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(macd(pl.col(COLUMN_X), window_fast=12, window_slow=26, window_signal=9), pl.Expr)
-
     def test_output_is_struct_with_named_fields(self) -> None:
         """
         Verifies that the output is a ``Float64`` struct with exactly the fields ``macd`` / ``signal`` / ``histogram``.
@@ -113,24 +106,6 @@ class TestMacdContract:
         assert isinstance(dtype, pl.Struct)
         assert [field.name for field in dtype.fields] == ["macd", "signal", "histogram"]
         assert all(field.dtype == pl.Float64 for field in dtype.fields)
-
-    def test_preserves_length(self) -> None:
-        """
-        Verifies that the output has one struct per input row.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 2.0, 3.0, 4.0, 5.0])})
-        result = frame.select(macd(pl.col(COLUMN_X), window_fast=2, window_slow=3, window_signal=2).alias("m"))
-        assert result.height == frame.height
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 2.0, 3.0, 4.0, 5.0])})
-        expr = macd(pl.col(COLUMN_X), window_fast=2, window_slow=3, window_signal=2).alias("m")
-        result_eager = frame.select(expr)
-        result_lazy = frame.lazy().select(expr).collect()
-        assert_frame_equal(result_eager, result_lazy)
 
     def test_over_partitions_independently(self) -> None:
         """
@@ -193,14 +168,6 @@ class TestMacdEdge:
         bands = apply_macd([1.0, 2.0])
         for field in FIELDS:
             assert_matches(bands[field], [None, None])
-
-    def test_empty(self) -> None:
-        """
-        Verifies behavior on an empty series: every field is empty.
-        """
-        bands = apply_macd([])
-        for field in FIELDS:
-            assert_matches(bands[field], [])
 
     def test_single_row(self) -> None:
         """

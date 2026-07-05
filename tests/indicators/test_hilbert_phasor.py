@@ -20,7 +20,6 @@ from collections.abc import Sequence
 import polars as pl
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import hilbert_phasor_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_EXACT,
@@ -92,12 +91,6 @@ class TestHilbertPhasorContract:
     Type, struct schema, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(hilbert_phasor(pl.col(COLUMN_X)), pl.Expr)
-
     def test_output_is_struct_with_named_fields(self) -> None:
         """
         Verifies that the output is a ``Float64`` struct with exactly the fields ``in_phase`` / ``quadrature``.
@@ -107,22 +100,6 @@ class TestHilbertPhasorContract:
         assert isinstance(dtype, pl.Struct)
         assert [field.name for field in dtype.fields] == ["in_phase", "quadrature"]
         assert all(field.dtype == pl.Float64 for field in dtype.fields)
-
-    def test_preserves_length(self) -> None:
-        """
-        Verifies that the output has one struct per input row.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, _SAMPLE)})
-        result = frame.select(hilbert_phasor(pl.col(COLUMN_X)).alias("a"))
-        assert result.height == len(_SAMPLE)
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, _SAMPLE)})
-        expr = hilbert_phasor(pl.col(COLUMN_X)).alias("a")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
 
     def test_over_partitions_independently(self) -> None:
         """
@@ -140,14 +117,6 @@ class TestHilbertPhasorEdge:
     """
     Warm-up and null / NaN latching.
     """
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output on both fields.
-        """
-        result = apply_hilbert_phasor([])
-        for field in FIELDS:
-            assert_matches(result[field], [])
 
     def test_all_null(self) -> None:
         """

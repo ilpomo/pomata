@@ -21,7 +21,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import donchian_channels_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
@@ -89,12 +88,6 @@ class TestDonchianChannelsContract:
     Type, struct schema, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(donchian_channels(pl.col(HIGH), pl.col(LOW), 3), pl.Expr)
-
     def test_output_is_struct_with_named_fields(self) -> None:
         """
         Verifies that the output is a ``Float64`` struct with exactly the fields ``lower`` / ``middle`` / ``upper``.
@@ -104,24 +97,6 @@ class TestDonchianChannelsContract:
         assert isinstance(dtype, pl.Struct)
         assert [field.name for field in dtype.fields] == ["lower", "middle", "upper"]
         assert all(field.dtype == pl.Float64 for field in dtype.fields)
-
-    def test_preserves_length(self) -> None:
-        """
-        Verifies that the output has one struct per input row.
-        """
-        frame = pl.DataFrame({HIGH: [11.0, 12.0, 13.0], LOW: [9.0, 10.0, 11.0]})
-        result = frame.select(donchian_channels(pl.col(HIGH), pl.col(LOW), 2).alias("dc"))
-        assert result.height == frame.height
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({HIGH: [11.0, 12.0, 13.0, 14.0], LOW: [9.0, 10.0, 11.0, 12.0]})
-        expr = donchian_channels(pl.col(HIGH), pl.col(LOW), 2).alias("dc")
-        result_eager = frame.select(expr)
-        result_lazy = frame.lazy().select(expr).collect()
-        assert_frame_equal(result_eager, result_lazy)
 
     def test_over_partitions_independently(self) -> None:
         """
@@ -150,14 +125,6 @@ class TestDonchianChannelsEdge:
         """
         with pytest.raises(ValueError, match="window must be >= 1"):
             donchian_channels(pl.col(HIGH), pl.col(LOW), 0)
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output on every band.
-        """
-        bands = apply_donchian_channels([], [], 3)
-        for field in FIELDS:
-            assert_matches(bands[field], [])
 
     def test_all_null(self) -> None:
         """

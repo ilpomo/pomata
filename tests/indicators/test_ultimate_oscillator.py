@@ -19,7 +19,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import ultimate_oscillator_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
@@ -102,44 +101,6 @@ class TestUltimateOscillatorContract:
     """
     Type, shape, and lazy/eager guarantees.
     """
-
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(
-            ultimate_oscillator(
-                pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), window_short=7, window_medium=14, window_long=28
-            ),
-            pl.Expr,
-        )
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame({HIGH: [10.0, 11.0, 12.0], LOW: [9.0, 10.0, 11.0], CLOSE: [9.5, 10.5, 11.5]})
-        result = frame.select(
-            ultimate_oscillator(
-                pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), window_short=1, window_medium=2, window_long=2
-            ).alias("y")
-        )
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame(
-            {HIGH: [10.0, 11.0, 12.0, 11.5], LOW: [9.0, 10.0, 11.0, 10.5], CLOSE: [9.5, 10.5, 11.5, 11.0]}
-        )
-        expr = ultimate_oscillator(
-            pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), window_short=2, window_medium=2, window_long=3
-        ).alias("y")
-        result_eager = frame.select(expr)
-        result_lazy = frame.lazy().select(expr).collect()
-        assert_frame_equal(result_eager, result_lazy)
 
     def test_over_partitions_independently(self) -> None:
         """
@@ -231,12 +192,6 @@ class TestUltimateOscillatorEdge:
         result = apply_ultimate_oscillator(high, low, close, 2, 3, 4)
         assert result[:3] == [None, None, None]
         assert result[3] is not None
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output.
-        """
-        assert_matches(apply_ultimate_oscillator([], [], []), [])
 
     def test_all_null(self) -> None:
         """

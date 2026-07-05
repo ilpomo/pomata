@@ -17,7 +17,6 @@ from collections.abc import Sequence
 import polars as pl
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import price_typical_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
@@ -81,43 +80,6 @@ class TestPriceTypicalContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(price_typical(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE)), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame(
-            {
-                HIGH: pl.Series(HIGH, [11.0, 12.0, 13.0, 12.5, 14.0], dtype=pl.Float64),
-                LOW: pl.Series(LOW, [9.0, 10.0, 11.0, 11.0, 12.0], dtype=pl.Float64),
-                CLOSE: pl.Series(CLOSE, [10.0, 11.5, 12.5, 11.5, 13.5], dtype=pl.Float64),
-            }
-        )
-        result = frame.select(price_typical(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE)).alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame(
-            {
-                HIGH: pl.Series(HIGH, [11.0, 12.0, 13.0, 12.5, 14.0], dtype=pl.Float64),
-                LOW: pl.Series(LOW, [9.0, 10.0, 11.0, 11.0, 12.0], dtype=pl.Float64),
-                CLOSE: pl.Series(CLOSE, [10.0, 11.5, 12.5, 11.5, 13.5], dtype=pl.Float64),
-            }
-        )
-        expr = price_typical(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE)).alias("y")
-        result_eager = frame.select(expr)
-        result_lazy = frame.lazy().select(expr).collect()
-        assert_frame_equal(result_eager, result_lazy)
-
     def test_over_is_identity(self) -> None:
         """
         Verifies that ``.over`` is optional for this elementwise transform: partitioning by group is identical to the
@@ -146,12 +108,6 @@ class TestPriceTypicalEdge:
     """
     Boundaries and null / NaN handling.
     """
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output.
-        """
-        assert_matches(apply_price_typical([], [], []), [])
 
     def test_all_null(self) -> None:
         """

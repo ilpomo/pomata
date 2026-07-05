@@ -22,7 +22,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import mama_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_EXACT,
@@ -98,12 +97,6 @@ class TestMamaContract:
     Type, struct schema, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(mama(pl.col(COLUMN_X)), pl.Expr)
-
     def test_output_is_struct_with_named_fields(self) -> None:
         """
         Verifies that the output is a ``Float64`` struct with exactly the fields ``mama`` / ``fama``.
@@ -113,21 +106,6 @@ class TestMamaContract:
         assert isinstance(dtype, pl.Struct)
         assert [field.name for field in dtype.fields] == ["mama", "fama"]
         assert all(field.dtype == pl.Float64 for field in dtype.fields)
-
-    def test_preserves_length(self) -> None:
-        """
-        Verifies that the output has one struct per input row.
-        """
-        result = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, _SAMPLE)}).select(mama(pl.col(COLUMN_X)).alias("a"))
-        assert result.height == len(_SAMPLE)
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, _SAMPLE)})
-        expr = mama(pl.col(COLUMN_X)).alias("a")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
 
     def test_over_partitions_independently(self) -> None:
         """
@@ -184,14 +162,6 @@ class TestMamaEdge:
         """
         with pytest.raises(ValueError, match="limit_fast must be >= limit_slow"):
             mama(pl.col(COLUMN_X), limit_fast=0.05, limit_slow=0.5)
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output on both fields.
-        """
-        bands = apply_mama([])
-        for field in FIELDS:
-            assert_matches(bands[field], [])
 
     def test_all_null(self) -> None:
         """

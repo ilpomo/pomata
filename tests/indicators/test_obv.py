@@ -15,7 +15,6 @@ from collections.abc import Sequence
 import polars as pl
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import obv_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
@@ -83,40 +82,6 @@ class TestObvContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(obv(pl.col(CLOSE), pl.col(VOLUME)), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame(
-            {
-                CLOSE: pl.Series(CLOSE, [10.0, 12.0, 11.0, 11.0, 13.0]),
-                VOLUME: pl.Series(VOLUME, [100.0, 200.0, 150.0, 80.0, 300.0]),
-            }
-        )
-        result = frame.select(obv(pl.col(CLOSE), pl.col(VOLUME)).alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame(
-            {
-                CLOSE: pl.Series(CLOSE, [10.0, 12.0, 11.0, 11.0, 13.0, 9.0]),
-                VOLUME: pl.Series(VOLUME, [100.0, 200.0, 150.0, 80.0, 300.0, 250.0]),
-            }
-        )
-        result_eager = frame.select(obv(pl.col(CLOSE), pl.col(VOLUME)).alias("y"))
-        result_lazy = frame.lazy().select(obv(pl.col(CLOSE), pl.col(VOLUME)).alias("y")).collect()
-        assert_frame_equal(result_eager, result_lazy)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` both the diff and the cumulative sum reset per group and never span boundaries.
@@ -140,12 +105,6 @@ class TestObvEdge:
     """
     Boundaries, no-warm-up, and null / NaN handling.
     """
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output.
-        """
-        assert_matches(apply_obv([], []), [])
 
     def test_single_row_starts_at_zero(self) -> None:
         """

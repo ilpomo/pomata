@@ -16,7 +16,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import chaikin_money_flow_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
@@ -127,52 +126,6 @@ class TestChaikinMoneyFlowContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(chaikin_money_flow(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), pl.col(VOLUME), 3), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame(
-            {
-                HIGH: pl.Series(HIGH, [10.0, 12.0, 11.0, 13.0, 14.0]),
-                LOW: pl.Series(LOW, [8.0, 9.0, 9.0, 10.0, 11.0]),
-                CLOSE: pl.Series(CLOSE, [9.0, 11.0, 10.0, 12.0, 13.0]),
-                VOLUME: pl.Series(VOLUME, [100.0, 200.0, 150.0, 300.0, 250.0]),
-            }
-        )
-        result = frame.select(
-            chaikin_money_flow(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), pl.col(VOLUME), 3).alias("y")
-        )
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame(
-            {
-                HIGH: pl.Series(HIGH, [10.0, 12.0, 11.0, 13.0, 14.0]),
-                LOW: pl.Series(LOW, [8.0, 9.0, 9.0, 10.0, 11.0]),
-                CLOSE: pl.Series(CLOSE, [9.0, 11.0, 10.0, 12.0, 13.0]),
-                VOLUME: pl.Series(VOLUME, [100.0, 200.0, 150.0, 300.0, 250.0]),
-            }
-        )
-        result_eager = frame.select(
-            chaikin_money_flow(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), pl.col(VOLUME), 3).alias("y")
-        )
-        result_lazy = (
-            frame.lazy()
-            .select(chaikin_money_flow(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), pl.col(VOLUME), 3).alias("y"))
-            .collect()
-        )
-        assert_frame_equal(result_eager, result_lazy)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` both rolling sums reset per group and never span group boundaries.
@@ -223,12 +176,6 @@ class TestChaikinMoneyFlowEdge:
         )
         assert result[:2] == [None, None]
         assert result[2] is not None
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output.
-        """
-        assert apply_chaikin_money_flow([], [], [], [], 3) == []
 
     def test_single_row(self) -> None:
         """

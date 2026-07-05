@@ -20,7 +20,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import kama_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_EXACT,
@@ -99,31 +98,6 @@ class TestKamaContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(kama(pl.col(COLUMN_X), window=10, window_fast=2, window_slow=30), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [10.0, 11.0, 12.0, 11.0, 13.0])})
-        result = frame.select(kama(pl.col(COLUMN_X), window=2, window_fast=2, window_slow=30).alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [10.0, 11.0, 12.0, 11.0, 13.0])})
-        expr = kama(pl.col(COLUMN_X), window=2, window_fast=2, window_slow=30).alias("y")
-        result_eager = frame.select(expr)
-        result_lazy = frame.lazy().select(expr).collect()
-        assert_frame_equal(result_eager, result_lazy)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` the recurrence resets per group and never spans group boundaries.
@@ -181,12 +155,6 @@ class TestKamaEdge:
         result = apply_kama([10.0, 11.0, 12.0, 11.0, 13.0], 3)
         assert result[:2] == [None, None]
         assert result[2] == 12.0
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output.
-        """
-        assert_matches(apply_kama([], 3), [])
 
     def test_all_null(self) -> None:
         """

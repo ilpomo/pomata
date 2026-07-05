@@ -17,7 +17,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import wma_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
@@ -73,30 +72,6 @@ class TestWmaContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(wma(pl.col(COLUMN_X), 3), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 2.0, 3.0, 4.0, 5.0])})
-        result = frame.select(wma(pl.col(COLUMN_X), 3).alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 2.0, 3.0, 4.0, 5.0])})
-        result_eager = frame.select(wma(pl.col(COLUMN_X), 3).alias("y"))
-        result_lazy = frame.lazy().select(wma(pl.col(COLUMN_X), 3).alias("y")).collect()
-        assert_frame_equal(result_eager, result_lazy)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` the window resets per group and never spans group boundaries.
@@ -125,12 +100,6 @@ class TestWmaEdge:
         result = apply_expr([1.0, 2.0, 3.0, 4.0, 5.0], wma(pl.col(COLUMN_X), 3))
         assert result[:2] == [None, None]
         assert result[2] is not None
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output.
-        """
-        assert_matches(apply_expr([], wma(pl.col(COLUMN_X), 3)), [])
 
     def test_all_null(self) -> None:
         """

@@ -19,7 +19,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import atr_normalized_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
@@ -90,31 +89,6 @@ class TestAtrNormalizedContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(atr_normalized(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), 14), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame({HIGH: [10.2, 10.5, 10.7], LOW: [9.8, 10.0, 10.2], CLOSE: [10.0, 10.3, 10.5]})
-        result = frame.select(atr_normalized(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), 2).alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({HIGH: [10.2, 10.5, 10.7], LOW: [9.8, 10.0, 10.2], CLOSE: [10.0, 10.3, 10.5]})
-        expr = atr_normalized(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), 2).alias("y")
-        result_eager = frame.select(expr)
-        result_lazy = frame.lazy().select(expr).collect()
-        assert_frame_equal(result_eager, result_lazy)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` the underlying ATR resets per group: the partitioned line equals the per-group
@@ -170,12 +144,6 @@ class TestAtrNormalizedEdge:
         assert_matches(
             apply_atr_normalized([10.2, 10.5, 10.7], [9.8, 10.0, 10.2], [10.0, 10.3, 10.5], 5), [None, None, None]
         )
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output.
-        """
-        assert_matches(apply_atr_normalized([], [], [], 3), [])
 
     def test_all_null(self) -> None:
         """

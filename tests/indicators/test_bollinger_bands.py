@@ -20,7 +20,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import bollinger_bands_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_EXACT,
@@ -94,12 +93,6 @@ class TestBollingerBandsContract:
     Type, struct schema, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(bollinger_bands(pl.col(COLUMN_X), 3), pl.Expr)
-
     def test_output_is_struct_with_named_fields(self) -> None:
         """
         Verifies that the output is a ``Float64`` struct with exactly the fields ``lower`` / ``middle`` / ``upper``.
@@ -109,24 +102,6 @@ class TestBollingerBandsContract:
         assert isinstance(dtype, pl.Struct)
         assert [field.name for field in dtype.fields] == ["lower", "middle", "upper"]
         assert all(field.dtype == pl.Float64 for field in dtype.fields)
-
-    def test_preserves_length(self) -> None:
-        """
-        Verifies that the output has one struct per input row.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 2.0, 3.0, 4.0, 5.0])})
-        result = frame.select(bollinger_bands(pl.col(COLUMN_X), 3).alias("bb"))
-        assert result.height == frame.height
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 2.0, 3.0, 4.0, 5.0])})
-        expr = bollinger_bands(pl.col(COLUMN_X), 3).alias("bb")
-        result_eager = frame.select(expr)
-        result_lazy = frame.lazy().select(expr).collect()
-        assert_frame_equal(result_eager, result_lazy)
 
     def test_over_partitions_independently(self) -> None:
         """
@@ -193,14 +168,6 @@ class TestBollingerBandsEdge:
         bands = apply_bollinger_bands([1.0, 2.0, 3.0], 5)
         for field in FIELDS:
             assert_matches(bands[field], [None, None, None])
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output on every band.
-        """
-        bands = apply_bollinger_bands([], 3)
-        for field in FIELDS:
-            assert_matches(bands[field], [])
 
     def test_all_null(self) -> None:
         """

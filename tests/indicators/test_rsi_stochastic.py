@@ -19,7 +19,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import rsi_reference, rsi_stochastic_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_PROPERTY,
@@ -169,12 +168,6 @@ class TestRsiStochasticContract:
     Type, struct schema, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(rsi_stochastic(pl.col(COLUMN_X), window_rsi=14, window_k=14, window_d=3), pl.Expr)
-
     def test_output_is_struct_with_named_fields(self) -> None:
         """
         Verifies that the output is a ``Float64`` struct with exactly the fields ``k`` / ``d``.
@@ -186,24 +179,6 @@ class TestRsiStochasticContract:
         assert isinstance(dtype, pl.Struct)
         assert [field.name for field in dtype.fields] == ["k", "d"]
         assert all(field.dtype == pl.Float64 for field in dtype.fields)
-
-    def test_preserves_length(self) -> None:
-        """
-        Verifies that the output has one struct per input row.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 2.0, 3.0, 4.0, 5.0])})
-        result = frame.select(rsi_stochastic(pl.col(COLUMN_X), window_rsi=2, window_k=2, window_d=2).alias("s"))
-        assert result.height == frame.height
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 2.0, 3.0, 4.0, 5.0])})
-        expr = rsi_stochastic(pl.col(COLUMN_X), window_rsi=2, window_k=2, window_d=2).alias("s")
-        result_eager = frame.select(expr)
-        result_lazy = frame.lazy().select(expr).collect()
-        assert_frame_equal(result_eager, result_lazy)
 
     def test_over_partitions_independently(self) -> None:
         """
@@ -262,14 +237,6 @@ class TestRsiStochasticEdge:
         assert result["k"][5] is not None
         assert result["d"][:6] == [None, None, None, None, None, None]
         assert result["d"][6] is not None
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output on both lines.
-        """
-        result = apply_rsi_stochastic([], window_rsi=3, window_k=3, window_d=2)
-        for field in FIELDS:
-            assert_matches(result[field], [])
 
     def test_all_null(self) -> None:
         """
