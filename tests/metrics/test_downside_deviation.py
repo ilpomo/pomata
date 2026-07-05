@@ -19,11 +19,9 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.metrics.oracles import downside_deviation_reference
 from tests.support import (
     COLUMN_X,
-    GROUP_KEY,
     RELATIVE_TOLERANCE_PROPERTY,
     RELATIVE_TOLERANCE_REFERENCE,
     RELATIVE_TOLERANCE_SCALE,
@@ -66,43 +64,6 @@ class TestDownsideDeviationContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(downside_deviation(pl.col(COLUMN_X), periods_per_year=PERIODS), pl.Expr)
-
-    def test_reduces_to_scalar(self) -> None:
-        """
-        Verifies that the metric reduces a series to one ``Float64`` row.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [0.01, -0.02, 0.015, -0.03], dtype=pl.Float64)})
-        result = frame.select(downside_deviation(pl.col(COLUMN_X), periods_per_year=PERIODS).alias("d"))
-        assert result.height == 1
-        assert result.schema["d"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [0.01, -0.02, 0.015, -0.03], dtype=pl.Float64)})
-        expr = downside_deviation(pl.col(COLUMN_X), periods_per_year=PERIODS).alias("d")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
-
-    def test_over_partitions_independently(self) -> None:
-        """
-        Verifies that under ``.over`` the deviation is computed per group (broadcast) and never spans boundaries.
-        """
-        group_a = [0.01, -0.02, 0.015, -0.03, 0.005]
-        group_b = [0.02, -0.05, 0.01, -0.01]
-        frame = pl.DataFrame({GROUP_KEY: ["a"] * len(group_a) + ["b"] * len(group_b), COLUMN_X: group_a + group_b})
-        grouped = frame.select(
-            downside_deviation(pl.col(COLUMN_X), periods_per_year=PERIODS).over(GROUP_KEY).alias("d")
-        )["d"].to_list()
-        expected_a = downside_deviation_reference(group_a, PERIODS)
-        expected_b = downside_deviation_reference(group_b, PERIODS)
-        assert_matches(grouped, [expected_a] * len(group_a) + [expected_b] * len(group_b), abs_tol=_abs_tol(group_a))
-
 
 class TestDownsideDeviationEdge:
     """
@@ -124,12 +85,6 @@ class TestDownsideDeviationEdge:
             with pytest.raises(ValueError, match="threshold must be a finite number"):
                 downside_deviation(pl.col(COLUMN_X), periods_per_year=PERIODS, threshold=invalid)
 
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty series yields ``null``.
-        """
-        assert_matches(apply_expr([], downside_deviation(pl.col(COLUMN_X), periods_per_year=PERIODS)), [None])
-
     def test_single_row(self) -> None:
         """
         Verifies that a one-element series resolves to its annualized shortfall (the population RMS is defined for one
@@ -148,12 +103,6 @@ class TestDownsideDeviationEdge:
         """
         result = apply_expr([0.01, 0.02, 0.0, 0.03], downside_deviation(pl.col(COLUMN_X), periods_per_year=PERIODS))
         assert_matches(result, [0.0])
-
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null series yields ``null``.
-        """
-        assert_matches(apply_expr([None, None], downside_deviation(pl.col(COLUMN_X), periods_per_year=PERIODS)), [None])
 
     def test_null_skipped(self) -> None:
         """

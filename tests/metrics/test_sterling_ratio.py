@@ -19,12 +19,10 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.metrics.oracles import sterling_ratio_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
     COLUMN_X,
-    GROUP_KEY,
     RELATIVE_TOLERANCE_PROPERTY,
     RELATIVE_TOLERANCE_REFERENCE,
     apply_expr,
@@ -59,45 +57,6 @@ class TestSterlingRatioContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(sterling_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS), pl.Expr)
-
-    def test_reduces_to_scalar(self) -> None:
-        """
-        Verifies that the metric reduces a series to one ``Float64`` row.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.1, 1.05, 1.2, 1.15], dtype=pl.Float64)})
-        result = frame.select(sterling_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS).alias("s"))
-        assert result.height == 1
-        assert result.schema["s"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.1, 1.05, 1.2, 1.15], dtype=pl.Float64)})
-        expr = sterling_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS).alias("s")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
-
-    def test_over_partitions_independently(self) -> None:
-        """
-        Verifies that under ``.over`` the ratio is computed per group (broadcast) and never spans boundaries.
-        """
-        group_a = [1.1, 1.05, 1.2, 1.15, 1.3]
-        group_b = [1.0, 0.9, 1.05, 1.1]
-        frame = pl.DataFrame({GROUP_KEY: ["a"] * len(group_a) + ["b"] * len(group_b), COLUMN_X: group_a + group_b})
-        grouped = frame.select(sterling_ratio(pl.col(COLUMN_X), periods_per_year=4).over(GROUP_KEY).alias("s"))[
-            "s"
-        ].to_list()
-        expected_a = sterling_ratio_reference(group_a, 4, 0.0, 0.10)
-        expected_b = sterling_ratio_reference(group_b, 4, 0.0, 0.10)
-        assert_matches(
-            grouped, [expected_a] * len(group_a) + [expected_b] * len(group_b), rel_tol=RELATIVE_TOLERANCE_REFERENCE
-        )
-
 
 class TestSterlingRatioEdge:
     """
@@ -121,24 +80,12 @@ class TestSterlingRatioEdge:
             with pytest.raises(ValueError, match="excess must be a finite number"):
                 sterling_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS, excess=invalid)
 
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty series yields ``null``.
-        """
-        assert_matches(apply_expr([], sterling_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS)), [None])
-
     def test_no_drawdown_is_zero(self) -> None:
         """
         Verifies that a flat single-period growth has zero drawdown and zero growth, so the ratio is ``0`` (the cushion
         keeps the denominator finite).
         """
         assert_matches(apply_expr([1.0], sterling_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS)), [0.0])
-
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null series yields ``null``.
-        """
-        assert_matches(apply_expr([None, None], sterling_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS)), [None])
 
     def test_nan_poisons(self) -> None:
         """

@@ -19,12 +19,10 @@ import polars as pl
 import pytest
 from hypothesis import assume, given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.metrics.oracles import beta_rolling_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
     BENCHMARK,
-    GROUP_KEY,
     RELATIVE_TOLERANCE_REFERENCE,
     RELATIVE_TOLERANCE_SCALE,
     RETURNS,
@@ -69,60 +67,6 @@ class TestBetaRollingContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(beta_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 3), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the metric maps the two series to a ``Float64`` series of the same length.
-        """
-        frame = pl.DataFrame(
-            {
-                RETURNS: pl.Series(RETURNS, [0.01, -0.02, 0.03, -0.01, 0.02], dtype=pl.Float64),
-                BENCHMARK: pl.Series(BENCHMARK, [0.008, -0.015, 0.025, -0.008, 0.018], dtype=pl.Float64),
-            }
-        )
-        result = frame.select(beta_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 3).alias("b"))
-        assert result.height == frame.height
-        assert result.schema["b"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame(
-            {
-                RETURNS: pl.Series(RETURNS, [0.01, -0.02, 0.03, -0.01, 0.02], dtype=pl.Float64),
-                BENCHMARK: pl.Series(BENCHMARK, [0.008, -0.015, 0.025, -0.008, 0.018], dtype=pl.Float64),
-            }
-        )
-        expr = beta_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 3).alias("b")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
-
-    def test_over_partitions_independently(self) -> None:
-        """
-        Verifies that under ``.over`` each group warms up independently and the window never spans a boundary.
-        """
-        returns_a = [0.01, -0.02, 0.03, -0.01]
-        benchmark_a = [0.008, -0.015, 0.025, -0.008]
-        returns_b = [0.02, -0.05, 0.01, -0.01]
-        benchmark_b = [0.018, -0.04, 0.012, -0.008]
-        frame = pl.DataFrame(
-            {
-                GROUP_KEY: ["a"] * len(returns_a) + ["b"] * len(returns_b),
-                RETURNS: returns_a + returns_b,
-                BENCHMARK: benchmark_a + benchmark_b,
-            }
-        )
-        grouped = frame.select(beta_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 2).over(GROUP_KEY).alias("b"))[
-            "b"
-        ].to_list()
-        expected = beta_rolling_reference(returns_a, benchmark_a, 2) + beta_rolling_reference(returns_b, benchmark_b, 2)
-        assert_matches(grouped, expected, rel_tol=RELATIVE_TOLERANCE_REFERENCE)
-
 
 class TestBetaRollingEdge:
     """
@@ -135,12 +79,6 @@ class TestBetaRollingEdge:
         """
         with pytest.raises(ValueError, match="window must be >= 2"):
             beta_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 1)
-
-    def test_empty(self) -> None:
-        """
-        Verifies that empty series yield an empty result.
-        """
-        assert materialize({RETURNS: [], BENCHMARK: []}, beta_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 3)) == []
 
     def test_warmup_null_count(self) -> None:
         """

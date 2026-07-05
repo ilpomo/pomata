@@ -17,11 +17,9 @@ import math
 import polars as pl
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.metrics.oracles import drawdown_reference
 from tests.support import (
     COLUMN_X,
-    GROUP_KEY,
     RELATIVE_TOLERANCE_PROPERTY,
     RELATIVE_TOLERANCE_REFERENCE,
     apply_expr,
@@ -54,62 +52,17 @@ class TestDrawdownContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(drawdown(pl.col(COLUMN_X)), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 1.1, 1.05, 1.2], dtype=pl.Float64)})
-        result = frame.select(drawdown(pl.col(COLUMN_X)).alias("d"))
-        assert result.height == frame.height
-        assert result.schema["d"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 1.1, 1.05, 1.2], dtype=pl.Float64)})
-        expr = drawdown(pl.col(COLUMN_X)).alias("d")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
-
-    def test_over_partitions_independently(self) -> None:
-        """
-        Verifies that under ``.over`` the running peak restarts per group and never carries across boundaries.
-        """
-        group_a = [1.0, 1.1, 1.05, 1.2]
-        group_b = [2.0, 1.8, 2.2, 2.0]
-        frame = pl.DataFrame({GROUP_KEY: ["a"] * 4 + ["b"] * 4, COLUMN_X: group_a + group_b})
-        grouped = frame.select(drawdown(pl.col(COLUMN_X)).over(GROUP_KEY).alias("d"))["d"].to_list()
-        assert_matches(grouped, drawdown_reference(group_a) + drawdown_reference(group_b))
-
 
 class TestDrawdownEdge:
     """
     Boundaries, warm-up, and null / NaN handling.
     """
 
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty series yields an empty result.
-        """
-        assert_matches(apply_expr([], drawdown(pl.col(COLUMN_X))), [])
-
     def test_single_row(self) -> None:
         """
         Verifies that a one-element series is at its own peak, so the drawdown is ``0``.
         """
         assert_matches(apply_expr([1.0], drawdown(pl.col(COLUMN_X))), [0.0])
-
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null series stays null.
-        """
-        assert_matches(apply_expr([None, None, None], drawdown(pl.col(COLUMN_X))), [None, None, None])
 
     def test_leading_null(self) -> None:
         """

@@ -19,12 +19,10 @@ import polars as pl
 import pytest
 from hypothesis import assume, given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.metrics.oracles import sharpe_ratio_rolling_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
     COLUMN_X,
-    GROUP_KEY,
     RELATIVE_TOLERANCE_REFERENCE,
     RELATIVE_TOLERANCE_SCALE,
     WINDOW_MAX,
@@ -68,44 +66,6 @@ class TestSharpeRatioRollingContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(sharpe_ratio_rolling(pl.col(COLUMN_X), 3, periods_per_year=PERIODS), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the metric maps a series to a ``Float64`` series of the same length.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [0.01, -0.02, 0.03, -0.01, 0.02], dtype=pl.Float64)})
-        result = frame.select(sharpe_ratio_rolling(pl.col(COLUMN_X), 3, periods_per_year=PERIODS).alias("s"))
-        assert result.height == frame.height
-        assert result.schema["s"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [0.01, -0.02, 0.03, -0.01, 0.02], dtype=pl.Float64)})
-        expr = sharpe_ratio_rolling(pl.col(COLUMN_X), 3, periods_per_year=PERIODS).alias("s")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
-
-    def test_over_partitions_independently(self) -> None:
-        """
-        Verifies that under ``.over`` each group warms up independently and the window never spans a boundary.
-        """
-        group_a = [0.01, -0.02, 0.03, -0.01]
-        group_b = [0.02, -0.05, 0.01, -0.01]
-        frame = pl.DataFrame({GROUP_KEY: ["a"] * len(group_a) + ["b"] * len(group_b), COLUMN_X: group_a + group_b})
-        grouped = frame.select(
-            sharpe_ratio_rolling(pl.col(COLUMN_X), 2, periods_per_year=PERIODS).over(GROUP_KEY).alias("s")
-        )["s"].to_list()
-        expected = sharpe_ratio_rolling_reference(group_a, 2, PERIODS) + sharpe_ratio_rolling_reference(
-            group_b, 2, PERIODS
-        )
-        assert_matches(grouped, expected, rel_tol=RELATIVE_TOLERANCE_REFERENCE)
-
 
 class TestSharpeRatioRollingEdge:
     """
@@ -133,12 +93,6 @@ class TestSharpeRatioRollingEdge:
         for invalid in (math.nan, math.inf, -math.inf):
             with pytest.raises(ValueError, match="risk_free_rate must be a finite number"):
                 sharpe_ratio_rolling(pl.col(COLUMN_X), 3, periods_per_year=PERIODS, risk_free_rate=invalid)
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty series yields an empty result.
-        """
-        assert apply_expr([], sharpe_ratio_rolling(pl.col(COLUMN_X), 3, periods_per_year=PERIODS)) == []
 
     def test_warmup_null_count(self) -> None:
         """

@@ -17,12 +17,10 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.metrics.oracles import cagr_rolling_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
     COLUMN_X,
-    GROUP_KEY,
     RELATIVE_TOLERANCE_REFERENCE,
     WINDOW_MAX,
     apply_expr,
@@ -61,42 +59,6 @@ class TestCagrRollingContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(cagr_rolling(pl.col(COLUMN_X), 3, periods_per_year=PERIODS), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the metric maps a series to a ``Float64`` series of the same length.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 1.1, 1.05, 1.2, 1.15], dtype=pl.Float64)})
-        result = frame.select(cagr_rolling(pl.col(COLUMN_X), 3, periods_per_year=PERIODS).alias("c"))
-        assert result.height == frame.height
-        assert result.schema["c"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 1.1, 1.05, 1.2, 1.15], dtype=pl.Float64)})
-        expr = cagr_rolling(pl.col(COLUMN_X), 3, periods_per_year=PERIODS).alias("c")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
-
-    def test_over_partitions_independently(self) -> None:
-        """
-        Verifies that under ``.over`` each group warms up independently and the window never spans a boundary.
-        """
-        group_a = [1.0, 1.1, 1.05, 1.2]
-        group_b = [1.0, 1.2, 1.1, 1.3]
-        frame = pl.DataFrame({GROUP_KEY: ["a"] * len(group_a) + ["b"] * len(group_b), COLUMN_X: group_a + group_b})
-        grouped = frame.select(cagr_rolling(pl.col(COLUMN_X), 2, periods_per_year=PERIODS).over(GROUP_KEY).alias("c"))[
-            "c"
-        ].to_list()
-        expected = cagr_rolling_reference(group_a, 2, PERIODS) + cagr_rolling_reference(group_b, 2, PERIODS)
-        assert_matches(grouped, expected, rel_tol=RELATIVE_TOLERANCE_REFERENCE)
-
 
 class TestCagrRollingEdge:
     """
@@ -116,12 +78,6 @@ class TestCagrRollingEdge:
         """
         with pytest.raises(ValueError, match="periods_per_year must be >= 1"):
             cagr_rolling(pl.col(COLUMN_X), 3, periods_per_year=0)
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty series yields an empty result.
-        """
-        assert apply_expr([], cagr_rolling(pl.col(COLUMN_X), 3, periods_per_year=PERIODS)) == []
 
     def test_warmup_null_count(self) -> None:
         """

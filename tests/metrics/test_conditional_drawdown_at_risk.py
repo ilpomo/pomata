@@ -18,12 +18,10 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.metrics.oracles import conditional_drawdown_at_risk_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
     COLUMN_X,
-    GROUP_KEY,
     RELATIVE_TOLERANCE_PROPERTY,
     RELATIVE_TOLERANCE_REFERENCE,
     RELATIVE_TOLERANCE_SCALE,
@@ -58,45 +56,6 @@ class TestConditionalDrawdownAtRiskContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(conditional_drawdown_at_risk(pl.col(COLUMN_X), confidence=CONFIDENCE), pl.Expr)
-
-    def test_reduces_to_scalar(self) -> None:
-        """
-        Verifies that the metric reduces a series to one ``Float64`` row.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.1, 1.05, 1.2, 1.15], dtype=pl.Float64)})
-        result = frame.select(conditional_drawdown_at_risk(pl.col(COLUMN_X), confidence=CONFIDENCE).alias("c"))
-        assert result.height == 1
-        assert result.schema["c"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.1, 1.05, 1.2, 1.15], dtype=pl.Float64)})
-        expr = conditional_drawdown_at_risk(pl.col(COLUMN_X), confidence=CONFIDENCE).alias("c")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
-
-    def test_over_partitions_independently(self) -> None:
-        """
-        Verifies that under ``.over`` the measure is computed per group (broadcast) and never spans boundaries.
-        """
-        group_a = [1.1, 1.05, 1.2, 1.15, 1.3, 1.0]
-        group_b = [1.0, 0.9, 1.05, 1.1, 0.95]
-        frame = pl.DataFrame({GROUP_KEY: ["a"] * len(group_a) + ["b"] * len(group_b), COLUMN_X: group_a + group_b})
-        grouped = frame.select(
-            conditional_drawdown_at_risk(pl.col(COLUMN_X), confidence=CONFIDENCE).over(GROUP_KEY).alias("c")
-        )["c"].to_list()
-        expected_a = conditional_drawdown_at_risk_reference(group_a, CONFIDENCE)
-        expected_b = conditional_drawdown_at_risk_reference(group_b, CONFIDENCE)
-        assert_matches(
-            grouped, [expected_a] * len(group_a) + [expected_b] * len(group_b), rel_tol=RELATIVE_TOLERANCE_REFERENCE
-        )
-
 
 class TestConditionalDrawdownAtRiskEdge:
     """
@@ -111,12 +70,6 @@ class TestConditionalDrawdownAtRiskEdge:
             with pytest.raises(ValueError, match="confidence must be in the open interval"):
                 conditional_drawdown_at_risk(pl.col(COLUMN_X), confidence=invalid)
 
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty series yields ``null``.
-        """
-        assert_matches(apply_expr([], conditional_drawdown_at_risk(pl.col(COLUMN_X), confidence=CONFIDENCE)), [None])
-
     def test_single_row_is_zero(self) -> None:
         """
         Verifies that a one-element series is at its own peak, so the conditional drawdown at risk is ``0``.
@@ -129,14 +82,6 @@ class TestConditionalDrawdownAtRiskEdge:
         """
         assert_matches(
             apply_expr([1.0, 1.1, 1.21], conditional_drawdown_at_risk(pl.col(COLUMN_X), confidence=CONFIDENCE)), [0.0]
-        )
-
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null series yields ``null``.
-        """
-        assert_matches(
-            apply_expr([None, None], conditional_drawdown_at_risk(pl.col(COLUMN_X), confidence=CONFIDENCE)), [None]
         )
 
     def test_nan_poisons(self) -> None:

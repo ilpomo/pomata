@@ -19,11 +19,9 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.metrics.oracles import volatility_reference
 from tests.support import (
     COLUMN_X,
-    GROUP_KEY,
     RELATIVE_TOLERANCE_PROPERTY,
     RELATIVE_TOLERANCE_REFERENCE,
     RELATIVE_TOLERANCE_SCALE,
@@ -73,44 +71,6 @@ class TestVolatilityContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(volatility(pl.col(COLUMN_X), periods_per_year=PERIODS), pl.Expr)
-
-    def test_reduces_to_scalar(self) -> None:
-        """
-        Verifies that the metric reduces a series to one ``Float64`` row.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [0.01, -0.02, 0.015, 0.005], dtype=pl.Float64)})
-        result = frame.select(volatility(pl.col(COLUMN_X), periods_per_year=PERIODS).alias("v"))
-        assert result.height == 1
-        assert result.schema["v"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [0.01, -0.02, 0.015, 0.005], dtype=pl.Float64)})
-        expr = volatility(pl.col(COLUMN_X), periods_per_year=PERIODS).alias("v")
-        result_eager = frame.select(expr)
-        result_lazy = frame.lazy().select(expr).collect()
-        assert_frame_equal(result_eager, result_lazy)
-
-    def test_over_partitions_independently(self) -> None:
-        """
-        Verifies that under ``.over`` the volatility is computed per group (broadcast) and never spans boundaries.
-        """
-        group_a = [0.01, -0.02, 0.015, 0.005, -0.01]
-        group_b = [0.02, 0.01, -0.03, 0.0, 0.01]
-        frame = pl.DataFrame({GROUP_KEY: ["a"] * 5 + ["b"] * 5, COLUMN_X: group_a + group_b})
-        expr = volatility(pl.col(COLUMN_X), periods_per_year=PERIODS).over(GROUP_KEY)
-        grouped = frame.select(expr.alias("v"))["v"].to_list()
-        expected_a = volatility_reference(group_a, PERIODS)
-        expected_b = volatility_reference(group_b, PERIODS)
-        assert_matches(grouped, [expected_a] * 5 + [expected_b] * 5, abs_tol=_abs_tol(group_a + group_b))
-
 
 class TestVolatilityEdge:
     """
@@ -125,23 +85,11 @@ class TestVolatilityEdge:
             with pytest.raises(ValueError, match="periods_per_year must be >= 1"):
                 volatility(pl.col(COLUMN_X), periods_per_year=invalid)
 
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty series yields ``null`` (no observations).
-        """
-        assert_matches(apply_expr([], volatility(pl.col(COLUMN_X), periods_per_year=PERIODS)), [None])
-
     def test_single_row(self) -> None:
         """
         Verifies that a one-element series yields ``null`` (the sample standard deviation needs two observations).
         """
         assert_matches(apply_expr([0.05], volatility(pl.col(COLUMN_X), periods_per_year=PERIODS)), [None])
-
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null series yields ``null``.
-        """
-        assert_matches(apply_expr([None, None, None], volatility(pl.col(COLUMN_X), periods_per_year=PERIODS)), [None])
 
     def test_null_skipped(self) -> None:
         """

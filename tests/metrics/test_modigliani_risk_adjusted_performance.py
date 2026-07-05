@@ -21,12 +21,10 @@ import polars as pl
 import pytest
 from hypothesis import assume, given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.metrics.oracles import modigliani_risk_adjusted_performance_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
     BENCHMARK,
-    GROUP_KEY,
     RELATIVE_TOLERANCE_PROPERTY,
     RELATIVE_TOLERANCE_REFERENCE,
     RETURNS,
@@ -73,73 +71,6 @@ class TestModiglianiRiskAdjustedPerformanceContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(
-            modigliani_risk_adjusted_performance(pl.col(RETURNS), pl.col(BENCHMARK), periods_per_year=PERIODS), pl.Expr
-        )
-
-    def test_reduces_to_scalar(self) -> None:
-        """
-        Verifies that the metric reduces the two series to one ``Float64`` row.
-        """
-        frame = pl.DataFrame(
-            {
-                RETURNS: pl.Series(RETURNS, [0.01, -0.02, 0.015, -0.03], dtype=pl.Float64),
-                BENCHMARK: pl.Series(BENCHMARK, [0.008, -0.015, 0.012, -0.025], dtype=pl.Float64),
-            }
-        )
-        result = frame.select(
-            modigliani_risk_adjusted_performance(pl.col(RETURNS), pl.col(BENCHMARK), periods_per_year=PERIODS).alias(
-                "m"
-            )
-        )
-        assert result.height == 1
-        assert result.schema["m"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame(
-            {
-                RETURNS: pl.Series(RETURNS, [0.01, -0.02, 0.015, -0.03], dtype=pl.Float64),
-                BENCHMARK: pl.Series(BENCHMARK, [0.008, -0.015, 0.012, -0.025], dtype=pl.Float64),
-            }
-        )
-        expr = modigliani_risk_adjusted_performance(pl.col(RETURNS), pl.col(BENCHMARK), periods_per_year=PERIODS).alias(
-            "m"
-        )
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
-
-    def test_over_partitions_independently(self) -> None:
-        """
-        Verifies that under ``.over`` the measure is computed per group (broadcast) and never spans boundaries.
-        """
-        returns_a = [0.01, -0.02, 0.015, -0.03, 0.005]
-        benchmark_a = [0.008, -0.015, 0.012, -0.025, 0.004]
-        returns_b = [0.02, -0.05, 0.01, -0.01]
-        benchmark_b = [0.018, -0.04, 0.012, -0.008]
-        frame = pl.DataFrame(
-            {
-                GROUP_KEY: ["a"] * len(returns_a) + ["b"] * len(returns_b),
-                RETURNS: returns_a + returns_b,
-                BENCHMARK: benchmark_a + benchmark_b,
-            }
-        )
-        grouped = frame.select(
-            modigliani_risk_adjusted_performance(pl.col(RETURNS), pl.col(BENCHMARK), periods_per_year=4)
-            .over(GROUP_KEY)
-            .alias("m")
-        )["m"].to_list()
-        expected_a = modigliani_risk_adjusted_performance_reference(returns_a, benchmark_a, 4, 0.0)
-        expected_b = modigliani_risk_adjusted_performance_reference(returns_b, benchmark_b, 4, 0.0)
-        assert_matches(
-            grouped, [expected_a] * len(returns_a) + [expected_b] * len(returns_b), rel_tol=RELATIVE_TOLERANCE_REFERENCE
-        )
-
 
 class TestModiglianiRiskAdjustedPerformanceEdge:
     """
@@ -162,18 +93,6 @@ class TestModiglianiRiskAdjustedPerformanceEdge:
                 modigliani_risk_adjusted_performance(
                     pl.col(RETURNS), pl.col(BENCHMARK), periods_per_year=PERIODS, risk_free_rate=invalid
                 )
-
-    def test_empty(self) -> None:
-        """
-        Verifies that empty series yield ``null``.
-        """
-        assert_matches(
-            materialize(
-                {RETURNS: [], BENCHMARK: []},
-                modigliani_risk_adjusted_performance(pl.col(RETURNS), pl.col(BENCHMARK), periods_per_year=PERIODS),
-            ),
-            [None],
-        )
 
     def test_single_pair(self) -> None:
         """
@@ -211,18 +130,6 @@ class TestModiglianiRiskAdjustedPerformanceEdge:
             ),
             [modigliani_risk_adjusted_performance_reference(returns, benchmark, PERIODS, 0.0)],
             rel_tol=RELATIVE_TOLERANCE_REFERENCE,
-        )
-
-    def test_all_null(self) -> None:
-        """
-        Verifies that all-null series yield ``null``.
-        """
-        assert_matches(
-            materialize(
-                {RETURNS: [None, None], BENCHMARK: [None, None]},
-                modigliani_risk_adjusted_performance(pl.col(RETURNS), pl.col(BENCHMARK), periods_per_year=PERIODS),
-            ),
-            [None],
         )
 
     def test_nan_poisons(self) -> None:

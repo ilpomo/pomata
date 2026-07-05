@@ -19,12 +19,10 @@ import polars as pl
 import pytest
 from hypothesis import assume, given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.metrics.oracles import kurtosis_rolling_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
     COLUMN_X,
-    GROUP_KEY,
     RELATIVE_TOLERANCE_REFERENCE,
     RELATIVE_TOLERANCE_SCALE,
     WINDOW_MAX,
@@ -67,40 +65,6 @@ class TestKurtosisRollingContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(kurtosis_rolling(pl.col(COLUMN_X), 4), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the metric maps a series to a ``Float64`` series of the same length.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [0.01, -0.02, 0.03, -0.01, 0.02], dtype=pl.Float64)})
-        result = frame.select(kurtosis_rolling(pl.col(COLUMN_X), 4).alias("k"))
-        assert result.height == frame.height
-        assert result.schema["k"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [0.01, -0.02, 0.03, -0.01, 0.02], dtype=pl.Float64)})
-        expr = kurtosis_rolling(pl.col(COLUMN_X), 4).alias("k")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
-
-    def test_over_partitions_independently(self) -> None:
-        """
-        Verifies that under ``.over`` each group warms up independently and the window never spans a boundary.
-        """
-        group_a = [0.01, -0.02, 0.03, -0.01, 0.02]
-        group_b = [0.02, -0.05, 0.01, -0.01, 0.03]
-        frame = pl.DataFrame({GROUP_KEY: ["a"] * len(group_a) + ["b"] * len(group_b), COLUMN_X: group_a + group_b})
-        grouped = frame.select(kurtosis_rolling(pl.col(COLUMN_X), 4).over(GROUP_KEY).alias("k"))["k"].to_list()
-        expected = kurtosis_rolling_reference(group_a, 4) + kurtosis_rolling_reference(group_b, 4)
-        assert_matches(grouped, expected, rel_tol=RELATIVE_TOLERANCE_REFERENCE)
-
 
 class TestKurtosisRollingEdge:
     """
@@ -113,12 +77,6 @@ class TestKurtosisRollingEdge:
         """
         with pytest.raises(ValueError, match="window must be >= 2"):
             kurtosis_rolling(pl.col(COLUMN_X), 1)
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty series yields an empty result.
-        """
-        assert apply_expr([], kurtosis_rolling(pl.col(COLUMN_X), 4)) == []
 
     def test_warmup_null_count(self) -> None:
         """

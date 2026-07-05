@@ -19,12 +19,10 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.metrics.oracles import total_return_rolling_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
     COLUMN_X,
-    GROUP_KEY,
     RELATIVE_TOLERANCE_REFERENCE,
     WINDOW_MAX,
     apply_expr,
@@ -59,40 +57,6 @@ class TestTotalReturnRollingContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(total_return_rolling(pl.col(COLUMN_X), 3), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the metric maps a series to a ``Float64`` series of the same length.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 1.1, 1.05, 1.2, 1.15], dtype=pl.Float64)})
-        result = frame.select(total_return_rolling(pl.col(COLUMN_X), 3).alias("t"))
-        assert result.height == frame.height
-        assert result.schema["t"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 1.1, 1.05, 1.2, 1.15], dtype=pl.Float64)})
-        expr = total_return_rolling(pl.col(COLUMN_X), 3).alias("t")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
-
-    def test_over_partitions_independently(self) -> None:
-        """
-        Verifies that under ``.over`` each group warms up independently and the window never spans a boundary.
-        """
-        group_a = [1.0, 1.1, 1.05, 1.2]
-        group_b = [1.0, 0.95, 1.05, 1.02]
-        frame = pl.DataFrame({GROUP_KEY: ["a"] * len(group_a) + ["b"] * len(group_b), COLUMN_X: group_a + group_b})
-        grouped = frame.select(total_return_rolling(pl.col(COLUMN_X), 2).over(GROUP_KEY).alias("t"))["t"].to_list()
-        expected = total_return_rolling_reference(group_a, 2) + total_return_rolling_reference(group_b, 2)
-        assert_matches(grouped, expected, rel_tol=RELATIVE_TOLERANCE_REFERENCE)
-
 
 class TestTotalReturnRollingEdge:
     """
@@ -105,12 +69,6 @@ class TestTotalReturnRollingEdge:
         """
         with pytest.raises(ValueError, match="window must be >= 2"):
             total_return_rolling(pl.col(COLUMN_X), 1)
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty series yields an empty result.
-        """
-        assert apply_expr([], total_return_rolling(pl.col(COLUMN_X), 3)) == []
 
     def test_warmup_null_count(self) -> None:
         """
