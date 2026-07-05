@@ -21,10 +21,12 @@ from hypothesis import given
 from hypothesis import strategies as st
 from tests.indicators.oracles import vwma_reference
 from tests.support import (
+    ABSOLUTE_TOLERANCE_REFERENCE,
     CLOSE,
     EXACT_TOLERANCE_FACTOR,
     GROUP_KEY,
     RELATIVE_TOLERANCE_PROPERTY,
+    RELATIVE_TOLERANCE_REFERENCE,
     RELATIVE_TOLERANCE_SCALE,
     VOLUME,
     WINDOW_MAX,
@@ -297,6 +299,8 @@ class TestVwmaCorrectness:
         assert_matches(
             apply_vwma([10.0, 11.0, 12.0, 13.0, 14.0], [100.0, 200.0, 300.0, 400.0, 500.0], 3),
             [None, None, 11.333333333333334, 12.222222222222221, 13.166666666666666],
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
 

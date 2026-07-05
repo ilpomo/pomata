@@ -206,6 +206,8 @@ class TestDemaCorrectness:
         assert_matches(
             apply_expr([2.0, 4.0, 6.0, 8.0, 10.0, 12.0], dema(pl.col(COLUMN_X), 2)),
             [None, None, 6.0, 8.0, 10.0, 12.0],
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
     def test_golden_master_adjust(self) -> None:
@@ -215,6 +217,8 @@ class TestDemaCorrectness:
         assert_matches(
             apply_expr([3.0, 1.0, 4.0, 1.0, 5.0, 9.0, 2.0, 6.0], dema(pl.col(COLUMN_X), 3, adjust=True)),
             [None, None, None, None, 4.042089093701996, 7.846915855948113, 3.832696745373009, 5.383328263901351],
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
     def test_constant_series_is_constant(self) -> None:

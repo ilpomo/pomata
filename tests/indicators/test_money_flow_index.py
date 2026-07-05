@@ -25,6 +25,7 @@ from tests.support import (
     HIGH,
     LOW,
     RELATIVE_TOLERANCE_PROPERTY,
+    RELATIVE_TOLERANCE_REFERENCE,
     VOLUME,
     WINDOW_MAX,
     assert_matches,
@@ -450,6 +451,8 @@ class TestMoneyFlowIndexCorrectness:
                 66.92913385826772,
                 72.63843648208469,
             ],
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
 

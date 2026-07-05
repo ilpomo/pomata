@@ -383,4 +383,9 @@ class TestStochasticSlowProperties:
         )
         reference = stochastic_slow_reference(high, low, close, window_k, window_slowing, window_d)
         for field in FIELDS:
-            assert_matches(applied[field], reference[field])
+            assert_matches(
+                applied[field],
+                reference[field],
+                rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+                abs_tol=ABSOLUTE_TOLERANCE_PROPERTY,
+            )

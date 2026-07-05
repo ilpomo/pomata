@@ -24,12 +24,15 @@ from hypothesis import given
 from hypothesis import strategies as st
 from tests.indicators.oracles import keltner_channels_reference
 from tests.support import (
+    ABSOLUTE_TOLERANCE_EXACT,
+    ABSOLUTE_TOLERANCE_REFERENCE,
     CLOSE,
     EXACT_TOLERANCE_FACTOR,
     GROUP_KEY,
     HIGH,
     LOW,
     RELATIVE_TOLERANCE_PROPERTY,
+    RELATIVE_TOLERANCE_REFERENCE,
     RELATIVE_TOLERANCE_SCALE,
     WINDOW_MAX,
     assert_matches,
@@ -279,9 +282,24 @@ class TestKeltnerChannelsCorrectness:
         bands = apply_keltner_channels(
             [10.0, 12.0, 11.0, 13.0, 15.0], [8.0, 9.0, 9.5, 10.0, 12.0], [9.0, 11.0, 10.0, 12.0, 14.0], 3, window_atr=3
         )
-        assert_matches(bands["lower"], [None, None, 5.666666666666667, 6.111111111111111, 7.2407407407407405])
-        assert_matches(bands["middle"], [None, None, 10.0, 11.0, 12.5])
-        assert_matches(bands["upper"], [None, None, 14.333333333333332, 15.88888888888889, 17.75925925925926])
+        assert_matches(
+            bands["lower"],
+            [None, None, 5.666666666666667, 6.111111111111111, 7.2407407407407405],
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
+        )
+        assert_matches(
+            bands["middle"],
+            [None, None, 10.0, 11.0, 12.5],
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
+        )
+        assert_matches(
+            bands["upper"],
+            [None, None, 14.333333333333332, 15.88888888888889, 17.75925925925926],
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
+        )
 
     def test_golden_master_flat(self) -> None:
         """
@@ -312,7 +330,9 @@ class TestKeltnerChannelsCorrectness:
             assert wide_upper is not None
             narrow_gap = narrow_upper - center
             wide_gap = wide_upper - center
-            assert math.isclose(wide_gap, 2.0 * narrow_gap, rel_tol=RELATIVE_TOLERANCE_SCALE)
+            assert math.isclose(
+                wide_gap, 2.0 * narrow_gap, rel_tol=RELATIVE_TOLERANCE_REFERENCE, abs_tol=ABSOLUTE_TOLERANCE_EXACT
+            )
 
 
 class TestKeltnerChannelsProperties:

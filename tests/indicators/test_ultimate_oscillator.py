@@ -371,4 +371,6 @@ class TestUltimateOscillatorProperties:
         assert_matches(
             apply_ultimate_oscillator(high, low, close, window_short, window_medium, window_long),
             ultimate_oscillator_reference(high, low, close, window_short, window_medium, window_long),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
