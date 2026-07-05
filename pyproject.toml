@@ -58,7 +58,7 @@ dev = [
     { include-group = "typecheck" },
 ]
 differential = [
-    "ta-lib>=0.6.8",
+    "ta-lib>=0.7.0",
 ]
 docs = [
     "furo>=2025.12.19",
