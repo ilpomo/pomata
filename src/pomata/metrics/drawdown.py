@@ -138,8 +138,8 @@ def drawdown(
         equity_curve: Compounded growth-factor series (e.g. from :func:`equity_curve`), positive.
 
     Returns:
-        The drawdown for each row, the same length as ``equity_curve``: ``0`` at a running peak and negative while below
-        it. A leading input ``null`` stays ``null``.
+        The drawdown for each row, the same length as ``equity_curve`` -- ``0`` at a running peak and negative while
+        below it. A leading input ``null`` stays ``null``.
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.

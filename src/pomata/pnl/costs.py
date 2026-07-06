@@ -45,7 +45,7 @@ def cost_borrow(
             year). Must be a finite number ``>= 0``.
 
     Returns:
-        The per-bar borrow cost for each row, the same length as the inputs: a non-negative cost on short bars (for a
+        The per-bar borrow cost for each row, the same length as the inputs -- a non-negative cost on short bars (for a
         non-negative price; a negative price yields an economically meaningless negative value) and ``0`` on long or
         flat bars.
 
@@ -146,7 +146,7 @@ def cost_fixed(
         fee: Flat charge per trade, in the account currency. Must be a finite number ``>= 0``.
 
     Returns:
-        The per-bar fixed cost for each row, the same length as ``quantity``: ``fee`` where the quantity changes (the
+        The per-bar fixed cost for each row, the same length as ``quantity`` -- ``fee`` where the quantity changes (the
         first row counts as a trade from a flat start) and ``0`` where it is held.
 
     Raises:
@@ -236,7 +236,7 @@ def cost_funding(
             between funding events (e.g. ``0.0001`` = 1 bp); a positive rate charges longs and rebates shorts.
 
     Returns:
-        The per-bar funding cost for each row, the same length as the inputs: positive where the holder pays and
+        The per-bar funding cost for each row, the same length as the inputs -- positive where the holder pays and
         negative (a rebate) where the holder receives.
 
     Raises:

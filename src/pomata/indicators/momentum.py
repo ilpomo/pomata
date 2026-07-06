@@ -490,7 +490,7 @@ def balance_of_power(
         close: Close-price series (e.g. ``pl.col("close")``).
 
     Returns:
-        The balance of power for each row, the same length as the inputs. There is no window and no warm-up: every row
+        The balance of power for each row, the same length as the inputs. There is no window and no warm-up -- every row
         is defined from row ``0``.
 
     Raises:
@@ -1325,7 +1325,7 @@ def roc(
         window: Number of observations to look back. Must be ``>= 1``.
 
     Returns:
-        The ROC for each row, the same length as ``expr``. The first ``window`` values are ``null`` (warm-up): the
+        The ROC for each row, the same length as ``expr``. The first ``window`` values are ``null`` (warm-up) -- the
         lagged term ``expr.shift(window)`` is undefined for the first ``window`` rows, so no change can be measured
         there.
 
@@ -1421,9 +1421,9 @@ def rsi(
         window: Number of observations in the moving window. Must be ``>= 1``.
 
     Returns:
-        The RSI for each row, the same length as ``expr``. The first ``window`` values are ``null`` (warm-up): Wilder's
-        RSI needs ``window + 1`` prices for its first value, since row ``0`` has no difference and the gain / loss
-        averages count ``window`` non-null differences before emitting.
+        The RSI for each row, the same length as ``expr``. The first ``window`` values are ``null`` (warm-up) --
+        Wilder's RSI needs ``window + 1`` prices for its first value, since row ``0`` has no difference and the gain /
+        loss averages count ``window`` non-null differences before emitting.
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
