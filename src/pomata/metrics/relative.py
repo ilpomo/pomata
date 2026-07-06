@@ -160,7 +160,7 @@ def alpha(
     annualizes its excess arithmetically -- a deliberate convention difference across the relative family.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         benchmark: Benchmark per-bar return series, as fractions, aligned row-for-row with ``returns``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         risk_free_rate: The annualized risk-free rate, converted to a per-period rate geometrically (default ``0.0``).
@@ -267,7 +267,7 @@ def alpha_rolling(
     slope, :math:`P` is ``periods_per_year``, and :math:`r_f = (1 + \texttt{risk\_free\_rate})^{1/P} - 1`.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         benchmark: Benchmark per-bar return series, as fractions, aligned row-for-row with ``returns``.
         window: Number of observations in the moving window. Must be ``>= 2``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
@@ -378,7 +378,7 @@ def beta(
     denominator, so the result is the same population or sample slope.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         benchmark: Benchmark per-bar return series, as fractions, aligned row-for-row with ``returns``.
 
     Returns:
@@ -476,7 +476,7 @@ def beta_rolling(
     with the covariance and variance taken over the window. The degrees-of-freedom convention cancels.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         benchmark: Benchmark per-bar return series, as fractions, aligned row-for-row with ``returns``.
         window: Number of observations in the moving window. Must be ``>= 2``.
 
@@ -573,7 +573,7 @@ def capture_downside_ratio(
     ``periods_per_year``. A value below one means the portfolio lost less than the benchmark in down markets (good).
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         benchmark: Benchmark per-bar return series, as fractions, aligned row-for-row with ``returns``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
 
@@ -679,7 +679,7 @@ def capture_ratio(
     where :math:`\mathrm{UCR}` and :math:`\mathrm{DCR}` are the up- and down-market capture ratios.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         benchmark: Benchmark per-bar return series, as fractions, aligned row-for-row with ``returns``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
 
@@ -783,7 +783,7 @@ def capture_upside_ratio(
     ``periods_per_year``. A value above one means the portfolio gained more than the benchmark in up markets (good).
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         benchmark: Benchmark per-bar return series, as fractions, aligned row-for-row with ``returns``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
 
@@ -890,7 +890,7 @@ def information_ratio(
     :math:`P` is ``periods_per_year``. It measures the consistency of out- (or under-) performance versus the benchmark.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         benchmark: Benchmark per-bar return series, as fractions, aligned row-for-row with ``returns``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
 
@@ -998,7 +998,7 @@ def information_ratio_rolling(
     :math:`P` is ``periods_per_year``.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         benchmark: Benchmark per-bar return series, as fractions, aligned row-for-row with ``returns``.
         window: Number of observations in the moving window. Must be ``>= 2``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
@@ -1109,7 +1109,7 @@ def modigliani_risk_adjusted_performance(
     as an annualized return, directly comparable to the benchmark's own return.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         benchmark: Benchmark per-bar return series, as fractions, aligned row-for-row with ``returns``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         risk_free_rate: The annualized risk-free rate, used both to form the Sharpe excess (geometrically per period)
@@ -1215,7 +1215,7 @@ def treynor_ratio(
     excess is annualized arithmetically (it is a ratio numerator), where :func:`alpha` compounds geometrically.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         benchmark: Benchmark per-bar return series, as fractions, aligned row-for-row with ``returns``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         risk_free_rate: The annualized risk-free rate, converted to a per-period rate geometrically (default ``0.0``).
@@ -1329,7 +1329,7 @@ def treynor_ratio_rolling(
     :math:`r_f = (1 + \texttt{risk\_free\_rate})^{1/P} - 1`.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         benchmark: Benchmark per-bar return series, as fractions, aligned row-for-row with ``returns``.
         window: Number of observations in the moving window. Must be ``>= 2``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.

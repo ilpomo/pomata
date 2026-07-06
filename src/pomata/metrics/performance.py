@@ -33,7 +33,7 @@ def cagr(
     counterpart of an arithmetic average return and the numerator of :func:`calmar_ratio`.
 
     Args:
-        equity_curve: Compounded growth-factor series (e.g. from :func:`equity_curve`), positive; its ``N``
+        equity_curve: Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive; its ``N``
             values are ``N`` period growth factors, and its final value is the total growth multiple.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
 
@@ -122,7 +122,7 @@ def cagr_rolling(
     last equity of the window, not the path between them.
 
     Args:
-        equity_curve: Compounded growth-factor series (e.g. from :func:`equity_curve`), positive.
+        equity_curve: Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive.
         window: Number of observations in the moving window. Must be ``>= 2``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
 
@@ -201,7 +201,7 @@ def stability(
     A value near one means the strategy compounds at a near-constant rate; a low value means an erratic path.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`); each must exceed
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`); each must exceed
             ``-1`` (a return of ``-100%`` or worse makes the cumulative log undefined).
 
     Returns:
@@ -228,8 +228,8 @@ def stability(
 
     See Also:
         - :func:`cagr`: The growth rate whose steadiness this measures.
-        - :func:`linear_regression`: The fitted least-squares trend line whose goodness-of-fit this scores.
-        - :func:`linear_regression_slope`: The slope of that same least-squares trend.
+        - :func:`~pomata.indicators.linear_regression`: The least-squares trend line whose goodness-of-fit this scores.
+        - :func:`~pomata.indicators.linear_regression_slope`: The slope of that same least-squares trend.
 
     References:
         - https://en.wikipedia.org/wiki/Coefficient_of_determination
@@ -313,7 +313,7 @@ def total_return(
     unit of capital, the final value already is the total growth multiple.
 
     Args:
-        equity_curve: Compounded growth-factor series (e.g. from :func:`equity_curve`), positive; its ``N``
+        equity_curve: Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive; its ``N``
             values are ``N`` period growth factors, and its final value is the total growth multiple.
 
     Returns:
@@ -338,7 +338,7 @@ def total_return(
     See Also:
         - :func:`cagr`: The annualized (per-year) form of this total growth.
         - :func:`total_return_rolling`: The windowed twin, over each trailing window.
-        - :func:`equity_curve`: The pnl builder that produces the input curve.
+        - :func:`~pomata.pnl.equity_curve`: The pnl builder that produces the input curve.
 
     References:
         - https://en.wikipedia.org/wiki/Total_return
@@ -393,7 +393,7 @@ def total_return_rolling(
     endpoint quantity it depends only on the first and last equity of the window, not the path between them.
 
     Args:
-        equity_curve: Compounded growth-factor series (e.g. from :func:`equity_curve`), positive.
+        equity_curve: Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive.
         window: Number of observations in the moving window. Must be ``>= 2``.
 
     Returns:

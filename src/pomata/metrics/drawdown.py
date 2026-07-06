@@ -42,7 +42,7 @@ def conditional_drawdown_at_risk(
     (a drawdown).
 
     Args:
-        equity_curve: Compounded growth-factor series (e.g. from :func:`equity_curve`), positive.
+        equity_curve: Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive.
         confidence: The tail confidence level in the open interval ``(0, 1)`` (canonically ``0.95``); the mean is taken
             over the worst ``1 - confidence`` of drawdowns.
 
@@ -135,7 +135,7 @@ def drawdown(
     so it is the natural input to a custom drawdown analysis; :func:`max_drawdown` and :func:`ulcer_index` summarize it.
 
     Args:
-        equity_curve: Compounded growth-factor series (e.g. from :func:`equity_curve`), positive.
+        equity_curve: Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive.
 
     Returns:
         The drawdown for each row, the same length as ``equity_curve`` -- ``0`` at a running peak and negative while
@@ -212,7 +212,7 @@ def drawdown_rolling(
     rolls out of the window.
 
     Args:
-        equity_curve: Compounded growth-factor series (e.g. from :func:`equity_curve`), positive.
+        equity_curve: Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive.
         window: Number of observations in the moving window. Must be ``>= 1``.
 
     Returns:
@@ -289,7 +289,7 @@ def max_drawdown(
         \mathrm{MDD} = \min_t \left( \frac{E_t}{\max_{i \le t} E_i} - 1 \right) \le 0.
 
     Args:
-        equity_curve: Compounded growth-factor series (e.g. from :func:`equity_curve`), positive.
+        equity_curve: Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive.
 
     Returns:
         A single ``Float64`` value: the maximum drawdown (``<= 0``; ``0`` for a never-declining curve), one value in
@@ -360,7 +360,7 @@ def max_drawdown_duration(
     negative drawdown, the time dimension of drawdown risk (returned as a ``Float64`` count of bars).
 
     Args:
-        equity_curve: Compounded growth-factor series (e.g. from :func:`equity_curve`), positive.
+        equity_curve: Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive.
 
     Returns:
         A single ``Float64`` value: the longest underwater run length in bars (one value in ``select``, one per group
@@ -443,7 +443,7 @@ def pain_index(
         \mathrm{PI} = \frac{1}{n} \sum_{i=1}^{n} \lvert D_i \rvert, \qquad D_i = \frac{E_i}{\max_{j \le i} E_j} - 1.
 
     Args:
-        equity_curve: Compounded growth-factor series (e.g. from :func:`equity_curve`), positive.
+        equity_curve: Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive.
 
     Returns:
         A single ``Float64`` value (non-negative): the pain index (one value in ``select``, one per group under
@@ -519,7 +519,7 @@ def ulcer_index(
     expressed as a fraction (not a percentage). Lower is better; it is ``0`` only for a never-declining curve.
 
     Args:
-        equity_curve: Compounded growth-factor series (e.g. from :func:`equity_curve`), positive.
+        equity_curve: Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive.
 
     Returns:
         A single ``Float64`` value: the Ulcer Index (``>= 0``), one value in ``select`` and one per group under

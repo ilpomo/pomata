@@ -245,7 +245,7 @@ def equity_curve(
     See Also:
         - :func:`cumulative_pnl`: The additive (fixed-notional) twin, a cumulative sum of returns.
         - :func:`returns_gross`: The per-bar strategy returns this typically compounds.
-        - :func:`drawdown`: The metric that consumes this equity curve, its decline from the running peak.
+        - :func:`~pomata.metrics.drawdown`: The metric that reads this equity curve, its decline from the running peak.
 
     References:
         - https://en.wikipedia.org/wiki/Rate_of_return
