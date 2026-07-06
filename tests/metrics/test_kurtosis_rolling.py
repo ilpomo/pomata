@@ -133,6 +133,19 @@ class TestKurtosisRollingEdge:
             rel_tol=RELATIVE_TOLERANCE_REFERENCE,
         )
 
+    def test_constant_window_by_slide_is_nan(self) -> None:
+        """
+        Verifies that a window which becomes bit-constant only because a larger value slid out is still zero-variance,
+        so the excess kurtosis is undefined (``0 / 0``) and ``NaN`` -- not the spuriously huge finite the native
+        incremental kernel leaves from the exited value's cancellation residue.
+        """
+        values = [0.03, 0.0, 0.0, 0.0, 0.0]
+        assert_matches(
+            apply_expr(values, kurtosis_rolling(pl.col(COLUMN_X), 4)),
+            kurtosis_rolling_reference(values, 4),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+        )
+
 
 class TestKurtosisRollingCorrectness:
     """
