@@ -260,7 +260,7 @@ def atr_normalized(
     low = float64_expr(low)
     close = float64_expr(close)
     validate_window(window)
-    return 100.0 * atr(high, low, close, window) / close
+    return (100.0 * atr(high, low, close, window) / close).name.keep()
 
 
 def bollinger_bands(

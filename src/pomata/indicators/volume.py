@@ -157,7 +157,7 @@ def accumulation_distribution(
         pl.when(high_low_range == 0).then(pl.lit(0.0)).otherwise(((close - low) - (high - close)) / high_low_range)
     )
     money_flow_volume = money_flow_multiplier * volume
-    return money_flow_volume.cum_sum()
+    return money_flow_volume.cum_sum().name.keep()
 
 
 def accumulation_distribution_oscillator(
@@ -287,7 +287,7 @@ def accumulation_distribution_oscillator(
     validate_window(window_slow, name="window_slow")
     validate_window_order(window_fast, window_slow)
     line = accumulation_distribution(high, low, close, volume)
-    return ema(line, window_fast) - ema(line, window_slow)
+    return (ema(line, window_fast) - ema(line, window_slow)).name.keep()
 
 
 def chaikin_money_flow(
@@ -442,7 +442,7 @@ def chaikin_money_flow(
     # The clip pins the bound: the ratio is mathematically in [-1, 1] (so is the multiplier), so past a sane dynamic
     # range a residual-dominated near-zero-volume window degrades but stays in range (see CORRECTNESS.md).
     is_zero_volume = (volume.abs().rolling_max(window_size=window) == 0) & weighted_sum.is_not_null()
-    return pl.when(is_zero_volume).then(float("nan")).otherwise(raw.clip(-1.0, 1.0))
+    return pl.when(is_zero_volume).then(float("nan")).otherwise(raw.clip(-1.0, 1.0)).name.keep()
 
 
 def money_flow_index(
@@ -621,7 +621,7 @@ def money_flow_index(
     # NaN-poisoning above are unchanged. The clip pins the [0, 100] bound: beyond a sane dynamic range a residual-
     # dominated near-flat window degrades but stays in range rather than escaping (see CORRECTNESS.md).
     is_flat = typical_change.abs().rolling_max(window_size=window) == 0
-    return pl.when(is_flat).then(float("nan")).otherwise(index.clip(0.0, 100.0))
+    return pl.when(is_flat).then(float("nan")).otherwise(index.clip(0.0, 100.0)).name.keep()
 
 
 def obv(

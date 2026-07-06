@@ -176,7 +176,7 @@ def linear_regression_angle(
     """
     expr = float64_expr(expr)
     validate_window(window, minimum=2)
-    return linear_regression_slope(expr, window).arctan().degrees()
+    return linear_regression_slope(expr, window).arctan().degrees().name.keep()
 
 
 def linear_regression_intercept(
@@ -347,7 +347,7 @@ def linear_regression_slope(
     weighted = center * expr
     for offset in range(1, window):
         weighted = weighted + (center - offset) * expr.shift(offset)
-    return weighted / denominator
+    return (weighted / denominator).name.keep()
 
 
 def standard_deviation_ewma(

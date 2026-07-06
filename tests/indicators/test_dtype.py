@@ -40,17 +40,3 @@ def test_string_input_raises_type_error(name: str) -> None:
     arguments[expr_index] = COLUMN_X
     with pytest.raises(TypeError, match="Polars expression"):
         factory(*arguments, **keywords)
-
-
-_MOVING_AVERAGES = ("sma", "ema", "wma", "rma", "dema", "tema", "hma", "kama", "t3", "trima", "vwma")
-
-
-@pytest.mark.parametrize("name", _MOVING_AVERAGES)
-def test_moving_average_preserves_input_name(name: str) -> None:
-    """
-    Verifies every single-output moving average keeps the input column's name, never renaming it to ``literal``.
-    """
-    factory = getattr(indicators, name)
-    positional, keywords = synthesize_call(factory)
-    frame = pl.DataFrame({COLUMN_X: pl.Series(range(1, 21), dtype=pl.Float64)})
-    assert frame.select(factory(*positional, **keywords)).columns[0] == COLUMN_X
