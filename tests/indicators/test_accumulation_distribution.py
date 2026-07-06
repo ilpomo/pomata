@@ -180,6 +180,19 @@ class TestAccumulationDistributionEdge:
         assert_matches(apply_accumulation_distribution([5.0, 6.0], [5.0, 4.0], [5.0, 5.0], [None, 100.0]), [None, 0.0])
         assert apply_accumulation_distribution([5.0], [5.0], [5.0], [None]) == [None]
 
+    def test_null_in_high_propagates(self) -> None:
+        """
+        Verifies that a ``null`` high yields ``null`` at that bar while the running total is carried across it.
+        """
+        assert_matches(
+            apply_accumulation_distribution(
+                [10.0, None, 12.0, 13.0], [8.0, 9.0, 10.0, 11.0], [10.0, 10.5, 10.0, 13.0], [100.0, 200.0, 300.0, 400.0]
+            ),
+            accumulation_distribution_reference(
+                [10.0, None, 12.0, 13.0], [8.0, 9.0, 10.0, 11.0], [10.0, 10.5, 10.0, 13.0], [100.0, 200.0, 300.0, 400.0]
+            ),
+        )
+
     def test_nan_high_and_low_poisons(self) -> None:
         """
         Verifies that a ``high == low == NaN`` bar does **not** take the doji branch (``NaN - NaN`` is ``NaN``, never
@@ -196,19 +209,6 @@ class TestAccumulationDistributionEdge:
         assert_matches(
             apply_accumulation_distribution([math.nan], [math.nan], [5.0], [math.nan]),
             accumulation_distribution_reference([math.nan], [math.nan], [5.0], [math.nan]),
-        )
-
-    def test_null_in_high_propagates(self) -> None:
-        """
-        Verifies that a ``null`` high yields ``null`` at that bar while the running total is carried across it.
-        """
-        assert_matches(
-            apply_accumulation_distribution(
-                [10.0, None, 12.0, 13.0], [8.0, 9.0, 10.0, 11.0], [10.0, 10.5, 10.0, 13.0], [100.0, 200.0, 300.0, 400.0]
-            ),
-            accumulation_distribution_reference(
-                [10.0, None, 12.0, 13.0], [8.0, 9.0, 10.0, 11.0], [10.0, 10.5, 10.0, 13.0], [100.0, 200.0, 300.0, 400.0]
-            ),
         )
 
     def test_null_in_volume_propagates(self) -> None:

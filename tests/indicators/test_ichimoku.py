@@ -254,24 +254,24 @@ class TestIchimokuEdge:
         assert_matches(lines["tenkan"], [None, 7.0, 7.0, 7.0, 7.0, 7.0])
         assert_matches(lines["senkou_b"], [None, None, None, 7.0, 7.0, 7.0])
 
-    def test_nan_propagates(self) -> None:
-        """
-        Verifies that a ``NaN`` in ``high`` or ``low`` flows through the rolling extremes exactly as the reference,
-        nanning the windows it reaches, then recovering.
-        """
-        high = [10.0, math.nan, 12.0, 13.0, 14.0, 15.0, 16.0]
-        low = [9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0]
-        lines = apply_ichimoku(high, low, 2, 3, 4)
-        reference = ichimoku_reference(high, low, 2, 3, 4)
-        for field in FIELDS:
-            assert_matches(lines[field], reference[field])
-
     def test_null_in_high_vs_low(self) -> None:
         """
         Verifies that a ``null`` / ``NaN`` in ``high`` only, and in ``low`` only, both flow through the rolling extremes
         exactly as the reference (the inputs enter different legs of each midpoint).
         """
         high = [10.0, None, 12.0, 13.0, math.nan, 15.0, 16.0]
+        low = [9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0]
+        lines = apply_ichimoku(high, low, 2, 3, 4)
+        reference = ichimoku_reference(high, low, 2, 3, 4)
+        for field in FIELDS:
+            assert_matches(lines[field], reference[field])
+
+    def test_nan_propagates(self) -> None:
+        """
+        Verifies that a ``NaN`` in ``high`` or ``low`` flows through the rolling extremes exactly as the reference,
+        nanning the windows it reaches, then recovering.
+        """
+        high = [10.0, math.nan, 12.0, 13.0, 14.0, 15.0, 16.0]
         low = [9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0]
         lines = apply_ichimoku(high, low, 2, 3, 4)
         reference = ichimoku_reference(high, low, 2, 3, 4)

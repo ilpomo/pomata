@@ -69,18 +69,18 @@ class TestUlcerIndexEdge:
         """
         assert_matches(apply_expr([1.0, 1.1, 1.2, 1.3], ulcer_index(pl.col(COLUMN_X))), [0.0])
 
-    def test_nan_poisons(self) -> None:
-        """
-        Verifies that a NaN equity poisons the result to NaN.
-        """
-        assert_matches(apply_expr([1.0, 1.1, math.nan, 0.9, 1.2], ulcer_index(pl.col(COLUMN_X))), [math.nan])
-
     def test_null_skipped(self) -> None:
         """
         Verifies that null equities are skipped (excluded from the mean), matching the reference.
         """
         values = [1.0, None, 1.2, 0.9, None, 1.1]
         assert_matches(apply_expr(values, ulcer_index(pl.col(COLUMN_X))), [ulcer_index_reference(values)])
+
+    def test_nan_poisons(self) -> None:
+        """
+        Verifies that a NaN equity poisons the result to NaN.
+        """
+        assert_matches(apply_expr([1.0, 1.1, math.nan, 0.9, 1.2], ulcer_index(pl.col(COLUMN_X))), [math.nan])
 
 
 class TestUlcerIndexCorrectness:

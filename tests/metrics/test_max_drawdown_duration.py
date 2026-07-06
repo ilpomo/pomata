@@ -68,12 +68,6 @@ class TestMaxDrawdownDurationEdge:
         """
         assert_matches(apply_expr([1.0, 1.1, 1.21], max_drawdown_duration(pl.col(COLUMN_X))), [0.0])
 
-    def test_nan_poisons(self) -> None:
-        """
-        Verifies that a NaN equity poisons the result to NaN.
-        """
-        assert_matches(apply_expr([1.0, math.nan, 0.9], max_drawdown_duration(pl.col(COLUMN_X))), [math.nan])
-
     def test_null_skipped(self) -> None:
         """
         Verifies that null equities are skipped, matching the reference (the run is over the retained observations).
@@ -83,6 +77,12 @@ class TestMaxDrawdownDurationEdge:
             apply_expr(values, max_drawdown_duration(pl.col(COLUMN_X))),
             [max_drawdown_duration_reference(values)],
         )
+
+    def test_nan_poisons(self) -> None:
+        """
+        Verifies that a NaN equity poisons the result to NaN.
+        """
+        assert_matches(apply_expr([1.0, math.nan, 0.9], max_drawdown_duration(pl.col(COLUMN_X))), [math.nan])
 
 
 class TestMaxDrawdownDurationCorrectness:
