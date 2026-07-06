@@ -71,8 +71,28 @@ jobs:
       id-token: write # OIDC token the deploy action verifies
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deploy_1.outputs.page_url || steps.deploy_2.outputs.page_url || steps.deploy_3.outputs.page_url }}
     steps:
+      # actions/deploy-pages intermittently returns a transient "Deployment failed, try again later" from the Pages
+      # backend and exits without retrying -- yet re-running the identical deployment succeeds. Retry it in-workflow
+      # (with a short settle between attempts) so a transient flake no longer needs a manual re-run. The first two
+      # attempts are non-fatal; only the last can fail the job.
       - name: "Pages: deploy"
-        id: deployment
+        id: deploy_1
+        continue-on-error: true
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
+      - name: "Pages: settle before retry (1)"
+        if: steps.deploy_1.outcome == 'failure'
+        run: sleep 60
+      - name: "Pages: deploy (retry 1)"
+        id: deploy_2
+        if: steps.deploy_1.outcome == 'failure'
+        continue-on-error: true
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
+      - name: "Pages: settle before retry (2)"
+        if: steps.deploy_1.outcome == 'failure' && steps.deploy_2.outcome == 'failure'
+        run: sleep 60
+      - name: "Pages: deploy (retry 2)"
+        id: deploy_3
+        if: steps.deploy_1.outcome == 'failure' && steps.deploy_2.outcome == 'failure'
         uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
