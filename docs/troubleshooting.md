@@ -7,7 +7,7 @@ usually one line.
 
 That is the warm-up. A window of length `n` cannot produce a value until it has seen `n` observations, so the first
 `n - 1` rows are `null` — and the chained averages stack that up: `dema` warms up over `2 * (n - 1)` rows, `t3` over
-`6 * (n - 1)`, the cycle indicators over sixty-odd. If the *whole* column is `null`, your series is shorter than the
+`6 * (n - 1)`, the cycle indicators over 32 or 63 rows depending on the measure. If the *whole* column is `null`, your series is shorter than the
 warm-up the function owes. This is not a bug and it is not negotiable: seeding a window with a fabricated value would
 be a lie that compounds downstream. Each function documents its exact warm-up length.
 

@@ -266,7 +266,8 @@ def calmar_ratio(
         \mathrm{Calmar} = \frac{\mathrm{CAGR}}{\lvert \mathrm{MDD} \rvert},
 
     where :math:`\mathrm{CAGR}` is :func:`cagr` and :math:`\mathrm{MDD}` is the (non-positive)
-    :func:`max_drawdown`.
+    :func:`max_drawdown`. Both are taken over the whole input series; unlike Young's original trailing 36-month
+    window, the lookback here is the full sample.
 
     Args:
         equity_curve: Compounded growth-factor series (e.g. from :func:`equity_curve`), positive.

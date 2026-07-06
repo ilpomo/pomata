@@ -1,5 +1,5 @@
 """
-Regenerate the precision figures shown in ``README.md``.
+Regenerate the precision figures shown in ``docs/trust.md``.
 
 Run from the repo root with the differential group (TA-Lib + NumPy) installed::
 
@@ -7,7 +7,7 @@ Run from the repo root with the differential group (TA-Lib + NumPy) installed::
 
 The deterministic 400-bar series and the ``pomata`` / reference figures are owned and pinned by
 ``tests/indicators/test_precision_table.py``; this tool reuses that series, adds the TA-Lib (C reference) column, and
-prints the two blocks that appear in the README, so the headline figures can be refreshed from a single source.
+prints the two blocks that appear in ``docs/trust.md``, so the headline figures can be refreshed from a single source.
 """
 
 import sys
