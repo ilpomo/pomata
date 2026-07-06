@@ -19,12 +19,10 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.metrics.oracles import tail_ratio_rolling_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
     COLUMN_X,
-    GROUP_KEY,
     RELATIVE_TOLERANCE_REFERENCE,
     RELATIVE_TOLERANCE_SCALE,
     WINDOW_MAX,
@@ -61,40 +59,6 @@ class TestTailRatioRollingContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(tail_ratio_rolling(pl.col(COLUMN_X), 3), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the metric maps a series to a ``Float64`` series of the same length.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [0.01, -0.02, 0.03, -0.01, 0.02], dtype=pl.Float64)})
-        result = frame.select(tail_ratio_rolling(pl.col(COLUMN_X), 3).alias("t"))
-        assert result.height == frame.height
-        assert result.schema["t"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [0.01, -0.02, 0.03, -0.01, 0.02], dtype=pl.Float64)})
-        expr = tail_ratio_rolling(pl.col(COLUMN_X), 3).alias("t")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
-
-    def test_over_partitions_independently(self) -> None:
-        """
-        Verifies that under ``.over`` each group warms up independently and the window never spans a boundary.
-        """
-        group_a = [0.01, -0.02, 0.03, -0.01]
-        group_b = [0.02, -0.05, 0.01, -0.01]
-        frame = pl.DataFrame({GROUP_KEY: ["a"] * len(group_a) + ["b"] * len(group_b), COLUMN_X: group_a + group_b})
-        grouped = frame.select(tail_ratio_rolling(pl.col(COLUMN_X), 2).over(GROUP_KEY).alias("t"))["t"].to_list()
-        expected = tail_ratio_rolling_reference(group_a, 2) + tail_ratio_rolling_reference(group_b, 2)
-        assert_matches(grouped, expected, rel_tol=RELATIVE_TOLERANCE_REFERENCE)
-
 
 class TestTailRatioRollingEdge:
     """
@@ -107,12 +71,6 @@ class TestTailRatioRollingEdge:
         """
         with pytest.raises(ValueError, match="window must be >= 1"):
             tail_ratio_rolling(pl.col(COLUMN_X), 0)
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty series yields an empty result.
-        """
-        assert apply_expr([], tail_ratio_rolling(pl.col(COLUMN_X), 3)) == []
 
     def test_warmup_null_count(self) -> None:
         """
@@ -206,11 +164,12 @@ class TestTailRatioRollingProperties:
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
-    @given(case=_cases(subnormal_safe_floats(bound=1e3)), exponent=st.sampled_from([-4, -2, -1, 1, 2, 4]))
+    @given(case=_cases(subnormal_safe_floats(bound=1e3)), exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]))
     def test_scale_invariance(self, case: tuple[list[float], int], exponent: int) -> None:
         """
-        Verifies that a positive rescale of the returns leaves the rolling tail ratio unchanged (a ratio of quantiles),
-        using powers of two so the rescaling is lossless.
+        Verifies that ``tail_ratio_rolling`` is scale-invariant: scaling every input value by a constant ``k``
+        leaves the output unchanged -- ``tail_ratio_rolling(k * x) == tail_ratio_rolling(x)``. ``k`` is a power of
+        two, so the rescale is exact and adds no floating-point error.
         """
         values, window = case
         k = 2.0**exponent

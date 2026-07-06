@@ -18,12 +18,10 @@ import math
 import polars as pl
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.metrics.oracles import total_return_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
     COLUMN_X,
-    GROUP_KEY,
     RELATIVE_TOLERANCE_PROPERTY,
     RELATIVE_TOLERANCE_REFERENCE,
     apply_expr,
@@ -55,64 +53,17 @@ class TestTotalReturnContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(total_return(pl.col(COLUMN_X)), pl.Expr)
-
-    def test_reduces_to_scalar(self) -> None:
-        """
-        Verifies that the metric reduces a series to one ``Float64`` row.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.1, 1.045, 1.254], dtype=pl.Float64)})
-        result = frame.select(total_return(pl.col(COLUMN_X)).alias("t"))
-        assert result.height == 1
-        assert result.schema["t"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.1, 1.045, 1.254], dtype=pl.Float64)})
-        expr = total_return(pl.col(COLUMN_X)).alias("t")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
-
-    def test_over_partitions_independently(self) -> None:
-        """
-        Verifies that under ``.over`` the result is computed per group (broadcast) and never spans boundaries.
-        """
-        group_a = [1.1, 1.045, 1.254, 1.3794]
-        group_b = [1.0, 0.95, 1.05]
-        frame = pl.DataFrame({GROUP_KEY: ["a"] * len(group_a) + ["b"] * len(group_b), COLUMN_X: group_a + group_b})
-        grouped = frame.select(total_return(pl.col(COLUMN_X)).over(GROUP_KEY).alias("t"))["t"].to_list()
-        expected_a = total_return_reference(group_a)
-        expected_b = total_return_reference(group_b)
-        assert_matches(grouped, [expected_a] * len(group_a) + [expected_b] * len(group_b))
-
 
 class TestTotalReturnEdge:
     """
     Boundaries and null / NaN handling.
     """
 
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty series yields ``null``.
-        """
-        assert_matches(apply_expr([], total_return(pl.col(COLUMN_X))), [None])
-
     def test_single_row(self) -> None:
         """
         Verifies that a one-element series resolves to the final growth minus one.
         """
         assert_matches(apply_expr([1.21], total_return(pl.col(COLUMN_X)).round(4)), [0.21])
-
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null series yields ``null``.
-        """
-        assert_matches(apply_expr([None, None], total_return(pl.col(COLUMN_X))), [None])
 
     def test_leading_null_uses_last_defined(self) -> None:
         """

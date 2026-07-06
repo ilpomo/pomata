@@ -10,14 +10,14 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import rma_reference
 from tests.support import (
-    ABSOLUTE_TOLERANCE_EXACT,
+    ABSOLUTE_TOLERANCE_REFERENCE,
     COLUMN_X,
     EXACT_TOLERANCE_FACTOR,
     GROUP_KEY,
     RELATIVE_TOLERANCE_PROPERTY,
+    RELATIVE_TOLERANCE_REFERENCE,
     RELATIVE_TOLERANCE_SCALE,
     SUBNORMAL_FLOOR,
     WINDOW_MAX,
@@ -70,21 +70,6 @@ class TestRmaContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(rma(pl.col(COLUMN_X), 3), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 2.0, 3.0, 4.0, 5.0])})
-        result = frame.select(rma(pl.col(COLUMN_X), 3).alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
     def test_window_one_is_float64_on_int_input(self) -> None:
         """
         Verifies that the ``window == 1`` identity short-circuit still yields ``Float64`` on an ``Int64`` input, so the
@@ -93,15 +78,6 @@ class TestRmaContract:
         frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1, 2, 3], dtype=pl.Int64)})
         result = frame.select(rma(pl.col(COLUMN_X), 1).alias("y"))
         assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 2.0, 3.0, 4.0, 5.0])})
-        result_eager = frame.select(rma(pl.col(COLUMN_X), 3).alias("y"))
-        result_lazy = frame.lazy().select(rma(pl.col(COLUMN_X), 3).alias("y")).collect()
-        assert_frame_equal(result_eager, result_lazy)
 
     def test_over_partitions_independently(self) -> None:
         """
@@ -131,12 +107,6 @@ class TestRmaEdge:
         result = apply_expr([1.0, 2.0, 3.0, 4.0, 5.0], rma(pl.col(COLUMN_X), 3))
         assert result[:2] == [None, None]
         assert result[2] is not None
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output.
-        """
-        assert_matches(apply_expr([], rma(pl.col(COLUMN_X), 3)), [])
 
     def test_all_null(self) -> None:
         """
@@ -184,7 +154,7 @@ class TestRmaEdge:
         """
         assert_matches(apply_expr([5.0, 5.0, 5.0, 5.0], rma(pl.col(COLUMN_X), 3)), [None, None, 5.0, 5.0])
 
-    def test_null_propagates(self) -> None:
+    def test_null_bridged(self) -> None:
         """
         Verifies that an interior ``null`` yields ``null`` at that row while the recursion is bridged across the gap.
         """
@@ -230,7 +200,7 @@ class TestRmaCorrectness:
         """
         result = apply_expr([2.0, 4.0, 6.0, 8.0, 10.0], rma(pl.col(COLUMN_X), 3))
         expected = [None, None, 4.0, 5.333333333333333, 6.888888888888888]
-        assert_matches(result, expected, rel_tol=1e-12, abs_tol=ABSOLUTE_TOLERANCE_EXACT)
+        assert_matches(result, expected, rel_tol=RELATIVE_TOLERANCE_REFERENCE, abs_tol=ABSOLUTE_TOLERANCE_REFERENCE)
 
 
 class TestRmaProperties:
@@ -264,8 +234,9 @@ class TestRmaProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that RMA is homogeneous of degree 1: ``rma(k * x) == k * rma(x)``. ``k`` is a power of two so the
-        rescaling is lossless and cannot introduce a floating-point artifact into the comparison.
+        Verifies that ``rma`` is homogeneous of degree 1: scaling every input value by a constant ``k`` scales the
+        output by the same ``k`` -- ``rma(k * x) == k * rma(x)``. ``k`` is a power of two, so the rescale is exact
+        and adds no floating-point error.
         """
         k = 2.0**exponent
         values, window = case

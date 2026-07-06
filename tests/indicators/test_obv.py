@@ -15,7 +15,6 @@ from collections.abc import Sequence
 import polars as pl
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import obv_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
@@ -83,40 +82,6 @@ class TestObvContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(obv(pl.col(CLOSE), pl.col(VOLUME)), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame(
-            {
-                CLOSE: pl.Series(CLOSE, [10.0, 12.0, 11.0, 11.0, 13.0]),
-                VOLUME: pl.Series(VOLUME, [100.0, 200.0, 150.0, 80.0, 300.0]),
-            }
-        )
-        result = frame.select(obv(pl.col(CLOSE), pl.col(VOLUME)).alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame(
-            {
-                CLOSE: pl.Series(CLOSE, [10.0, 12.0, 11.0, 11.0, 13.0, 9.0]),
-                VOLUME: pl.Series(VOLUME, [100.0, 200.0, 150.0, 80.0, 300.0, 250.0]),
-            }
-        )
-        result_eager = frame.select(obv(pl.col(CLOSE), pl.col(VOLUME)).alias("y"))
-        result_lazy = frame.lazy().select(obv(pl.col(CLOSE), pl.col(VOLUME)).alias("y")).collect()
-        assert_frame_equal(result_eager, result_lazy)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` both the diff and the cumulative sum reset per group and never span boundaries.
@@ -140,12 +105,6 @@ class TestObvEdge:
     """
     Boundaries, no-warm-up, and null / NaN handling.
     """
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output.
-        """
-        assert_matches(apply_obv([], []), [])
 
     def test_single_row_starts_at_zero(self) -> None:
         """
@@ -361,8 +320,9 @@ class TestObvProperties:
         sign: float,
     ) -> None:
         """
-        Verifies that OBV is homogeneous of degree 1 in volume: ``obv(c, k * v) == k * obv(c, v)``. ``k`` is a signed
-        power of two so the rescaling is lossless and the shared assertion's ``|k|``-scaled floor never underflows.
+        Verifies that ``obv`` is homogeneous of degree 1 in volume: scaling the volume by a constant ``k`` scales
+        the output by the same ``k``, while the prices are untouched. ``k`` is a power of two, so the rescale is
+        exact and adds no floating-point error.
         """
         k = sign * 2.0**exponent
         close_values, volume_values = split_pairs(case)
@@ -379,27 +339,21 @@ class TestObvProperties:
         ),
         shift=st.floats(min_value=-1e3, max_value=1e3, allow_nan=False, allow_infinity=False),
     )
-    def test_price_shift_invariance(
+    def test_additive_shift_invariance(
         self,
         case: list[tuple[float, float]],
         shift: float,
     ) -> None:
         """
-        Verifies that OBV is invariant to an additive shift of the price level: ``obv(c + t, v) == obv(c, v)``.
-
-        Only the sign of the bar-to-bar change drives OBV, so a constant offset on every close leaves it unchanged.
+        Verifies that ``obv`` is invariant to a common additive shift: adding the same constant to every input value
+        leaves the output unchanged, because the shift cancels.
         """
         close_values, volume_values = split_pairs(case)
         close_values = [round(value, 4) for value in close_values]  # realistic price precision: diffs survive the shift
         result_base = apply_obv(close_values, volume_values)
         result_shifted = apply_obv([value + shift for value in close_values], volume_values)
         tolerance = input_scale(volume_values) * EXACT_TOLERANCE_FACTOR
-        for value_shifted, value_base in zip(result_shifted, result_base, strict=True):
-            if value_base is None:
-                assert value_shifted is None
-            else:
-                assert value_shifted is not None
-                assert math.isclose(value_shifted, value_base, rel_tol=RELATIVE_TOLERANCE_SCALE, abs_tol=tolerance)
+        assert_matches(result_shifted, result_base, rel_tol=RELATIVE_TOLERANCE_SCALE, abs_tol=tolerance)
 
     @given(
         case=_cases(

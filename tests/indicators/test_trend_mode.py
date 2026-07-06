@@ -20,7 +20,6 @@ from collections.abc import Sequence
 import polars as pl
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import trend_mode_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_EXACT,
@@ -86,28 +85,6 @@ class TestTrendModeContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(trend_mode(pl.col(COLUMN_X)), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        result = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, _SAMPLE)}).select(trend_mode(pl.col(COLUMN_X)).alias("y"))
-        assert result.height == len(_SAMPLE)
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, _SAMPLE)})
-        expr = trend_mode(pl.col(COLUMN_X)).alias("y")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` the recurrence resets per group and never spans group boundaries.
@@ -123,12 +100,6 @@ class TestTrendModeEdge:
     """
     Warm-up and null / NaN latching.
     """
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output.
-        """
-        assert_matches(apply_trend_mode([]), [])
 
     def test_all_null(self) -> None:
         """
@@ -230,10 +201,9 @@ class TestTrendModeProperties:
     )
     def test_scale_invariance(self, case: list[float], exponent: int) -> None:
         """
-        Verifies that the flag is scale-invariant: ``trend_mode(k * x) == trend_mode(x)``.
-
-        The factor is a power of two, so the rescaling is lossless and the sine-wave crossings, phase rate, and relative
-        trendline deviation that fix the flag are unchanged to the bit, not merely within a tolerance.
+        Verifies that ``trend_mode`` is scale-invariant: scaling every input value by a constant ``k`` leaves the
+        output unchanged -- ``trend_mode(k * x) == trend_mode(x)``. ``k`` is a power of two, so the rescale is exact
+        and adds no floating-point error.
         """
         factor = 2.0**exponent
         values = case

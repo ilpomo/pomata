@@ -20,12 +20,10 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.metrics.oracles import drawdown_rolling_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
     COLUMN_X,
-    GROUP_KEY,
     RELATIVE_TOLERANCE_REFERENCE,
     WINDOW_MAX,
     apply_expr,
@@ -60,40 +58,6 @@ class TestDrawdownRollingContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(drawdown_rolling(pl.col(COLUMN_X), 3), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the metric maps a series to a ``Float64`` series of the same length.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 1.1, 1.05, 1.2, 1.15], dtype=pl.Float64)})
-        result = frame.select(drawdown_rolling(pl.col(COLUMN_X), 3).alias("d"))
-        assert result.height == frame.height
-        assert result.schema["d"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 1.1, 1.05, 1.2, 1.15], dtype=pl.Float64)})
-        expr = drawdown_rolling(pl.col(COLUMN_X), 3).alias("d")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
-
-    def test_over_partitions_independently(self) -> None:
-        """
-        Verifies that under ``.over`` each group warms up independently and the window never spans a boundary.
-        """
-        group_a = [1.0, 1.1, 1.05, 1.2]
-        group_b = [2.0, 1.8, 2.2, 2.0]
-        frame = pl.DataFrame({GROUP_KEY: ["a"] * len(group_a) + ["b"] * len(group_b), COLUMN_X: group_a + group_b})
-        grouped = frame.select(drawdown_rolling(pl.col(COLUMN_X), 2).over(GROUP_KEY).alias("d"))["d"].to_list()
-        expected = drawdown_rolling_reference(group_a, 2) + drawdown_rolling_reference(group_b, 2)
-        assert_matches(grouped, expected, rel_tol=RELATIVE_TOLERANCE_REFERENCE)
-
 
 class TestDrawdownRollingEdge:
     """
@@ -106,12 +70,6 @@ class TestDrawdownRollingEdge:
         """
         with pytest.raises(ValueError, match="window must be >= 1"):
             drawdown_rolling(pl.col(COLUMN_X), 0)
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty series yields an empty result.
-        """
-        assert apply_expr([], drawdown_rolling(pl.col(COLUMN_X), 3)) == []
 
     def test_warmup_null_count(self) -> None:
         """
@@ -217,8 +175,9 @@ class TestDrawdownRollingProperties:
     @given(case=_cases(_EQUITY), exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]))
     def test_scale_invariance(self, case: tuple[list[float], int], exponent: int) -> None:
         """
-        Verifies that a positive rescale of the equity leaves the rolling drawdown unchanged (the window peak ratio
-        cancels), using powers of two so the rescaling is lossless.
+        Verifies that ``drawdown_rolling`` is scale-invariant: scaling every input value by a constant ``k`` leaves
+        the output unchanged -- ``drawdown_rolling(k * x) == drawdown_rolling(x)``. ``k`` is a power of two, so the
+        rescale is exact and adds no floating-point error.
         """
         values, window = case
         k = 2.0**exponent

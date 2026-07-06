@@ -16,12 +16,10 @@ import math
 import polars as pl
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.metrics.oracles import max_drawdown_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
     COLUMN_X,
-    GROUP_KEY,
     RELATIVE_TOLERANCE_PROPERTY,
     RELATIVE_TOLERANCE_REFERENCE,
     apply_expr,
@@ -53,64 +51,17 @@ class TestMaxDrawdownContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(max_drawdown(pl.col(COLUMN_X)), pl.Expr)
-
-    def test_reduces_to_scalar(self) -> None:
-        """
-        Verifies that the metric reduces a series to one ``Float64`` row.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 1.1, 1.05, 1.2], dtype=pl.Float64)})
-        result = frame.select(max_drawdown(pl.col(COLUMN_X)).alias("m"))
-        assert result.height == 1
-        assert result.schema["m"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 1.1, 1.05, 1.2], dtype=pl.Float64)})
-        expr = max_drawdown(pl.col(COLUMN_X)).alias("m")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
-
-    def test_over_partitions_independently(self) -> None:
-        """
-        Verifies that under ``.over`` the drawdown is computed per group (broadcast) and never spans boundaries.
-        """
-        group_a = [1.0, 1.1, 1.05, 1.2, 0.9, 1.0]
-        group_b = [2.0, 1.8, 2.2, 2.0]
-        frame = pl.DataFrame({GROUP_KEY: ["a"] * len(group_a) + ["b"] * len(group_b), COLUMN_X: group_a + group_b})
-        grouped = frame.select(max_drawdown(pl.col(COLUMN_X)).over(GROUP_KEY).alias("m"))["m"].to_list()
-        expected_a = max_drawdown_reference(group_a)
-        expected_b = max_drawdown_reference(group_b)
-        assert_matches(grouped, [expected_a] * len(group_a) + [expected_b] * len(group_b))
-
 
 class TestMaxDrawdownEdge:
     """
     Boundaries and null / NaN handling.
     """
 
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty series yields ``null``.
-        """
-        assert_matches(apply_expr([], max_drawdown(pl.col(COLUMN_X))), [None])
-
     def test_single_row(self) -> None:
         """
         Verifies that a one-element series is at its own peak, so the maximum drawdown is ``0``.
         """
         assert_matches(apply_expr([1.0], max_drawdown(pl.col(COLUMN_X))), [0.0])
-
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null series yields ``null``.
-        """
-        assert_matches(apply_expr([None, None], max_drawdown(pl.col(COLUMN_X))), [None])
 
     def test_monotonic_rise_is_zero(self) -> None:
         """
@@ -189,7 +140,9 @@ class TestMaxDrawdownProperties:
     @given(case=_cases(_EQUITY), exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]))
     def test_scale_invariance(self, case: list[float], exponent: int) -> None:
         """
-        Verifies that a positive rescale of the equity leaves the maximum drawdown unchanged (powers of two, lossless).
+        Verifies that ``max_drawdown`` is scale-invariant: scaling every input value by a constant ``k`` leaves the
+        output unchanged -- ``max_drawdown(k * x) == max_drawdown(x)``. ``k`` is a power of two, so the rescale is
+        exact and adds no floating-point error.
         """
         k = 2.0**exponent
         base = apply_expr(case, max_drawdown(pl.col(COLUMN_X)))

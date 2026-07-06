@@ -19,7 +19,6 @@ from collections.abc import Sequence
 import polars as pl
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.pnl.oracles import returns_gross_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
@@ -32,6 +31,7 @@ from tests.support import (
     finite_floats,
     materialize,
     missing_data_floats,
+    subnormal_safe_floats,
 )
 
 from pomata.pnl import returns_gross
@@ -83,41 +83,6 @@ class TestReturnsGrossContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(returns_gross(pl.col(WEIGHT), pl.col(ASSET_RETURNS)), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame(
-            {
-                WEIGHT: pl.Series(WEIGHT, [1.0, 0.5, -1.0, -1.0, 0.5], dtype=pl.Float64),
-                ASSET_RETURNS: pl.Series(ASSET_RETURNS, [0.02, -0.01, 0.03, -0.02, 0.04], dtype=pl.Float64),
-            }
-        )
-        result = frame.select(returns_gross(pl.col(WEIGHT), pl.col(ASSET_RETURNS)).alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame(
-            {
-                WEIGHT: pl.Series(WEIGHT, [1.0, 0.5, -1.0, -1.0, 0.5], dtype=pl.Float64),
-                ASSET_RETURNS: pl.Series(ASSET_RETURNS, [0.02, -0.01, 0.03, -0.02, 0.04], dtype=pl.Float64),
-            }
-        )
-        expr = returns_gross(pl.col(WEIGHT), pl.col(ASSET_RETURNS)).alias("y")
-        result_eager = frame.select(expr)
-        result_lazy = frame.lazy().select(expr).collect()
-        assert_frame_equal(result_eager, result_lazy)
-
     def test_over_is_identity(self) -> None:
         """
         Verifies that ``.over`` is optional for this elementwise product: partitioning by group is identical to the
@@ -142,23 +107,11 @@ class TestReturnsGrossEdge:
     Boundaries and null / NaN handling.
     """
 
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output.
-        """
-        assert_matches(apply_returns_gross([], []), [])
-
     def test_single_row(self) -> None:
         """
         Verifies that a one-row series resolves to the single product (no window, no warm-up).
         """
         assert_matches(apply_returns_gross([0.5], [0.04]), [0.02])
-
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null input yields an all-null output (the product propagates ``null``).
-        """
-        assert_matches(apply_returns_gross([None, None], [None, None]), [None, None])
 
     def test_null_propagates(self) -> None:
         """
@@ -253,15 +206,19 @@ class TestReturnsGrossProperties:
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
-    @given(case=_cases(finite_floats(), finite_floats()), exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]))
+    @given(
+        case=_cases(subnormal_safe_floats(), subnormal_safe_floats()),
+        exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
+    )
     def test_scale_homogeneity_in_weight(
         self,
         case: tuple[list[float], list[float]],
         exponent: int,
     ) -> None:
         """
-        Verifies degree-1 homogeneity in the weight: scaling the weight by a constant scales the gross return by
-        the same constant. ``k`` is a power of two so the rescaling is lossless.
+        Verifies that ``returns_gross`` is homogeneous of degree 1 in the weight: scaling the weight by a constant
+        ``k``, with the other inputs untouched, scales the output by the same ``k``. ``k`` is a power of two, so the
+        rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         weight, asset_returns = case

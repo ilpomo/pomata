@@ -20,7 +20,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import percentage_price_oscillator_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_EXACT,
@@ -77,31 +76,6 @@ class TestPercentagePriceOscillatorContract:
     """
     Type, shape, and lazy/eager guarantees.
     """
-
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(percentage_price_oscillator(pl.col(COLUMN_X), window_fast=2, window_slow=3), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [10.0, 11.0, 12.0, 13.0, 14.0])})
-        result = frame.select(percentage_price_oscillator(pl.col(COLUMN_X), window_fast=2, window_slow=3).alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [10.0, 11.0, 12.0, 13.0, 14.0])})
-        expr = percentage_price_oscillator(pl.col(COLUMN_X), window_fast=2, window_slow=3).alias("y")
-        result_eager = frame.select(expr)
-        result_lazy = frame.lazy().select(expr).collect()
-        assert_frame_equal(result_eager, result_lazy)
 
     def test_over_partitions_independently(self) -> None:
         """
@@ -174,12 +148,6 @@ class TestPercentagePriceOscillatorEdge:
             [None, None],
         )
 
-    def test_empty(self) -> None:
-        """
-        Verifies behavior on an empty series.
-        """
-        assert_matches(apply_expr([], percentage_price_oscillator(pl.col(COLUMN_X), window_fast=2, window_slow=3)), [])
-
     def test_all_null(self) -> None:
         """
         Verifies that an all-null series yields all null.
@@ -189,7 +157,7 @@ class TestPercentagePriceOscillatorEdge:
             [None, None, None],
         )
 
-    def test_null_propagates(self) -> None:
+    def test_null_bridged(self) -> None:
         """
         Verifies that an interior ``null`` is bridged: it yields ``null`` at its own row while the recursive EMAs resume
         afterward (matching the naive reference), rather than contaminating every later row.
@@ -290,10 +258,10 @@ class TestPercentagePriceOscillatorProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that PPO is scale-invariant:
-        ``percentage_price_oscillator(k * x) == percentage_price_oscillator(x)`` for positive ``k`` (the price's
-        unit cancels). ``k`` is a power of two so the rescaling is lossless and cannot perturb the result through
-        floating-point drift.
+        Verifies that ``percentage_price_oscillator`` is scale-invariant: scaling every input value by a constant
+        ``k`` leaves the output unchanged -- ``percentage_price_oscillator(k * x) ==
+        percentage_price_oscillator(x)``. ``k`` is a power of two, so the rescale is exact and adds no
+        floating-point error.
         """
         k = 2.0**exponent
         values, window_fast, window_slow = case

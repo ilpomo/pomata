@@ -4,6 +4,11 @@ Tests **mirror the source layout** (`tests/<package>/test_<subject>.py`). Within
 separated into classes (`Test<Subject><Category>`); cross-cutting categories are selectable across the whole suite via
 pytest markers.
 
+The method behind these tests — the taxonomy, the canonical edge-case ladder, the `null` / `NaN` policies, the
+precision floor, and how the shared contracts enforce them from one place — is the single **method of record** in
+[`POLICY.md`](POLICY.md). It is made concrete by the [`support/registry.py`](support/registry.py) contract registry
+(one typed profile per public function) and kept honest by its self-check, [`test_registry.py`](test_registry.py).
+
 ## Categories (classes within each test module)
 
 - **Contract** — schema / shape / dtype, lazy↔eager parity, no internal `.collect()`, per-group independence under `.over`.

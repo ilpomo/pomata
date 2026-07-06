@@ -24,7 +24,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import supertrend_reference
 from tests.support import (
     CLOSE,
@@ -36,6 +35,7 @@ from tests.support import (
     RELATIVE_TOLERANCE_SCALE,
     WINDOW_MAX,
     assert_matches,
+    assert_scale_homogeneous,
     coherent_hlc,
     coherent_hlc_with_missing,
     input_scale,
@@ -95,12 +95,6 @@ class TestSupertrendContract:
     Type, struct schema, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(supertrend(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), 3), pl.Expr)
-
     def test_output_is_struct_with_named_fields(self) -> None:
         """
         Verifies that the output is a ``Float64`` struct with exactly the fields ``line`` / ``direction``.
@@ -110,22 +104,6 @@ class TestSupertrendContract:
         assert isinstance(dtype, pl.Struct)
         assert [field.name for field in dtype.fields] == ["line", "direction"]
         assert all(field.dtype == pl.Float64 for field in dtype.fields)
-
-    def test_preserves_length(self) -> None:
-        """
-        Verifies that the output has one struct per input row.
-        """
-        frame = pl.DataFrame({HIGH: [3.0, 4.0, 5.0], LOW: [1.0, 2.0, 3.0], CLOSE: [2.0, 3.0, 4.0]})
-        expr = supertrend(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), 2).alias("s")
-        assert frame.select(expr).height == frame.height
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({HIGH: [3.0, 4.0, 5.0, 6.0], LOW: [1.0, 2.0, 3.0, 4.0], CLOSE: [2.0, 3.0, 4.0, 5.0]})
-        expr = supertrend(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), 2).alias("s")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
 
     def test_over_partitions_independently(self) -> None:
         """
@@ -168,14 +146,6 @@ class TestSupertrendEdge:
         for invalid in (0.0, -1.0, math.nan, math.inf, -math.inf):
             with pytest.raises(ValueError, match="multiplier must be a finite number > 0"):
                 supertrend(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), 3, multiplier=invalid)
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output on both fields.
-        """
-        bands = apply_supertrend([], [], [], 2)
-        for field in FIELDS:
-            assert_matches(bands[field], [])
 
     def test_all_null(self) -> None:
         """
@@ -366,27 +336,22 @@ class TestSupertrendProperties:
         case=_cases(coherent_hlc()),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
     )
-    def test_scale_behavior(
+    def test_scale_homogeneity(
         self,
         case: tuple[list[tuple[float, float, float]], int],
         exponent: int,
     ) -> None:
         """
-        Verifies that the ``line`` is homogeneous of degree 1 (``line(k * bars) == k * line``) while ``direction`` is
-        invariant. ``k`` is a power of two so the rescaling is lossless and the match is exact.
+        Verifies that ``supertrend`` is homogeneous of degree 1 in its ``line`` and invariant in its ``direction``:
+        scaling every input value by a constant ``k`` scales the ``line`` by the same ``k`` and leaves the ``direction``
+        unchanged. ``k`` is a power of two, so the rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         rows, window = case
         high, low, close = split_triples(rows)
         base = apply_supertrend(high, low, close, window)
         scaled = apply_supertrend([v * k for v in high], [v * k for v in low], [v * k for v in close], window)
-        tolerance = input_scale([v * k for v in close]) * EXACT_TOLERANCE_FACTOR
-        for value_scaled, value_base in zip(scaled["line"], base["line"], strict=True):
-            if value_base is None:
-                assert value_scaled is None
-            else:
-                assert value_scaled is not None
-                assert math.isclose(value_scaled, value_base * k, rel_tol=RELATIVE_TOLERANCE_SCALE, abs_tol=tolerance)
+        assert_scale_homogeneous(scaled["line"], base["line"], k=k, degree=1)
         assert_matches(scaled["direction"], base["direction"])
 
     @given(case=_cases(coherent_hlc_with_missing()))

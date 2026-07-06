@@ -19,12 +19,10 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.metrics.oracles import cagr_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
     COLUMN_X,
-    GROUP_KEY,
     RELATIVE_TOLERANCE_PROPERTY,
     RELATIVE_TOLERANCE_REFERENCE,
     apply_expr,
@@ -59,41 +57,6 @@ class TestCagrContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(cagr(pl.col(COLUMN_X), periods_per_year=PERIODS), pl.Expr)
-
-    def test_reduces_to_scalar(self) -> None:
-        """
-        Verifies that the metric reduces a series to one ``Float64`` row.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.1, 1.21, 1.3], dtype=pl.Float64)})
-        result = frame.select(cagr(pl.col(COLUMN_X), periods_per_year=PERIODS).alias("c"))
-        assert result.height == 1
-        assert result.schema["c"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.1, 1.21, 1.3], dtype=pl.Float64)})
-        expr = cagr(pl.col(COLUMN_X), periods_per_year=PERIODS).alias("c")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
-
-    def test_over_partitions_independently(self) -> None:
-        """
-        Verifies that under ``.over`` the rate is computed per group (broadcast) and never spans boundaries.
-        """
-        group_a = [1.1, 1.21, 1.331, 1.4641]
-        group_b = [1.0, 1.1, 1.2]
-        frame = pl.DataFrame({GROUP_KEY: ["a"] * len(group_a) + ["b"] * len(group_b), COLUMN_X: group_a + group_b})
-        grouped = frame.select(cagr(pl.col(COLUMN_X), periods_per_year=4).over(GROUP_KEY).alias("c"))["c"].to_list()
-        expected_a = cagr_reference(group_a, 4)
-        expected_b = cagr_reference(group_b, 4)
-        assert_matches(grouped, [expected_a] * len(group_a) + [expected_b] * len(group_b))
-
 
 class TestCagrEdge:
     """
@@ -107,18 +70,6 @@ class TestCagrEdge:
         for invalid in (0, -1):
             with pytest.raises(ValueError, match="periods_per_year must be >= 1"):
                 cagr(pl.col(COLUMN_X), periods_per_year=invalid)
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty series yields ``null``.
-        """
-        assert_matches(apply_expr([], cagr(pl.col(COLUMN_X), periods_per_year=PERIODS)), [None])
-
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null series yields ``null``.
-        """
-        assert_matches(apply_expr([None, None], cagr(pl.col(COLUMN_X), periods_per_year=PERIODS)), [None])
 
     def test_leading_null_uses_last_defined(self) -> None:
         """

@@ -21,7 +21,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import vortex_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_PROPERTY,
@@ -90,12 +89,6 @@ class TestVortexContract:
     Type, struct schema, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(vortex(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), 3), pl.Expr)
-
     def test_output_is_struct_with_named_fields(self) -> None:
         """
         Verifies that the output is a ``Float64`` struct with exactly the fields ``plus`` / ``minus``.
@@ -105,21 +98,6 @@ class TestVortexContract:
         assert isinstance(dtype, pl.Struct)
         assert [field.name for field in dtype.fields] == ["plus", "minus"]
         assert all(field.dtype == pl.Float64 for field in dtype.fields)
-
-    def test_preserves_length(self) -> None:
-        """
-        Verifies that the output has one struct per input row.
-        """
-        frame = pl.DataFrame({HIGH: [2.0, 4.0, 6.0], LOW: [1.0, 3.0, 4.0], CLOSE: [1.5, 3.5, 5.0]})
-        assert frame.select(vortex(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), 2).alias("v")).height == frame.height
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({HIGH: [2.0, 4.0, 6.0, 5.0], LOW: [1.0, 3.0, 4.0, 4.0], CLOSE: [1.5, 3.5, 5.0, 4.5]})
-        expr = vortex(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), 2).alias("v")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
 
     def test_over_partitions_independently(self) -> None:
         """
@@ -153,14 +131,6 @@ class TestVortexEdge:
         """
         with pytest.raises(ValueError, match="window must be >= 1"):
             vortex(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), 0)
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output on both lines.
-        """
-        bands = apply_vortex([], [], [], 2)
-        for field in FIELDS:
-            assert_matches(bands[field], [])
 
     def test_all_null(self) -> None:
         """
@@ -313,8 +283,9 @@ class TestVortexProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that vortex is scale-invariant under a positive common rescaling of high / low / close (the price
-        scale cancels in the ratio). ``k`` is a power of two so the rescaling is lossless.
+        Verifies that ``vortex`` is scale-invariant: scaling every input value by a constant ``k`` leaves the output
+        unchanged -- ``vortex(k * x) == vortex(x)``. ``k`` is a power of two, so the rescale is exact and adds no
+        floating-point error.
         """
         k = 2.0**exponent
         rows, window = case

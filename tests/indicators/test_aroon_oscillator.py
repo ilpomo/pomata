@@ -20,7 +20,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import aroon_oscillator_reference
 from tests.support import (
     BOUND_MARGIN,
@@ -85,31 +84,6 @@ class TestAroonOscillatorContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(aroon_oscillator(pl.col(HIGH), pl.col(LOW), 14), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame({HIGH: [3.0, 2.0, 4.0, 5.0], LOW: [1.0, 0.0, 2.0, 3.0]})
-        result = frame.select(aroon_oscillator(pl.col(HIGH), pl.col(LOW), 2).alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({HIGH: [3.0, 2.0, 4.0, 5.0], LOW: [1.0, 0.0, 2.0, 3.0]})
-        expr = aroon_oscillator(pl.col(HIGH), pl.col(LOW), 2).alias("y")
-        result_eager = frame.select(expr)
-        result_lazy = frame.lazy().select(expr).collect()
-        assert_frame_equal(result_eager, result_lazy)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` the rolling extremes reset per group: the partitioned line equals the per-group
@@ -155,12 +129,6 @@ class TestAroonOscillatorEdge:
         """
         assert_matches(apply_aroon_oscillator([1.0, 2.0, 3.0], [0.0, 1.0, 2.0], 5), [None, None, None])
 
-    def test_empty(self) -> None:
-        """
-        Verifies behavior on an empty series.
-        """
-        assert_matches(apply_aroon_oscillator([], [], 2), [])
-
     def test_single_row(self) -> None:
         """
         Verifies behavior on a one-element series: the lone bar is always warm-up.
@@ -189,7 +157,7 @@ class TestAroonOscillatorEdge:
         expected = [None if u is None or d is None else u - d for u, d in zip(up, down, strict=True)]
         assert_matches(oscillator, expected)
 
-    def test_null_propagates(self) -> None:
+    def test_null_in_window_is_null(self) -> None:
         """
         Verifies that a ``null`` anywhere in the look-back yields ``null``.
         """
@@ -260,9 +228,9 @@ class TestAroonOscillatorProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that the oscillator is scale-invariant: scaling ``high`` and ``low`` by a positive ``k`` leaves it
-        unchanged. ``k`` is a power of two so the rescaling is lossless: the indicator is an argmax/argmin, and an
-        arbitrary factor can round two near-tied highs to the same value and flip which one wins, changing the result.
+        Verifies that ``aroon_oscillator`` is scale-invariant: scaling every input value by a constant ``k`` leaves
+        the output unchanged -- ``aroon_oscillator(k * x) == aroon_oscillator(x)``. ``k`` is a power of two, so the
+        rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         rows, window = case

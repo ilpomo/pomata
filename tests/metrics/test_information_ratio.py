@@ -20,12 +20,10 @@ import polars as pl
 import pytest
 from hypothesis import assume, given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.metrics.oracles import information_ratio_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
     BENCHMARK,
-    GROUP_KEY,
     RELATIVE_TOLERANCE_PROPERTY,
     RELATIVE_TOLERANCE_REFERENCE,
     RELATIVE_TOLERANCE_SCALE,
@@ -72,65 +70,6 @@ class TestInformationRatioContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(information_ratio(pl.col(RETURNS), pl.col(BENCHMARK), periods_per_year=PERIODS), pl.Expr)
-
-    def test_reduces_to_scalar(self) -> None:
-        """
-        Verifies that the metric reduces the two series to one ``Float64`` row.
-        """
-        frame = pl.DataFrame(
-            {
-                RETURNS: pl.Series(RETURNS, [0.01, -0.02, 0.015, -0.03], dtype=pl.Float64),
-                BENCHMARK: pl.Series(BENCHMARK, [0.008, -0.015, 0.012, -0.025], dtype=pl.Float64),
-            }
-        )
-        result = frame.select(
-            information_ratio(pl.col(RETURNS), pl.col(BENCHMARK), periods_per_year=PERIODS).alias("i")
-        )
-        assert result.height == 1
-        assert result.schema["i"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame(
-            {
-                RETURNS: pl.Series(RETURNS, [0.01, -0.02, 0.015, -0.03], dtype=pl.Float64),
-                BENCHMARK: pl.Series(BENCHMARK, [0.008, -0.015, 0.012, -0.025], dtype=pl.Float64),
-            }
-        )
-        expr = information_ratio(pl.col(RETURNS), pl.col(BENCHMARK), periods_per_year=PERIODS).alias("i")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
-
-    def test_over_partitions_independently(self) -> None:
-        """
-        Verifies that under ``.over`` the ratio is computed per group (broadcast) and never spans boundaries.
-        """
-        returns_a = [0.01, -0.02, 0.015, -0.03, 0.005]
-        benchmark_a = [0.008, -0.015, 0.012, -0.025, 0.004]
-        returns_b = [0.02, -0.05, 0.01, -0.01]
-        benchmark_b = [0.018, -0.04, 0.012, -0.008]
-        frame = pl.DataFrame(
-            {
-                GROUP_KEY: ["a"] * len(returns_a) + ["b"] * len(returns_b),
-                RETURNS: returns_a + returns_b,
-                BENCHMARK: benchmark_a + benchmark_b,
-            }
-        )
-        grouped = frame.select(
-            information_ratio(pl.col(RETURNS), pl.col(BENCHMARK), periods_per_year=PERIODS).over(GROUP_KEY).alias("i")
-        )["i"].to_list()
-        expected_a = information_ratio_reference(returns_a, benchmark_a, PERIODS)
-        expected_b = information_ratio_reference(returns_b, benchmark_b, PERIODS)
-        assert_matches(
-            grouped, [expected_a] * len(returns_a) + [expected_b] * len(returns_b), rel_tol=RELATIVE_TOLERANCE_REFERENCE
-        )
-
 
 class TestInformationRatioEdge:
     """
@@ -143,18 +82,6 @@ class TestInformationRatioEdge:
         """
         with pytest.raises(ValueError, match="periods_per_year must be >= 1"):
             information_ratio(pl.col(RETURNS), pl.col(BENCHMARK), periods_per_year=0)
-
-    def test_empty(self) -> None:
-        """
-        Verifies that empty series yield ``null``.
-        """
-        assert_matches(
-            materialize(
-                {RETURNS: [], BENCHMARK: []},
-                information_ratio(pl.col(RETURNS), pl.col(BENCHMARK), periods_per_year=PERIODS),
-            ),
-            [None],
-        )
 
     def test_single_pair(self) -> None:
         """
@@ -178,16 +105,20 @@ class TestInformationRatioEdge:
         )
         assert_matches(result, [math.inf])
 
-    def test_all_null(self) -> None:
+    def test_null_skipped(self) -> None:
         """
-        Verifies that all-null series yield ``null``.
+        Verifies that a ``null`` in either leg drops that pair (excluded from the reduction), matching the reference.
         """
+        returns = [0.012, -0.008, 0.02, None, 0.005, 0.0, -0.02, 0.018]
+        benchmark = [0.01, -0.006, 0.018, -0.012, 0.004, 0.002, -0.018, 0.015]
         assert_matches(
             materialize(
-                {RETURNS: [None, None], BENCHMARK: [None, None]},
+                {RETURNS: returns, BENCHMARK: benchmark},
                 information_ratio(pl.col(RETURNS), pl.col(BENCHMARK), periods_per_year=PERIODS),
             ),
-            [None],
+            [information_ratio_reference(returns, benchmark, PERIODS)],
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
     def test_nan_poisons(self) -> None:
@@ -283,11 +214,12 @@ class TestInformationRatioProperties:
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
-    @given(case=_cases(_PAIR, min_size=2), exponent=st.sampled_from([-4, -2, -1, 1, 2, 4]))
+    @given(case=_cases(_PAIR, min_size=2), exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]))
     def test_scale_invariance(self, case: list[tuple[float, float]], exponent: int) -> None:
         """
-        Verifies that a joint positive rescale of both legs leaves the ratio unchanged (a mean over a standard
-        deviation), using powers of two so the rescaling is lossless.
+        Verifies that ``information_ratio`` is scale-invariant: scaling every input value by a constant ``k`` leaves
+        the output unchanged -- ``information_ratio(k * x) == information_ratio(x)``. ``k`` is a power of two, so
+        the rescale is exact and adds no floating-point error.
         """
         returns, benchmark = split_pairs(case)
         assume(well_spread(_complete_active(returns, benchmark)))

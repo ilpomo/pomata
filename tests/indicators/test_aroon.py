@@ -21,7 +21,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import aroon_reference
 from tests.support import (
     BOUND_MARGIN,
@@ -101,12 +100,6 @@ class TestAroonContract:
     Type, struct schema, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(aroon(pl.col(HIGH), pl.col(LOW), 14), pl.Expr)
-
     def test_output_is_struct_with_named_fields(self) -> None:
         """
         Verifies that the output is a ``Float64`` struct with exactly the fields ``up`` / ``down``.
@@ -116,24 +109,6 @@ class TestAroonContract:
         assert isinstance(dtype, pl.Struct)
         assert [field.name for field in dtype.fields] == ["up", "down"]
         assert all(field.dtype == pl.Float64 for field in dtype.fields)
-
-    def test_preserves_length(self) -> None:
-        """
-        Verifies that the output has one struct per input row.
-        """
-        frame = pl.DataFrame({HIGH: [3.0, 2.0, 4.0, 5.0], LOW: [1.0, 0.0, 2.0, 3.0]})
-        result = frame.select(aroon(pl.col(HIGH), pl.col(LOW), 2).alias("a"))
-        assert result.height == frame.height
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({HIGH: [3.0, 2.0, 4.0, 5.0], LOW: [1.0, 0.0, 2.0, 3.0]})
-        expr = aroon(pl.col(HIGH), pl.col(LOW), 2).alias("a")
-        result_eager = frame.select(expr)
-        result_lazy = frame.lazy().select(expr).collect()
-        assert_frame_equal(result_eager, result_lazy)
 
     def test_over_partitions_independently(self) -> None:
         """
@@ -183,14 +158,6 @@ class TestAroonEdge:
         for field in FIELDS:
             assert_matches(bands[field], [None, None, None])
 
-    def test_empty(self) -> None:
-        """
-        Verifies behavior on an empty series: every field is empty.
-        """
-        bands = apply_aroon([], [], 2)
-        for field in FIELDS:
-            assert_matches(bands[field], [])
-
     def test_single_row(self) -> None:
         """
         Verifies behavior on a one-element series: the lone bar is always warm-up on every field.
@@ -222,7 +189,7 @@ class TestAroonEdge:
         bands = apply_aroon([5.0, 5.0, 3.0], [1.0, 2.0, 3.0], 2)
         assert_matches(bands["up"], [None, None, 50.0])
 
-    def test_null_propagates(self) -> None:
+    def test_null_in_window_is_null(self) -> None:
         """
         Verifies that a ``null`` anywhere in the look-back yields ``null`` on the affected line.
         """
@@ -309,9 +276,9 @@ class TestAroonProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that Aroon is scale-invariant: scaling ``high`` and ``low`` by a positive ``k`` leaves both lines
-        unchanged (only the positions of the extremes matter). ``k`` is a power of two so the rescaling is lossless and
-        cannot round two near-tied extremes to the same value and flip which position wins.
+        Verifies that ``aroon`` is scale-invariant: scaling every input value by a constant ``k`` leaves the output
+        unchanged -- ``aroon(k * x) == aroon(x)``. ``k`` is a power of two, so the rescale is exact and adds no
+        floating-point error.
         """
         k = 2.0**exponent
         rows, window = case

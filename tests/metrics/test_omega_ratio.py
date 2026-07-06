@@ -18,12 +18,10 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.metrics.oracles import omega_ratio_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
     COLUMN_X,
-    GROUP_KEY,
     RELATIVE_TOLERANCE_PROPERTY,
     RELATIVE_TOLERANCE_REFERENCE,
     RELATIVE_TOLERANCE_SCALE,
@@ -58,43 +56,6 @@ class TestOmegaRatioContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(omega_ratio(pl.col(COLUMN_X)), pl.Expr)
-
-    def test_reduces_to_scalar(self) -> None:
-        """
-        Verifies that the metric reduces a series to one ``Float64`` row.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [0.01, -0.02, 0.015, -0.03], dtype=pl.Float64)})
-        result = frame.select(omega_ratio(pl.col(COLUMN_X)).alias("o"))
-        assert result.height == 1
-        assert result.schema["o"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [0.01, -0.02, 0.015, -0.03], dtype=pl.Float64)})
-        expr = omega_ratio(pl.col(COLUMN_X)).alias("o")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
-
-    def test_over_partitions_independently(self) -> None:
-        """
-        Verifies that under ``.over`` the ratio is computed per group (broadcast) and never spans boundaries.
-        """
-        group_a = [0.01, -0.02, 0.015, -0.03, 0.005, 0.04]
-        group_b = [0.02, -0.05, 0.01, -0.01, 0.03]
-        frame = pl.DataFrame({GROUP_KEY: ["a"] * len(group_a) + ["b"] * len(group_b), COLUMN_X: group_a + group_b})
-        grouped = frame.select(omega_ratio(pl.col(COLUMN_X)).over(GROUP_KEY).alias("o"))["o"].to_list()
-        expected_a = omega_ratio_reference(group_a, 0.0)
-        expected_b = omega_ratio_reference(group_b, 0.0)
-        assert_matches(
-            grouped, [expected_a] * len(group_a) + [expected_b] * len(group_b), rel_tol=RELATIVE_TOLERANCE_REFERENCE
-        )
-
 
 class TestOmegaRatioEdge:
     """
@@ -108,12 +69,6 @@ class TestOmegaRatioEdge:
         for invalid in (math.nan, math.inf, -math.inf):
             with pytest.raises(ValueError, match="threshold must be a finite number"):
                 omega_ratio(pl.col(COLUMN_X), threshold=invalid)
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty series yields ``null``.
-        """
-        assert_matches(apply_expr([], omega_ratio(pl.col(COLUMN_X))), [None])
 
     def test_all_gain_is_inf(self) -> None:
         """
@@ -132,12 +87,6 @@ class TestOmegaRatioEdge:
         Verifies that returns all exactly at the threshold give ``0 / 0``, so the ratio is ``NaN``.
         """
         assert_matches(apply_expr([0.0, 0.0, 0.0], omega_ratio(pl.col(COLUMN_X))), [math.nan])
-
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null series yields ``null``.
-        """
-        assert_matches(apply_expr([None, None], omega_ratio(pl.col(COLUMN_X))), [None])
 
     def test_nan_poisons(self) -> None:
         """
@@ -211,11 +160,15 @@ class TestOmegaRatioProperties:
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
-    @given(case=_cases(subnormal_safe_floats(bound=1e3), min_size=2), exponent=st.sampled_from([-4, -2, -1, 1, 2, 4]))
+    @given(
+        case=_cases(subnormal_safe_floats(bound=1e3), min_size=2),
+        exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
+    )
     def test_scale_invariance(self, case: list[float], exponent: int) -> None:
         """
-        Verifies that a positive rescale of the returns leaves the omega ratio at threshold 0 unchanged (a ratio of
-        means), using powers of two so the rescaling is lossless.
+        Verifies that ``omega_ratio`` is scale-invariant: scaling every input value by a constant ``k`` leaves the
+        output unchanged -- ``omega_ratio(k * x) == omega_ratio(x)``. ``k`` is a power of two, so the rescale is
+        exact and adds no floating-point error.
         """
         k = 2.0**exponent
         base = apply_expr(case, omega_ratio(pl.col(COLUMN_X)))

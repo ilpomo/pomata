@@ -18,7 +18,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import linear_regression_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
@@ -73,31 +72,6 @@ class TestLinearRegressionContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(linear_regression(pl.col(COLUMN_X), 14), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [10.0, 11.0, 13.0, 12.0, 14.0])})
-        result = frame.select(linear_regression(pl.col(COLUMN_X), 3).alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [10.0, 11.0, 13.0, 12.0, 14.0])})
-        expr = linear_regression(pl.col(COLUMN_X), 3).alias("y")
-        result_eager = frame.select(expr)
-        result_lazy = frame.lazy().select(expr).collect()
-        assert_frame_equal(result_eager, result_lazy)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` the window resets per group and never spans group boundaries.
@@ -132,9 +106,9 @@ class TestLinearRegressionEdge:
         assert result[:2] == [None, None]
         assert result[2] is not None
 
-    def test_null_propagates(self) -> None:
+    def test_null_in_window_is_null(self) -> None:
         """
-        Verifies that a null propagates (matching the naive reference).
+        Verifies that an interior ``null`` nulls every window that overlaps it, then the output recovers.
         """
         values = [10.0, 11.0, 13.0, None, 14.0, 15.0, 16.0]
         assert_matches(
@@ -163,12 +137,6 @@ class TestLinearRegressionEdge:
         Verifies that a one-element series is all warm-up: a window of more than one observation yields null.
         """
         assert_matches(apply_expr([42.0], linear_regression(pl.col(COLUMN_X), 2)), [None])
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty series yields an empty result.
-        """
-        assert_matches(apply_expr([], linear_regression(pl.col(COLUMN_X), 3)), [])
 
     def test_all_null(self) -> None:
         """
@@ -248,8 +216,9 @@ class TestLinearRegressionProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that, for positive ``k``, the endpoint is homogeneous of degree 1: ``f(k * x) == k * f(x)``. ``k`` is a
-        power of two so the rescaling is lossless and cannot introduce a sub-ULP drift into the fitted endpoint.
+        Verifies that ``linear_regression`` is homogeneous of degree 1: scaling every input value by a constant
+        ``k`` scales the output by the same ``k`` -- ``linear_regression(k * x) == k * linear_regression(x)``. ``k``
+        is a power of two, so the rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         values, window = case

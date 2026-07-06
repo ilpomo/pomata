@@ -144,7 +144,12 @@ warn_unused_configs = true
 # (an arbitrary-parameter ``Callable[..., pl.Expr]``). It stays disallowed everywhere else.
 [[tool.mypy.overrides]]
 disallow_any_explicit = false
-module = ["tests.indicators.test_differential", "tests.support.synthesis"]
+module = [
+    "tests.indicators.test_differential",
+    "tests.support.synthesis",
+    "tests.support.contracts",
+    "tests.test_policies",
+]
 
 [tool.pyright]
 extraPaths = ["."]

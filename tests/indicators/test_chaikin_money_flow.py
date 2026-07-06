@@ -16,7 +16,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import chaikin_money_flow_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
@@ -26,6 +25,7 @@ from tests.support import (
     HIGH,
     LOW,
     RELATIVE_TOLERANCE_PROPERTY,
+    RELATIVE_TOLERANCE_REFERENCE,
     VOLUME,
     WINDOW_MAX,
     assert_matches,
@@ -127,52 +127,6 @@ class TestChaikinMoneyFlowContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(chaikin_money_flow(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), pl.col(VOLUME), 3), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame(
-            {
-                HIGH: pl.Series(HIGH, [10.0, 12.0, 11.0, 13.0, 14.0]),
-                LOW: pl.Series(LOW, [8.0, 9.0, 9.0, 10.0, 11.0]),
-                CLOSE: pl.Series(CLOSE, [9.0, 11.0, 10.0, 12.0, 13.0]),
-                VOLUME: pl.Series(VOLUME, [100.0, 200.0, 150.0, 300.0, 250.0]),
-            }
-        )
-        result = frame.select(
-            chaikin_money_flow(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), pl.col(VOLUME), 3).alias("y")
-        )
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame(
-            {
-                HIGH: pl.Series(HIGH, [10.0, 12.0, 11.0, 13.0, 14.0]),
-                LOW: pl.Series(LOW, [8.0, 9.0, 9.0, 10.0, 11.0]),
-                CLOSE: pl.Series(CLOSE, [9.0, 11.0, 10.0, 12.0, 13.0]),
-                VOLUME: pl.Series(VOLUME, [100.0, 200.0, 150.0, 300.0, 250.0]),
-            }
-        )
-        result_eager = frame.select(
-            chaikin_money_flow(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), pl.col(VOLUME), 3).alias("y")
-        )
-        result_lazy = (
-            frame.lazy()
-            .select(chaikin_money_flow(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), pl.col(VOLUME), 3).alias("y"))
-            .collect()
-        )
-        assert_frame_equal(result_eager, result_lazy)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` both rolling sums reset per group and never span group boundaries.
@@ -223,12 +177,6 @@ class TestChaikinMoneyFlowEdge:
         )
         assert result[:2] == [None, None]
         assert result[2] is not None
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output.
-        """
-        assert apply_chaikin_money_flow([], [], [], [], 3) == []
 
     def test_single_row(self) -> None:
         """
@@ -444,6 +392,8 @@ class TestChaikinMoneyFlowCorrectness:
                 3,
             ),
             [None, None, 0.14814814814814814, 0.2564102564102564, 0.26190476190476186],
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
 
@@ -498,8 +448,9 @@ class TestChaikinMoneyFlowProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that the CMF is invariant under a positive global rescaling of all prices: scaling ``high``, ``low``
-        and ``close`` by ``k > 0`` leaves the multiplier (a ratio of price differences) unchanged.
+        Verifies that ``chaikin_money_flow`` is invariant to a price rescale: scaling the price inputs by a constant
+        ``k`` leaves the output unchanged, while the volume is untouched. ``k`` is a power of two, so the rescale is
+        exact and adds no floating-point error.
         """
         k = 2.0**exponent
         rows, window = case
@@ -524,8 +475,9 @@ class TestChaikinMoneyFlowProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that the CMF is invariant under a positive global rescaling of volume: both rolling sums scale by
-        ``c > 0``, so their ratio is unchanged.
+        Verifies that ``chaikin_money_flow`` is invariant to a volume rescale: scaling the volume by a constant
+        ``k`` leaves the output unchanged, while the prices are untouched. ``k`` is a power of two, so the rescale
+        is exact and adds no floating-point error.
         """
         c = 2.0**exponent
         rows, window = case

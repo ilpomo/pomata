@@ -16,7 +16,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import money_flow_index_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
@@ -26,6 +25,7 @@ from tests.support import (
     HIGH,
     LOW,
     RELATIVE_TOLERANCE_PROPERTY,
+    RELATIVE_TOLERANCE_REFERENCE,
     VOLUME,
     WINDOW_MAX,
     assert_matches,
@@ -100,45 +100,6 @@ class TestMoneyFlowIndexContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(money_flow_index(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), pl.col(VOLUME), 3), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame(
-            {
-                HIGH: pl.Series(HIGH, [10.0, 11.0, 12.0, 11.0, 13.0]),
-                LOW: pl.Series(LOW, [8.0, 9.0, 10.0, 9.0, 11.0]),
-                CLOSE: pl.Series(CLOSE, [9.0, 10.0, 11.0, 10.0, 12.0]),
-                VOLUME: pl.Series(VOLUME, [100.0, 150.0, 120.0, 130.0, 110.0]),
-            }
-        )
-        result = frame.select(money_flow_index(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), pl.col(VOLUME), 3).alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame(
-            {
-                HIGH: pl.Series(HIGH, [10.0, 11.0, 12.0, 11.0, 13.0, 14.0]),
-                LOW: pl.Series(LOW, [8.0, 9.0, 10.0, 9.0, 11.0, 12.0]),
-                CLOSE: pl.Series(CLOSE, [9.0, 10.0, 11.0, 10.0, 12.0, 13.0]),
-                VOLUME: pl.Series(VOLUME, [100.0, 150.0, 120.0, 130.0, 110.0, 160.0]),
-            }
-        )
-        expr = money_flow_index(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), pl.col(VOLUME), 3).alias("y")
-        result_eager = frame.select(expr)
-        result_lazy = frame.lazy().select(expr).collect()
-        assert_frame_equal(result_eager, result_lazy)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` the difference and rolling sums reset per group and never span group boundaries.
@@ -179,12 +140,6 @@ class TestMoneyFlowIndexEdge:
         """
         with pytest.raises(ValueError, match="window must be >= 1"):
             money_flow_index(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), pl.col(VOLUME), 0)
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output.
-        """
-        assert_matches(apply_money_flow_index([], [], [], [], 3), [])
 
     def test_warmup_null_count(self) -> None:
         """
@@ -496,6 +451,8 @@ class TestMoneyFlowIndexCorrectness:
                 66.92913385826772,
                 72.63843648208469,
             ],
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
 
@@ -550,7 +507,9 @@ class TestMoneyFlowIndexProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that a positive rescaling of all prices leaves the MFI unchanged (the up/down ratio is scale-free).
+        Verifies that ``money_flow_index`` is invariant to a price rescale: scaling the price inputs by a constant
+        ``k`` leaves the output unchanged, while the volume is untouched. ``k`` is a power of two, so the rescale is
+        exact and adds no floating-point error.
         """
         k = 2.0**exponent
         rows, window = case
@@ -575,7 +534,9 @@ class TestMoneyFlowIndexProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that a positive global rescaling of volume leaves the MFI unchanged (both flows scale together).
+        Verifies that ``money_flow_index`` is invariant to a volume rescale: scaling the volume by a constant ``k``
+        leaves the output unchanged, while the prices are untouched. ``k`` is a power of two, so the rescale is
+        exact and adds no floating-point error.
         """
         c = 2.0**exponent
         rows, window = case

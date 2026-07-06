@@ -19,7 +19,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import ultimate_oscillator_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
@@ -102,44 +101,6 @@ class TestUltimateOscillatorContract:
     """
     Type, shape, and lazy/eager guarantees.
     """
-
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(
-            ultimate_oscillator(
-                pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), window_short=7, window_medium=14, window_long=28
-            ),
-            pl.Expr,
-        )
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame({HIGH: [10.0, 11.0, 12.0], LOW: [9.0, 10.0, 11.0], CLOSE: [9.5, 10.5, 11.5]})
-        result = frame.select(
-            ultimate_oscillator(
-                pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), window_short=1, window_medium=2, window_long=2
-            ).alias("y")
-        )
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame(
-            {HIGH: [10.0, 11.0, 12.0, 11.5], LOW: [9.0, 10.0, 11.0, 10.5], CLOSE: [9.5, 10.5, 11.5, 11.0]}
-        )
-        expr = ultimate_oscillator(
-            pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), window_short=2, window_medium=2, window_long=3
-        ).alias("y")
-        result_eager = frame.select(expr)
-        result_lazy = frame.lazy().select(expr).collect()
-        assert_frame_equal(result_eager, result_lazy)
 
     def test_over_partitions_independently(self) -> None:
         """
@@ -232,12 +193,6 @@ class TestUltimateOscillatorEdge:
         assert result[:3] == [None, None, None]
         assert result[3] is not None
 
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output.
-        """
-        assert_matches(apply_ultimate_oscillator([], [], []), [])
-
     def test_all_null(self) -> None:
         """
         Verifies that an all-null series yields an all-null output.
@@ -281,9 +236,9 @@ class TestUltimateOscillatorEdge:
         assert result[1] is not None
         assert math.isnan(result[1])
 
-    def test_null_propagates(self) -> None:
+    def test_null_in_window_is_null(self) -> None:
         """
-        Verifies that a null propagates (matching the naive reference).
+        Verifies that an interior ``null`` nulls every window that overlaps it, then the output recovers.
         """
         high = [10.0, 11.0, 12.0, None, 13.0, 13.5, 14.0, 13.5, 15.0, 14.5]
         low = [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5, 14.0, 13.5]
@@ -372,8 +327,9 @@ class TestUltimateOscillatorProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that ``ultimate_oscillator`` is scale-invariant under a positive common rescaling of the bars. ``k`` is
-        a power of two so the rescaling is lossless and cannot introduce a floating-point artifact.
+        Verifies that ``ultimate_oscillator`` is scale-invariant: scaling every input value by a constant ``k``
+        leaves the output unchanged -- ``ultimate_oscillator(k * x) == ultimate_oscillator(x)``. ``k`` is a power of
+        two, so the rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         rows, window_short, window_medium, window_long = case
@@ -416,4 +372,6 @@ class TestUltimateOscillatorProperties:
         assert_matches(
             apply_ultimate_oscillator(high, low, close, window_short, window_medium, window_long),
             ultimate_oscillator_reference(high, low, close, window_short, window_medium, window_long),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )

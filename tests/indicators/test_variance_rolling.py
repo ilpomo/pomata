@@ -18,7 +18,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import variance_rolling_reference
 from tests.support import (
     COLUMN_X,
@@ -85,30 +84,6 @@ class TestVarianceRollingContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(variance_rolling(pl.col(COLUMN_X), 3), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 2.0, 3.0, 4.0, 5.0])})
-        result = frame.select(variance_rolling(pl.col(COLUMN_X), 3).alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 2.0, 3.0, 4.0, 5.0])})
-        result_eager = frame.select(variance_rolling(pl.col(COLUMN_X), 3).alias("y"))
-        result_lazy = frame.lazy().select(variance_rolling(pl.col(COLUMN_X), 3).alias("y")).collect()
-        assert_frame_equal(result_eager, result_lazy)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` the window resets per group and never spans group boundaries.
@@ -157,7 +132,7 @@ class TestVarianceRollingEdge:
         assert_matches(apply_expr([42.0], variance_rolling(pl.col(COLUMN_X), 1)), [0.0])
         assert_matches(apply_expr([42.0], variance_rolling(pl.col(COLUMN_X), 3)), [None])
 
-    def test_null_propagates(self) -> None:
+    def test_null_in_window_is_null(self) -> None:
         """
         Verifies that a ``null`` inside the window yields ``null`` there, and the value returns once the window clears.
         """
@@ -196,12 +171,6 @@ class TestVarianceRollingEdge:
         Verifies the whole output is null when ``window`` exceeds the series length (no full window ever forms).
         """
         assert_matches(apply_expr([1.0, 2.0, 3.0], variance_rolling(pl.col(COLUMN_X), 5)), [None, None, None])
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty series yields an empty result.
-        """
-        assert_matches(apply_expr([], variance_rolling(pl.col(COLUMN_X), 3)), [])
 
     def test_all_null(self) -> None:
         """
@@ -278,8 +247,9 @@ class TestVarianceRollingProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that variance is homogeneous of degree 2: ``variance(k * x) == k**2 * variance(x)``. ``k`` is a power
-        of two so the rescaling is lossless and cannot introduce a sub-ULP drift into the squared deviations.
+        Verifies that ``variance_rolling`` is homogeneous of degree 2: scaling every input value by a constant ``k``
+        scales the output by ``k`` squared -- ``variance_rolling(k * x) == k**2 * variance_rolling(x)``. ``k`` is a
+        power of two, so the rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         values, window = case

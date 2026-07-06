@@ -16,7 +16,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import trima_reference
 from tests.support import (
     COLUMN_X,
@@ -72,31 +71,6 @@ class TestTrimaContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(trima(pl.col(COLUMN_X), 3), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 2.0, 3.0, 4.0, 5.0])})
-        result = frame.select(trima(pl.col(COLUMN_X), 3).alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 2.0, 3.0, 4.0, 5.0])})
-        expr = trima(pl.col(COLUMN_X), 3).alias("y")
-        result_eager = frame.select(expr)
-        result_lazy = frame.lazy().select(expr).collect()
-        assert_frame_equal(result_eager, result_lazy)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` the window resets per group and never spans group boundaries.
@@ -126,12 +100,6 @@ class TestTrimaEdge:
         assert result[:2] == [None, None]
         assert result[2] is not None
 
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output.
-        """
-        assert_matches(apply_expr([], trima(pl.col(COLUMN_X), 3)), [])
-
     def test_all_null(self) -> None:
         """
         Verifies that an all-null series yields an all-null output.
@@ -159,7 +127,7 @@ class TestTrimaEdge:
         assert_matches(apply_expr([42.0], trima(pl.col(COLUMN_X), 1)), [42.0])
         assert_matches(apply_expr([42.0], trima(pl.col(COLUMN_X), 3)), [None])
 
-    def test_null_propagates(self) -> None:
+    def test_null_in_window_is_null(self) -> None:
         """
         Verifies that a ``null`` inside the window yields ``null`` there, and the value returns once the window clears.
         """
@@ -232,8 +200,9 @@ class TestTrimaProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that TRIMA is homogeneous of degree 1: ``trima(k * x) == k * trima(x)``. ``k`` is a power of two so the
-        rescaling is lossless and cannot introduce a floating-point artifact.
+        Verifies that ``trima`` is homogeneous of degree 1: scaling every input value by a constant ``k`` scales the
+        output by the same ``k`` -- ``trima(k * x) == k * trima(x)``. ``k`` is a power of two, so the rescale is
+        exact and adds no floating-point error.
         """
         k = 2.0**exponent
         values, window = case

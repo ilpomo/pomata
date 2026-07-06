@@ -20,7 +20,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.pnl.oracles import cost_fixed_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
@@ -68,31 +67,6 @@ class TestCostFixedContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(cost_fixed(pl.col(COLUMN_X), FEE), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [10.0, 10.0, -5.0, -5.0, 20.0], dtype=pl.Float64)})
-        result = frame.select(cost_fixed(pl.col(COLUMN_X), FEE).alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [10.0, 10.0, -5.0, -5.0, 20.0], dtype=pl.Float64)})
-        expr = cost_fixed(pl.col(COLUMN_X), FEE).alias("y")
-        result_eager = frame.select(expr)
-        result_lazy = frame.lazy().select(expr).collect()
-        assert_frame_equal(result_eager, result_lazy)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` the turnover resets per group (each group gets its own flat start).
@@ -121,18 +95,6 @@ class TestCostFixedEdge:
         Verifies that a one-element series charges the fee (the entry trade), not null.
         """
         assert_matches(apply_expr([10.0], cost_fixed(pl.col(COLUMN_X), FEE)), [1.0])
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty series yields an empty result.
-        """
-        assert_matches(apply_expr([], cost_fixed(pl.col(COLUMN_X), FEE)), [])
-
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null series stays null.
-        """
-        assert_matches(apply_expr([None, None, None], cost_fixed(pl.col(COLUMN_X), FEE)), [None, None, None])
 
     def test_null_propagates(self) -> None:
         """
@@ -239,10 +201,9 @@ class TestCostFixedProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies scale-invariance in the quantity: scaling it by a positive constant leaves the set of trade-bars (and
-        so the fixed cost) unchanged. ``k`` is a power of two so the rescaling is lossless; the quantity is drawn from
-        ``subnormal_safe_floats`` so that down-scaling never underflows a nonzero quantity to ``0.0`` and silently
-        erases a trade (cost_fixed is discontinuous, so that would flip the fee — a floating-point artifact, not a bug).
+        Verifies that ``cost_fixed`` is scale-invariant: scaling every input value by a constant ``k`` leaves the
+        output unchanged -- ``cost_fixed(k * x) == cost_fixed(x)``. ``k`` is a power of two, so the rescale is exact
+        and adds no floating-point error.
         """
         k = 2.0**exponent
         values = case

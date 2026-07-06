@@ -19,7 +19,6 @@ from collections.abc import Sequence
 import polars as pl
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import vwap_reference
 from tests.support import (
     CLOSE,
@@ -83,31 +82,6 @@ class TestVwapContract:
     Type, shape, lazy/eager, and ``.over`` anchoring guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(vwap(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), pl.col(VOLUME)), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame({HIGH: [2.0, 4.0], LOW: [0.0, 2.0], CLOSE: [1.0, 3.0], VOLUME: [10.0, 20.0]})
-        result = frame.select(vwap(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), pl.col(VOLUME)).alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame(
-            {HIGH: [2.0, 4.0, 6.0], LOW: [0.0, 2.0, 4.0], CLOSE: [1.0, 3.0, 5.0], VOLUME: [10.0, 20.0, 30.0]}
-        )
-        expr = vwap(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), pl.col(VOLUME)).alias("y")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
-
     def test_over_anchors_per_session(self) -> None:
         """
         Verifies that under ``.over`` the VWAP restarts per session and never accumulates across the boundary.
@@ -130,12 +104,6 @@ class TestVwapEdge:
     """
     Zero / negative volume, single-row, null and NaN handling.
     """
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output.
-        """
-        assert_matches(apply_vwap([], [], [], []), [])
 
     def test_all_null(self) -> None:
         """
@@ -286,14 +254,15 @@ class TestVwapProperties:
         rows=_cases(coherent_hlcv()),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
     )
-    def test_price_homogeneity(
+    def test_price_scale_homogeneity(
         self,
         rows: list[tuple[float, float, float, float]],
         exponent: int,
     ) -> None:
         """
-        Verifies degree-1 homogeneity in price: ``VWAP(k * prices, volume) == k * VWAP``. ``k`` is a power of two so the
-        rescaling is lossless.
+        Verifies that ``vwap`` is homogeneous of degree 1 in price: scaling the price inputs by a constant ``k``
+        scales the output by the same ``k``, while the volume is untouched. ``k`` is a power of two, so the rescale
+        is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         high, low, close, volume = split_quads(rows)
@@ -303,16 +272,17 @@ class TestVwapProperties:
 
     @given(
         rows=_cases(coherent_hlcv()),
-        exponent=st.sampled_from([-4, -2, 1, 3, 6]),
+        exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
     )
-    def test_volume_invariance(
+    def test_volume_scale_invariance(
         self,
         rows: list[tuple[float, float, float, float]],
         exponent: int,
     ) -> None:
         """
-        Verifies degree-0 invariance in volume: rescaling volume by any positive ``k`` leaves VWAP bit-identical (the
-        weight cancels in the ratio). ``k`` is a power of two so the rescaling is lossless.
+        Verifies that ``vwap`` is invariant to a volume rescale: scaling the volume by a constant ``k`` leaves the
+        output unchanged, while the prices are untouched. ``k`` is a power of two, so the rescale is exact and adds
+        no floating-point error.
         """
         k = 2.0**exponent
         high, low, close, volume = split_quads(rows)

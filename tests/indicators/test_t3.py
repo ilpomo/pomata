@@ -19,7 +19,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import t3_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
@@ -82,30 +81,6 @@ class TestT3Contract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(t3(pl.col(COLUMN_X), 3), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [float(i) for i in range(12)])})
-        result = frame.select(t3(pl.col(COLUMN_X), 2).alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [float(i) for i in range(12)])})
-        result_eager = frame.select(t3(pl.col(COLUMN_X), 2).alias("y"))
-        result_lazy = frame.lazy().select(t3(pl.col(COLUMN_X), 2).alias("y")).collect()
-        assert_frame_equal(result_eager, result_lazy)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` each EMA pass resets per group and never spans group boundaries.
@@ -147,12 +122,6 @@ class TestT3Edge:
         assert result[:12] == [None] * 12
         assert result[12] is not None
 
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output.
-        """
-        assert_matches(apply_expr([], t3(pl.col(COLUMN_X), 3)), [])
-
     def test_all_null(self) -> None:
         """
         Verifies that an all-null series yields an all-null output.
@@ -187,7 +156,7 @@ class TestT3Edge:
         assert_matches(apply_expr([42.0], t3(pl.col(COLUMN_X), 1)), [42.0])
         assert_matches(apply_expr([42.0], t3(pl.col(COLUMN_X), 2)), [None])
 
-    def test_null_propagates(self) -> None:
+    def test_null_bridged(self) -> None:
         """
         Verifies that an early ``null`` extends the warm-up and yields ``null`` at that position, the value resuming
         once enough non-null observations have seeded all six EMA passes.
@@ -322,8 +291,9 @@ class TestT3Properties:
         exponent: int,
     ) -> None:
         """
-        Verifies that T3 is homogeneous of degree 1: ``t3(k * x) == k * t3(x)``. ``k`` is a power of two so the
-        rescaling is lossless.
+        Verifies that ``t3`` is homogeneous of degree 1: scaling every input value by a constant ``k`` scales the
+        output by the same ``k`` -- ``t3(k * x) == k * t3(x)``. ``k`` is a power of two, so the rescale is exact and
+        adds no floating-point error.
         """
         k = 2.0**exponent
         values, window = case

@@ -17,12 +17,10 @@ import math
 import polars as pl
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.metrics.oracles import win_rate_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
     COLUMN_X,
-    GROUP_KEY,
     RELATIVE_TOLERANCE_PROPERTY,
     RELATIVE_TOLERANCE_REFERENCE,
     RELATIVE_TOLERANCE_SCALE,
@@ -55,54 +53,11 @@ class TestWinRateContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(win_rate(pl.col(COLUMN_X)), pl.Expr)
-
-    def test_reduces_to_scalar(self) -> None:
-        """
-        Verifies that the metric reduces a series to one ``Float64`` row.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [0.01, -0.02, 0.015, -0.03], dtype=pl.Float64)})
-        result = frame.select(win_rate(pl.col(COLUMN_X)).alias("w"))
-        assert result.height == 1
-        assert result.schema["w"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [0.01, -0.02, 0.015, -0.03], dtype=pl.Float64)})
-        expr = win_rate(pl.col(COLUMN_X)).alias("w")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
-
-    def test_over_partitions_independently(self) -> None:
-        """
-        Verifies that under ``.over`` the win rate is computed per group (broadcast) and never spans boundaries.
-        """
-        group_a = [0.01, -0.02, 0.015, -0.03, 0.005, 0.04]
-        group_b = [0.02, -0.05, 0.01, -0.01, 0.03]
-        frame = pl.DataFrame({GROUP_KEY: ["a"] * len(group_a) + ["b"] * len(group_b), COLUMN_X: group_a + group_b})
-        grouped = frame.select(win_rate(pl.col(COLUMN_X)).over(GROUP_KEY).alias("w"))["w"].to_list()
-        expected_a = win_rate_reference(group_a)
-        expected_b = win_rate_reference(group_b)
-        assert_matches(
-            grouped, [expected_a] * len(group_a) + [expected_b] * len(group_b), rel_tol=RELATIVE_TOLERANCE_REFERENCE
-        )
-
 
 class TestWinRateEdge:
     """
     Boundaries and null / NaN handling.
     """
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty series yields ``null``.
-        """
-        assert_matches(apply_expr([], win_rate(pl.col(COLUMN_X))), [None])
 
     def test_all_positive_is_one(self) -> None:
         """
@@ -127,12 +82,6 @@ class TestWinRateEdge:
         Verifies that exact-zero returns are excluded: two wins out of two decisive (one flat) returns is ``1``.
         """
         assert_matches(apply_expr([0.01, 0.0, 0.02], win_rate(pl.col(COLUMN_X))), [1.0])
-
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null series yields ``null``.
-        """
-        assert_matches(apply_expr([None, None], win_rate(pl.col(COLUMN_X))), [None])
 
     def test_nan_poisons(self) -> None:
         """
@@ -206,11 +155,15 @@ class TestWinRateProperties:
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
-    @given(case=_cases(subnormal_safe_floats(bound=1e3), min_size=2), exponent=st.sampled_from([-4, -2, -1, 1, 2, 4]))
+    @given(
+        case=_cases(subnormal_safe_floats(bound=1e3), min_size=2),
+        exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
+    )
     def test_scale_invariance(self, case: list[float], exponent: int) -> None:
         """
-        Verifies that a positive rescale of the returns leaves the win rate unchanged (signs are preserved), using
-        powers of two so the rescaling is lossless.
+        Verifies that ``win_rate`` is scale-invariant: scaling every input value by a constant ``k`` leaves the
+        output unchanged -- ``win_rate(k * x) == win_rate(x)``. ``k`` is a power of two, so the rescale is exact and
+        adds no floating-point error.
         """
         k = 2.0**exponent
         base = apply_expr(case, win_rate(pl.col(COLUMN_X)))

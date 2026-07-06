@@ -16,12 +16,10 @@ import math
 import polars as pl
 from hypothesis import assume, given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.metrics.oracles import kurtosis_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
     COLUMN_X,
-    GROUP_KEY,
     RELATIVE_TOLERANCE_REFERENCE,
     RELATIVE_TOLERANCE_SCALE,
     STANDARDIZED_MOMENT_FLOOR,
@@ -55,54 +53,11 @@ class TestKurtosisContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(kurtosis(pl.col(COLUMN_X)), pl.Expr)
-
-    def test_reduces_to_scalar(self) -> None:
-        """
-        Verifies that the metric reduces a series to one ``Float64`` row.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [0.01, -0.02, 0.015, -0.03], dtype=pl.Float64)})
-        result = frame.select(kurtosis(pl.col(COLUMN_X)).alias("k"))
-        assert result.height == 1
-        assert result.schema["k"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [0.01, -0.02, 0.015, -0.03], dtype=pl.Float64)})
-        expr = kurtosis(pl.col(COLUMN_X)).alias("k")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
-
-    def test_over_partitions_independently(self) -> None:
-        """
-        Verifies that under ``.over`` the kurtosis is computed per group (broadcast) and never spans boundaries.
-        """
-        group_a = [0.01, -0.02, 0.015, -0.03, 0.005, 0.04]
-        group_b = [0.02, -0.05, 0.01, -0.01, 0.03]
-        frame = pl.DataFrame({GROUP_KEY: ["a"] * len(group_a) + ["b"] * len(group_b), COLUMN_X: group_a + group_b})
-        grouped = frame.select(kurtosis(pl.col(COLUMN_X)).over(GROUP_KEY).alias("k"))["k"].to_list()
-        expected_a = kurtosis_reference(group_a)
-        expected_b = kurtosis_reference(group_b)
-        assert_matches(
-            grouped, [expected_a] * len(group_a) + [expected_b] * len(group_b), rel_tol=RELATIVE_TOLERANCE_SCALE
-        )
-
 
 class TestKurtosisEdge:
     """
     Boundaries and null / NaN handling.
     """
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty series yields ``null``.
-        """
-        assert_matches(apply_expr([], kurtosis(pl.col(COLUMN_X))), [None])
 
     def test_single_row_is_nan(self) -> None:
         """
@@ -122,12 +77,6 @@ class TestKurtosisEdge:
         the property tier floors away from, pinned deterministically here.
         """
         assert_matches(apply_expr([0.0, 1e-160, 2e-160], kurtosis(pl.col(COLUMN_X))), [math.nan])
-
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null series yields ``null``.
-        """
-        assert_matches(apply_expr([None, None], kurtosis(pl.col(COLUMN_X))), [None])
 
     def test_nan_poisons(self) -> None:
         """
@@ -206,12 +155,13 @@ class TestKurtosisProperties:
 
     @given(
         case=_cases(standardized_moment_floats(bound=1e3), min_size=2),
-        exponent=st.sampled_from([-4, -2, -1, 1, 2, 4]),
+        exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
     )
     def test_scale_invariance(self, case: list[float], exponent: int) -> None:
         """
-        Verifies that a positive rescale of the returns leaves the kurtosis unchanged (a standardized moment), using
-        powers of two so the rescaling is lossless.
+        Verifies that ``kurtosis`` is scale-invariant: scaling every input value by a constant ``k`` leaves the
+        output unchanged -- ``kurtosis(k * x) == kurtosis(x)``. ``k`` is a power of two, so the rescale is exact and
+        adds no floating-point error.
         """
         k = 2.0**exponent
         base = apply_expr(case, kurtosis(pl.col(COLUMN_X)))

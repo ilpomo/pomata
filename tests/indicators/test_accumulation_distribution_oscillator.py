@@ -22,7 +22,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import accumulation_distribution_oscillator_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_SCALE,
@@ -108,53 +107,6 @@ class TestAccumulationDistributionOscillatorContract:
     """
     Type, shape, and lazy/eager guarantees.
     """
-
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        expr = accumulation_distribution_oscillator(
-            pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), pl.col(VOLUME), window_fast=3, window_slow=10
-        )
-        assert isinstance(expr, pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame(
-            {
-                HIGH: [10.2, 10.5, 10.7],
-                LOW: [9.8, 10.0, 10.2],
-                CLOSE: [10.0, 10.3, 10.5],
-                VOLUME: [100.0, 150.0, 120.0],
-            }
-        )
-        expr = accumulation_distribution_oscillator(
-            pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), pl.col(VOLUME), window_fast=2, window_slow=3
-        )
-        result = frame.select(expr.alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame(
-            {
-                HIGH: [10.2, 10.5, 10.7],
-                LOW: [9.8, 10.0, 10.2],
-                CLOSE: [10.0, 10.3, 10.5],
-                VOLUME: [100.0, 150.0, 120.0],
-            }
-        )
-        expr = accumulation_distribution_oscillator(
-            pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), pl.col(VOLUME), window_fast=2, window_slow=3
-        ).alias("y")
-        result_eager = frame.select(expr)
-        result_lazy = frame.lazy().select(expr).collect()
-        assert_frame_equal(result_eager, result_lazy)
 
     def test_over_partitions_independently(self) -> None:
         """
@@ -256,12 +208,6 @@ class TestAccumulationDistributionOscillatorEdge:
             [None, None, None],
         )
 
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output.
-        """
-        assert_matches(apply_accumulation_distribution_oscillator([], [], [], []), [])
-
     def test_all_null(self) -> None:
         """
         Verifies that an all-null OHLCV frame yields an all-null result (the line and its EMAs never seed).
@@ -271,9 +217,9 @@ class TestAccumulationDistributionOscillatorEdge:
             [None, None, None, None],
         )
 
-    def test_null_propagates(self) -> None:
+    def test_null_bridged(self) -> None:
         """
-        Verifies that a null propagates (matching the naive reference).
+        Verifies that an interior ``null`` is bridged: the recursion carries its state across the gap.
         """
         high = [10.2, 10.5, 10.7, 10.3, 10.8]
         low = [9.8, 10.0, 10.2, 9.9, 10.3]
@@ -369,8 +315,10 @@ class TestAccumulationDistributionOscillatorProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that, for positive ``k``, the oscillator is homogeneous of degree 1: scaling all inputs by ``k`` scales
-        the result by ``k``. ``k`` is a power of two so the rescaling is lossless and cannot introduce a sub-ULP drift.
+        Verifies that ``accumulation_distribution_oscillator`` is homogeneous of degree 1: scaling every input value
+        by a constant ``k`` scales the output by the same ``k`` -- ``accumulation_distribution_oscillator(k * x) ==
+        k * accumulation_distribution_oscillator(x)``. ``k`` is a power of two, so the rescale is exact and adds no
+        floating-point error.
         """
         k = 2.0**exponent
         rows = case

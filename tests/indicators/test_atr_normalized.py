@@ -19,7 +19,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import atr_normalized_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
@@ -90,31 +89,6 @@ class TestAtrNormalizedContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(atr_normalized(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), 14), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame({HIGH: [10.2, 10.5, 10.7], LOW: [9.8, 10.0, 10.2], CLOSE: [10.0, 10.3, 10.5]})
-        result = frame.select(atr_normalized(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), 2).alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({HIGH: [10.2, 10.5, 10.7], LOW: [9.8, 10.0, 10.2], CLOSE: [10.0, 10.3, 10.5]})
-        expr = atr_normalized(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), 2).alias("y")
-        result_eager = frame.select(expr)
-        result_lazy = frame.lazy().select(expr).collect()
-        assert_frame_equal(result_eager, result_lazy)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` the underlying ATR resets per group: the partitioned line equals the per-group
@@ -171,12 +145,6 @@ class TestAtrNormalizedEdge:
             apply_atr_normalized([10.2, 10.5, 10.7], [9.8, 10.0, 10.2], [10.0, 10.3, 10.5], 5), [None, None, None]
         )
 
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output.
-        """
-        assert_matches(apply_atr_normalized([], [], [], 3), [])
-
     def test_all_null(self) -> None:
         """
         Verifies that an all-null OHLC frame yields an all-null result (the underlying ATR never seeds).
@@ -185,9 +153,9 @@ class TestAtrNormalizedEdge:
             apply_atr_normalized([None, None, None], [None, None, None], [None, None, None], 2), [None, None, None]
         )
 
-    def test_null_propagates(self) -> None:
+    def test_null_bridged(self) -> None:
         """
-        Verifies that a null propagates (matching the naive reference).
+        Verifies that an interior ``null`` is bridged: the recursion carries its state across the gap.
         """
         high = [10.2, 10.5, 10.7, 10.3, 10.8]
         low = [9.8, 10.0, 10.2, 9.9, 10.3]
@@ -284,9 +252,9 @@ class TestAtrNormalizedProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that NATR is scale-invariant: scaling all of high / low / close by a positive ``k`` leaves it
-        unchanged (the ATR and the close scale together). ``k`` is a power of two so the rescaling is lossless and
-        cannot perturb the ratio through floating-point rounding.
+        Verifies that ``atr_normalized`` is scale-invariant: scaling every input value by a constant ``k`` leaves
+        the output unchanged -- ``atr_normalized(k * x) == atr_normalized(x)``. ``k`` is a power of two, so the
+        rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         rows, window = case

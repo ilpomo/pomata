@@ -19,13 +19,14 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import vwma_reference
 from tests.support import (
+    ABSOLUTE_TOLERANCE_REFERENCE,
     CLOSE,
     EXACT_TOLERANCE_FACTOR,
     GROUP_KEY,
     RELATIVE_TOLERANCE_PROPERTY,
+    RELATIVE_TOLERANCE_REFERENCE,
     RELATIVE_TOLERANCE_SCALE,
     VOLUME,
     WINDOW_MAX,
@@ -114,40 +115,6 @@ class TestVwmaContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(vwma(pl.col(CLOSE), pl.col(VOLUME), 3), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame(
-            {
-                CLOSE: pl.Series(CLOSE, [10.0, 11.0, 12.0, 13.0, 14.0]),
-                VOLUME: pl.Series(VOLUME, [100.0, 200.0, 300.0, 400.0, 500.0]),
-            }
-        )
-        result = frame.select(vwma(pl.col(CLOSE), pl.col(VOLUME), 3).alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame(
-            {
-                CLOSE: pl.Series(CLOSE, [10.0, 11.0, 12.0, 13.0, 14.0]),
-                VOLUME: pl.Series(VOLUME, [100.0, 200.0, 300.0, 400.0, 500.0]),
-            }
-        )
-        result_eager = frame.select(vwma(pl.col(CLOSE), pl.col(VOLUME), 3).alias("y"))
-        result_lazy = frame.lazy().select(vwma(pl.col(CLOSE), pl.col(VOLUME), 3).alias("y")).collect()
-        assert_frame_equal(result_eager, result_lazy)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` the window resets per group and never spans group boundaries.
@@ -185,12 +152,6 @@ class TestVwmaEdge:
         result = apply_vwma([10.0, 11.0, 12.0, 13.0, 14.0], [100.0, 200.0, 300.0, 400.0, 500.0], 3)
         assert result[:2] == [None, None]
         assert result[2] is not None
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output.
-        """
-        assert_matches(apply_vwma([], [], 3), [])
 
     def test_all_null(self) -> None:
         """
@@ -338,6 +299,8 @@ class TestVwmaCorrectness:
         assert_matches(
             apply_vwma([10.0, 11.0, 12.0, 13.0, 14.0], [100.0, 200.0, 300.0, 400.0, 500.0], 3),
             [None, None, 11.333333333333334, 12.222222222222221, 13.166666666666666],
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
 
@@ -389,8 +352,9 @@ class TestVwmaProperties:
         sign: float,
     ) -> None:
         """
-        Verifies that VWMA is homogeneous of degree 1 in price: ``vwma(k * p, v) == k * vwma(p, v)``. ``k`` is a signed
-        power of two so the rescaling is lossless and the shared assertion's ``|k|``-scaled floor never underflows.
+        Verifies that ``vwma`` is homogeneous of degree 1 in price: scaling the price inputs by a constant ``k``
+        scales the output by the same ``k``, while the volume is untouched. ``k`` is a power of two, so the rescale
+        is exact and adds no floating-point error.
         """
         k = sign * 2.0**exponent
         rows, window = case
@@ -414,8 +378,9 @@ class TestVwmaProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that VWMA is invariant to a positive global rescaling of volume: ``vwma(p, c * v) == vwma(p, v)``.
-        ``c`` is a power of two so the rescaling is lossless and the shared assertion's floor never underflows.
+        Verifies that ``vwma`` is invariant to a volume rescale: scaling the volume by a constant ``k`` leaves the
+        output unchanged, while the prices are untouched. ``k`` is a power of two, so the rescale is exact and adds
+        no floating-point error.
         """
         c = 2.0**exponent
         rows, window = case

@@ -22,7 +22,6 @@ from collections.abc import Sequence
 import polars as pl
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import sine_wave_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_EXACT,
@@ -95,12 +94,6 @@ class TestSineWaveContract:
     Type, struct schema, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(sine_wave(pl.col(COLUMN_X)), pl.Expr)
-
     def test_output_is_struct_with_named_fields(self) -> None:
         """
         Verifies that the output is a ``Float64`` struct with exactly the fields ``sine`` / ``lead_sine``.
@@ -110,21 +103,6 @@ class TestSineWaveContract:
         assert isinstance(dtype, pl.Struct)
         assert [field.name for field in dtype.fields] == ["sine", "lead_sine"]
         assert all(field.dtype == pl.Float64 for field in dtype.fields)
-
-    def test_preserves_length(self) -> None:
-        """
-        Verifies that the output has one struct per input row.
-        """
-        result = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, _SAMPLE)}).select(sine_wave(pl.col(COLUMN_X)).alias("s"))
-        assert result.height == len(_SAMPLE)
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, _SAMPLE)})
-        expr = sine_wave(pl.col(COLUMN_X)).alias("s")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
 
     def test_over_partitions_independently(self) -> None:
         """
@@ -142,14 +120,6 @@ class TestSineWaveEdge:
     """
     Warm-up and null / NaN latching.
     """
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output on both fields.
-        """
-        result = apply_sine_wave([])
-        for field in FIELDS:
-            assert_matches(result[field], [])
 
     def test_all_null(self) -> None:
         """
@@ -302,12 +272,9 @@ class TestSineWaveProperties:
     )
     def test_scale_invariance(self, case: list[float], exponent: int) -> None:
         """
-        Verifies that the sine wave is scale-invariant: ``sine_wave(k * x) == sine_wave(x)``, for ANY carrier.
-
-        The factor is a power of two, so the rescaling is lossless and the whole pipeline is exactly scale-equivariant:
-        the phase that fixes both lines is unchanged to the bit. This holds for every carrier, including a low-amplitude
-        one, because the phase guard tests the imaginary part against an EXACT zero rather than a fixed magnitude
-        threshold (a fixed cutoff would snap a small-amplitude carrier to a different branch under the rescale).
+        Verifies that ``sine_wave`` is scale-invariant: scaling every input value by a constant ``k`` leaves the
+        output unchanged -- ``sine_wave(k * x) == sine_wave(x)``. ``k`` is a power of two, so the rescale is exact
+        and adds no floating-point error.
         """
         factor = 2.0**exponent
         values = case

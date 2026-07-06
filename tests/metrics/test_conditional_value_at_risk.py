@@ -20,11 +20,9 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.metrics.oracles import conditional_value_at_risk_reference
 from tests.support import (
     COLUMN_X,
-    GROUP_KEY,
     RELATIVE_TOLERANCE_PROPERTY,
     RELATIVE_TOLERANCE_REFERENCE,
     RELATIVE_TOLERANCE_SCALE,
@@ -67,43 +65,6 @@ class TestConditionalValueAtRiskContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(conditional_value_at_risk(pl.col(COLUMN_X), confidence=CONFIDENCE), pl.Expr)
-
-    def test_reduces_to_scalar(self) -> None:
-        """
-        Verifies that the metric reduces a series to one ``Float64`` row.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [0.01, -0.02, 0.015, -0.03], dtype=pl.Float64)})
-        result = frame.select(conditional_value_at_risk(pl.col(COLUMN_X), confidence=CONFIDENCE).alias("c"))
-        assert result.height == 1
-        assert result.schema["c"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [0.01, -0.02, 0.015, -0.03], dtype=pl.Float64)})
-        expr = conditional_value_at_risk(pl.col(COLUMN_X), confidence=CONFIDENCE).alias("c")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
-
-    def test_over_partitions_independently(self) -> None:
-        """
-        Verifies that under ``.over`` the shortfall is computed per group (broadcast) and never spans boundaries.
-        """
-        group_a = [0.01, -0.02, 0.015, -0.03, 0.005, 0.04]
-        group_b = [0.02, -0.05, 0.01, -0.01, 0.03]
-        frame = pl.DataFrame({GROUP_KEY: ["a"] * len(group_a) + ["b"] * len(group_b), COLUMN_X: group_a + group_b})
-        grouped = frame.select(
-            conditional_value_at_risk(pl.col(COLUMN_X), confidence=CONFIDENCE).over(GROUP_KEY).alias("c")
-        )["c"].to_list()
-        expected_a = conditional_value_at_risk_reference(group_a, CONFIDENCE)
-        expected_b = conditional_value_at_risk_reference(group_b, CONFIDENCE)
-        assert_matches(grouped, [expected_a] * len(group_a) + [expected_b] * len(group_b), abs_tol=_abs_tol(group_a))
-
 
 class TestConditionalValueAtRiskEdge:
     """
@@ -118,12 +79,6 @@ class TestConditionalValueAtRiskEdge:
             with pytest.raises(ValueError, match="confidence must be in the open interval"):
                 conditional_value_at_risk(pl.col(COLUMN_X), confidence=invalid)
 
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty series yields ``null``.
-        """
-        assert_matches(apply_expr([], conditional_value_at_risk(pl.col(COLUMN_X), confidence=CONFIDENCE)), [None])
-
     def test_single_row(self) -> None:
         """
         Verifies that a one-element series resolves to that element (it is the whole shortfall slice).
@@ -133,14 +88,6 @@ class TestConditionalValueAtRiskEdge:
             apply_expr(values, conditional_value_at_risk(pl.col(COLUMN_X), confidence=CONFIDENCE)),
             [conditional_value_at_risk_reference(values, CONFIDENCE)],
             abs_tol=_abs_tol(values),
-        )
-
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null series yields ``null``.
-        """
-        assert_matches(
-            apply_expr([None, None], conditional_value_at_risk(pl.col(COLUMN_X), confidence=CONFIDENCE)), [None]
         )
 
     def test_null_skipped(self) -> None:
@@ -234,8 +181,10 @@ class TestConditionalValueAtRiskProperties:
     @given(case=_cases(subnormal_safe_floats(bound=1e3)), exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]))
     def test_scale_homogeneity(self, case: list[float], exponent: int) -> None:
         """
-        Verifies degree-1 homogeneity: ``conditional_value_at_risk(k * r) == k * conditional_value_at_risk(r)`` for
-        positive powers of two ``k``.
+        Verifies that ``conditional_value_at_risk`` is homogeneous of degree 1: scaling every input value by a
+        constant ``k`` scales the output by the same ``k`` -- ``conditional_value_at_risk(k * x) == k *
+        conditional_value_at_risk(x)``. ``k`` is a power of two, so the rescale is exact and adds no floating-point
+        error.
         """
         k = 2.0**exponent
         base = apply_expr(case, conditional_value_at_risk(pl.col(COLUMN_X), confidence=CONFIDENCE))

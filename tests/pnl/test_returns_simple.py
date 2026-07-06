@@ -18,7 +18,6 @@ import math
 import polars as pl
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.pnl.oracles import returns_simple_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
@@ -68,31 +67,6 @@ class TestReturnsSimpleContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(returns_simple(pl.col(COLUMN_X)), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [100.0, 105.0, 102.0, 108.0, 110.0], dtype=pl.Float64)})
-        result = frame.select(returns_simple(pl.col(COLUMN_X)).alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [100.0, 105.0, 102.0, 108.0, 110.0], dtype=pl.Float64)})
-        expr = returns_simple(pl.col(COLUMN_X)).alias("y")
-        result_eager = frame.select(expr)
-        result_lazy = frame.lazy().select(expr).collect()
-        assert_frame_equal(result_eager, result_lazy)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` the one-bar lag resets per group and never reaches across group boundaries (so the
@@ -126,18 +100,6 @@ class TestReturnsSimpleEdge:
         Verifies that a one-element series is all warm-up (no previous price to difference against).
         """
         assert_matches(apply_expr([42.0], returns_simple(pl.col(COLUMN_X))), [None])
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty series yields an empty result.
-        """
-        assert_matches(apply_expr([], returns_simple(pl.col(COLUMN_X))), [])
-
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null series stays null (every lag references a null).
-        """
-        assert_matches(apply_expr([None, None, None], returns_simple(pl.col(COLUMN_X))), [None, None, None])
 
     def test_null_propagates(self) -> None:
         """
@@ -258,9 +220,9 @@ class TestReturnsSimpleProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that the return is scale-invariant: rescaling the whole price series by a constant leaves every return
-        unchanged (``returns_simple(k * P) == returns_simple(P)``), because the scale cancels in the ratio. ``k`` is a
-        power of two so the rescaling is lossless and cannot introduce a floating-point artifact.
+        Verifies that ``returns_simple`` is scale-invariant: scaling every input value by a constant ``k`` leaves
+        the output unchanged -- ``returns_simple(k * x) == returns_simple(x)``. ``k`` is a power of two, so the
+        rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         values = case

@@ -22,7 +22,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import mama_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_EXACT,
@@ -98,12 +97,6 @@ class TestMamaContract:
     Type, struct schema, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(mama(pl.col(COLUMN_X)), pl.Expr)
-
     def test_output_is_struct_with_named_fields(self) -> None:
         """
         Verifies that the output is a ``Float64`` struct with exactly the fields ``mama`` / ``fama``.
@@ -113,21 +106,6 @@ class TestMamaContract:
         assert isinstance(dtype, pl.Struct)
         assert [field.name for field in dtype.fields] == ["mama", "fama"]
         assert all(field.dtype == pl.Float64 for field in dtype.fields)
-
-    def test_preserves_length(self) -> None:
-        """
-        Verifies that the output has one struct per input row.
-        """
-        result = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, _SAMPLE)}).select(mama(pl.col(COLUMN_X)).alias("a"))
-        assert result.height == len(_SAMPLE)
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, _SAMPLE)})
-        expr = mama(pl.col(COLUMN_X)).alias("a")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
 
     def test_over_partitions_independently(self) -> None:
         """
@@ -184,14 +162,6 @@ class TestMamaEdge:
         """
         with pytest.raises(ValueError, match="limit_fast must be >= limit_slow"):
             mama(pl.col(COLUMN_X), limit_fast=0.05, limit_slow=0.5)
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output on both fields.
-        """
-        bands = apply_mama([])
-        for field in FIELDS:
-            assert_matches(bands[field], [])
 
     def test_all_null(self) -> None:
         """
@@ -314,12 +284,9 @@ class TestMamaProperties:
     )
     def test_scale_homogeneity(self, case: list[float], exponent: int) -> None:
         """
-        Verifies that both lines are homogeneous of degree 1: ``mama(k * x) == k * mama(x)`` (and likewise for FAMA).
-
-        The smoothing constant is fixed by the phasor-phase rate, which is scale-invariant, so each line is exactly
-        linear in the price. The factor is a power of two, so the rescaling is lossless: on a near-constant series the
-        in-phase component is a sub-machine-epsilon cancellation residual whose vanishing flips the ``inphase != 0``
-        branch under a non-dyadic rescale, and only a bit-exact factor keeps the two recurrences on the same branch.
+        Verifies that ``mama`` is homogeneous of degree 1: scaling every input value by a constant ``k`` scales the
+        output by the same ``k`` -- ``mama(k * x) == k * mama(x)``. ``k`` is a power of two, so the rescale is exact
+        and adds no floating-point error.
         """
         k = 2.0**exponent
         values = case

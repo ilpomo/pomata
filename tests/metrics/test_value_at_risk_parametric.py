@@ -19,11 +19,9 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.metrics.oracles import value_at_risk_parametric_reference
 from tests.support import (
     COLUMN_X,
-    GROUP_KEY,
     RELATIVE_TOLERANCE_PROPERTY,
     RELATIVE_TOLERANCE_REFERENCE,
     RELATIVE_TOLERANCE_SCALE,
@@ -65,43 +63,6 @@ class TestValueAtRiskParametricContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(value_at_risk_parametric(pl.col(COLUMN_X), confidence=CONFIDENCE), pl.Expr)
-
-    def test_reduces_to_scalar(self) -> None:
-        """
-        Verifies that the metric reduces a series to one ``Float64`` row.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [0.01, -0.02, 0.015, -0.03], dtype=pl.Float64)})
-        result = frame.select(value_at_risk_parametric(pl.col(COLUMN_X), confidence=CONFIDENCE).alias("v"))
-        assert result.height == 1
-        assert result.schema["v"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [0.01, -0.02, 0.015, -0.03], dtype=pl.Float64)})
-        expr = value_at_risk_parametric(pl.col(COLUMN_X), confidence=CONFIDENCE).alias("v")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
-
-    def test_over_partitions_independently(self) -> None:
-        """
-        Verifies that under ``.over`` the value-at-risk is computed per group (broadcast) and never spans boundaries.
-        """
-        group_a = [0.01, -0.02, 0.015, -0.03, 0.005, 0.04]
-        group_b = [0.02, -0.05, 0.01, -0.01, 0.03]
-        frame = pl.DataFrame({GROUP_KEY: ["a"] * len(group_a) + ["b"] * len(group_b), COLUMN_X: group_a + group_b})
-        grouped = frame.select(
-            value_at_risk_parametric(pl.col(COLUMN_X), confidence=CONFIDENCE).over(GROUP_KEY).alias("v")
-        )["v"].to_list()
-        expected_a = value_at_risk_parametric_reference(group_a, CONFIDENCE)
-        expected_b = value_at_risk_parametric_reference(group_b, CONFIDENCE)
-        assert_matches(grouped, [expected_a] * len(group_a) + [expected_b] * len(group_b), abs_tol=_abs_tol(group_a))
-
 
 class TestValueAtRiskParametricEdge:
     """
@@ -116,12 +77,6 @@ class TestValueAtRiskParametricEdge:
             with pytest.raises(ValueError, match="confidence must be in the open interval"):
                 value_at_risk_parametric(pl.col(COLUMN_X), confidence=invalid)
 
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty series yields ``null``.
-        """
-        assert_matches(apply_expr([], value_at_risk_parametric(pl.col(COLUMN_X), confidence=CONFIDENCE)), [None])
-
     def test_single_row(self) -> None:
         """
         Verifies that a one-element series yields ``null`` (the sample standard deviation needs two observations).
@@ -134,14 +89,6 @@ class TestValueAtRiskParametricEdge:
         """
         assert_matches(
             apply_expr([0.01, 0.01, 0.01], value_at_risk_parametric(pl.col(COLUMN_X), confidence=CONFIDENCE)), [0.01]
-        )
-
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null series yields ``null``.
-        """
-        assert_matches(
-            apply_expr([None, None], value_at_risk_parametric(pl.col(COLUMN_X), confidence=CONFIDENCE)), [None]
         )
 
     def test_null_skipped(self) -> None:
@@ -224,8 +171,10 @@ class TestValueAtRiskParametricProperties:
     @given(case=_cases(subnormal_safe_floats(bound=1e3)), exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]))
     def test_scale_homogeneity(self, case: list[float], exponent: int) -> None:
         """
-        Verifies degree-1 homogeneity: ``value_at_risk_parametric(k * r) == k * value_at_risk_parametric(r)`` for
-        positive powers of two ``k``.
+        Verifies that ``value_at_risk_parametric`` is homogeneous of degree 1: scaling every input value by a
+        constant ``k`` scales the output by the same ``k`` -- ``value_at_risk_parametric(k * x) == k *
+        value_at_risk_parametric(x)``. ``k`` is a power of two, so the rescale is exact and adds no floating-point
+        error.
         """
         k = 2.0**exponent
         base = apply_expr(case, value_at_risk_parametric(pl.col(COLUMN_X), confidence=CONFIDENCE))

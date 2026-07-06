@@ -18,7 +18,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import tema_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
@@ -79,30 +78,6 @@ class TestTemaContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(tema(pl.col(COLUMN_X), 3), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0])})
-        result = frame.select(tema(pl.col(COLUMN_X), 2).alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0])})
-        result_eager = frame.select(tema(pl.col(COLUMN_X), 2).alias("y"))
-        result_lazy = frame.lazy().select(tema(pl.col(COLUMN_X), 2).alias("y")).collect()
-        assert_frame_equal(result_eager, result_lazy)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` the recursion resets per group and never spans group boundaries.
@@ -144,12 +119,6 @@ class TestTemaEdge:
         result = apply_expr(values, tema(pl.col(COLUMN_X), 3))
         assert result[:6] == [None, None, None, None, None, None]
         assert result[6] is not None
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output.
-        """
-        assert_matches(apply_expr([], tema(pl.col(COLUMN_X), 3)), [])
 
     def test_all_null(self) -> None:
         """
@@ -194,7 +163,7 @@ class TestTemaEdge:
             apply_expr([7.0, 7.0, 7.0, 7.0, 7.0, 7.0], tema(pl.col(COLUMN_X), 2)), [None, None, None, 7.0, 7.0, 7.0]
         )
 
-    def test_null_propagates(self) -> None:
+    def test_null_bridged(self) -> None:
         """
         Verifies that an early ``null`` extends the warm-up and yields ``null`` at that position, the value resuming
         once enough non-null observations have seeded all three EMA passes.
@@ -270,6 +239,8 @@ class TestTemaCorrectness:
         assert_matches(
             apply_expr([2.0, 4.0, 6.0, 8.0, 10.0, 12.0], tema(pl.col(COLUMN_X), 2)),
             [None, None, None, 8.0, 10.0, 12.0],
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
     def test_golden_master_window_three(self) -> None:
@@ -290,6 +261,8 @@ class TestTemaCorrectness:
                 5.081452546296296,
                 3.234953703703704,
             ],
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
 
@@ -328,8 +301,9 @@ class TestTemaProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that TEMA is homogeneous of degree 1: ``tema(k * x) == k * tema(x)``. ``k`` is a power of two so the
-        rescaling is lossless and cannot introduce a sub-ULP drift into the comparison.
+        Verifies that ``tema`` is homogeneous of degree 1: scaling every input value by a constant ``k`` scales the
+        output by the same ``k`` -- ``tema(k * x) == k * tema(x)``. ``k`` is a power of two, so the rescale is exact
+        and adds no floating-point error.
         """
         k = 2.0**exponent
         values, window = case

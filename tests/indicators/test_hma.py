@@ -10,7 +10,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import hma_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
@@ -77,30 +76,6 @@ class TestHmaContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(hma(pl.col(COLUMN_X), 4), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 2.0, 3.0, 4.0, 5.0, 6.0])})
-        result = frame.select(hma(pl.col(COLUMN_X), 4).alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0])})
-        result_eager = frame.select(hma(pl.col(COLUMN_X), 4).alias("y"))
-        result_lazy = frame.lazy().select(hma(pl.col(COLUMN_X), 4).alias("y")).collect()
-        assert_frame_equal(result_eager, result_lazy)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` the windows reset per group and never span group boundaries.
@@ -144,12 +119,6 @@ class TestHmaEdge:
         assert result[:warmup] == [None] * warmup
         assert result[warmup] is not None
 
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output.
-        """
-        assert_matches(apply_expr([], hma(pl.col(COLUMN_X), 4)), [])
-
     def test_all_null(self) -> None:
         """
         Verifies that an all-null series yields an all-null output.
@@ -178,9 +147,9 @@ class TestHmaEdge:
         """
         assert_matches(apply_expr([42.0], hma(pl.col(COLUMN_X), 2)), [None])
 
-    def test_null_propagates(self) -> None:
+    def test_null_in_window_is_null(self) -> None:
         """
-        Verifies that an interior ``null`` propagates through every window that reaches it.
+        Verifies that an interior ``null`` nulls every window that overlaps it, then the output recovers.
         """
         values = [2.0, 4.0, None, 8.0, 10.0, 12.0]
         assert_matches(apply_expr(values, hma(pl.col(COLUMN_X), 4)), hma_reference(values, 4))
@@ -287,8 +256,9 @@ class TestHmaProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that HMA is homogeneous of degree 1: ``hma(k * x) == k * hma(x)``. ``k`` is a power of two so the
-        rescaling is lossless and cannot introduce a floating-point artifact.
+        Verifies that ``hma`` is homogeneous of degree 1: scaling every input value by a constant ``k`` scales the
+        output by the same ``k`` -- ``hma(k * x) == k * hma(x)``. ``k`` is a power of two, so the rescale is exact
+        and adds no floating-point error.
         """
         k = 2.0**exponent
         values, window = case

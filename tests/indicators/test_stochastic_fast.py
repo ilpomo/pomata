@@ -20,7 +20,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import stochastic_fast_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_PROPERTY,
@@ -96,12 +95,6 @@ class TestStochasticFastContract:
     Type, struct schema, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(stochastic_fast(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), window_k=14, window_d=3), pl.Expr)
-
     def test_output_is_struct_with_named_fields(self) -> None:
         """
         Verifies that the output is a ``Float64`` struct with exactly the fields ``k`` / ``d``.
@@ -113,26 +106,6 @@ class TestStochasticFastContract:
         assert isinstance(dtype, pl.Struct)
         assert [field.name for field in dtype.fields] == ["k", "d"]
         assert all(field.dtype == pl.Float64 for field in dtype.fields)
-
-    def test_preserves_length(self) -> None:
-        """
-        Verifies that the output has one struct per input row.
-        """
-        frame = pl.DataFrame({HIGH: [10.0, 11.0, 12.0], LOW: [9.0, 10.0, 11.0], CLOSE: [9.5, 10.5, 11.5]})
-        result = frame.select(
-            stochastic_fast(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), window_k=2, window_d=2).alias("s")
-        )
-        assert result.height == frame.height
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({HIGH: [10.0, 11.0, 12.0], LOW: [9.0, 10.0, 11.0], CLOSE: [9.5, 10.5, 11.5]})
-        expr = stochastic_fast(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), window_k=2, window_d=2).alias("s")
-        result_eager = frame.select(expr)
-        result_lazy = frame.lazy().select(expr).collect()
-        assert_frame_equal(result_eager, result_lazy)
 
     def test_over_partitions_independently(self) -> None:
         """
@@ -178,14 +151,6 @@ class TestStochasticFastEdge:
         """
         with pytest.raises(ValueError, match="window_d must be >= 1"):
             stochastic_fast(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), window_k=3, window_d=0)
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields empty output on both lines.
-        """
-        result = apply_stochastic_fast([], [], [], window_k=3, window_d=2)
-        assert_matches(result["k"], [])
-        assert_matches(result["d"], [])
 
     def test_all_null(self) -> None:
         """
@@ -239,9 +204,9 @@ class TestStochasticFastEdge:
         assert result["k"][1] is not None
         assert math.isnan(result["k"][1])
 
-    def test_null_propagates(self) -> None:
+    def test_null_in_window_is_null(self) -> None:
         """
-        Verifies that a null propagates (matching the naive reference).
+        Verifies that an interior ``null`` nulls every window that overlaps it, then the output recovers.
         """
         high = [10.0, 11.0, 12.0, None, 13.0, 13.0, 14.0, 13.5]
         low = [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5]
@@ -340,9 +305,9 @@ class TestStochasticFastProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that both lines are scale-invariant under a positive common rescaling of high / low / close. ``k`` is a
-        power of two so the rescaling is lossless: the lines pick the extremes of the look-back, and an arbitrary factor
-        can round two near-tied bars to the same value and flip which one wins, changing the result.
+        Verifies that ``stochastic_fast`` is scale-invariant: scaling every input value by a constant ``k`` leaves
+        the output unchanged -- ``stochastic_fast(k * x) == stochastic_fast(x)``. ``k`` is a power of two, so the
+        rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         rows, window_k, window_d = case
@@ -387,4 +352,9 @@ class TestStochasticFastProperties:
         applied = apply_stochastic_fast(high, low, close, window_k=window_k, window_d=window_d)
         reference = stochastic_fast_reference(high, low, close, window_k, window_d)
         for field in FIELDS:
-            assert_matches(applied[field], reference[field])
+            assert_matches(
+                applied[field],
+                reference[field],
+                rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+                abs_tol=ABSOLUTE_TOLERANCE_PROPERTY,
+            )

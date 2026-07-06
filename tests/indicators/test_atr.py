@@ -11,7 +11,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import atr_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
@@ -83,27 +82,6 @@ class TestAtrContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(atr(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), 3), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame(
-            {
-                HIGH: [10.0, 12.0, 11.0, 13.0, 15.0],
-                LOW: [8.0, 9.0, 9.5, 10.0, 12.0],
-                CLOSE: [9.0, 11.0, 10.0, 12.0, 14.0],
-            }
-        )
-        result = frame.select(atr(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), 3).alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
     def test_empty_frame_preserves_shape_and_dtype(self) -> None:
         """
         Verifies that an empty input yields an empty ``Float64`` column rather than raising.
@@ -118,22 +96,6 @@ class TestAtrContract:
         result = frame.select(atr(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), 3).alias("y"))
         assert result.height == 0
         assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame(
-            {
-                HIGH: [10.0, 12.0, 11.0, 13.0, 15.0, 14.0],
-                LOW: [8.0, 9.0, 9.5, 10.0, 12.0, 11.0],
-                CLOSE: [9.0, 11.0, 10.0, 12.0, 14.0, 13.0],
-            }
-        )
-        expr = atr(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), 3).alias("y")
-        result_eager = frame.select(expr)
-        result_lazy = frame.lazy().select(expr).collect()
-        assert_frame_equal(result_eager, result_lazy)
 
     def test_over_partitions_independently(self) -> None:
         """
@@ -218,12 +180,6 @@ class TestAtrEdge:
         Verifies that a window longer than the series yields an all-null result (the warm-up never completes).
         """
         assert_matches(apply_atr([10.0, 12.0, 13.0], [8.0, 9.0, 10.0], [9.0, 11.0, 12.0], 5), [None, None, None])
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty series yields an empty result.
-        """
-        assert_matches(apply_atr([], [], [], 3), [])
 
     def test_interior_null_in_high_is_absorbed(self) -> None:
         """
@@ -389,8 +345,9 @@ class TestAtrProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that ATR is homogeneous of degree 1 under a positive scale: ``atr(k * ohlc) == k * atr(ohlc)``. ``k``
-        is a power of two so the rescaling is lossless and cannot perturb the Wilder recursion through rounding.
+        Verifies that ``atr`` is homogeneous of degree 1: scaling every input value by a constant ``k`` scales the
+        output by the same ``k`` -- ``atr(k * x) == k * atr(x)``. ``k`` is a power of two, so the rescale is exact
+        and adds no floating-point error.
         """
         k = 2.0**exponent
         rows, window = case

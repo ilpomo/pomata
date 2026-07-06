@@ -10,7 +10,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import mom_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
@@ -65,30 +64,6 @@ class TestMomContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(mom(pl.col(COLUMN_X), 3), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 2.0, 3.0, 4.0, 5.0])})
-        result = frame.select(mom(pl.col(COLUMN_X), 2).alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 2.0, 3.0, 4.0, 5.0, 6.0])})
-        result_eager = frame.select(mom(pl.col(COLUMN_X), 2).alias("y"))
-        result_lazy = frame.lazy().select(mom(pl.col(COLUMN_X), 2).alias("y")).collect()
-        assert_frame_equal(result_eager, result_lazy)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` the shift resets per group and never reaches across group boundaries.
@@ -135,12 +110,6 @@ class TestMomEdge:
         Verifies that when ``window`` exceeds the series length the whole output is null (warm-up clamps to length).
         """
         assert_matches(apply_expr([1.0, 2.0, 3.0], mom(pl.col(COLUMN_X), 5)), [None, None, None])
-
-    def test_empty(self) -> None:
-        """
-        Verifies behavior on an empty series.
-        """
-        assert_matches(apply_expr([], mom(pl.col(COLUMN_X), 2)), [])
 
     def test_single_row(self) -> None:
         """
@@ -246,8 +215,9 @@ class TestMomProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that momentum is homogeneous of degree 1: ``mom(k * x) == k * mom(x)``. ``k`` is a power
-        of two so the rescaling is lossless and cannot introduce a floating-point artifact.
+        Verifies that ``mom`` is homogeneous of degree 1: scaling every input value by a constant ``k`` scales the
+        output by the same ``k`` -- ``mom(k * x) == k * mom(x)``. ``k`` is a power of two, so the rescale is exact
+        and adds no floating-point error.
         """
         k = 2.0**exponent
         values, window = case

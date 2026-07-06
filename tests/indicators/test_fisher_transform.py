@@ -23,7 +23,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import fisher_transform_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_PROPERTY,
@@ -95,12 +94,6 @@ class TestFisherTransformContract:
     Type, struct schema, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(fisher_transform(pl.col(HIGH), pl.col(LOW), 3), pl.Expr)
-
     def test_output_is_struct_with_named_fields(self) -> None:
         """
         Verifies that the output is a ``Float64`` struct with exactly the fields ``fisher`` / ``signal``.
@@ -110,21 +103,6 @@ class TestFisherTransformContract:
         assert isinstance(dtype, pl.Struct)
         assert [field.name for field in dtype.fields] == ["fisher", "signal"]
         assert all(field.dtype == pl.Float64 for field in dtype.fields)
-
-    def test_preserves_length(self) -> None:
-        """
-        Verifies that the output has one struct per input row.
-        """
-        frame = pl.DataFrame({HIGH: [2.0, 4.0, 6.0], LOW: [1.0, 3.0, 4.0]})
-        assert frame.select(fisher_transform(pl.col(HIGH), pl.col(LOW), 2).alias("ft")).height == frame.height
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({HIGH: [2.0, 4.0, 6.0, 5.0], LOW: [1.0, 3.0, 4.0, 4.0]})
-        expr = fisher_transform(pl.col(HIGH), pl.col(LOW), 2).alias("ft")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
 
     def test_over_partitions_independently(self) -> None:
         """
@@ -155,14 +133,6 @@ class TestFisherTransformEdge:
         """
         with pytest.raises(ValueError, match="window must be >= 1"):
             fisher_transform(pl.col(HIGH), pl.col(LOW), 0)
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output on both lines.
-        """
-        bands = apply_fisher([], [], 2)
-        for field in FIELDS:
-            assert_matches(bands[field], [])
 
     def test_all_null(self) -> None:
         """
@@ -317,8 +287,9 @@ class TestFisherTransformProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that the transform is scale-invariant under a positive common rescaling of high / low (the channel
-        normalization cancels the scale). ``k`` is a power of two so the rescaling is lossless and the match is exact.
+        Verifies that ``fisher_transform`` is scale-invariant: scaling every input value by a constant ``k`` leaves
+        the output unchanged -- ``fisher_transform(k * x) == fisher_transform(x)``. ``k`` is a power of two, so the
+        rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         rows, window = case

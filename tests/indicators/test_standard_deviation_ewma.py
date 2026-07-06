@@ -18,12 +18,13 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import standard_deviation_ewma_reference
 from tests.support import (
+    ABSOLUTE_TOLERANCE_REFERENCE,
     COLUMN_X,
     GROUP_KEY,
     RELATIVE_TOLERANCE_PROPERTY,
+    RELATIVE_TOLERANCE_REFERENCE,
     RELATIVE_TOLERANCE_SCALE,
     STREAMING_TOLERANCE_FACTOR,
     SUBNORMAL_FLOOR,
@@ -73,31 +74,6 @@ class TestStandardDeviationEwmaContract:
     """
     Type, shape, and lazy/eager guarantees.
     """
-
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(standard_deviation_ewma(pl.col(COLUMN_X), 3), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 2.0, 3.0, 4.0, 5.0])})
-        result = frame.select(standard_deviation_ewma(pl.col(COLUMN_X), 3).alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 2.0, 3.0, 4.0, 5.0])})
-        expr = standard_deviation_ewma(pl.col(COLUMN_X), 3).alias("y")
-        result_eager = frame.select(expr)
-        result_lazy = frame.lazy().select(expr).collect()
-        assert_frame_equal(result_eager, result_lazy)
 
     def test_over_partitions_independently(self) -> None:
         """
@@ -160,12 +136,6 @@ class TestStandardDeviationEwmaEdge:
         """
         assert_matches(apply_expr([42.0], standard_deviation_ewma(pl.col(COLUMN_X), 2)), [None])
 
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty series yields an empty result.
-        """
-        assert_matches(apply_expr([], standard_deviation_ewma(pl.col(COLUMN_X), 3)), [])
-
     def test_all_null(self) -> None:
         """
         Verifies that an all-null series stays null (no observation ever seeds the recursion).
@@ -211,7 +181,12 @@ class TestStandardDeviationEwmaCorrectness:
         ``ignore_nulls=False`` aging that an equal-weight or null-collapsing form would miss.
         """
         result = apply_expr([10.0, None, 11.0, 13.0, 12.0], standard_deviation_ewma(pl.col(COLUMN_X), 3))
-        assert_matches(result, [None, None, None, 1.2133516482134197, 0.8620067027323833])
+        assert_matches(
+            result,
+            [None, None, None, 1.2133516482134197, 0.8620067027323833],
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
+        )
 
 
 class TestStandardDeviationEwmaProperties:
@@ -251,8 +226,10 @@ class TestStandardDeviationEwmaProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that the deviation is homogeneous of degree 1: ``std_ewma(k * x) == abs(k) * std_ewma(x)``. ``k`` is a
-        power of two so the rescaling is lossless and cannot perturb the recurrence by a sub-ULP drift.
+        Verifies that ``standard_deviation_ewma`` is homogeneous of degree 1: scaling every input value by a
+        constant ``k`` scales the output by the same ``k`` -- ``standard_deviation_ewma(k * x) == k *
+        standard_deviation_ewma(x)``. ``k`` is a power of two, so the rescale is exact and adds no floating-point
+        error.
         """
         k = 2.0**exponent
         values, window = case

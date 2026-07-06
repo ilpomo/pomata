@@ -17,7 +17,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import midpoint_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
@@ -71,31 +70,6 @@ class TestMidpointContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(midpoint(pl.col(COLUMN_X), 3), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 2.0, 3.0, 4.0, 5.0])})
-        result = frame.select(midpoint(pl.col(COLUMN_X), 3).alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 2.0, 3.0, 4.0, 5.0])})
-        expr = midpoint(pl.col(COLUMN_X), 3).alias("y")
-        result_eager = frame.select(expr)
-        result_lazy = frame.lazy().select(expr).collect()
-        assert_frame_equal(result_eager, result_lazy)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` the window resets per group and never spans group boundaries.
@@ -116,12 +90,6 @@ class TestMidpointEdge:
         """
         with pytest.raises(ValueError, match="window must be >= 1"):
             midpoint(pl.col(COLUMN_X), 0)
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output.
-        """
-        assert_matches(apply_expr([], midpoint(pl.col(COLUMN_X), 3)), [])
 
     def test_all_null(self) -> None:
         """
@@ -156,7 +124,7 @@ class TestMidpointEdge:
         """
         assert_matches(apply_expr([1.0, 2.0, 3.0], midpoint(pl.col(COLUMN_X), 5)), [None, None, None])
 
-    def test_null_propagates(self) -> None:
+    def test_null_in_window_is_null(self) -> None:
         """
         Verifies that a ``null`` inside the window yields ``null`` there, and the value returns once the window clears.
         """
@@ -226,8 +194,9 @@ class TestMidpointProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that the midpoint is homogeneous of degree 1: ``midpoint(k * x) == k * midpoint(x)``. ``k`` is a power
-        of two so the rescaling is lossless.
+        Verifies that ``midpoint`` is homogeneous of degree 1: scaling every input value by a constant ``k`` scales
+        the output by the same ``k`` -- ``midpoint(k * x) == k * midpoint(x)``. ``k`` is a power of two, so the
+        rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         values, window = case

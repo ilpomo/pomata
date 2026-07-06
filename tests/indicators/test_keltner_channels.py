@@ -22,15 +22,17 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import keltner_channels_reference
 from tests.support import (
+    ABSOLUTE_TOLERANCE_EXACT,
+    ABSOLUTE_TOLERANCE_REFERENCE,
     CLOSE,
     EXACT_TOLERANCE_FACTOR,
     GROUP_KEY,
     HIGH,
     LOW,
     RELATIVE_TOLERANCE_PROPERTY,
+    RELATIVE_TOLERANCE_REFERENCE,
     RELATIVE_TOLERANCE_SCALE,
     WINDOW_MAX,
     assert_matches,
@@ -99,12 +101,6 @@ class TestKeltnerChannelsContract:
     Type, struct schema, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(keltner_channels(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), window=3, window_atr=10), pl.Expr)
-
     def test_output_is_struct_with_named_fields(self) -> None:
         """
         Verifies that the output is a ``Float64`` struct with exactly the fields ``lower`` / ``middle`` / ``upper``.
@@ -115,22 +111,6 @@ class TestKeltnerChannelsContract:
         assert isinstance(dtype, pl.Struct)
         assert [field.name for field in dtype.fields] == ["lower", "middle", "upper"]
         assert all(field.dtype == pl.Float64 for field in dtype.fields)
-
-    def test_preserves_length(self) -> None:
-        """
-        Verifies that the output has one struct per input row.
-        """
-        frame = pl.DataFrame({HIGH: [3.0, 4.0, 5.0], LOW: [1.0, 2.0, 3.0], CLOSE: [2.0, 3.0, 4.0]})
-        expr = keltner_channels(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), window=2, window_atr=2).alias("kc")
-        assert frame.select(expr).height == frame.height
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({HIGH: [3.0, 4.0, 5.0, 6.0], LOW: [1.0, 2.0, 3.0, 4.0], CLOSE: [2.0, 3.0, 4.0, 5.0]})
-        expr = keltner_channels(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), window=2, window_atr=2).alias("kc")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
 
     def test_over_partitions_independently(self) -> None:
         """
@@ -180,14 +160,6 @@ class TestKeltnerChannelsEdge:
         for invalid in (0.0, -1.0, math.nan, math.inf, -math.inf):
             with pytest.raises(ValueError, match="multiplier must be a finite number > 0"):
                 keltner_channels(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), window=3, window_atr=10, multiplier=invalid)
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output on every band.
-        """
-        bands = apply_keltner_channels([], [], [], 3, window_atr=2)
-        for field in FIELDS:
-            assert_matches(bands[field], [])
 
     def test_all_null(self) -> None:
         """
@@ -251,6 +223,20 @@ class TestKeltnerChannelsEdge:
         for field in FIELDS:
             assert all(value is not None for value in bands[field][1:])
 
+    def test_null_bridged(self) -> None:
+        """
+        Verifies that an interior ``null`` in ``close`` is bridged by the recursive ``ema`` / ``atr`` legs: after the
+        gap the midline recovers to a defined value, matching the reference.
+        """
+        high = [3.0, 4.0, 5.0, 6.0, 7.0]
+        low = [1.0, 2.0, 3.0, 4.0, 5.0]
+        close = [2.0, None, 4.0, 5.0, 6.0]
+        bands = apply_keltner_channels(high, low, close, 2, window_atr=2)
+        assert bands["middle"][-1] is not None
+        reference = keltner_channels_reference(high, low, close, 2, 2, 2.0)
+        for field in FIELDS:
+            assert_matches(bands[field], reference[field])
+
     def test_nan_latches(self) -> None:
         """
         Verifies that a ``NaN`` in ``close`` propagates to every band through the recursive ``ema`` / ``atr`` legs,
@@ -296,9 +282,24 @@ class TestKeltnerChannelsCorrectness:
         bands = apply_keltner_channels(
             [10.0, 12.0, 11.0, 13.0, 15.0], [8.0, 9.0, 9.5, 10.0, 12.0], [9.0, 11.0, 10.0, 12.0, 14.0], 3, window_atr=3
         )
-        assert_matches(bands["lower"], [None, None, 5.666666666666667, 6.111111111111111, 7.2407407407407405])
-        assert_matches(bands["middle"], [None, None, 10.0, 11.0, 12.5])
-        assert_matches(bands["upper"], [None, None, 14.333333333333332, 15.88888888888889, 17.75925925925926])
+        assert_matches(
+            bands["lower"],
+            [None, None, 5.666666666666667, 6.111111111111111, 7.2407407407407405],
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
+        )
+        assert_matches(
+            bands["middle"],
+            [None, None, 10.0, 11.0, 12.5],
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
+        )
+        assert_matches(
+            bands["upper"],
+            [None, None, 14.333333333333332, 15.88888888888889, 17.75925925925926],
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
+        )
 
     def test_golden_master_flat(self) -> None:
         """
@@ -329,7 +330,9 @@ class TestKeltnerChannelsCorrectness:
             assert wide_upper is not None
             narrow_gap = narrow_upper - center
             wide_gap = wide_upper - center
-            assert math.isclose(wide_gap, 2.0 * narrow_gap, rel_tol=RELATIVE_TOLERANCE_SCALE)
+            assert math.isclose(
+                wide_gap, 2.0 * narrow_gap, rel_tol=RELATIVE_TOLERANCE_REFERENCE, abs_tol=ABSOLUTE_TOLERANCE_EXACT
+            )
 
 
 class TestKeltnerChannelsProperties:
@@ -394,8 +397,9 @@ class TestKeltnerChannelsProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that, for positive ``k``, every band is homogeneous of degree 1: ``band(k * bars) == k * band``. ``k``
-        is a power of two so the rescaling is lossless.
+        Verifies that ``keltner_channels`` is homogeneous of degree 1: scaling every input value by a constant ``k``
+        scales the output by the same ``k`` -- ``keltner_channels(k * x) == k * keltner_channels(x)``. ``k`` is a
+        power of two, so the rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         rows, window, window_atr = case

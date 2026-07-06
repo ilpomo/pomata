@@ -20,7 +20,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import dema_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
@@ -82,30 +81,6 @@ class TestDemaContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(dema(pl.col(COLUMN_X), 3), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 2.0, 3.0, 4.0, 5.0])})
-        result = frame.select(dema(pl.col(COLUMN_X), 2).alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 2.0, 3.0, 4.0, 5.0, 6.0])})
-        result_eager = frame.select(dema(pl.col(COLUMN_X), 2).alias("y"))
-        result_lazy = frame.lazy().select(dema(pl.col(COLUMN_X), 2).alias("y")).collect()
-        assert_frame_equal(result_eager, result_lazy)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` each EMA pass resets per group and never spans group boundaries.
@@ -143,12 +118,6 @@ class TestDemaEdge:
         assert result[:4] == [None, None, None, None]
         assert result[4] is not None
 
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output.
-        """
-        assert_matches(apply_expr([], dema(pl.col(COLUMN_X), 3)), [])
-
     def test_all_null(self) -> None:
         """
         Verifies that an all-null series yields an all-null output.
@@ -183,7 +152,7 @@ class TestDemaEdge:
         assert_matches(apply_expr([42.0], dema(pl.col(COLUMN_X), 1)), [42.0])
         assert_matches(apply_expr([42.0], dema(pl.col(COLUMN_X), 2)), [None])
 
-    def test_null_propagates(self) -> None:
+    def test_null_bridged(self) -> None:
         """
         Verifies that an early ``null`` extends the warm-up and yields ``null`` at that position, the value resuming
         once enough non-null observations have seeded both EMA passes.
@@ -237,6 +206,8 @@ class TestDemaCorrectness:
         assert_matches(
             apply_expr([2.0, 4.0, 6.0, 8.0, 10.0, 12.0], dema(pl.col(COLUMN_X), 2)),
             [None, None, 6.0, 8.0, 10.0, 12.0],
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
     def test_golden_master_adjust(self) -> None:
@@ -246,6 +217,8 @@ class TestDemaCorrectness:
         assert_matches(
             apply_expr([3.0, 1.0, 4.0, 1.0, 5.0, 9.0, 2.0, 6.0], dema(pl.col(COLUMN_X), 3, adjust=True)),
             [None, None, None, None, 4.042089093701996, 7.846915855948113, 3.832696745373009, 5.383328263901351],
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
     def test_constant_series_is_constant(self) -> None:
@@ -293,7 +266,9 @@ class TestDemaProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that DEMA is homogeneous of degree 1: ``dema(k * x) == k * dema(x)``.
+        Verifies that ``dema`` is homogeneous of degree 1: scaling every input value by a constant ``k`` scales the
+        output by the same ``k`` -- ``dema(k * x) == k * dema(x)``. ``k`` is a power of two, so the rescale is exact
+        and adds no floating-point error.
         """
         k = 2.0**exponent
         values, window = case

@@ -21,12 +21,10 @@ import polars as pl
 import pytest
 from hypothesis import assume, given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.metrics.oracles import probabilistic_sharpe_ratio_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
     COLUMN_X,
-    GROUP_KEY,
     RELATIVE_TOLERANCE_REFERENCE,
     RELATIVE_TOLERANCE_SCALE,
     apply_expr,
@@ -84,45 +82,6 @@ class TestProbabilisticSharpeRatioContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(probabilistic_sharpe_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS), pl.Expr)
-
-    def test_reduces_to_scalar(self) -> None:
-        """
-        Verifies that the metric reduces a series to one ``Float64`` row.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [0.01, -0.02, 0.015, -0.03, 0.02], dtype=pl.Float64)})
-        result = frame.select(probabilistic_sharpe_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS).alias("p"))
-        assert result.height == 1
-        assert result.schema["p"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [0.01, -0.02, 0.015, -0.03, 0.02], dtype=pl.Float64)})
-        expr = probabilistic_sharpe_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS).alias("p")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
-
-    def test_over_partitions_independently(self) -> None:
-        """
-        Verifies that under ``.over`` the statistic is computed per group (broadcast) and never spans boundaries.
-        """
-        group_a = [0.01, -0.02, 0.015, -0.03, 0.005, 0.04]
-        group_b = [0.02, -0.05, 0.01, -0.01, 0.03]
-        frame = pl.DataFrame({GROUP_KEY: ["a"] * len(group_a) + ["b"] * len(group_b), COLUMN_X: group_a + group_b})
-        grouped = frame.select(
-            probabilistic_sharpe_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS).over(GROUP_KEY).alias("p")
-        )["p"].to_list()
-        expected_a = probabilistic_sharpe_ratio_reference(group_a, PERIODS, 0.0, 0.0)
-        expected_b = probabilistic_sharpe_ratio_reference(group_b, PERIODS, 0.0, 0.0)
-        assert_matches(
-            grouped, [expected_a] * len(group_a) + [expected_b] * len(group_b), rel_tol=RELATIVE_TOLERANCE_REFERENCE
-        )
-
 
 class TestProbabilisticSharpeRatioEdge:
     """
@@ -146,12 +105,6 @@ class TestProbabilisticSharpeRatioEdge:
             with pytest.raises(ValueError, match="risk_free_rate must be a finite number"):
                 probabilistic_sharpe_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS, risk_free_rate=invalid)
 
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty series yields ``null``.
-        """
-        assert_matches(apply_expr([], probabilistic_sharpe_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS)), [None])
-
     def test_single_row(self) -> None:
         """
         Verifies that a one-element series yields ``null`` (the sample Sharpe ratio needs two observations).
@@ -171,12 +124,18 @@ class TestProbabilisticSharpeRatioEdge:
             [math.nan],
         )
 
-    def test_all_null(self) -> None:
+    def test_null_skipped(self) -> None:
         """
-        Verifies that an all-null series yields ``null``.
+        Verifies that a ``null`` observation is skipped (excluded from the reduction), matching the reference.
         """
+        values = [0.012, -0.008, 0.02, None, 0.005, 0.0, -0.02, 0.018, 0.01, -0.004]
         assert_matches(
-            apply_expr([None, None], probabilistic_sharpe_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS)), [None]
+            apply_expr(
+                values, probabilistic_sharpe_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS, benchmark_sharpe=0.05)
+            ),
+            [probabilistic_sharpe_ratio_reference(values, PERIODS, 0.05, 0.0)],
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
     def test_nan_poisons(self) -> None:
@@ -278,12 +237,14 @@ class TestProbabilisticSharpeRatioProperties:
         )
 
     @given(
-        case=_cases(standardized_moment_floats(bound=1e3), min_size=2), exponent=st.sampled_from([-4, -2, -1, 1, 2, 4])
+        case=_cases(standardized_moment_floats(bound=1e3), min_size=2),
+        exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
     )
     def test_scale_invariance(self, case: list[float], exponent: int) -> None:
         """
-        Verifies that a positive rescale of the returns leaves the statistic unchanged at a zero risk-free rate (a
-        standardized statistic), using powers of two so the rescaling is lossless.
+        Verifies that ``probabilistic_sharpe_ratio`` is scale-invariant: scaling every input value by a constant
+        ``k`` leaves the output unchanged -- ``probabilistic_sharpe_ratio(k * x) == probabilistic_sharpe_ratio(x)``.
+        ``k`` is a power of two, so the rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         base = apply_expr(case, probabilistic_sharpe_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS))

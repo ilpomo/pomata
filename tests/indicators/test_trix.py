@@ -18,7 +18,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import trix_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
@@ -71,31 +70,6 @@ class TestTrixContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(trix(pl.col(COLUMN_X), 3), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [10.0, 11.0, 12.0, 13.0, 14.0])})
-        result = frame.select(trix(pl.col(COLUMN_X), 2).alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [10.0, 11.0, 12.0, 13.0, 14.0])})
-        expr = trix(pl.col(COLUMN_X), 2).alias("y")
-        result_eager = frame.select(expr)
-        result_lazy = frame.lazy().select(expr).collect()
-        assert_frame_equal(result_eager, result_lazy)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` the EMA chain resets per group and never spans group boundaries.
@@ -137,12 +111,6 @@ class TestTrixEdge:
         """
         assert_matches(apply_expr([1.0, 2.0, 3.0], trix(pl.col(COLUMN_X), 5)), [None, None, None])
 
-    def test_empty(self) -> None:
-        """
-        Verifies behavior on an empty series.
-        """
-        assert_matches(apply_expr([], trix(pl.col(COLUMN_X), 2)), [])
-
     def test_single_row(self) -> None:
         """
         Verifies behavior on a one-element series: the lone value is always warm-up.
@@ -155,9 +123,9 @@ class TestTrixEdge:
         """
         assert_matches(apply_expr([None, None, None, None], trix(pl.col(COLUMN_X), 2)), [None, None, None, None])
 
-    def test_null_propagates(self) -> None:
+    def test_null_bridged(self) -> None:
         """
-        Verifies that a null propagates (matching the naive reference).
+        Verifies that an interior ``null`` is bridged: the recursion carries its state across the gap.
         """
         values = [10.0, 11.0, 12.0, None, 14.0, 14.0, 16.0, 17.0]
         assert_matches(apply_expr(values, trix(pl.col(COLUMN_X), 2)), trix_reference(values, 2))
@@ -224,8 +192,9 @@ class TestTrixProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that TRIX is scale-invariant: ``trix(k * x) == trix(x)`` for positive ``k`` (the rate of change cancels
-        the price's unit). ``k`` is a power of two so the rescaling is lossless and cannot introduce a sub-ULP drift.
+        Verifies that ``trix`` is scale-invariant: scaling every input value by a constant ``k`` leaves the output
+        unchanged -- ``trix(k * x) == trix(x)``. ``k`` is a power of two, so the rescale is exact and adds no
+        floating-point error.
         """
         k = 2.0**exponent
         values, window = case

@@ -17,12 +17,10 @@ import math
 import polars as pl
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.metrics.oracles import stability_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
     COLUMN_X,
-    GROUP_KEY,
     RELATIVE_TOLERANCE_REFERENCE,
     RELATIVE_TOLERANCE_SCALE,
     apply_expr,
@@ -55,54 +53,11 @@ class TestStabilityContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(stability(pl.col(COLUMN_X)), pl.Expr)
-
-    def test_reduces_to_scalar(self) -> None:
-        """
-        Verifies that the metric reduces a series to one ``Float64`` row.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [0.01, 0.012, 0.009, 0.011], dtype=pl.Float64)})
-        result = frame.select(stability(pl.col(COLUMN_X)).alias("s"))
-        assert result.height == 1
-        assert result.schema["s"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [0.01, 0.012, 0.009, 0.011], dtype=pl.Float64)})
-        expr = stability(pl.col(COLUMN_X)).alias("s")
-        assert_frame_equal(frame.select(expr), frame.lazy().select(expr).collect())
-
-    def test_over_partitions_independently(self) -> None:
-        """
-        Verifies that under ``.over`` the R-squared is computed per group (broadcast) and never spans boundaries.
-        """
-        group_a = [0.01, 0.012, 0.009, 0.011, 0.013]
-        group_b = [0.02, -0.01, 0.03, 0.005]
-        frame = pl.DataFrame({GROUP_KEY: ["a"] * len(group_a) + ["b"] * len(group_b), COLUMN_X: group_a + group_b})
-        grouped = frame.select(stability(pl.col(COLUMN_X)).over(GROUP_KEY).alias("s"))["s"].to_list()
-        expected_a = stability_reference(group_a)
-        expected_b = stability_reference(group_b)
-        assert_matches(
-            grouped, [expected_a] * len(group_a) + [expected_b] * len(group_b), rel_tol=RELATIVE_TOLERANCE_REFERENCE
-        )
-
 
 class TestStabilityEdge:
     """
     Boundaries and null / NaN handling.
     """
-
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty series yields ``null``.
-        """
-        assert_matches(apply_expr([], stability(pl.col(COLUMN_X))), [None])
 
     def test_single_row_is_null(self) -> None:
         """
@@ -127,12 +82,6 @@ class TestStabilityEdge:
         Verifies that a return at or below ``-1`` makes the cumulative log undefined, so the result is ``NaN``.
         """
         assert_matches(apply_expr([0.02, -1.5, 0.01], stability(pl.col(COLUMN_X))), [math.nan])
-
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null series yields ``null``.
-        """
-        assert_matches(apply_expr([None, None], stability(pl.col(COLUMN_X))), [None])
 
     def test_nan_poisons(self) -> None:
         """

@@ -17,7 +17,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal
 from tests.indicators.oracles import dm_plus_reference
 from tests.support import (
     EXACT_TOLERANCE_FACTOR,
@@ -82,31 +81,6 @@ class TestDmPlusContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_returns_expr(self) -> None:
-        """
-        Verifies that the factory returns a ``pl.Expr`` without touching a frame.
-        """
-        assert isinstance(dm_plus(pl.col(HIGH), pl.col(LOW), 14), pl.Expr)
-
-    def test_preserves_length_and_dtype(self) -> None:
-        """
-        Verifies that the output has one value per input row and is ``Float64``.
-        """
-        frame = pl.DataFrame({HIGH: [10.0, 11.0, 12.0], LOW: [9.0, 10.0, 11.0]})
-        result = frame.select(dm_plus(pl.col(HIGH), pl.col(LOW), 2).alias("y"))
-        assert result.height == frame.height
-        assert result.schema["y"] == pl.Float64
-
-    def test_lazy_eager_parity(self) -> None:
-        """
-        Verifies that eager and lazy application produce identical materialized output.
-        """
-        frame = pl.DataFrame({HIGH: [10.0, 11.0, 12.0], LOW: [9.0, 10.0, 11.0]})
-        expr = dm_plus(pl.col(HIGH), pl.col(LOW), 2).alias("y")
-        result_eager = frame.select(expr)
-        result_lazy = frame.lazy().select(expr).collect()
-        assert_frame_equal(result_eager, result_lazy)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` the differencing and recursion reset per group and never span boundaries.
@@ -137,12 +111,6 @@ class TestDmPlusEdge:
         with pytest.raises(ValueError, match="window must be >= 1"):
             dm_plus(pl.col(HIGH), pl.col(LOW), 0)
 
-    def test_empty(self) -> None:
-        """
-        Verifies that an empty input yields an empty output (length 0).
-        """
-        assert apply_dm_plus([], [], 2) == []
-
     def test_all_null(self) -> None:
         """
         Verifies that an all-null series yields a warm-up null then zeros: a ``null`` high or low makes the raw
@@ -170,9 +138,9 @@ class TestDmPlusEdge:
         assert result[0] is None
         assert result[1] is not None
 
-    def test_null_propagates(self) -> None:
+    def test_null_bridged(self) -> None:
         """
-        Verifies that a null propagates (matching the naive reference).
+        Verifies that an interior ``null`` is bridged: the recursion carries its state across the gap.
         """
         high = [10.0, 11.0, 12.0, None, 13.0, 13.5, 14.0, 13.5]
         low = [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5]
@@ -246,8 +214,9 @@ class TestDmPlusProperties:
         exponent: int,
     ) -> None:
         """
-        Verifies that, for positive ``k``, ``dm_plus`` is homogeneous of degree 1: ``dm_plus(k * x) == k * dm_plus(x)``.
-        ``k`` is a power of two so the rescaling is lossless and cannot introduce a floating-point artifact.
+        Verifies that ``dm_plus`` is homogeneous of degree 1: scaling every input value by a constant ``k`` scales
+        the output by the same ``k`` -- ``dm_plus(k * x) == k * dm_plus(x)``. ``k`` is a power of two, so the
+        rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         rows, window = case
@@ -288,4 +257,9 @@ class TestDmPlusProperties:
         """
         rows, window = case
         high, low = split_pairs(rows)
-        assert_matches(apply_dm_plus(high, low, window), dm_plus_reference(high, low, window))
+        assert_matches(
+            apply_dm_plus(high, low, window),
+            dm_plus_reference(high, low, window),
+            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+            abs_tol=input_scale([*high, *low]) * EXACT_TOLERANCE_FACTOR,
+        )
