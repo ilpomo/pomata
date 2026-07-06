@@ -11,11 +11,11 @@ Four guarantees in one source-only walk, keyed on the public surface:
   vocabulary and sits in a ``Test*Properties`` class. Descriptive per-input names (``test_null_in_volume_propagates``)
   are left free; only the canonical ones are held.
 - **null precedes nan** -- within a function's test file the interior-``null`` flow anchor comes before the
-  interior-``NaN`` one, the canonical Edge order (POLICY.md §4). A file that runs its ``nan`` anchor first is a red
-  build.
+  interior-``NaN`` one, the canonical Edge order (tests/README.md §4). A file that runs its ``nan`` anchor first
+  is a red build.
 - **missing precedes scale** -- within a function's ``Test*Properties`` class the
   ``matches_reference_under_missing_data`` rung comes before the scale rung, the canonical Properties order
-  (POLICY.md §4). A file that runs its scale rung first is a red build.
+  (tests/README.md §4). A file that runs its scale rung first is a red build.
 
 Scale carries no presence mandate: a dimensionless ratio or a rolling metric legitimately has no scale test, so scale is
 name-only. All detectors are ``test_``-scoped, so a helper like ``apply_domi``**``nan``**``t_cycle_period`` cannot be

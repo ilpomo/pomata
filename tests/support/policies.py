@@ -4,14 +4,14 @@ The declared null / NaN policy of every public function.
 These are the two facts about a function that a test cannot observe and so must be *stated*, then proven against the
 code by :mod:`tests.test_policies`. Everything else a test needs -- a function's family, output shape, input columns,
 its oracle -- is derived from the public ``__all__`` tuples, the factory signature, and a single runtime probe, so it is
-never declared here and cannot drift. See ``tests/POLICY.md``.
+never declared here and cannot drift. See ``tests/README.md``.
 """
 
 from enum import Enum
 
 
 class NullPolicy(Enum):
-    """What an interior ``null`` does to the output (see ``tests/POLICY.md`` for the full definition of each)."""
+    """What an interior ``null`` does to the output (see ``tests/README.md`` for the full definition of each)."""
 
     SKIPPED = "skipped"  # excluded from the reduction; the result is as if the null were absent
     PROPAGATES = "propagates"  # nulls only its own output row (a pointwise map)
@@ -21,7 +21,7 @@ class NullPolicy(Enum):
 
 
 class NanPolicy(Enum):
-    """What an interior ``NaN`` does to the output (see ``tests/POLICY.md`` for the full definition of each)."""
+    """What an interior ``NaN`` does to the output (see ``tests/README.md`` for the full definition of each)."""
 
     POISONS = "poisons"  # a reduction goes ``NaN``
     PROPAGATES = "propagates"  # nans the rows it reaches, then recovers
