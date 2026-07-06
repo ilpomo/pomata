@@ -299,8 +299,7 @@ def keltner_channels(
         close: Close-price series (e.g. ``pl.col("close")``).
         window: Number of observations in the EMA midline window (canonically ``20``). Must be ``>= 1``.
         window_atr: Number of observations in the ATR window (canonically ``10``). Must be ``>= 1``.
-        multiplier: Number of ATRs between the midline and each band (canonically ``2.0``). Must be a finite number
-            ``> 0``.
+        multiplier: Band half-width as a multiple of the ATR (canonically ``2.0``). Must be a finite number ``> 0``.
 
     Returns:
         A struct column (one struct per row, the same length as the inputs) with three ``Float64`` fields:

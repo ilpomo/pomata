@@ -327,8 +327,11 @@ def hma(
         **Period rounding:**
 
         The two period reductions use round-half-**up** (``floor(window / 2 + 0.5)`` and ``floor(sqrt(window) + 0.5)``),
-        not Python's built-in ``round`` (which rounds half to even); the two disagree on the half-period whenever
-        ``window / 2`` lands exactly on a ``.5`` boundary (odd ``window`` such as ``5``, ``9``, ``13``, ...).
+        not Python's built-in ``round`` (which rounds half to even). The two disagree on the half-period only for an
+        odd ``window`` whose half ``floor(window / 2)`` is even -- ``window`` congruent to ``1`` modulo ``4`` (``5``,
+        ``9``, ``13``, ...) -- where round-half-up takes the ``.5`` up while round-half-to-even takes it down to the
+        even floor. For ``window`` congruent to ``3`` modulo ``4`` (``3``, ``7``, ``11``, ...) the half still lands on
+        a ``.5`` boundary but both round alike.
 
         **Edge-case behavior:**
 
@@ -747,7 +750,7 @@ def t3(
 
     Args:
         expr: Input series, typically a price column (e.g. ``pl.col("close")``).
-        window: Number of observations in the moving window. Must be ``>= 1``.
+        window: Span of the exponential weighting, mapped to ``alpha = 2 / (window + 1)``. Must be ``>= 1``.
         volume_factor: The Tillson volume factor ``v`` controlling smoothing versus responsiveness; the canonical
             default is ``0.7``. Must be a finite number.
         adjust: Whether to use the assumption-light adjusted EMA weights (``True``), which differ from the recursive

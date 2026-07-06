@@ -429,8 +429,10 @@ def true_range(
         - **Null** — null handling follows ``pl.max_horizontal``, which **skips** ``null`` candidates rather than
           propagating them: a ``null`` in ``high`` or ``low`` (or a ``null`` previous ``close``) simply drops that
           candidate, so the row still resolves from whichever distances remain. The result is ``null`` only when all
-          three candidates are ``null`` (``high`` and ``low`` are both ``null`` at the row, which voids all three
-          distances regardless of the previous close).
+          three candidates are ``null``: with a defined previous ``close`` that means ``high`` and ``low`` are both
+          ``null`` at the row, but where the previous ``close`` is itself ``null`` (row ``0``, or any bar after a
+          ``null`` close) the two gap distances are already ``null``, so a single ``null`` in ``high`` or ``low`` voids
+          the row on its own.
         - **NaN** — a ``NaN`` is **not** skipped: it dominates the maximum, so any row whose surviving candidates
           include a ``NaN`` yields ``NaN`` (a ``NaN`` ``close`` therefore contaminates the two gap terms of the **next**
           row only, not the whole series).
