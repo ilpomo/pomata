@@ -912,9 +912,12 @@ def profit_ratio(
         nan
     """
     returns = float64_expr(returns)
-    total_gain = returns.clip(lower_bound=0.0).mean()
-    total_loss = (-returns).clip(lower_bound=0.0).mean()
-    return total_gain / total_loss
+    # ``.mean()`` is load-bearing, not interchangeable with ``.sum()``: the identical non-null count cancels in the
+    # ratio (so the value equals the documented gross-profit / gross-loss sum ratio), but an empty or all-null series
+    # yields ``null`` rather than the ``0 / 0`` ``NaN`` a sum would give -- the documented "no returns" behavior.
+    mean_gain = returns.clip(lower_bound=0.0).mean()
+    mean_loss = (-returns).clip(lower_bound=0.0).mean()
+    return mean_gain / mean_loss
 
 
 def risk_of_ruin(
