@@ -281,7 +281,7 @@ def equity_curve(
     returns = float64_expr(returns)
     # Cumulative product of one-plus-returns: a null is skipped (emits null, the product carries across it), a NaN
     # propagates -- the Polars cum_prod semantics documented in the Note.
-    return (1.0 + returns).cum_prod()
+    return (1.0 + returns).cum_prod().name.keep()
 
 
 def pnl_gross(
