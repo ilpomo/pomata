@@ -83,7 +83,7 @@ def adjusted_sharpe_ratio(
     square-root-of-time rule.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         risk_free_rate: The annualized risk-free rate, converted to a per-period rate geometrically (default ``0.0``).
             Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + risk_free_rate >= 0``).
@@ -178,7 +178,7 @@ def burke_ratio(
     series. The risk-free rate is already annualized, matching the annualized growth.
 
     Args:
-        equity_curve: Compounded growth-factor series (e.g. from :func:`equity_curve`), positive.
+        equity_curve: Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         risk_free_rate: The annualized risk-free rate subtracted from the growth (default ``0.0``). Must be finite.
 
@@ -270,7 +270,7 @@ def calmar_ratio(
     window, the lookback here is the full sample.
 
     Args:
-        equity_curve: Compounded growth-factor series (e.g. from :func:`equity_curve`), positive.
+        equity_curve: Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
 
     Returns:
@@ -355,7 +355,7 @@ def common_sense_ratio(
     A value above one means the combined profitability and tail behavior are favorable.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
 
     Returns:
         A single ``Float64`` value: the common sense ratio (one value in ``select``, one per group under ``.over``).
@@ -432,7 +432,7 @@ def gain_to_pain_ratio(
         \mathrm{GPR} = \frac{\sum_i r_i}{\left\lvert \sum_{r_i < 0} r_i \right\rvert}.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
 
     Returns:
         A single ``Float64`` value: the gain to pain ratio (one value in ``select``, one per group under ``.over``).
@@ -515,7 +515,7 @@ def omega_ratio(
     the downside at that threshold.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         threshold: The return level separating gains from losses / the minimum acceptable return (default ``0.0``).
             Must be finite.
 
@@ -603,7 +603,7 @@ def omega_ratio_rolling(
     where :math:`\tau` is ``threshold`` and the means are taken over the window.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         window: Number of observations in the moving window. Must be ``>= 1``.
         threshold: The return level separating gains from losses / the minimum acceptable return (default ``0.0``).
             Must be finite.
@@ -702,7 +702,7 @@ def pain_ratio(
     :func:`pain_index`. The risk-free rate is already annualized, matching the annualized growth.
 
     Args:
-        equity_curve: Compounded growth-factor series (e.g. from :func:`equity_curve`), positive.
+        equity_curve: Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         risk_free_rate: The annualized risk-free rate subtracted from the growth (default ``0.0``). Must be finite.
 
@@ -797,7 +797,7 @@ def probabilistic_sharpe_ratio(
     conversion :math:`(1 + \texttt{risk\_free\_rate})^{1/P} - 1`.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         periods_per_year: Observations per year, used only to convert the annualized risk-free rate to a per-period rate
             (canonically ``252`` for daily). Must be ``>= 1``.
         benchmark_sharpe: The (non-annualized) benchmark Sharpe ratio :math:`\mathrm{SR}^{*}` to beat (default ``0.0``).
@@ -902,7 +902,7 @@ def recovery_ratio(
     :func:`max_drawdown`.
 
     Args:
-        equity_curve: Compounded growth-factor series (e.g. from :func:`equity_curve`), positive.
+        equity_curve: Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive.
 
     Returns:
         A single ``Float64`` value: the recovery factor (one value in ``select``, one per group under ``.over``).
@@ -988,7 +988,7 @@ def sharpe_ratio(
     :math:`r_f = (1 + \texttt{risk\_free\_rate})^{1/P} - 1`.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         risk_free_rate: The annualized risk-free rate, converted to a per-period rate geometrically (default ``0.0``).
             Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + risk_free_rate >= 0``).
@@ -1081,7 +1081,7 @@ def sharpe_ratio_rolling(
     ``periods_per_year``, and the per-period risk-free rate is :math:`r_f = (1 + \texttt{risk\_free\_rate})^{1/P} - 1`.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         window: Number of observations in the moving window. Must be ``>= 2``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         risk_free_rate: The annualized risk-free rate, converted to a per-period rate geometrically (default ``0.0``).
@@ -1177,7 +1177,7 @@ def sortino_ratio(
     :math:`r_f = (1 + \texttt{risk\_free\_rate})^{1/P} - 1`.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         risk_free_rate: The annualized risk-free rate, converted to a per-period rate geometrically (default ``0.0``).
             Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + risk_free_rate >= 0``).
@@ -1275,7 +1275,7 @@ def sortino_ratio_rolling(
     ``periods_per_year``, and the per-period target is :math:`r_f = (1 + \texttt{risk\_free\_rate})^{1/P} - 1`.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         window: Number of observations in the moving window. Must be ``>= 1``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         risk_free_rate: The annualized risk-free rate, converted to a per-period rate geometrically (default ``0.0``).
@@ -1376,7 +1376,7 @@ def sterling_ratio(
     :func:`pain_index` (the average drawdown), and ``excess`` the cushion (canonically ``0.10``).
 
     Args:
-        equity_curve: Compounded growth-factor series (e.g. from :func:`equity_curve`), positive.
+        equity_curve: Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         risk_free_rate: The annualized risk-free rate subtracted from the growth (default ``0.0``). Must be finite.
         excess: The fixed cushion added to the average drawdown denominator (default ``0.10``). Must be finite.
@@ -1467,7 +1467,7 @@ def ulcer_performance_ratio(
     :func:`ulcer_index`. The risk-free rate is already annualized, matching the annualized growth.
 
     Args:
-        equity_curve: Compounded growth-factor series (e.g. from :func:`equity_curve`), positive.
+        equity_curve: Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         risk_free_rate: The annualized risk-free rate subtracted from the growth (default ``0.0``). Must be finite.
 

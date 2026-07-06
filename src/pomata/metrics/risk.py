@@ -155,7 +155,7 @@ def conditional_value_at_risk(
     scale as the returns and is negative for a loss.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         confidence: The tail confidence level in the open interval ``(0, 1)`` (canonically ``0.95``); the shortfall is
             averaged over the worst ``1 - confidence`` of returns.
 
@@ -270,7 +270,7 @@ def downside_deviation(
     penalized, unlike the symmetric standard deviation.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         threshold: The return level separating gains from losses / the minimum acceptable return (default ``0.0``).
             Must be finite.
@@ -361,7 +361,7 @@ def downside_deviation_rolling(
     where :math:`\tau` is ``threshold`` and :math:`P` is ``periods_per_year``.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         window: Number of observations in the moving window. Must be ``>= 1``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         threshold: The return level separating gains from losses / the minimum acceptable return (default ``0.0``).
@@ -466,7 +466,7 @@ def kelly_criterion(
     average win over the average loss).
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
 
     Returns:
         A single ``Float64`` value: the Kelly fraction (one value in ``select``, one per group under ``.over``).
@@ -564,7 +564,7 @@ def kurtosis(
     where :math:`m_k` is the population central moment of order :math:`k`.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
 
     Returns:
         A single ``Float64`` value: the excess kurtosis (one value in ``select``, one per group under ``.over``).
@@ -660,7 +660,7 @@ def kurtosis_rolling(
     empty-series case guarded).
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         window: Number of observations in the moving window. Must be ``>= 2``.
 
     Returns:
@@ -755,7 +755,7 @@ def payoff_ratio(
     the strictly negative returns.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
 
     Returns:
         A single ``Float64`` value: the payoff ratio (one value in ``select``, one per group under ``.over``). ``null``
@@ -852,7 +852,7 @@ def profit_ratio(
     A value above one means the gains outweigh the losses.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
 
     Returns:
         A single ``Float64`` value: the profit factor (one value in ``select``, one per group under ``.over``). ``null``
@@ -952,7 +952,7 @@ def risk_of_ruin(
     (:math:`p \le 0.5`) it is :math:`\ge 1`, so the probability is capped at one -- ruin is certain.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
 
     Returns:
         A single ``Float64`` value in ``[0, 1]``: the risk of ruin (one value in ``select``, one per group under
@@ -1042,7 +1042,7 @@ def skewness(
     where :math:`m_k` is the population central moment of order :math:`k`.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
 
     Returns:
         A single ``Float64`` value: the skewness (one value in ``select``, one per group under ``.over``). ``null``
@@ -1136,7 +1136,7 @@ def skewness_rolling(
     empty-series case guarded).
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         window: Number of observations in the moving window. Must be ``>= 2``.
 
     Returns:
@@ -1231,7 +1231,7 @@ def tail_ratio(
     quantiles it is scale-invariant -- rescaling the returns leaves it unchanged.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
 
     Returns:
         A single ``Float64`` value: the tail ratio (one value in ``select``, one per group under ``.over``). ``null``
@@ -1311,7 +1311,7 @@ def tail_ratio_rolling(
     where :math:`Q_{p}` is the type-7 (linear-interpolation) empirical quantile over the window.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         window: Number of observations in the moving window. Must be ``>= 1``.
 
     Returns:
@@ -1413,7 +1413,7 @@ def value_at_risk(
     value is on the same scale as the returns and is negative for a loss (a result of ``-0.05`` is a 5% loss).
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         confidence: The tail confidence level in the open interval ``(0, 1)`` (canonically ``0.95``); the quantile taken
             is ``1 - confidence``.
 
@@ -1503,7 +1503,7 @@ def value_at_risk_modified(
     The value is on the same scale as the returns and is negative for a loss.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         confidence: The tail confidence level in the open interval ``(0, 1)`` (canonically ``0.95``).
 
     Returns:
@@ -1618,7 +1618,7 @@ def value_at_risk_parametric(
     loss.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         confidence: The tail confidence level in the open interval ``(0, 1)`` (canonically ``0.95``).
 
     Returns:
@@ -1703,7 +1703,7 @@ def value_at_risk_rolling(
     where :math:`c` is ``confidence``. Returned as the signed return quantile (negative for a loss).
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         window: Number of observations in the moving window. Must be ``>= 1``.
         confidence: The tail confidence level in the open interval ``(0, 1)`` (canonically ``0.95``).
 
@@ -1806,7 +1806,7 @@ def volatility(
     returns. The square-root-of-time scaling assumes the per-bar returns are serially uncorrelated.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
 
     Returns:
@@ -1824,7 +1824,7 @@ def volatility(
         **Edge-case behavior:**
 
         - **Null** — a ``null`` return is skipped (excluded from the standard deviation), so a leading warm-up ``null``
-          (as produced by :func:`returns_simple`) does not affect the result.
+          (as produced by :func:`~pomata.pnl.returns_simple`) does not affect the result.
         - **NaN** — a ``NaN`` return propagates, yielding ``NaN``.
         - **Fewer than two returns** — the sample standard deviation is undefined, so the result is ``null``.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the volatility is computed per
@@ -1833,7 +1833,7 @@ def volatility(
     See Also:
         - :func:`volatility_rolling`: The rolling (windowed) form.
         - :func:`downside_deviation`: The downside-only (one-sided) counterpart.
-        - :func:`returns_net`: The usual source of the net-return series this measures.
+        - :func:`~pomata.pnl.returns_net`: The usual source of the net-return series this measures.
 
     References:
         - https://en.wikipedia.org/wiki/Volatility_(finance)
@@ -1888,7 +1888,7 @@ def volatility_rolling(
     where :math:`P` is ``periods_per_year``.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         window: Number of observations in the moving window. Must be ``>= 2``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
 
@@ -1991,7 +1991,7 @@ def win_rate(
         \mathrm{win\ rate} = \frac{\#\{r_i > 0\}}{\#\{r_i \neq 0\}}.
 
     Args:
-        returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
+        returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
 
     Returns:
         A single ``Float64`` value in ``[0, 1]``: the win rate (one value in ``select``, one per group under ``.over``).
