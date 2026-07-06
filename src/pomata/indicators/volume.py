@@ -355,6 +355,9 @@ def chaikin_money_flow(
           exactly (the rolling maximum of the absolute volume is zero) and the result is ``NaN``, not the rounding noise
           a sub-ULP residual in the rolling-sum denominator would otherwise produce. With non-negative volume this is
           the only reachable division-by-zero case, since an all-zero volume window also zeroes the numerator.
+        - **Out-of-domain bar** — the result is clamped to its ``[-1, +1]`` bound: a malformed bar whose ``close``
+          prints outside its ``[low, high]`` range (pushing the multiplier past ``±1``) is pinned to the bound rather
+          than allowed to escape it.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so neither rolling sum spans
           series boundaries, e.g.
           ``chaikin_money_flow(pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), 20).over("ticker")``.

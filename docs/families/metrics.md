@@ -172,7 +172,9 @@ The `null` is skipped and the clean series reduces to `4.0717`; swap one value f
 ### The full-sample number, and its rolling twin
 
 Sometimes you want one verdict for the whole track record; sometimes you want to watch it drift. Every reducer that
-earns it has a `_rolling` twin with the identical math over a trailing window.
+earns it has a `_rolling` twin over a trailing window — the same statistic recomputed per window, except the
+`total_return` and `cagr` twins, which as endpoint quantities measure the window's own first-to-last growth (dividing
+by the window's first equity, not the unit start).
 
 ```{doctest}
 >>> from pomata.metrics import sharpe_ratio_rolling

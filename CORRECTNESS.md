@@ -82,8 +82,8 @@ the internal oracle. A documented minority is checked only on the converged tail
 deviates from the indicator's author over the warm-up (Wilder's first true range, the independent MACD / Chaikin EMAs)
 or carries a long, implementation-specific lead-in (the Hilbert cycle pipeline, the Parabolic SAR cold start). Three
 more map to a TA-Lib function but keep a deliberate convention of their own — ADXR's averaging lag, the Chande momentum
-oscillator's smoothing, OBV's origin — so only their steady state is expected to agree; each divergence is documented
-and justified against the charting authorities, not hidden. The remaining **14 have no TA-Lib twin at all** (SuperTrend,
+oscillator's smoothing, OBV's origin — so they do not agree with TA-Lib even at steady state and are held out of the
+differential as documented divergences; each is justified against the charting authorities, not hidden. The remaining **14 have no TA-Lib twin at all** (SuperTrend,
 VWAP, Ichimoku, Vortex, the Hull and Keltner / Donchian families, the volume-normalized CMF, the EWMA variance /
 deviation pair, and a few more): the differential tier cannot reach them, and they rest on the independent oracle and
 their golden masters instead.
