@@ -26,7 +26,7 @@ The same four-tier ladder runs over all three families, under **100% branch cove
 * - **Edge**
   - The exact warm-up length, and that a `null` and a `NaN` propagate exactly as documented — across the boundaries: an empty series, a single row, an all-`null` column, a window longer than the data, an interior gap.
 * - **Correctness**
-  - Bit-level agreement with the independent oracle on a fixed, realistic series, plus frozen, hand-checked golden-master values.
+  - Agreement with the independent oracle to a relative `1e-10` (most values match to the last bit) on a fixed, realistic series, plus frozen, hand-checked golden-master values.
 * - **Properties**
   - The same oracle agreement *and* the mathematical invariants (bounds, scale behavior, monotonicity) over the full `[-1e6, 1e6]` fuzz domain, with missing data freely interleaved — driven by Hypothesis.
 ```
