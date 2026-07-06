@@ -10,7 +10,7 @@ on:
   push:
     branches: [main]
   schedule:
-    - cron: "0 3 * * *" # 03:00 UTC daily; GitHub disables the schedule after 60 days with no repo activity
+    - cron: "30 3 * * *" # 03:30 UTC daily, offset from the 03:00 benchmark cron; GitHub disables the schedule after 60 days with no repo activity
   workflow_dispatch:
 
 # Least-privilege token: these jobs only read the repo (checkout).
