@@ -1,24 +1,28 @@
 name: Docs
 
-# Build the Sphinx site on every push to main and every (non-draft) PR, so a broken docs build is caught before
-# merge; publish to GitHub Pages only from main, and only once the `PAGES_ENABLED` repository variable is `true`.
-# Set it at go-live, after enabling Pages (Settings -> Pages -> Source: "GitHub Actions"), a public-repo feature;
-# until then the deploy is skipped (never failed) and the build still validates with -W.
+# Build the Sphinx site on every push to main and every (non-draft) PR, so a broken docs build is caught before merge
+# (warnings are errors). Publishing to GitHub Pages is deliberately decoupled from merges: the deploy runs on a nightly
+# schedule and on manual `workflow_dispatch`, never per-merge. This stops the intermittent GitHub Pages backend flake
+# ("Deployment failed, try again later") from ever reddening a merge -- a flaked nightly just re-publishes the next
+# night, or you dispatch one on demand. Publishing is gated on the `PAGES_ENABLED` repository variable being `true`;
+# set it at go-live, after enabling Pages (Settings -> Pages -> Source: "GitHub Actions"), a public-repo feature.
 on:
   push:
     branches: [main]
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+  schedule:
+    - cron: "0 6 * * *" # 06:00 UTC daily publish, offset from the other scheduled jobs
   workflow_dispatch:
 
 # Least-privilege by default; the deploy job widens to the Pages scopes it needs.
 permissions:
   contents: read
 
-# Per-ref concurrency: cancel a superseded PR docs build (as ci.yml does), but never cancel a run on main -- the
-# workflow-level cancel would otherwise kill an in-flight Pages deploy, which the deploy job's own `pages` queue cannot
-# prevent (that queue guards deploys against each other, not against the parent run's cancellation). So PR builds
-# supersede; main runs serialize.
+# Per-ref concurrency: cancel a superseded PR docs build (as ci.yml does), but never cancel a non-PR run -- the
+# workflow-level cancel would otherwise kill an in-flight Pages deploy (carried by the scheduled / dispatched publish),
+# which the deploy job's own `pages` queue cannot prevent (that queue guards deploys against each other, not against
+# the parent run's cancellation). So PR builds supersede; main / scheduled / dispatched runs serialize.
 concurrency:
   group: Docs-${{ github.head_ref || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -52,14 +56,14 @@ jobs:
       - name: "Docs: run the example doctests"
         run: uv run sphinx-build -b doctest docs docs/_build/doctest
       - name: "Docs: upload Pages artifact"
-        if: github.ref == 'refs/heads/main' && vars.PAGES_ENABLED == 'true'
+        if: (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && vars.PAGES_ENABLED == 'true'
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: docs/_build/html
 
   deploy:
     needs: build
-    if: github.ref == 'refs/heads/main' && vars.PAGES_ENABLED == 'true'
+    if: (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && vars.PAGES_ENABLED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     # GitHub's recommended Pages single-queue: never cancel an in-flight deploy.
@@ -71,28 +75,11 @@ jobs:
       id-token: write # OIDC token the deploy action verifies
     environment:
       name: github-pages
-      url: ${{ steps.deploy_1.outputs.page_url || steps.deploy_2.outputs.page_url || steps.deploy_3.outputs.page_url }}
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      # actions/deploy-pages intermittently returns a transient "Deployment failed, try again later" from the Pages
-      # backend and exits without retrying -- yet re-running the identical deployment succeeds. Retry it in-workflow
-      # (with a short settle between attempts) so a transient flake no longer needs a manual re-run. The first two
-      # attempts are non-fatal; only the last can fail the job.
+      # No in-workflow retry: the deploy runs on the nightly schedule / on demand, decoupled from merges, so a transient
+      # "Deployment failed, try again later" from the Pages backend simply re-publishes on the next cadence (or a manual
+      # dispatch) rather than reddening a merge.
       - name: "Pages: deploy"
-        id: deploy_1
-        continue-on-error: true
-        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
-      - name: "Pages: settle before retry (1)"
-        if: steps.deploy_1.outcome == 'failure'
-        run: sleep 60
-      - name: "Pages: deploy (retry 1)"
-        id: deploy_2
-        if: steps.deploy_1.outcome == 'failure'
-        continue-on-error: true
-        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
-      - name: "Pages: settle before retry (2)"
-        if: steps.deploy_1.outcome == 'failure' && steps.deploy_2.outcome == 'failure'
-        run: sleep 60
-      - name: "Pages: deploy (retry 2)"
-        id: deploy_3
-        if: steps.deploy_1.outcome == 'failure' && steps.deploy_2.outcome == 'failure'
+        id: deployment
         uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
