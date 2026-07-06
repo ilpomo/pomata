@@ -109,7 +109,7 @@ only where the axes say they apply.
 - **Contract** — `returns_expr` → `reduces_to_scalar` | `preserves_length` | `emits_struct` → `lazy_eager_parity`
   → `over_partitions_independently`.
 - **Edge** — `<param>_out_of_range_raises` (per validated parameter, in signature order) → `empty` → `single_row`
-  → `all_null` → `nan_<policy>` → `null_<policy>` → *(windowed:)* `warmup_null_count` → `window_exceeds_length`
+  → `all_null` → `null_<policy>` → `nan_<policy>` → *(windowed:)* `warmup_null_count` → `window_exceeds_length`
   → `window_equals_length` → `window_one_*` → `constant_window_is_nan` → *(singularity guards)*.
 - **Correctness** — `matches_reference` → `golden_master`.
 - **Properties** — `matches_reference_for_any_input` → `matches_reference_under_missing_data`
@@ -155,13 +155,16 @@ Two source-only checks enforce this, on every run. `tests/test_policies.py` prov
    the `(null_policy, nan_policy)` it declares. Only the flow is read (which rows go null/NaN, and whether the effect
    recovers), never a value, so the check is exact and platform-stable.
 
-`tests/test_grammar.py` proves two more, for the rungs that stay per-file (§2, §5):
+`tests/test_grammar.py` proves three more, for the rungs that stay per-file (§2, §5):
 
 4. **presence** — every function's test file carries at least one interior-`null` test, one interior-`NaN` test, and
    one `matches_reference` test. A function shipped without an edge anchor is a red build, not the next audit's finding.
 5. **canonical names do not lie** — a reserved `test_null_*` / `test_nan_*` name is used only by a function whose
    declared policy it names, and a scale rung is drawn from the one scale vocabulary (§4) and sits in a
    `Test*Properties` class. Descriptive per-input names are left free; only the canonical ones are held.
+6. **null precedes nan** — within a function's test file the interior-`null` flow anchor comes before the
+   interior-`NaN` one, the canonical Edge order (§4). A file that runs its `nan` anchor before its `null` anchor is a
+   red build.
 
 The consequence: a function cannot silently drift from its declared behaviour, cannot slip in without a policy or an
 edge test, and cannot spell a canonical name a way that contradicts what it declares. Parity is not something to hunt

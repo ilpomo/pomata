@@ -1,7 +1,7 @@
 """
 The test-naming and presence grammar, enforced against the declared policies.
 
-Two guarantees in one source-only walk, keyed on the public surface:
+Three guarantees in one source-only walk, keyed on the public surface:
 
 - **presence** -- every public function's test file carries at least one interior-``null`` test, one interior-``NaN``
   test, and one ``matches_reference`` test. A function shipped without one of these edge anchors is a red build, not the
@@ -10,6 +10,9 @@ Two guarantees in one source-only walk, keyed on the public surface:
   declared policy (:mod:`tests.support.policies`) it names, and a scale-family rung is spelled from the one scale
   vocabulary and sits in a ``Test*Properties`` class. Descriptive per-input names (``test_null_in_volume_propagates``)
   are left free; only the canonical ones are held.
+- **null precedes nan** -- within a function's test file the interior-``null`` flow anchor comes before the
+  interior-``NaN`` one, the canonical Edge order (POLICY.md §4). A file that runs its ``nan`` anchor first is a red
+  build.
 
 Scale carries no presence mandate: a dimensionless ratio or a rolling metric legitimately has no scale test, so scale is
 name-only. All detectors are ``test_``-scoped, so a helper like ``apply_domi``**``nan``**``t_cycle_period`` cannot be
@@ -155,3 +158,15 @@ def test_scale_name_is_canonical(name: str, cls: str, method: str) -> None:
     """Verifies every scale-family rung is drawn from the scale vocabulary and sits in a ``Test*Properties`` class."""
     assert _is_scale_canonical(method), f"{name}: {method} is not a canonical scale-rung name"
     assert cls.endswith("Properties"), f"{name}: {method} sits in {cls}, not a *Properties class"
+
+
+@pytest.mark.parametrize("name", sorted(POLICIES))
+def test_null_anchor_precedes_nan_anchor(name: str) -> None:
+    """Verifies a function's interior-``null`` flow anchor precedes its interior-``NaN`` one (the Edge order, §4)."""
+    methods = [method for _, method in _METHODS[name]]
+    null_index = next((index for index, method in enumerate(methods) if method.startswith("test_null_")), None)
+    nan_index = next((index for index, method in enumerate(methods) if method.startswith("test_nan_")), None)
+    if null_index is not None and nan_index is not None:
+        assert null_index < nan_index, (
+            f"{name}: the null anchor ({methods[null_index]}) must precede the nan anchor ({methods[nan_index]})"
+        )

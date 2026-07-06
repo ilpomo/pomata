@@ -76,12 +76,6 @@ class TestRiskOfRuinEdge:
         """
         assert_matches(apply_expr([0.0, 0.0, 0.0], risk_of_ruin(pl.col(COLUMN_X))), [None])
 
-    def test_nan_poisons(self) -> None:
-        """
-        Verifies that a NaN return poisons the result to NaN.
-        """
-        assert_matches(apply_expr([0.01, math.nan, -0.02, 0.03], risk_of_ruin(pl.col(COLUMN_X))), [math.nan])
-
     def test_null_skipped(self) -> None:
         """
         Verifies that null returns are skipped, matching the reference.
@@ -92,6 +86,12 @@ class TestRiskOfRuinEdge:
             [risk_of_ruin_reference(values)],
             rel_tol=RELATIVE_TOLERANCE_REFERENCE,
         )
+
+    def test_nan_poisons(self) -> None:
+        """
+        Verifies that a NaN return poisons the result to NaN.
+        """
+        assert_matches(apply_expr([0.01, math.nan, -0.02, 0.03], risk_of_ruin(pl.col(COLUMN_X))), [math.nan])
 
 
 class TestRiskOfRuinCorrectness:

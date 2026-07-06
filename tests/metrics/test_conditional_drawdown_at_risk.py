@@ -84,15 +84,6 @@ class TestConditionalDrawdownAtRiskEdge:
             apply_expr([1.0, 1.1, 1.21], conditional_drawdown_at_risk(pl.col(COLUMN_X), confidence=CONFIDENCE)), [0.0]
         )
 
-    def test_nan_poisons(self) -> None:
-        """
-        Verifies that a NaN equity poisons the result to NaN.
-        """
-        values = [1.1, math.nan, 1.2, 0.9]
-        assert_matches(
-            apply_expr(values, conditional_drawdown_at_risk(pl.col(COLUMN_X), confidence=CONFIDENCE)), [math.nan]
-        )
-
     def test_null_skipped(self) -> None:
         """
         Verifies that null equities are skipped, matching the reference.
@@ -102,6 +93,15 @@ class TestConditionalDrawdownAtRiskEdge:
             apply_expr(values, conditional_drawdown_at_risk(pl.col(COLUMN_X), confidence=CONFIDENCE)),
             [conditional_drawdown_at_risk_reference(values, CONFIDENCE)],
             rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+        )
+
+    def test_nan_poisons(self) -> None:
+        """
+        Verifies that a NaN equity poisons the result to NaN.
+        """
+        values = [1.1, math.nan, 1.2, 0.9]
+        assert_matches(
+            apply_expr(values, conditional_drawdown_at_risk(pl.col(COLUMN_X), confidence=CONFIDENCE)), [math.nan]
         )
 
 

@@ -88,12 +88,6 @@ class TestOmegaRatioEdge:
         """
         assert_matches(apply_expr([0.0, 0.0, 0.0], omega_ratio(pl.col(COLUMN_X))), [math.nan])
 
-    def test_nan_poisons(self) -> None:
-        """
-        Verifies that a NaN return poisons the result to NaN.
-        """
-        assert_matches(apply_expr([0.01, math.nan, -0.02, 0.03], omega_ratio(pl.col(COLUMN_X))), [math.nan])
-
     def test_null_skipped(self) -> None:
         """
         Verifies that null returns are skipped, matching the reference.
@@ -104,6 +98,12 @@ class TestOmegaRatioEdge:
             [omega_ratio_reference(values, 0.0)],
             rel_tol=RELATIVE_TOLERANCE_REFERENCE,
         )
+
+    def test_nan_poisons(self) -> None:
+        """
+        Verifies that a NaN return poisons the result to NaN.
+        """
+        assert_matches(apply_expr([0.01, math.nan, -0.02, 0.03], omega_ratio(pl.col(COLUMN_X))), [math.nan])
 
 
 class TestOmegaRatioCorrectness:

@@ -70,12 +70,6 @@ class TestGainToPainRatioEdge:
         """
         assert_matches(apply_expr([-0.01, -0.02, -0.03], gain_to_pain_ratio(pl.col(COLUMN_X))), [-1.0])
 
-    def test_nan_poisons(self) -> None:
-        """
-        Verifies that a NaN return poisons the result to NaN.
-        """
-        assert_matches(apply_expr([0.01, math.nan, -0.02, 0.03], gain_to_pain_ratio(pl.col(COLUMN_X))), [math.nan])
-
     def test_null_skipped(self) -> None:
         """
         Verifies that null returns are skipped, matching the reference.
@@ -86,6 +80,12 @@ class TestGainToPainRatioEdge:
             [gain_to_pain_ratio_reference(values)],
             rel_tol=RELATIVE_TOLERANCE_REFERENCE,
         )
+
+    def test_nan_poisons(self) -> None:
+        """
+        Verifies that a NaN return poisons the result to NaN.
+        """
+        assert_matches(apply_expr([0.01, math.nan, -0.02, 0.03], gain_to_pain_ratio(pl.col(COLUMN_X))), [math.nan])
 
 
 class TestGainToPainRatioCorrectness:

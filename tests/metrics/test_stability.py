@@ -83,12 +83,6 @@ class TestStabilityEdge:
         """
         assert_matches(apply_expr([0.02, -1.5, 0.01], stability(pl.col(COLUMN_X))), [math.nan])
 
-    def test_nan_poisons(self) -> None:
-        """
-        Verifies that a NaN return poisons the result to NaN.
-        """
-        assert_matches(apply_expr([0.01, math.nan, 0.02, 0.03], stability(pl.col(COLUMN_X))), [math.nan])
-
     def test_null_skipped(self) -> None:
         """
         Verifies that null returns are skipped and the time index runs over the retained observations.
@@ -99,6 +93,12 @@ class TestStabilityEdge:
             [stability_reference(values)],
             rel_tol=RELATIVE_TOLERANCE_REFERENCE,
         )
+
+    def test_nan_poisons(self) -> None:
+        """
+        Verifies that a NaN return poisons the result to NaN.
+        """
+        assert_matches(apply_expr([0.01, math.nan, 0.02, 0.03], stability(pl.col(COLUMN_X))), [math.nan])
 
 
 class TestStabilityCorrectness:
