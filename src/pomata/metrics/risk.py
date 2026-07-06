@@ -47,16 +47,19 @@ def _rolling_moment(
     kind: Literal["skew", "kurtosis"],
 ) -> pl.Expr:
     """
-    The native rolling skewness or excess kurtosis over a window, guarded against an empty input.
+    The native rolling skewness or excess kurtosis over a window, guarded against empty, NaN, and constant windows.
 
     Routes to Polars' native ``rolling_skew`` / ``rolling_kurtosis`` -- both mean-centered, so they stay numerically
-    stable on a near-constant window far from zero, where the one-pass raw-moment form (``E[x^k]`` less the mean terms)
-    cancels catastrophically. Those two native kernels panic on a length-0 series (unlike ``rolling_var`` /
-    ``rolling_std``), and a ``pl.when`` length guard cannot prevent it (both branches evaluate), so the empty case is
-    short-circuited inside a thin ``map_batches`` wrapper -- one call around a native Rust kernel, faster than the four
-    rolling passes a one-pass moment would need. The population (biased) convention matches the reducing
-    :func:`skewness` / :func:`kurtosis`, and warm-up, ``null``-in-window, and ``NaN`` propagation follow the native
-    rolling policy.
+    stable on a *near*-constant (non-bit-identical) window far from zero, where the one-pass raw-moment form
+    (``E[x^k]`` less the mean terms) cancels catastrophically. Those two native kernels panic on a length-0 series
+    (unlike ``rolling_var`` / ``rolling_std``), and a ``pl.when`` length guard cannot prevent it (both branches
+    evaluate), so the empty case is short-circuited inside a thin ``map_batches`` wrapper -- one call around a native
+    Rust kernel, faster than the four rolling passes a one-pass moment would need. A *bit*-constant window has zero
+    variance, so the standardized moment is ``0 / 0`` = ``NaN``; the native incremental kernel can instead leave a
+    residue -- a spuriously huge finite -- once a much larger value exits the window (a window constant only by
+    sliding), so a constant or NaN-bearing window is forced to ``NaN`` explicitly, mirroring :func:`volatility_rolling`.
+    The population (biased) convention matches the reducing :func:`skewness` / :func:`kurtosis`, and warm-up,
+    ``null``-in-window, and ``NaN`` propagation follow the native rolling policy.
     """
 
     def _kernel(series: pl.Series) -> pl.Series:
@@ -66,7 +69,18 @@ def _rolling_moment(
             return series.rolling_skew(window_size=window, bias=True)
         return series.rolling_kurtosis(window_size=window, fisher=True, bias=True)
 
-    return expr.map_batches(_kernel, return_dtype=pl.Float64)
+    moment = expr.map_batches(_kernel, return_dtype=pl.Float64)
+    # A NaN window stays NaN; a bit-constant window has zero variance, so the standardized moment is 0/0 -> NaN. The
+    # native incremental kernel can leave a residue (a spuriously huge finite) once a much larger value exits the
+    # window -- a window constant only by sliding -- so guard both explicitly, mirroring volatility_rolling.
+    return (
+        pl.when(_rolling_has_nan(expr, window))
+        .then(pl.lit(float("nan")))
+        .when(_rolling_is_constant(expr, window))
+        .then(pl.lit(float("nan")))
+        .otherwise(moment)
+        .name.keep()
+    )
 
 
 def _rolling_is_constant(
@@ -642,7 +656,8 @@ def kurtosis_rolling(
         \mathrm{Kurt}_t = \frac{m_{4,t}}{m_{2,t}^{2}} - 3, \qquad n = \text{window},
 
     where :math:`m_{k,t}` is the ``k``-th central moment over the window, from Polars' native mean-centered rolling
-    kurtosis (numerically stable on a near-constant window, with the empty-series case guarded).
+    kurtosis (numerically stable on a near-constant window, with a bit-constant window forced to ``NaN`` and the
+    empty-series case guarded).
 
     Args:
         returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
@@ -1117,7 +1132,8 @@ def skewness_rolling(
         \mathrm{Skew}_t = \frac{m_{3,t}}{m_{2,t}^{3/2}}, \qquad n = \text{window},
 
     where :math:`m_{k,t}` is the ``k``-th central moment over the window, from Polars' native mean-centered rolling
-    skewness (numerically stable on a near-constant window, with the empty-series case guarded).
+    skewness (numerically stable on a near-constant window, with a bit-constant window forced to ``NaN`` and the
+    empty-series case guarded).
 
     Args:
         returns: Per-bar net return series, as fractions (e.g. from :func:`returns_net`).
