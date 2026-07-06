@@ -256,6 +256,22 @@ class TestDemaProperties:
             abs_tol=input_scale(values) * EXACT_TOLERANCE_FACTOR,
         )
 
+    @given(case=_cases(missing_data_floats(min_magnitude=SUBNORMAL_FLOOR)))
+    def test_matches_reference_under_missing_data(
+        self,
+        case: tuple[list[float | None], int],
+    ) -> None:
+        """
+        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
+        """
+        values, window = case
+        assert_matches(
+            apply_expr(values, dema(pl.col(COLUMN_X), window)),
+            dema_reference(values, window),
+            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+            abs_tol=input_scale(values) * EXACT_TOLERANCE_FACTOR,
+        )
+
     @given(
         case=_cases(subnormal_safe_floats(1e3)),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
@@ -289,27 +305,6 @@ class TestDemaProperties:
         result = apply_expr(values, dema(pl.col(COLUMN_X), window))
         leading_nulls = count_leading_nulls(result)
         assert leading_nulls == min(2 * (window - 1), len(values))
-
-    # The missing-data tier floors out subnormal-magnitude draws via ``min_magnitude``, exactly as the finite tiers do
-    # via ``subnormal_safe_floats``: at a subnormal-magnitude window a recursive ewm_mean and the two-pass oracle round
-    # one ULP apart while ``input_scale(values) * EXACT_TOLERANCE_FACTOR`` collapses the abs_tol to 0.0 -- a benign
-    # last-bit artifact, not a bug. The excised range is numerically equivalent (the recurrence is scale-invariant),
-    # so the floor drops the artifact, not real coverage; the degenerate all-zero window is pinned in the Edge tier.
-    @given(case=_cases(missing_data_floats(min_magnitude=SUBNORMAL_FLOOR)))
-    def test_matches_reference_under_missing_data(
-        self,
-        case: tuple[list[float | None], int],
-    ) -> None:
-        """
-        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
-        """
-        values, window = case
-        assert_matches(
-            apply_expr(values, dema(pl.col(COLUMN_X), window)),
-            dema_reference(values, window),
-            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
-            abs_tol=input_scale(values) * EXACT_TOLERANCE_FACTOR,
-        )
 
     @given(
         case=_cases(st.floats(min_value=1e-3, max_value=1.0, allow_nan=False, allow_infinity=False)),

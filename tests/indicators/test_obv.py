@@ -306,6 +306,31 @@ class TestObvProperties:
     @given(
         case=_cases(
             st.tuples(
+                missing_data_floats(),
+                missing_data_floats(),
+            ),
+        ),
+    )
+    def test_matches_reference_under_missing_data(
+        self,
+        case: list[tuple[float | None, float | None]],
+    ) -> None:
+        """
+        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
+        """
+        rows = case
+        close = [close_value for close_value, _ in rows]
+        volume = [volume_value for _, volume_value in rows]
+        assert_matches(
+            apply_obv(close, volume),
+            obv_reference(close, volume),
+            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+            abs_tol=input_scale(volume) * EXACT_TOLERANCE_FACTOR,
+        )
+
+    @given(
+        case=_cases(
+            st.tuples(
                 st.floats(min_value=-1e3, max_value=1e3, allow_nan=False, allow_infinity=False),
                 st.floats(min_value=1.0, max_value=1e3, allow_nan=False, allow_infinity=False),
             )
@@ -383,31 +408,6 @@ class TestObvProperties:
                 abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
             )
             previous_total = value
-
-    @given(
-        case=_cases(
-            st.tuples(
-                missing_data_floats(),
-                missing_data_floats(),
-            ),
-        ),
-    )
-    def test_matches_reference_under_missing_data(
-        self,
-        case: list[tuple[float | None, float | None]],
-    ) -> None:
-        """
-        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
-        """
-        rows = case
-        close = [close_value for close_value, _ in rows]
-        volume = [volume_value for _, volume_value in rows]
-        assert_matches(
-            apply_obv(close, volume),
-            obv_reference(close, volume),
-            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
-            abs_tol=input_scale(volume) * EXACT_TOLERANCE_FACTOR,
-        )
 
     @given(
         case=_cases(

@@ -338,6 +338,32 @@ class TestVwmaProperties:
     @given(
         case=_cases(
             st.tuples(
+                missing_data_floats(),
+                _missing_data_volume(),
+            ),
+        ),
+    )
+    def test_matches_reference_under_missing_data(
+        self,
+        case: tuple[list[tuple[float | None, float | None]], int],
+    ) -> None:
+        """
+        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
+        Price is drawn freely; volume is non-negative (see ``_missing_data_volume``), the domain the other tiers use.
+        """
+        rows, window = case
+        price = [price_value for price_value, _ in rows]
+        volume = [volume_value for _, volume_value in rows]
+        assert_matches(
+            apply_vwma(price, volume, window),
+            vwma_reference(price, volume, window),
+            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+            abs_tol=input_scale(price) * EXACT_TOLERANCE_FACTOR,
+        )
+
+    @given(
+        case=_cases(
+            st.tuples(
                 st.floats(min_value=-1e3, max_value=1e3, allow_nan=False, allow_infinity=False),
                 st.floats(min_value=1.0, max_value=1e3, allow_nan=False, allow_infinity=False),
             )
@@ -413,32 +439,6 @@ class TestVwmaProperties:
                 continue
             price_window = price_values[index + 1 - window : index + 1]
             assert min(price_window) - 1e-6 <= value <= max(price_window) + 1e-6
-
-    @given(
-        case=_cases(
-            st.tuples(
-                missing_data_floats(),
-                _missing_data_volume(),
-            ),
-        ),
-    )
-    def test_matches_reference_under_missing_data(
-        self,
-        case: tuple[list[tuple[float | None, float | None]], int],
-    ) -> None:
-        """
-        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
-        Price is drawn freely; volume is non-negative (see ``_missing_data_volume``), the domain the other tiers use.
-        """
-        rows, window = case
-        price = [price_value for price_value, _ in rows]
-        volume = [volume_value for _, volume_value in rows]
-        assert_matches(
-            apply_vwma(price, volume, window),
-            vwma_reference(price, volume, window),
-            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
-            abs_tol=input_scale(price) * EXACT_TOLERANCE_FACTOR,
-        )
 
     @given(
         case=_cases(

@@ -201,6 +201,25 @@ class TestLinearRegressionSlopeProperties:
             abs_tol=input_scale(values) * EXACT_TOLERANCE_FACTOR,
         )
 
+    @given(case=_cases(missing_data_floats()))
+    def test_matches_reference_under_missing_data(
+        self,
+        case: tuple[list[float | None], int],
+    ) -> None:
+        """
+        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
+        """
+        values, window = case
+        assert_matches(
+            apply_expr(values, linear_regression_slope(pl.col(COLUMN_X), window)),
+            linear_regression_slope_reference(values, window),
+            # Scale band, not the 1e-10 headline: the least-squares fit cancels a difference of large index-weighted
+            # terms as the line flattens, so the relative residual is genuinely looser there; the input_scale abs floor
+            # carries the near-flat regime (see CORRECTNESS.md, "Where it stops").
+            rel_tol=RELATIVE_TOLERANCE_SCALE,
+            abs_tol=input_scale(values) * EXACT_TOLERANCE_FACTOR,
+        )
+
     @given(
         case=_cases(st.floats(min_value=-1e3, max_value=1e3, allow_nan=False, allow_infinity=False)),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
@@ -242,23 +261,4 @@ class TestLinearRegressionSlopeProperties:
             linear_regression_slope_reference(scaled_values, window),
             rel_tol=RELATIVE_TOLERANCE_SCALE,
             abs_tol=input_scale(scaled_values) * EXACT_TOLERANCE_FACTOR,
-        )
-
-    @given(case=_cases(missing_data_floats()))
-    def test_matches_reference_under_missing_data(
-        self,
-        case: tuple[list[float | None], int],
-    ) -> None:
-        """
-        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
-        """
-        values, window = case
-        assert_matches(
-            apply_expr(values, linear_regression_slope(pl.col(COLUMN_X), window)),
-            linear_regression_slope_reference(values, window),
-            # Scale band, not the 1e-10 headline: the least-squares fit cancels a difference of large index-weighted
-            # terms as the line flattens, so the relative residual is genuinely looser there; the input_scale abs floor
-            # carries the near-flat regime (see CORRECTNESS.md, "Where it stops").
-            rel_tol=RELATIVE_TOLERANCE_SCALE,
-            abs_tol=input_scale(values) * EXACT_TOLERANCE_FACTOR,
         )

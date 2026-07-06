@@ -332,6 +332,26 @@ class TestSupertrendProperties:
             previous_line = line_value
             previous_direction = direction_value
 
+    @given(case=_cases(coherent_hlc_with_missing()))
+    def test_matches_reference_under_missing_data(
+        self,
+        case: tuple[list[tuple[float | None, float | None, float | None]], int],
+    ) -> None:
+        """
+        Verifies that, for inputs freely mixing null / NaN / finite, both fields match the non-mirror reference.
+        """
+        rows, window = case
+        high, low, close = split_triples(rows)
+        bands = apply_supertrend(high, low, close, window)
+        reference = supertrend_reference(high, low, close, window, 3.0)
+        for field in FIELDS:
+            assert_matches(
+                bands[field],
+                reference[field],
+                rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+                abs_tol=input_scale(close) * EXACT_TOLERANCE_FACTOR,
+            )
+
     @given(
         case=_cases(coherent_hlc()),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
@@ -353,26 +373,6 @@ class TestSupertrendProperties:
         scaled = apply_supertrend([v * k for v in high], [v * k for v in low], [v * k for v in close], window)
         assert_scale_homogeneous(scaled["line"], base["line"], k=k, degree=1)
         assert_matches(scaled["direction"], base["direction"])
-
-    @given(case=_cases(coherent_hlc_with_missing()))
-    def test_matches_reference_under_missing_data(
-        self,
-        case: tuple[list[tuple[float | None, float | None, float | None]], int],
-    ) -> None:
-        """
-        Verifies that, for inputs freely mixing null / NaN / finite, both fields match the non-mirror reference.
-        """
-        rows, window = case
-        high, low, close = split_triples(rows)
-        bands = apply_supertrend(high, low, close, window)
-        reference = supertrend_reference(high, low, close, window, 3.0)
-        for field in FIELDS:
-            assert_matches(
-                bands[field],
-                reference[field],
-                rel_tol=RELATIVE_TOLERANCE_PROPERTY,
-                abs_tol=input_scale(close) * EXACT_TOLERANCE_FACTOR,
-            )
 
     @given(
         case=_cases(coherent_hlc()),

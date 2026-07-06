@@ -271,6 +271,25 @@ class TestBollingerBandsProperties:
                 abs_tol=input_scale(values) * STREAMING_TOLERANCE_FACTOR,
             )
 
+    @given(case=_cases(missing_data_floats(min_magnitude=SUBNORMAL_FLOOR)))
+    def test_matches_reference_under_missing_data(
+        self,
+        case: tuple[list[float | None], int],
+    ) -> None:
+        """
+        Verifies that, for inputs freely mixing null / NaN / finite, every band matches the naive reference.
+        """
+        values, window = case
+        bands = apply_bollinger_bands(values, window)
+        reference = bollinger_bands_reference(values, window)
+        for field in FIELDS:
+            assert_matches(
+                bands[field],
+                reference[field],
+                rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+                abs_tol=input_scale(values) * STREAMING_TOLERANCE_FACTOR,
+            )
+
     @given(
         case=_cases(subnormal_safe_floats()),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
@@ -292,25 +311,6 @@ class TestBollingerBandsProperties:
         scaled = apply_bollinger_bands(scaled_values, window)
         for field in FIELDS:
             assert_scale_homogeneous(scaled[field], base[field], k=k, degree=1)
-
-    @given(case=_cases(missing_data_floats(min_magnitude=SUBNORMAL_FLOOR)))
-    def test_matches_reference_under_missing_data(
-        self,
-        case: tuple[list[float | None], int],
-    ) -> None:
-        """
-        Verifies that, for inputs freely mixing null / NaN / finite, every band matches the naive reference.
-        """
-        values, window = case
-        bands = apply_bollinger_bands(values, window)
-        reference = bollinger_bands_reference(values, window)
-        for field in FIELDS:
-            assert_matches(
-                bands[field],
-                reference[field],
-                rel_tol=RELATIVE_TOLERANCE_PROPERTY,
-                abs_tol=input_scale(values) * STREAMING_TOLERANCE_FACTOR,
-            )
 
     @given(
         case=_cases(st.floats(min_value=1e-3, max_value=1.0, allow_nan=False, allow_infinity=False)),

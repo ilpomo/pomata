@@ -205,6 +205,22 @@ class TestMomProperties:
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
+    @given(case=_cases(missing_data_floats()))
+    def test_matches_reference_under_missing_data(
+        self,
+        case: tuple[list[float | None], int],
+    ) -> None:
+        """
+        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
+        """
+        values, window = case
+        assert_matches(
+            apply_expr(values, mom(pl.col(COLUMN_X), window)),
+            mom_reference(values, window),
+            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
+        )
+
     @given(
         case=_cases(st.floats(min_value=-1e3, max_value=1e3, allow_nan=False, allow_infinity=False)),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
@@ -237,22 +253,6 @@ class TestMomProperties:
         result = apply_expr(values, mom(pl.col(COLUMN_X), window))
         leading_nulls = count_leading_nulls(result)
         assert leading_nulls == min(window, len(values))
-
-    @given(case=_cases(missing_data_floats()))
-    def test_matches_reference_under_missing_data(
-        self,
-        case: tuple[list[float | None], int],
-    ) -> None:
-        """
-        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
-        """
-        values, window = case
-        assert_matches(
-            apply_expr(values, mom(pl.col(COLUMN_X), window)),
-            mom_reference(values, window),
-            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
-            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
-        )
 
     @given(
         case=_cases(st.floats(min_value=1e-3, max_value=1.0, allow_nan=False, allow_infinity=False)),

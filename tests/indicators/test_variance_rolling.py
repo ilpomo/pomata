@@ -237,6 +237,22 @@ class TestVarianceRollingProperties:
             abs_tol=input_scale(values) ** 2 * VARIANCE_TOLERANCE_FACTOR,
         )
 
+    @given(case=_cases(missing_data_floats(min_magnitude=SUBNORMAL_FLOOR)))
+    def test_matches_reference_under_missing_data(
+        self,
+        case: tuple[list[float | None], int],
+    ) -> None:
+        """
+        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
+        """
+        values, window = case
+        assert_matches(
+            apply_expr(values, variance_rolling(pl.col(COLUMN_X), window)),
+            variance_rolling_reference(values, window),
+            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+            abs_tol=input_scale(values) ** 2 * VARIANCE_TOLERANCE_FACTOR,
+        )
+
     @given(
         case=_cases(subnormal_safe_floats()),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
@@ -257,22 +273,6 @@ class TestVarianceRollingProperties:
         result_base = apply_expr(values, variance_rolling(pl.col(COLUMN_X), window))
         result_scaled = apply_expr(scaled_values, variance_rolling(pl.col(COLUMN_X), window))
         assert_scale_homogeneous(result_scaled, result_base, k=k, degree=2)
-
-    @given(case=_cases(missing_data_floats(min_magnitude=SUBNORMAL_FLOOR)))
-    def test_matches_reference_under_missing_data(
-        self,
-        case: tuple[list[float | None], int],
-    ) -> None:
-        """
-        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
-        """
-        values, window = case
-        assert_matches(
-            apply_expr(values, variance_rolling(pl.col(COLUMN_X), window)),
-            variance_rolling_reference(values, window),
-            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
-            abs_tol=input_scale(values) ** 2 * VARIANCE_TOLERANCE_FACTOR,
-        )
 
     @given(
         case=_cases(st.floats(min_value=1e-3, max_value=1.0, allow_nan=False, allow_infinity=False)),

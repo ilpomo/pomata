@@ -295,6 +295,26 @@ class TestStochasticFastProperties:
                 abs_tol=ABSOLUTE_TOLERANCE_PROPERTY,
             )
 
+    @given(case=_cases(coherent_hlc_with_missing()))
+    def test_matches_reference_under_missing_data(
+        self,
+        case: tuple[list[tuple[float | None, float | None, float | None]], int, int],
+    ) -> None:
+        """
+        Verifies that, for positive inputs freely mixing null / NaN, the implementation matches the naive reference.
+        """
+        rows, window_k, window_d = case
+        high, low, close = split_triples(rows)
+        applied = apply_stochastic_fast(high, low, close, window_k=window_k, window_d=window_d)
+        reference = stochastic_fast_reference(high, low, close, window_k, window_d)
+        for field in FIELDS:
+            assert_matches(
+                applied[field],
+                reference[field],
+                rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+                abs_tol=ABSOLUTE_TOLERANCE_PROPERTY,
+            )
+
     @given(
         case=_cases(coherent_hlc()),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
@@ -338,23 +358,3 @@ class TestStochasticFastProperties:
             for value in applied[field]:
                 if value is not None and not math.isnan(value):
                     assert -BOUND_MARGIN <= value <= 100.0 + BOUND_MARGIN
-
-    @given(case=_cases(coherent_hlc_with_missing()))
-    def test_matches_reference_under_missing_data(
-        self,
-        case: tuple[list[tuple[float | None, float | None, float | None]], int, int],
-    ) -> None:
-        """
-        Verifies that, for positive inputs freely mixing null / NaN, the implementation matches the naive reference.
-        """
-        rows, window_k, window_d = case
-        high, low, close = split_triples(rows)
-        applied = apply_stochastic_fast(high, low, close, window_k=window_k, window_d=window_d)
-        reference = stochastic_fast_reference(high, low, close, window_k, window_d)
-        for field in FIELDS:
-            assert_matches(
-                applied[field],
-                reference[field],
-                rel_tol=RELATIVE_TOLERANCE_PROPERTY,
-                abs_tol=ABSOLUTE_TOLERANCE_PROPERTY,
-            )

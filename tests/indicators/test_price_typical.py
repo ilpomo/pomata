@@ -213,6 +213,25 @@ class TestPriceTypicalProperties:
         )
 
     @given(
+        case=_cases(coherent_hlc_with_missing()),
+    )
+    def test_matches_reference_under_missing_data(
+        self,
+        case: list[tuple[float | None, float | None, float | None]],
+    ) -> None:
+        """
+        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
+        """
+        rows = case
+        high, low, close = split_triples(rows)
+        assert_matches(
+            apply_price_typical(high, low, close),
+            price_typical_reference(high, low, close),
+            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
+        )
+
+    @given(
         case=_cases(coherent_hlc()),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
     )
@@ -235,25 +254,6 @@ class TestPriceTypicalProperties:
         close_scaled = [value * k for value in close]
         result_scaled = apply_price_typical(high_scaled, low_scaled, close_scaled)
         assert_scale_homogeneous(result_scaled, result_base, k=k, degree=1)
-
-    @given(
-        case=_cases(coherent_hlc_with_missing()),
-    )
-    def test_matches_reference_under_missing_data(
-        self,
-        case: list[tuple[float | None, float | None, float | None]],
-    ) -> None:
-        """
-        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
-        """
-        rows = case
-        high, low, close = split_triples(rows)
-        assert_matches(
-            apply_price_typical(high, low, close),
-            price_typical_reference(high, low, close),
-            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
-            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
-        )
 
     @given(
         case=_cases(coherent_hlc()),

@@ -305,6 +305,23 @@ class TestAccumulationDistributionOscillatorProperties:
             abs_tol=ABSOLUTE_TOLERANCE_SCALE,
         )
 
+    @given(case=_cases(coherent_hlcv_with_missing()))
+    def test_matches_reference_under_missing_data(
+        self,
+        case: list[tuple[float | None, float | None, float | None, float | None]],
+    ) -> None:
+        """
+        Verifies that, for positive inputs freely mixing null / NaN, the implementation matches the naive reference.
+        """
+        rows = case
+        high, low, close, volume = split_quads(rows)
+        assert_matches(
+            apply_accumulation_distribution_oscillator(high, low, close, volume),
+            accumulation_distribution_oscillator_reference(high, low, close, volume, 2, 3),
+            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+            abs_tol=ABSOLUTE_TOLERANCE_SCALE,
+        )
+
     @given(
         case=_cases(coherent_hlcv()),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
@@ -347,23 +364,6 @@ class TestAccumulationDistributionOscillatorProperties:
         # NOTE: ``_cases`` floors the length at ``WARMUP + 1``, so ``min`` always resolves to ``WARMUP``; the form is
         # kept to state the exact warm-up rule (the leading-null run is never clamped by a too-short series here).
         assert leading_nulls == min(WARMUP, len(rows))
-
-    @given(case=_cases(coherent_hlcv_with_missing()))
-    def test_matches_reference_under_missing_data(
-        self,
-        case: list[tuple[float | None, float | None, float | None, float | None]],
-    ) -> None:
-        """
-        Verifies that, for positive inputs freely mixing null / NaN, the implementation matches the naive reference.
-        """
-        rows = case
-        high, low, close, volume = split_quads(rows)
-        assert_matches(
-            apply_accumulation_distribution_oscillator(high, low, close, volume),
-            accumulation_distribution_oscillator_reference(high, low, close, volume, 2, 3),
-            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
-            abs_tol=ABSOLUTE_TOLERANCE_SCALE,
-        )
 
     @given(
         case=_cases(coherent_hlcv()),

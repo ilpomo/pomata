@@ -155,7 +155,7 @@ Two source-only checks enforce this, on every run. `tests/test_policies.py` prov
    the `(null_policy, nan_policy)` it declares. Only the flow is read (which rows go null/NaN, and whether the effect
    recovers), never a value, so the check is exact and platform-stable.
 
-`tests/test_grammar.py` proves three more, for the rungs that stay per-file (§2, §5):
+`tests/test_grammar.py` proves four more, for the rungs that stay per-file (§2, §5):
 
 4. **presence** — every function's test file carries at least one interior-`null` test, one interior-`NaN` test, and
    one `matches_reference` test. A function shipped without an edge anchor is a red build, not the next audit's finding.
@@ -165,6 +165,9 @@ Two source-only checks enforce this, on every run. `tests/test_policies.py` prov
 6. **null precedes nan** — within a function's test file the interior-`null` flow anchor comes before the
    interior-`NaN` one, the canonical Edge order (§4). A file that runs its `nan` anchor before its `null` anchor is a
    red build.
+7. **missing precedes scale** — within a function's `Test*Properties` class the
+   `matches_reference_under_missing_data` rung comes before the scale rung, the canonical Properties order (§4). A file
+   that runs its scale rung first is a red build.
 
 The consequence: a function cannot silently drift from its declared behaviour, cannot slip in without a policy or an
 edge test, and cannot spell a canonical name a way that contradicts what it declares. Parity is not something to hunt

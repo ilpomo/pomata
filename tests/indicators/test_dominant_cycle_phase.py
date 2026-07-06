@@ -205,43 +205,6 @@ class TestDominantCyclePhaseProperties:
             abs_tol=ABSOLUTE_TOLERANCE_EXACT,
         )
 
-    @given(
-        case=_cases(st.floats(min_value=1.0, max_value=1e3, allow_nan=False, allow_infinity=False)),
-        exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
-    )
-    def test_scale_invariance(self, case: list[float], exponent: int) -> None:
-        """
-        Verifies that ``dominant_cycle_phase`` is scale-invariant: scaling every input value by a constant ``k``
-        leaves the output unchanged -- ``dominant_cycle_phase(k * x) == dominant_cycle_phase(x)``. ``k`` is a power
-        of two, so the rescale is exact and adds no floating-point error.
-        """
-        factor = 2.0**exponent
-        values = case
-        base = apply_dominant_cycle_phase(values)
-        scaled = apply_dominant_cycle_phase([value * factor for value in values])
-        assert_scale_homogeneous(scaled, base, k=factor, degree=0)
-
-    # NOTE: no even-lag repeat, as in test_matches_reference_for_any_input -- a flat run or period-two alternation makes
-    # the phase undefined and flips the atan2 branch ~180 degrees between implementation and oracle.
-    @given(
-        case=_cases(st.floats(min_value=1.0, max_value=1e3, allow_nan=False, allow_infinity=False)).filter(
-            lambda series: not spans_even_lag_repeat(series)
-        ),
-        scale=st.sampled_from([2.0**-30, 2.0**30, 2.0**40]),
-    )
-    def test_matches_reference_at_large_magnitude(self, case: list[float], scale: float) -> None:
-        """
-        Verifies that at extreme magnitudes the implementation stays finite where the reference is and agrees.
-        """
-        values = case
-        scaled = [value * scale for value in values]
-        assert_matches(
-            apply_dominant_cycle_phase(scaled),
-            dominant_cycle_phase_reference(scaled),
-            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
-            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
-        )
-
     @given(case=two_segment_missing_data(_WARMUP))
     def test_matches_reference_under_missing_data(self, case: list[float | None]) -> None:
         """
@@ -260,4 +223,39 @@ class TestDominantCyclePhaseProperties:
             dominant_cycle_phase_reference(values),
             rel_tol=RELATIVE_TOLERANCE_REFERENCE,
             abs_tol=ABSOLUTE_TOLERANCE_EXACT,
+        )
+
+    @given(
+        case=_cases(st.floats(min_value=1.0, max_value=1e3, allow_nan=False, allow_infinity=False)),
+        exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
+    )
+    def test_scale_invariance(self, case: list[float], exponent: int) -> None:
+        """
+        Verifies that ``dominant_cycle_phase`` is scale-invariant: scaling every input value by a constant ``k``
+        leaves the output unchanged -- ``dominant_cycle_phase(k * x) == dominant_cycle_phase(x)``. ``k`` is a power
+        of two, so the rescale is exact and adds no floating-point error.
+        """
+        factor = 2.0**exponent
+        values = case
+        base = apply_dominant_cycle_phase(values)
+        scaled = apply_dominant_cycle_phase([value * factor for value in values])
+        assert_scale_homogeneous(scaled, base, k=factor, degree=0)
+
+    @given(
+        case=_cases(st.floats(min_value=1.0, max_value=1e3, allow_nan=False, allow_infinity=False)).filter(
+            lambda series: not spans_even_lag_repeat(series)
+        ),
+        scale=st.sampled_from([2.0**-30, 2.0**30, 2.0**40]),
+    )
+    def test_matches_reference_at_large_magnitude(self, case: list[float], scale: float) -> None:
+        """
+        Verifies that at extreme magnitudes the implementation stays finite where the reference is and agrees.
+        """
+        values = case
+        scaled = [value * scale for value in values]
+        assert_matches(
+            apply_dominant_cycle_phase(scaled),
+            dominant_cycle_phase_reference(scaled),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )

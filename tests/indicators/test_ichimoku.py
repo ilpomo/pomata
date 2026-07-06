@@ -364,6 +364,26 @@ class TestIchimokuProperties:
                 assert high_bound is not None
                 assert low_bound - 1e-9 <= value <= high_bound + 1e-9
 
+    @given(case=_cases(coherent_hl_with_missing()))
+    def test_matches_reference_under_missing_data(
+        self,
+        case: tuple[list[tuple[float | None, float | None]], int, int, int],
+    ) -> None:
+        """
+        Verifies that, for inputs freely mixing null / NaN / finite, every line matches the naive reference.
+        """
+        rows, window_tenkan, window_kijun, window_senkou = case
+        high, low = split_pairs(rows)
+        lines = apply_ichimoku(high, low, window_tenkan, window_kijun, window_senkou)
+        reference = ichimoku_reference(high, low, window_tenkan, window_kijun, window_senkou)
+        for field in FIELDS:
+            assert_matches(
+                lines[field],
+                reference[field],
+                rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+                abs_tol=input_scale(high) * EXACT_TOLERANCE_FACTOR,
+            )
+
     @given(
         case=_cases(coherent_hl()),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
@@ -385,26 +405,6 @@ class TestIchimokuProperties:
         scaled = apply_ichimoku([v * k for v in high], [v * k for v in low], window_tenkan, window_kijun, window_senkou)
         for field in FIELDS:
             assert_scale_homogeneous(scaled[field], base[field], k=k, degree=1)
-
-    @given(case=_cases(coherent_hl_with_missing()))
-    def test_matches_reference_under_missing_data(
-        self,
-        case: tuple[list[tuple[float | None, float | None]], int, int, int],
-    ) -> None:
-        """
-        Verifies that, for inputs freely mixing null / NaN / finite, every line matches the naive reference.
-        """
-        rows, window_tenkan, window_kijun, window_senkou = case
-        high, low = split_pairs(rows)
-        lines = apply_ichimoku(high, low, window_tenkan, window_kijun, window_senkou)
-        reference = ichimoku_reference(high, low, window_tenkan, window_kijun, window_senkou)
-        for field in FIELDS:
-            assert_matches(
-                lines[field],
-                reference[field],
-                rel_tol=RELATIVE_TOLERANCE_PROPERTY,
-                abs_tol=input_scale(high) * EXACT_TOLERANCE_FACTOR,
-            )
 
     @given(
         case=_cases(coherent_hl()),

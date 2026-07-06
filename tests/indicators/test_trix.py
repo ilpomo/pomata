@@ -183,6 +183,24 @@ class TestTrixProperties:
         )
 
     @given(
+        case=_cases(positive_missing_data()),
+    )
+    def test_matches_reference_under_missing_data(
+        self,
+        case: tuple[list[float | None], int],
+    ) -> None:
+        """
+        Verifies that, for positive inputs freely mixing null / NaN, the implementation matches the naive reference.
+        """
+        values, window = case
+        assert_matches(
+            apply_expr(values, trix(pl.col(COLUMN_X), window)),
+            trix_reference(values, window),
+            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
+        )
+
+    @given(
         case=_cases(st.floats(min_value=1.0, max_value=1e3, allow_nan=False, allow_infinity=False)),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
     )
@@ -201,21 +219,3 @@ class TestTrixProperties:
         result_base = apply_expr(values, trix(pl.col(COLUMN_X), window))
         result_scaled = apply_expr([value * k for value in values], trix(pl.col(COLUMN_X), window))
         assert_scale_homogeneous(result_scaled, result_base, k=k, degree=0)
-
-    @given(
-        case=_cases(positive_missing_data()),
-    )
-    def test_matches_reference_under_missing_data(
-        self,
-        case: tuple[list[float | None], int],
-    ) -> None:
-        """
-        Verifies that, for positive inputs freely mixing null / NaN, the implementation matches the naive reference.
-        """
-        values, window = case
-        assert_matches(
-            apply_expr(values, trix(pl.col(COLUMN_X), window)),
-            trix_reference(values, window),
-            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
-            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
-        )

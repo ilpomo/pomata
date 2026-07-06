@@ -238,6 +238,23 @@ class TestAdxProperties:
             abs_tol=ABSOLUTE_TOLERANCE_PROPERTY,
         )
 
+    @given(case=_cases(coherent_hlc_with_missing()))
+    def test_matches_reference_under_missing_data(
+        self,
+        case: tuple[list[tuple[float | None, float | None, float | None]], int],
+    ) -> None:
+        """
+        Verifies that, for positive inputs freely mixing null / NaN, the implementation matches the naive reference.
+        """
+        rows, window = case
+        high, low, close = split_triples(rows)
+        assert_matches(
+            apply_adx(high, low, close, window),
+            adx_reference(high, low, close, window),
+            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+            abs_tol=ABSOLUTE_TOLERANCE_PROPERTY,
+        )
+
     @given(
         case=_cases(coherent_hlc()),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
@@ -274,20 +291,3 @@ class TestAdxProperties:
         for value in apply_adx(high, low, close, window):
             if value is not None and not math.isnan(value):
                 assert -BOUND_MARGIN <= value <= 100.0 + BOUND_MARGIN
-
-    @given(case=_cases(coherent_hlc_with_missing()))
-    def test_matches_reference_under_missing_data(
-        self,
-        case: tuple[list[tuple[float | None, float | None, float | None]], int],
-    ) -> None:
-        """
-        Verifies that, for positive inputs freely mixing null / NaN, the implementation matches the naive reference.
-        """
-        rows, window = case
-        high, low, close = split_triples(rows)
-        assert_matches(
-            apply_adx(high, low, close, window),
-            adx_reference(high, low, close, window),
-            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
-            abs_tol=ABSOLUTE_TOLERANCE_PROPERTY,
-        )

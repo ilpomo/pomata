@@ -216,6 +216,22 @@ class TestStandardDeviationEwmaProperties:
             abs_tol=input_scale(values) * STREAMING_TOLERANCE_FACTOR,
         )
 
+    @given(case=_cases(missing_data_floats(min_magnitude=SUBNORMAL_FLOOR), window_min=2))
+    def test_matches_reference_under_missing_data(
+        self,
+        case: tuple[list[float | None], int],
+    ) -> None:
+        """
+        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
+        """
+        values, window = case
+        assert_matches(
+            apply_expr(values, standard_deviation_ewma(pl.col(COLUMN_X), window)),
+            standard_deviation_ewma_reference(values, window),
+            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+            abs_tol=input_scale(values) * STREAMING_TOLERANCE_FACTOR,
+        )
+
     @given(
         case=_cases(subnormal_safe_floats(), window_min=2),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
@@ -237,22 +253,6 @@ class TestStandardDeviationEwmaProperties:
         result_base = apply_expr(values, standard_deviation_ewma(pl.col(COLUMN_X), window))
         result_scaled = apply_expr(scaled_values, standard_deviation_ewma(pl.col(COLUMN_X), window))
         assert_scale_homogeneous(result_scaled, result_base, k=k, degree=1)
-
-    @given(case=_cases(missing_data_floats(min_magnitude=SUBNORMAL_FLOOR), window_min=2))
-    def test_matches_reference_under_missing_data(
-        self,
-        case: tuple[list[float | None], int],
-    ) -> None:
-        """
-        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
-        """
-        values, window = case
-        assert_matches(
-            apply_expr(values, standard_deviation_ewma(pl.col(COLUMN_X), window)),
-            standard_deviation_ewma_reference(values, window),
-            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
-            abs_tol=input_scale(values) * STREAMING_TOLERANCE_FACTOR,
-        )
 
     @given(
         case=_cases(st.floats(min_value=1e-3, max_value=1.0, allow_nan=False, allow_infinity=False), window_min=2),

@@ -249,6 +249,26 @@ class TestPercentagePriceOscillatorProperties:
         )
 
     @given(
+        case=_cases(positive_missing_data(high=1e6)),
+    )
+    def test_matches_reference_under_missing_data(
+        self,
+        case: tuple[list[float | None], int, int],
+    ) -> None:
+        """
+        Verifies that, for positive inputs freely mixing null / NaN, the implementation matches the naive reference.
+        """
+        values, window_fast, window_slow = case
+        assert_matches(
+            apply_expr(
+                values, percentage_price_oscillator(pl.col(COLUMN_X), window_fast=window_fast, window_slow=window_slow)
+            ),
+            percentage_price_oscillator_reference(values, window_fast, window_slow),
+            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
+        )
+
+    @given(
         case=_cases(st.floats(min_value=1.0, max_value=1e3, allow_nan=False, allow_infinity=False)),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
     )
@@ -273,23 +293,3 @@ class TestPercentagePriceOscillatorProperties:
             percentage_price_oscillator(pl.col(COLUMN_X), window_fast=window_fast, window_slow=window_slow),
         )
         assert_scale_homogeneous(result_scaled, result_base, k=k, degree=0)
-
-    @given(
-        case=_cases(positive_missing_data(high=1e6)),
-    )
-    def test_matches_reference_under_missing_data(
-        self,
-        case: tuple[list[float | None], int, int],
-    ) -> None:
-        """
-        Verifies that, for positive inputs freely mixing null / NaN, the implementation matches the naive reference.
-        """
-        values, window_fast, window_slow = case
-        assert_matches(
-            apply_expr(
-                values, percentage_price_oscillator(pl.col(COLUMN_X), window_fast=window_fast, window_slow=window_slow)
-            ),
-            percentage_price_oscillator_reference(values, window_fast, window_slow),
-            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
-            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
-        )

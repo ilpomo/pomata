@@ -205,6 +205,23 @@ class TestDmMinusProperties:
             abs_tol=input_scale([*high, *low]) * EXACT_TOLERANCE_FACTOR,
         )
 
+    @given(case=_cases(coherent_hl_with_missing()))
+    def test_matches_reference_under_missing_data(
+        self,
+        case: tuple[list[tuple[float | None, float | None]], int],
+    ) -> None:
+        """
+        Verifies that, for positive inputs freely mixing null / NaN, the implementation matches the naive reference.
+        """
+        rows, window = case
+        high, low = split_pairs(rows)
+        assert_matches(
+            apply_dm_minus(high, low, window),
+            dm_minus_reference(high, low, window),
+            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+            abs_tol=input_scale([*high, *low]) * EXACT_TOLERANCE_FACTOR,
+        )
+
     @given(
         case=_cases(coherent_hl()),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
@@ -245,22 +262,5 @@ class TestDmMinusProperties:
             apply_dm_minus(high, low, window),
             dm_minus_reference(high, low, window),
             rel_tol=RELATIVE_TOLERANCE_SCALE,
-            abs_tol=input_scale([*high, *low]) * EXACT_TOLERANCE_FACTOR,
-        )
-
-    @given(case=_cases(coherent_hl_with_missing()))
-    def test_matches_reference_under_missing_data(
-        self,
-        case: tuple[list[tuple[float | None, float | None]], int],
-    ) -> None:
-        """
-        Verifies that, for positive inputs freely mixing null / NaN, the implementation matches the naive reference.
-        """
-        rows, window = case
-        high, low = split_pairs(rows)
-        assert_matches(
-            apply_dm_minus(high, low, window),
-            dm_minus_reference(high, low, window),
-            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
             abs_tol=input_scale([*high, *low]) * EXACT_TOLERANCE_FACTOR,
         )
