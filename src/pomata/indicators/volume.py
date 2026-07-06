@@ -51,7 +51,7 @@ def accumulation_distribution(
         volume: Traded-volume series (e.g. ``pl.col("volume")``).
 
     Returns:
-        The Accumulation/Distribution Line for each row, the same length as the inputs. There is no warm-up: the first
+        The Accumulation/Distribution Line for each row, the same length as the inputs. There is no warm-up -- the first
         row already carries the first bar's Money Flow Volume, and the line is the running cumulative sum from there.
 
     Raises:
@@ -327,8 +327,8 @@ def chaikin_money_flow(
         window: Number of observations in the moving window. Must be ``>= 1``.
 
     Returns:
-        The CMF for each row, the same length as the inputs. The first ``window - 1`` values are ``null`` (warm-up): the
-        value is defined only once a full window of bars is available.
+        The CMF for each row, the same length as the inputs. The first ``window - 1`` values are ``null`` (warm-up) --
+        the value is defined only once a full window of bars is available.
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
@@ -661,7 +661,7 @@ def obv(
         volume: Traded-volume series (e.g. ``pl.col("volume")``).
 
     Returns:
-        The OBV for each row, the same length as the inputs. There is no window and no warm-up: every row is defined,
+        The OBV for each row, the same length as the inputs. There is no window and no warm-up -- every row is defined,
         starting at ``0`` on the first row.
 
     Raises:
@@ -768,8 +768,8 @@ def vwap(
         volume: Traded-volume series (e.g. ``pl.col("volume")``).
 
     Returns:
-        The running VWAP for each row, the same length as the inputs. There is no warm-up: row ``0`` is defined as soon
-        as its cumulative volume is positive (a leading zero-volume run reads ``NaN`` until volume accrues).
+        The running VWAP for each row, the same length as the inputs. There is no warm-up -- row ``0`` is defined as
+        soon as its cumulative volume is positive (a leading zero-volume run reads ``NaN`` until volume accrues).
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.

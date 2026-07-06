@@ -35,7 +35,7 @@ def price_average(
         close: Close-price series (e.g. ``pl.col("close")``).
 
     Returns:
-        The average price for each row, the same length as the inputs. There is no window and no warm-up: every row is
+        The average price for each row, the same length as the inputs. There is no window and no warm-up -- every row is
         defined from row ``0``.
 
     Raises:
@@ -142,7 +142,7 @@ def price_median(
         low: Low-price series (e.g. ``pl.col("low")``).
 
     Returns:
-        The median price for each row, the same length as the inputs. There is no window and no warm-up: every row is
+        The median price for each row, the same length as the inputs. There is no window and no warm-up -- every row is
         defined from row ``0``.
 
     Raises:
@@ -244,7 +244,7 @@ def price_typical(
         close: Close-price series (e.g. ``pl.col("close")``).
 
     Returns:
-        The typical price for each row, the same length as the inputs. There is no window and no warm-up: every row is
+        The typical price for each row, the same length as the inputs. There is no window and no warm-up -- every row is
         defined from row ``0``.
 
     Raises:
@@ -354,7 +354,7 @@ def price_weighted_close(
         close: Close-price series (e.g. ``pl.col("close")``); weighted twice.
 
     Returns:
-        The weighted close price for each row, the same length as the inputs. There is no window and no warm-up: every
+        The weighted close price for each row, the same length as the inputs. There is no window and no warm-up -- every
         row is defined from row ``0``.
 
     Raises:

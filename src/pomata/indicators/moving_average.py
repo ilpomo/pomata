@@ -565,7 +565,7 @@ def rma(
         window: Number of observations in the moving window. Must be ``>= 1``.
 
     Returns:
-        The RMA for each row, the same length as ``expr``. The first ``window - 1`` values are ``null`` (warm-up): the
+        The RMA for each row, the same length as ``expr``. The first ``window - 1`` values are ``null`` (warm-up) -- the
         recursion emits only once ``window`` non-null observations have been counted -- seeded there with their simple
         average -- after which it is defined for every later row.
 
@@ -651,7 +651,7 @@ def sma(
         window: Number of observations in the moving window. Must be ``>= 1``.
 
     Returns:
-        The SMA for each row, the same length as ``expr``. The first ``window - 1`` values are ``null`` (warm-up): the
+        The SMA for each row, the same length as ``expr``. The first ``window - 1`` values are ``null`` (warm-up) -- the
         value is defined only once ``window`` observations have been seen.
 
     Raises:
@@ -1077,8 +1077,8 @@ def vwma(
         window: Number of observations in the moving window. Must be ``>= 1``.
 
     Returns:
-        The VWMA for each row, the same length as ``expr``. The first ``window - 1`` values are ``null`` (warm-up): the
-        value is defined only once ``window`` observations have been seen.
+        The VWMA for each row, the same length as ``expr``. The first ``window - 1`` values are ``null`` (warm-up) --
+        the value is defined only once ``window`` observations have been seen.
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
@@ -1184,7 +1184,7 @@ def wma(
         window: Number of observations in the moving window. Must be ``>= 1``.
 
     Returns:
-        The WMA for each row, the same length as ``expr``. The first ``window - 1`` values are ``null`` (warm-up): the
+        The WMA for each row, the same length as ``expr``. The first ``window - 1`` values are ``null`` (warm-up) -- the
         value is defined only once ``window`` observations have been seen.
 
     Raises:

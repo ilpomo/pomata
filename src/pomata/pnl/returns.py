@@ -32,7 +32,7 @@ def returns_log(
         expr: Input series, typically a price column (e.g. ``pl.col("close")``).
 
     Returns:
-        The log return for each row, the same length as ``expr``. The first value is ``null`` (warm-up): the lagged
+        The log return for each row, the same length as ``expr``. The first value is ``null`` (warm-up) -- the lagged
         term ``expr.shift(1)`` is undefined for the first row, so no return can be measured there.
 
     Raises:
@@ -121,7 +121,7 @@ def returns_simple(
         expr: Input series, typically a price column (e.g. ``pl.col("close")``).
 
     Returns:
-        The simple return for each row, the same length as ``expr``. The first value is ``null`` (warm-up): the lagged
+        The simple return for each row, the same length as ``expr``. The first value is ``null`` (warm-up) -- the lagged
         term ``expr.shift(1)`` is undefined for the first row, so no return can be measured there.
 
     Raises:

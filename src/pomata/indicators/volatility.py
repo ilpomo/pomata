@@ -407,7 +407,7 @@ def true_range(
         close: Close-price series (e.g. ``pl.col("close")``); the previous close supplies the two gap terms.
 
     Returns:
-        The True Range for each row, the same length as the inputs. There is no window and no warm-up: every row is
+        The True Range for each row, the same length as the inputs. There is no window and no warm-up -- every row is
         defined from row ``0``, which falls back to ``high - low`` because no previous close exists. On well-formed OHLC
         data (``high >= low``) every value is non-negative.
 
