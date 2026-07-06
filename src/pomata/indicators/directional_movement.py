@@ -122,7 +122,7 @@ def adx(
     low = float64_expr(low)
     close = float64_expr(close)
     validate_window(window)
-    return rma(dx(high, low, close, window), window)
+    return rma(dx(high, low, close, window), window).name.keep()
 
 
 def adxr(
@@ -233,7 +233,7 @@ def adxr(
     close = float64_expr(close)
     validate_window(window)
     average = adx(high, low, close, window)
-    return (average + average.shift(window)) / 2.0
+    return ((average + average.shift(window)) / 2.0).name.keep()
 
 
 def di_minus(
@@ -349,7 +349,7 @@ def di_minus(
     low = float64_expr(low)
     close = float64_expr(close)
     validate_window(window)
-    return 100.0 * dm_minus(high, low, window) / atr(high, low, close, window)
+    return (100.0 * dm_minus(high, low, window) / atr(high, low, close, window)).name.keep()
 
 
 def di_plus(
@@ -465,7 +465,7 @@ def di_plus(
     low = float64_expr(low)
     close = float64_expr(close)
     validate_window(window)
-    return 100.0 * dm_plus(high, low, window) / atr(high, low, close, window)
+    return (100.0 * dm_plus(high, low, window) / atr(high, low, close, window)).name.keep()
 
 
 def dm_minus(
@@ -827,7 +827,7 @@ def dx(
     validate_window(window)
     plus = di_plus(high, low, close, window)
     minus = di_minus(high, low, close, window)
-    return 100.0 * (plus - minus).abs() / (plus + minus)
+    return (100.0 * (plus - minus).abs() / (plus + minus)).name.keep()
 
 
 def vortex(

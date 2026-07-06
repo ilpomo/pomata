@@ -581,7 +581,7 @@ def balance_of_power(
     close = float64_expr(close)
     # Flat bar (range == 0) -> 0 by convention; use high - low == 0 (not high == low) since Polars treats NaN == NaN as
     # true, which would wrongly flatten a NaN bar. Otherwise (close - open) / (high - low) propagates null / NaN.
-    return pl.when((high - low) == 0).then(0.0).otherwise((close - open) / (high - low))
+    return pl.when((high - low) == 0).then(0.0).otherwise((close - open) / (high - low)).name.keep()
 
 
 def cci(
@@ -721,7 +721,7 @@ def cci(
     # A flat window (every typical price equal) is the 0/0 degenerate: detect it exactly via the rolling extremes, so a
     # sub-ULP residual in the rolling-mean denominator cannot fake a finite reading, and return NaN as documented.
     is_flat = typical_price.rolling_max(window) == typical_price.rolling_min(window)
-    return pl.when(is_flat).then(float("nan")).otherwise(raw)
+    return pl.when(is_flat).then(float("nan")).otherwise(raw).name.keep()
 
 
 def chande_momentum_oscillator(
@@ -824,7 +824,7 @@ def chande_momentum_oscillator(
     # stays in range (see CORRECTNESS.md); the bound holds without a non-decaying floor that NaN-s legitimate data.
     raw = (100.0 * (sum_gain - sum_loss) / (sum_gain + sum_loss)).clip(-100.0, 100.0)
     is_flat = delta.abs().rolling_max(window) == 0
-    return pl.when(is_flat).then(float("nan")).otherwise(raw)
+    return pl.when(is_flat).then(float("nan")).otherwise(raw).name.keep()
 
 
 def _fisher_kernel(
@@ -997,7 +997,7 @@ def fisher_transform(
     position = 2.0 * (price - lowest) / (highest - lowest) - 1.0
     return position.map_batches(
         _fisher_signal_kernel, return_dtype=pl.Struct({"fisher": pl.Float64, "signal": pl.Float64})
-    )
+    ).name.keep()
 
 
 def macd(
@@ -1388,7 +1388,7 @@ def roc(
     expr = float64_expr(expr)
     validate_window(window)
     past = expr.shift(window)
-    return 100.0 * (expr - past) / past
+    return (100.0 * (expr - past) / past).name.keep()
 
 
 def rsi(
@@ -1499,7 +1499,7 @@ def rsi(
     average_gain = rma(gain, window)
     average_loss = rma(loss, window)
     relative_strength = average_gain / average_loss
-    return 100.0 - 100.0 / (1.0 + relative_strength)
+    return (100.0 - 100.0 / (1.0 + relative_strength)).name.keep()
 
 
 def rsi_stochastic(
@@ -1707,7 +1707,7 @@ def trix(
     validate_window(window)
     # Triple-smoothed EMA, then its one-period percentage rate of change.
     triple_ema = ema(ema(ema(expr, window), window), window)
-    return roc(triple_ema, 1)
+    return roc(triple_ema, 1).name.keep()
 
 
 def ultimate_oscillator(
@@ -1880,7 +1880,7 @@ def ultimate_oscillator(
         return pl.when(is_zero_over_zero).then(float("nan")).otherwise(raw)
 
     weighted = 4.0 * averaged(window_short) + 2.0 * averaged(window_medium) + averaged(window_long)
-    return 100.0 * weighted / 7.0
+    return (100.0 * weighted / 7.0).name.keep()
 
 
 def williams_r(
@@ -2014,4 +2014,4 @@ def williams_r(
     validate_window(window)
     highest_high = high.rolling_max(window_size=window)
     lowest_low = low.rolling_min(window_size=window)
-    return -100.0 * (highest_high - close) / (highest_high - lowest_low)
+    return (-100.0 * (highest_high - close) / (highest_high - lowest_low)).name.keep()
