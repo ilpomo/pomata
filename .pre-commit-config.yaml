@@ -10,7 +10,7 @@ repos:
         args: [--fix]
       - id: ruff-format # mirrors CI's `ruff format --check`
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.11.25 # keep in step with the uv version pinned by CI (this repo's tags carry no leading "v")
+    rev: 0.11.26 # keep in step with the uv version pinned by CI (this repo's tags carry no leading "v")
     hooks:
       - id: uv-lock # keep uv.lock consistent with pyproject.toml
   - repo: https://github.com/pre-commit/pre-commit-hooks
