@@ -225,6 +225,25 @@ class TestPriceAverageProperties:
         )
 
     @given(
+        case=_cases(coherent_ohlc_with_missing()),
+    )
+    def test_matches_reference_under_missing_data(
+        self,
+        case: list[tuple[float | None, float | None, float | None, float | None]],
+    ) -> None:
+        """
+        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
+        """
+        rows = case
+        open, high, low, close = split_quads(rows)
+        assert_matches(
+            apply_price_average(open, high, low, close),
+            price_average_reference(open, high, low, close),
+            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
+        )
+
+    @given(
         case=_cases(coherent_ohlc()),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
     )
@@ -248,25 +267,6 @@ class TestPriceAverageProperties:
         close_scaled = [value * k for value in close]
         result_scaled = apply_price_average(open_scaled, high_scaled, low_scaled, close_scaled)
         assert_scale_homogeneous(result_scaled, result_base, k=k, degree=1)
-
-    @given(
-        case=_cases(coherent_ohlc_with_missing()),
-    )
-    def test_matches_reference_under_missing_data(
-        self,
-        case: list[tuple[float | None, float | None, float | None, float | None]],
-    ) -> None:
-        """
-        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
-        """
-        rows = case
-        open, high, low, close = split_quads(rows)
-        assert_matches(
-            apply_price_average(open, high, low, close),
-            price_average_reference(open, high, low, close),
-            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
-            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
-        )
 
     @given(
         case=_cases(coherent_ohlc()),

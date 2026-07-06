@@ -274,6 +274,22 @@ class TestChandeMomentumOscillatorProperties:
             abs_tol=ABSOLUTE_TOLERANCE_PROPERTY,
         )
 
+    @given(case=_cases(missing_data_floats()))
+    def test_matches_reference_under_missing_data(
+        self,
+        case: tuple[list[float | None], int],
+    ) -> None:
+        """
+        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
+        """
+        values, window = case
+        assert_matches(
+            apply_expr(values, chande_momentum_oscillator(pl.col(COLUMN_X), window)),
+            chande_momentum_oscillator_reference(values, window),
+            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+            abs_tol=ABSOLUTE_TOLERANCE_PROPERTY,
+        )
+
     @given(
         case=_cases(st.floats(min_value=-1e6, max_value=1e6, allow_nan=False, allow_infinity=False)),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
@@ -308,19 +324,3 @@ class TestChandeMomentumOscillatorProperties:
         for value in apply_expr(values, chande_momentum_oscillator(pl.col(COLUMN_X), window)):
             if value is not None and not math.isnan(value):
                 assert -100.0 - BOUND_MARGIN <= value <= 100.0 + BOUND_MARGIN
-
-    @given(case=_cases(missing_data_floats()))
-    def test_matches_reference_under_missing_data(
-        self,
-        case: tuple[list[float | None], int],
-    ) -> None:
-        """
-        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
-        """
-        values, window = case
-        assert_matches(
-            apply_expr(values, chande_momentum_oscillator(pl.col(COLUMN_X), window)),
-            chande_momentum_oscillator_reference(values, window),
-            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
-            abs_tol=ABSOLUTE_TOLERANCE_PROPERTY,
-        )

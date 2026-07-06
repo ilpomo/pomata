@@ -497,6 +497,26 @@ class TestMoneyFlowIndexProperties:
                 continue
             assert -BOUND_MARGIN <= value <= 100.0 + BOUND_MARGIN
 
+    @given(case=_cases(coherent_hlcv_with_missing()))
+    def test_matches_reference_under_missing_data(
+        self,
+        case: tuple[list[tuple[float | None, float | None, float | None, float | None]], int],
+    ) -> None:
+        """
+        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
+        """
+        rows, window = case
+        high = [high_value for high_value, _, _, _ in rows]
+        low = [low_value for _, low_value, _, _ in rows]
+        close = [close_value for _, _, close_value, _ in rows]
+        volume = [volume_value for _, _, _, volume_value in rows]
+        assert_matches(
+            apply_money_flow_index(high, low, close, volume, window),
+            money_flow_index_reference(high, low, close, volume, window),
+            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
+        )
+
     @given(
         case=_cases(coherent_hlcv()),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
@@ -562,23 +582,3 @@ class TestMoneyFlowIndexProperties:
         # NOTE: ``_cases`` couples length > window, so ``min`` always resolves to ``window``; the form is kept to state
         # the exact warm-up rule (the leading-null run is never clamped by a too-short series here).
         assert leading_nulls == min(window, len(rows))
-
-    @given(case=_cases(coherent_hlcv_with_missing()))
-    def test_matches_reference_under_missing_data(
-        self,
-        case: tuple[list[tuple[float | None, float | None, float | None, float | None]], int],
-    ) -> None:
-        """
-        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
-        """
-        rows, window = case
-        high = [high_value for high_value, _, _, _ in rows]
-        low = [low_value for _, low_value, _, _ in rows]
-        close = [close_value for _, _, close_value, _ in rows]
-        volume = [volume_value for _, _, _, volume_value in rows]
-        assert_matches(
-            apply_money_flow_index(high, low, close, volume, window),
-            money_flow_index_reference(high, low, close, volume, window),
-            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
-            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
-        )

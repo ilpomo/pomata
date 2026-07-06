@@ -218,6 +218,18 @@ class TestAroonOscillatorProperties:
         high, low = split_pairs(rows)
         assert_matches(apply_aroon_oscillator(high, low, window), aroon_oscillator_reference(high, low, window))
 
+    @given(case=_cases(coherent_hl_with_missing()))
+    def test_matches_reference_under_missing_data(
+        self,
+        case: tuple[list[tuple[float | None, float | None]], int],
+    ) -> None:
+        """
+        Verifies that, for inputs freely mixing null / NaN / finite, the line matches the naive reference.
+        """
+        rows, window = case
+        high, low = split_pairs(rows)
+        assert_matches(apply_aroon_oscillator(high, low, window), aroon_oscillator_reference(high, low, window))
+
     @given(
         case=_cases(coherent_hl()),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
@@ -252,15 +264,3 @@ class TestAroonOscillatorProperties:
         for value in apply_aroon_oscillator(high, low, window):
             if value is not None and not math.isnan(value):
                 assert -100.0 - BOUND_MARGIN <= value <= 100.0 + BOUND_MARGIN
-
-    @given(case=_cases(coherent_hl_with_missing()))
-    def test_matches_reference_under_missing_data(
-        self,
-        case: tuple[list[tuple[float | None, float | None]], int],
-    ) -> None:
-        """
-        Verifies that, for inputs freely mixing null / NaN / finite, the line matches the naive reference.
-        """
-        rows, window = case
-        high, low = split_pairs(rows)
-        assert_matches(apply_aroon_oscillator(high, low, window), aroon_oscillator_reference(high, low, window))

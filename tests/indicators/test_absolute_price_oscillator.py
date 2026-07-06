@@ -235,6 +235,26 @@ class TestAbsolutePriceOscillatorProperties:
         )
 
     @given(
+        case=_cases(missing_data_floats()),
+    )
+    def test_matches_reference_under_missing_data(
+        self,
+        case: tuple[list[float | None], int, int],
+    ) -> None:
+        """
+        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
+        """
+        values, window_fast, window_slow = case
+        assert_matches(
+            apply_expr(
+                values, absolute_price_oscillator(pl.col(COLUMN_X), window_fast=window_fast, window_slow=window_slow)
+            ),
+            absolute_price_oscillator_reference(values, window_fast, window_slow),
+            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+            abs_tol=input_scale(values) * STREAMING_TOLERANCE_FACTOR,
+        )
+
+    @given(
         case=_cases(st.floats(min_value=-1e3, max_value=1e3, allow_nan=False, allow_infinity=False)),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
     )
@@ -259,26 +279,6 @@ class TestAbsolutePriceOscillatorProperties:
             scaled_values, absolute_price_oscillator(pl.col(COLUMN_X), window_fast=window_fast, window_slow=window_slow)
         )
         assert_scale_homogeneous(result_scaled, result_base, k=k, degree=1)
-
-    @given(
-        case=_cases(missing_data_floats()),
-    )
-    def test_matches_reference_under_missing_data(
-        self,
-        case: tuple[list[float | None], int, int],
-    ) -> None:
-        """
-        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
-        """
-        values, window_fast, window_slow = case
-        assert_matches(
-            apply_expr(
-                values, absolute_price_oscillator(pl.col(COLUMN_X), window_fast=window_fast, window_slow=window_slow)
-            ),
-            absolute_price_oscillator_reference(values, window_fast, window_slow),
-            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
-            abs_tol=input_scale(values) * STREAMING_TOLERANCE_FACTOR,
-        )
 
     @given(
         case=_cases(st.floats(min_value=1e-3, max_value=1.0, allow_nan=False, allow_infinity=False)),

@@ -195,6 +195,25 @@ class TestTrendModeProperties:
             abs_tol=ABSOLUTE_TOLERANCE_EXACT,
         )
 
+    @given(case=two_segment_missing_data(_WARMUP))
+    def test_matches_reference_under_missing_data(self, case: list[float | None]) -> None:
+        """
+        Verifies that, for a finite prefix clearing the warm-up followed by a null / NaN / finite tail, the
+        implementation matches the naive reference.
+
+        Drawn as two segments (finite prefix longer than the warm-up, then a missing-data tail) so a defined flag is
+        emitted and then meets ``null`` / ``NaN`` — a single missing value anywhere in the warm-up latches the whole
+        output to ``null``, so an all-mixed draw would almost always compare all-``null`` against all-``null`` and check
+        nothing numeric.
+        """
+        values = case
+        assert_matches(
+            apply_trend_mode(values),
+            trend_mode_reference(values),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_EXACT,
+        )
+
     @given(
         case=_cases(st.floats(min_value=1.0, max_value=1e3, allow_nan=False, allow_infinity=False)),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
@@ -232,25 +251,6 @@ class TestTrendModeProperties:
             trend_mode_reference(scaled),
             rel_tol=RELATIVE_TOLERANCE_REFERENCE,
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
-        )
-
-    @given(case=two_segment_missing_data(_WARMUP))
-    def test_matches_reference_under_missing_data(self, case: list[float | None]) -> None:
-        """
-        Verifies that, for a finite prefix clearing the warm-up followed by a null / NaN / finite tail, the
-        implementation matches the naive reference.
-
-        Drawn as two segments (finite prefix longer than the warm-up, then a missing-data tail) so a defined flag is
-        emitted and then meets ``null`` / ``NaN`` — a single missing value anywhere in the warm-up latches the whole
-        output to ``null``, so an all-mixed draw would almost always compare all-``null`` against all-``null`` and check
-        nothing numeric.
-        """
-        values = case
-        assert_matches(
-            apply_trend_mode(values),
-            trend_mode_reference(values),
-            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
-            abs_tol=ABSOLUTE_TOLERANCE_EXACT,
         )
 
     @given(case=_cases(st.floats(min_value=1.0, max_value=1e3, allow_nan=False, allow_infinity=False)))

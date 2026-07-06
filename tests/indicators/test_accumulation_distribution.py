@@ -360,6 +360,22 @@ class TestAccumulationDistributionProperties:
                 abs_tol=tolerance,
             )
 
+    @given(case=_bar_cases(coherent_hlcv_with_missing()))
+    def test_matches_reference_under_missing_data(
+        self,
+        case: list[tuple[float | None, float | None, float | None, float | None]],
+    ) -> None:
+        """
+        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
+        """
+        high, low, close, volume = split_quads(case)
+        assert_matches(
+            apply_accumulation_distribution(high, low, close, volume),
+            accumulation_distribution_reference(high, low, close, volume),
+            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+            abs_tol=input_scale(volume) * EXACT_TOLERANCE_FACTOR,
+        )
+
     @given(
         case=_bar_cases(coherent_hlcv()),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
@@ -380,22 +396,6 @@ class TestAccumulationDistributionProperties:
         result_base = apply_accumulation_distribution(high_values, low_values, close_values, volume_values)
         result_scaled = apply_accumulation_distribution(high_values, low_values, close_values, scaled_volume_values)
         assert_scale_homogeneous(result_scaled, result_base, k=c, degree=1)
-
-    @given(case=_bar_cases(coherent_hlcv_with_missing()))
-    def test_matches_reference_under_missing_data(
-        self,
-        case: list[tuple[float | None, float | None, float | None, float | None]],
-    ) -> None:
-        """
-        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
-        """
-        high, low, close, volume = split_quads(case)
-        assert_matches(
-            apply_accumulation_distribution(high, low, close, volume),
-            accumulation_distribution_reference(high, low, close, volume),
-            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
-            abs_tol=input_scale(volume) * EXACT_TOLERANCE_FACTOR,
-        )
 
     @given(
         case=_bar_cases(coherent_hlcv()),

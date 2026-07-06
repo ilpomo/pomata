@@ -387,6 +387,26 @@ class TestKeltnerChannelsProperties:
         for field in FIELDS:
             assert_matches(bands[field], expected[field].to_list())
 
+    @given(case=_cases(coherent_hlc_with_missing()))
+    def test_matches_reference_under_missing_data(
+        self,
+        case: tuple[list[tuple[float | None, float | None, float | None]], int, int],
+    ) -> None:
+        """
+        Verifies that, for inputs freely mixing null / NaN / finite, every band matches the composed reference.
+        """
+        rows, window, window_atr = case
+        high, low, close = split_triples(rows)
+        bands = apply_keltner_channels(high, low, close, window, window_atr=window_atr)
+        reference = keltner_channels_reference(high, low, close, window, window_atr, 2.0)
+        for field in FIELDS:
+            assert_matches(
+                bands[field],
+                reference[field],
+                rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+                abs_tol=input_scale(close) * EXACT_TOLERANCE_FACTOR,
+            )
+
     @given(
         case=_cases(coherent_hlc()),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
@@ -414,26 +434,6 @@ class TestKeltnerChannelsProperties:
         )
         for field in FIELDS:
             assert_scale_homogeneous(scaled[field], base[field], k=k, degree=1)
-
-    @given(case=_cases(coherent_hlc_with_missing()))
-    def test_matches_reference_under_missing_data(
-        self,
-        case: tuple[list[tuple[float | None, float | None, float | None]], int, int],
-    ) -> None:
-        """
-        Verifies that, for inputs freely mixing null / NaN / finite, every band matches the composed reference.
-        """
-        rows, window, window_atr = case
-        high, low, close = split_triples(rows)
-        bands = apply_keltner_channels(high, low, close, window, window_atr=window_atr)
-        reference = keltner_channels_reference(high, low, close, window, window_atr, 2.0)
-        for field in FIELDS:
-            assert_matches(
-                bands[field],
-                reference[field],
-                rel_tol=RELATIVE_TOLERANCE_PROPERTY,
-                abs_tol=input_scale(close) * EXACT_TOLERANCE_FACTOR,
-            )
 
     @given(
         case=_cases(coherent_hlc()),

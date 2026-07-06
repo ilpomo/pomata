@@ -325,6 +325,23 @@ class TestCciProperties:
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
+    @given(case=_cases(coherent_hlc_with_missing()))
+    def test_matches_reference_under_missing_data(
+        self,
+        case: tuple[list[tuple[float | None, float | None, float | None]], int],
+    ) -> None:
+        """
+        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
+        """
+        rows, window = case
+        high, low, close = split_triples(rows)
+        assert_matches(
+            apply_cci(high, low, close, window),
+            cci_reference(high, low, close, window),
+            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
+        )
+
     @given(
         case=_cases(coherent_hlc(), window_min=2),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
@@ -366,20 +383,3 @@ class TestCciProperties:
         # NOTE: ``_cases`` couples length >= window, so ``min`` always resolves to ``window - 1``; the form is kept to
         # state the exact warm-up rule (the leading-null run is never clamped by a too-short series here).
         assert leading_nulls == min(window - 1, len(rows))
-
-    @given(case=_cases(coherent_hlc_with_missing()))
-    def test_matches_reference_under_missing_data(
-        self,
-        case: tuple[list[tuple[float | None, float | None, float | None]], int],
-    ) -> None:
-        """
-        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
-        """
-        rows, window = case
-        high, low, close = split_triples(rows)
-        assert_matches(
-            apply_cci(high, low, close, window),
-            cci_reference(high, low, close, window),
-            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
-            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
-        )

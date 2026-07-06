@@ -223,6 +223,23 @@ class TestAwesomeOscillatorProperties:
             abs_tol=input_scale(high) * EXACT_TOLERANCE_FACTOR,
         )
 
+    @given(case=_cases(coherent_hl_with_missing()))
+    def test_matches_reference_under_missing_data(
+        self,
+        case: tuple[list[tuple[float | None, float | None]], int, int],
+    ) -> None:
+        """
+        Verifies that, for inputs freely mixing null / NaN / finite, the output matches the composed reference.
+        """
+        rows, window_fast, window_slow = case
+        high, low = split_pairs(rows)
+        assert_matches(
+            apply_awesome_oscillator(high, low, window_fast, window_slow),
+            awesome_oscillator_reference(high, low, window_fast, window_slow),
+            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+            abs_tol=input_scale(high) * EXACT_TOLERANCE_FACTOR,
+        )
+
     @given(
         case=_cases(coherent_hl()),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
@@ -243,23 +260,6 @@ class TestAwesomeOscillatorProperties:
         base = apply_awesome_oscillator(high, low, window_fast, window_slow)
         scaled = apply_awesome_oscillator([v * k for v in high], [v * k for v in low], window_fast, window_slow)
         assert_scale_homogeneous(scaled, base, k=k, degree=1)
-
-    @given(case=_cases(coherent_hl_with_missing()))
-    def test_matches_reference_under_missing_data(
-        self,
-        case: tuple[list[tuple[float | None, float | None]], int, int],
-    ) -> None:
-        """
-        Verifies that, for inputs freely mixing null / NaN / finite, the output matches the composed reference.
-        """
-        rows, window_fast, window_slow = case
-        high, low = split_pairs(rows)
-        assert_matches(
-            apply_awesome_oscillator(high, low, window_fast, window_slow),
-            awesome_oscillator_reference(high, low, window_fast, window_slow),
-            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
-            abs_tol=input_scale(high) * EXACT_TOLERANCE_FACTOR,
-        )
 
     @given(
         case=_cases(coherent_hl()),

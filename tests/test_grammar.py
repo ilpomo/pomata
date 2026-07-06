@@ -1,7 +1,7 @@
 """
 The test-naming and presence grammar, enforced against the declared policies.
 
-Three guarantees in one source-only walk, keyed on the public surface:
+Four guarantees in one source-only walk, keyed on the public surface:
 
 - **presence** -- every public function's test file carries at least one interior-``null`` test, one interior-``NaN``
   test, and one ``matches_reference`` test. A function shipped without one of these edge anchors is a red build, not the
@@ -13,6 +13,9 @@ Three guarantees in one source-only walk, keyed on the public surface:
 - **null precedes nan** -- within a function's test file the interior-``null`` flow anchor comes before the
   interior-``NaN`` one, the canonical Edge order (POLICY.md §4). A file that runs its ``nan`` anchor first is a red
   build.
+- **missing precedes scale** -- within a function's ``Test*Properties`` class the
+  ``matches_reference_under_missing_data`` rung comes before the scale rung, the canonical Properties order
+  (POLICY.md §4). A file that runs its scale rung first is a red build.
 
 Scale carries no presence mandate: a dimensionless ratio or a rolling metric legitimately has no scale test, so scale is
 name-only. All detectors are ``test_``-scoped, so a helper like ``apply_domi``**``nan``**``t_cycle_period`` cannot be
@@ -169,4 +172,20 @@ def test_null_anchor_precedes_nan_anchor(name: str) -> None:
     if null_index is not None and nan_index is not None:
         assert null_index < nan_index, (
             f"{name}: the null anchor ({methods[null_index]}) must precede the nan anchor ({methods[nan_index]})"
+        )
+
+
+@pytest.mark.parametrize("name", sorted(POLICIES))
+def test_missing_data_precedes_scale(name: str) -> None:
+    """Verifies the ``matches_reference_under_missing_data`` rung precedes the scale rung (the Properties order, §4)."""
+    methods = [method for _, method in _METHODS[name]]
+    missing_index = next(
+        (index for index, method in enumerate(methods) if method == "test_matches_reference_under_missing_data"),
+        None,
+    )
+    scale_index = next((index for index, method in enumerate(methods) if _is_scale(method)), None)
+    if missing_index is not None and scale_index is not None:
+        assert missing_index < scale_index, (
+            f"{name}: the missing-data rung ({methods[missing_index]}) must precede "
+            f"the scale rung ({methods[scale_index]})"
         )

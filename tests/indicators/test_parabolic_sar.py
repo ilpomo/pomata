@@ -315,6 +315,26 @@ class TestParabolicSarProperties:
         )
 
     @given(
+        case=_cases(coherent_hl_with_missing()),
+        factors=_factors(),
+    )
+    def test_matches_reference_under_missing_data(
+        self,
+        case: list[tuple[float | None, float | None]],
+        factors: tuple[float, float],
+    ) -> None:
+        """
+        Verifies that, for inputs freely mixing null / NaN, the implementation matches the naive reference.
+        """
+        acceleration, maximum = factors
+        rows = case
+        high, low = split_pairs(rows)
+        assert_matches(
+            apply_parabolic_sar(high, low, acceleration, maximum),
+            parabolic_sar_reference(high, low, acceleration, maximum),
+        )
+
+    @given(
         case=_cases(coherent_hl()),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
         factors=_factors(),
@@ -359,26 +379,6 @@ class TestParabolicSarProperties:
         rows = case
         high = [row[0] * scale for row in rows]
         low = [row[1] * scale for row in rows]
-        assert_matches(
-            apply_parabolic_sar(high, low, acceleration, maximum),
-            parabolic_sar_reference(high, low, acceleration, maximum),
-        )
-
-    @given(
-        case=_cases(coherent_hl_with_missing()),
-        factors=_factors(),
-    )
-    def test_matches_reference_under_missing_data(
-        self,
-        case: list[tuple[float | None, float | None]],
-        factors: tuple[float, float],
-    ) -> None:
-        """
-        Verifies that, for inputs freely mixing null / NaN, the implementation matches the naive reference.
-        """
-        acceleration, maximum = factors
-        rows = case
-        high, low = split_pairs(rows)
         assert_matches(
             apply_parabolic_sar(high, low, acceleration, maximum),
             parabolic_sar_reference(high, low, acceleration, maximum),

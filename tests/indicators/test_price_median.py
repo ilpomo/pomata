@@ -194,6 +194,25 @@ class TestPriceMedianProperties:
         )
 
     @given(
+        case=_cases(coherent_hl_with_missing()),
+    )
+    def test_matches_reference_under_missing_data(
+        self,
+        case: list[tuple[float | None, float | None]],
+    ) -> None:
+        """
+        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
+        """
+        rows = case
+        high, low = split_pairs(rows)
+        assert_matches(
+            apply_price_median(high, low),
+            price_median_reference(high, low),
+            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
+        )
+
+    @given(
         case=_cases(coherent_hl()),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
     )
@@ -215,25 +234,6 @@ class TestPriceMedianProperties:
         low_scaled = [value * k for value in low]
         result_scaled = apply_price_median(high_scaled, low_scaled)
         assert_scale_homogeneous(result_scaled, result_base, k=k, degree=1)
-
-    @given(
-        case=_cases(coherent_hl_with_missing()),
-    )
-    def test_matches_reference_under_missing_data(
-        self,
-        case: list[tuple[float | None, float | None]],
-    ) -> None:
-        """
-        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
-        """
-        rows = case
-        high, low = split_pairs(rows)
-        assert_matches(
-            apply_price_median(high, low),
-            price_median_reference(high, low),
-            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
-            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
-        )
 
     @given(
         case=_cases(coherent_hl()),

@@ -359,6 +359,19 @@ class TestRsiStochasticProperties:
             abs_tol=ABSOLUTE_TOLERANCE_PROPERTY,
         )
 
+    @given(case=_cases(positive_missing_data()))
+    def test_matches_reference_under_missing_data(
+        self,
+        case: tuple[list[float | None], int, int, int],
+    ) -> None:
+        """
+        Verifies that, for positive inputs freely mixing null / NaN, the implementation matches the naive reference.
+        """
+        values, window_rsi, window_k, window_d = case
+        applied = apply_rsi_stochastic(values, window_rsi=window_rsi, window_k=window_k, window_d=window_d)
+        reference = rsi_stochastic_reference(values, window_rsi, window_k, window_d)
+        assert_lines_match(applied, reference, values, window_rsi, window_k, window_d)
+
     @given(
         case=_cases(st.floats(min_value=1.0, max_value=1e3, allow_nan=False, allow_infinity=False)),
         # %K is a ratio (rsi - rsi_min) / (rsi_max - rsi_min); a nearly-flat RSI gives a tiny denominator, so a
@@ -414,16 +427,3 @@ class TestRsiStochasticProperties:
             for value in applied[field]:
                 if value is not None and not math.isnan(value):
                     assert -BOUND_MARGIN <= value <= 100.0 + BOUND_MARGIN
-
-    @given(case=_cases(positive_missing_data()))
-    def test_matches_reference_under_missing_data(
-        self,
-        case: tuple[list[float | None], int, int, int],
-    ) -> None:
-        """
-        Verifies that, for positive inputs freely mixing null / NaN, the implementation matches the naive reference.
-        """
-        values, window_rsi, window_k, window_d = case
-        applied = apply_rsi_stochastic(values, window_rsi=window_rsi, window_k=window_k, window_d=window_d)
-        reference = rsi_stochastic_reference(values, window_rsi, window_k, window_d)
-        assert_lines_match(applied, reference, values, window_rsi, window_k, window_d)

@@ -242,6 +242,23 @@ class TestAtrNormalizedProperties:
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
+    @given(case=_cases(coherent_hlc_with_missing()))
+    def test_matches_reference_under_missing_data(
+        self,
+        case: tuple[list[tuple[float | None, float | None, float | None]], int],
+    ) -> None:
+        """
+        Verifies that, for positive inputs freely mixing null / NaN, the implementation matches the naive reference.
+        """
+        rows, window = case
+        high, low, close = split_triples(rows)
+        assert_matches(
+            apply_atr_normalized(high, low, close, window),
+            atr_normalized_reference(high, low, close, window),
+            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
+        )
+
     @given(
         case=_cases(coherent_hlc()),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
@@ -264,20 +281,3 @@ class TestAtrNormalizedProperties:
             [value * k for value in high], [value * k for value in low], [value * k for value in close], window
         )
         assert_scale_homogeneous(scaled, base, k=k, degree=0)
-
-    @given(case=_cases(coherent_hlc_with_missing()))
-    def test_matches_reference_under_missing_data(
-        self,
-        case: tuple[list[tuple[float | None, float | None, float | None]], int],
-    ) -> None:
-        """
-        Verifies that, for positive inputs freely mixing null / NaN, the implementation matches the naive reference.
-        """
-        rows, window = case
-        high, low, close = split_triples(rows)
-        assert_matches(
-            apply_atr_normalized(high, low, close, window),
-            atr_normalized_reference(high, low, close, window),
-            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
-            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
-        )

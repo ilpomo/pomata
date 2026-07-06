@@ -250,6 +250,22 @@ class TestVwapProperties:
         ].to_list()
         assert_matches(over, alone + alone)
 
+    @given(rows=_cases(coherent_hlcv_with_missing()))
+    def test_matches_reference_under_missing_data(
+        self,
+        rows: list[tuple[float | None, float | None, float | None, float | None]],
+    ) -> None:
+        """
+        Verifies that, for inputs freely mixing null / NaN / finite, the output matches the cumulative reference.
+        """
+        high, low, close, volume = split_quads(rows)
+        assert_matches(
+            apply_vwap(high, low, close, volume),
+            vwap_reference(high, low, close, volume),
+            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+            abs_tol=input_scale(close) * EXACT_TOLERANCE_FACTOR,
+        )
+
     @given(
         rows=_cases(coherent_hlcv()),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
@@ -289,22 +305,6 @@ class TestVwapProperties:
         base = apply_vwap(high, low, close, volume)
         rescaled = apply_vwap(high, low, close, [v * k for v in volume])
         assert_scale_homogeneous(rescaled, base, k=k, degree=0)
-
-    @given(rows=_cases(coherent_hlcv_with_missing()))
-    def test_matches_reference_under_missing_data(
-        self,
-        rows: list[tuple[float | None, float | None, float | None, float | None]],
-    ) -> None:
-        """
-        Verifies that, for inputs freely mixing null / NaN / finite, the output matches the cumulative reference.
-        """
-        high, low, close, volume = split_quads(rows)
-        assert_matches(
-            apply_vwap(high, low, close, volume),
-            vwap_reference(high, low, close, volume),
-            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
-            abs_tol=input_scale(close) * EXACT_TOLERANCE_FACTOR,
-        )
 
     @given(
         rows=_cases(coherent_hlcv()),

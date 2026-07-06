@@ -273,6 +273,26 @@ class TestVortexProperties:
                 if value is not None and not math.isnan(value):
                     assert value >= 0.0
 
+    @given(case=_cases(coherent_hlc_with_missing()))
+    def test_matches_reference_under_missing_data(
+        self,
+        case: tuple[list[tuple[float | None, float | None, float | None]], int],
+    ) -> None:
+        """
+        Verifies that, for inputs freely mixing null / NaN / finite, both lines match the naive reference.
+        """
+        rows, window = case
+        high, low, close = split_triples(rows)
+        bands = apply_vortex(high, low, close, window)
+        reference = vortex_reference(high, low, close, window)
+        for field in FIELDS:
+            assert_matches(
+                bands[field],
+                reference[field],
+                rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+                abs_tol=ABSOLUTE_TOLERANCE_PROPERTY,
+            )
+
     @given(
         case=_cases(coherent_hlc()),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
@@ -294,23 +314,3 @@ class TestVortexProperties:
         scaled = apply_vortex([v * k for v in high], [v * k for v in low], [v * k for v in close], window)
         for field in FIELDS:
             assert_scale_homogeneous(scaled[field], base[field], k=k, degree=0)
-
-    @given(case=_cases(coherent_hlc_with_missing()))
-    def test_matches_reference_under_missing_data(
-        self,
-        case: tuple[list[tuple[float | None, float | None, float | None]], int],
-    ) -> None:
-        """
-        Verifies that, for inputs freely mixing null / NaN / finite, both lines match the naive reference.
-        """
-        rows, window = case
-        high, low, close = split_triples(rows)
-        bands = apply_vortex(high, low, close, window)
-        reference = vortex_reference(high, low, close, window)
-        for field in FIELDS:
-            assert_matches(
-                bands[field],
-                reference[field],
-                rel_tol=RELATIVE_TOLERANCE_PROPERTY,
-                abs_tol=ABSOLUTE_TOLERANCE_PROPERTY,
-            )

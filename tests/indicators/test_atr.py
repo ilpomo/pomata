@@ -335,6 +335,23 @@ class TestAtrProperties:
             abs_tol=input_scale(high) * EXACT_TOLERANCE_FACTOR,
         )
 
+    @given(case=_cases(coherent_hlc_with_missing()))
+    def test_matches_reference_under_missing_data(
+        self,
+        case: tuple[list[tuple[float | None, float | None, float | None]], int],
+    ) -> None:
+        """
+        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
+        """
+        rows, window = case
+        high, low, close = split_triples(rows)
+        assert_matches(
+            apply_atr(high, low, close, window),
+            atr_reference(high, low, close, window),
+            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+            abs_tol=input_scale(high) * EXACT_TOLERANCE_FACTOR,
+        )
+
     @given(
         case=_cases(coherent_hlc()),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
@@ -387,23 +404,6 @@ class TestAtrProperties:
         # NOTE: ``_cases`` couples length >= window, so ``min`` always resolves to ``window - 1``; the form is kept
         # to state the exact warm-up rule (the leading-null run is never clamped by a too-short series here).
         assert leading_nulls == min(window - 1, len(rows))
-
-    @given(case=_cases(coherent_hlc_with_missing()))
-    def test_matches_reference_under_missing_data(
-        self,
-        case: tuple[list[tuple[float | None, float | None, float | None]], int],
-    ) -> None:
-        """
-        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
-        """
-        rows, window = case
-        high, low, close = split_triples(rows)
-        assert_matches(
-            apply_atr(high, low, close, window),
-            atr_reference(high, low, close, window),
-            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
-            abs_tol=input_scale(high) * EXACT_TOLERANCE_FACTOR,
-        )
 
     @given(
         case=_cases(coherent_hlc()),

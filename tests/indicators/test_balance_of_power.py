@@ -193,6 +193,22 @@ class TestBalanceOfPowerProperties:
         )
 
     @given(
+        case=_cases(coherent_ohlc_with_missing()),
+    )
+    def test_matches_reference_under_missing_data(
+        self,
+        case: list[tuple[float | None, float | None, float | None, float | None]],
+    ) -> None:
+        """
+        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
+        """
+        rows = case
+        open_, high, low, close = split_quads(rows)
+        assert_matches(
+            apply_balance_of_power(open_, high, low, close), balance_of_power_reference(open_, high, low, close)
+        )
+
+    @given(
         case=_cases(coherent_ohlc()),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
     )
@@ -217,19 +233,3 @@ class TestBalanceOfPowerProperties:
             [value * k for value in close],
         )
         assert_scale_homogeneous(scaled, base, k=k, degree=0)
-
-    @given(
-        case=_cases(coherent_ohlc_with_missing()),
-    )
-    def test_matches_reference_under_missing_data(
-        self,
-        case: list[tuple[float | None, float | None, float | None, float | None]],
-    ) -> None:
-        """
-        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
-        """
-        rows = case
-        open_, high, low, close = split_quads(rows)
-        assert_matches(
-            apply_balance_of_power(open_, high, low, close), balance_of_power_reference(open_, high, low, close)
-        )

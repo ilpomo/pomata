@@ -439,6 +439,23 @@ class TestWilliamsRProperties:
                 continue
             assert -100.0 - BOUND_MARGIN <= value <= BOUND_MARGIN
 
+    @given(case=_cases(coherent_hlc_with_missing()))
+    def test_matches_reference_under_missing_data(
+        self,
+        case: tuple[list[tuple[float | None, float | None, float | None]], int],
+    ) -> None:
+        """
+        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
+        """
+        rows, window = case
+        high, low, close = split_triples(rows)
+        assert_matches(
+            apply_williams_r(high, low, close, window),
+            williams_r_reference(high, low, close, window),
+            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
+        )
+
     @given(
         case=_cases(well_formed_bar()),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
@@ -504,20 +521,3 @@ class TestWilliamsRProperties:
         # NOTE: ``_cases`` couples length >= window, so ``min`` always resolves to ``window - 1``; the form is kept to
         # state the exact warm-up rule (the leading-null run is never clamped by a too-short series here).
         assert leading_nulls == min(window - 1, len(high_values))
-
-    @given(case=_cases(coherent_hlc_with_missing()))
-    def test_matches_reference_under_missing_data(
-        self,
-        case: tuple[list[tuple[float | None, float | None, float | None]], int],
-    ) -> None:
-        """
-        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
-        """
-        rows, window = case
-        high, low, close = split_triples(rows)
-        assert_matches(
-            apply_williams_r(high, low, close, window),
-            williams_r_reference(high, low, close, window),
-            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
-            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
-        )

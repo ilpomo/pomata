@@ -438,6 +438,26 @@ class TestChaikinMoneyFlowProperties:
                 continue
             assert -1.0 - BOUND_MARGIN <= value <= 1.0 + BOUND_MARGIN
 
+    @given(case=_cases(coherent_hlcv_with_missing()))
+    def test_matches_reference_under_missing_data(
+        self,
+        case: tuple[list[tuple[float | None, float | None, float | None, float | None]], int],
+    ) -> None:
+        """
+        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
+        """
+        rows, window = case
+        high = [high_value for high_value, _, _, _ in rows]
+        low = [low_value for _, low_value, _, _ in rows]
+        close = [close_value for _, _, close_value, _ in rows]
+        volume = [volume_value for _, _, _, volume_value in rows]
+        assert_matches(
+            apply_chaikin_money_flow(high, low, close, volume, window),
+            chaikin_money_flow_reference(high, low, close, volume, window),
+            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
+        )
+
     @given(
         case=_cases(well_formed_bar()),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
@@ -503,23 +523,3 @@ class TestChaikinMoneyFlowProperties:
         # NOTE: ``_cases`` couples length >= window, so ``min`` always resolves to ``window - 1``; the form is kept to
         # state the exact warm-up rule (the leading-null run is never clamped by a too-short series here).
         assert leading_nulls == min(window - 1, len(rows))
-
-    @given(case=_cases(coherent_hlcv_with_missing()))
-    def test_matches_reference_under_missing_data(
-        self,
-        case: tuple[list[tuple[float | None, float | None, float | None, float | None]], int],
-    ) -> None:
-        """
-        Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
-        """
-        rows, window = case
-        high = [high_value for high_value, _, _, _ in rows]
-        low = [low_value for _, low_value, _, _ in rows]
-        close = [close_value for _, _, close_value, _ in rows]
-        volume = [volume_value for _, _, _, volume_value in rows]
-        assert_matches(
-            apply_chaikin_money_flow(high, low, close, volume, window),
-            chaikin_money_flow_reference(high, low, close, volume, window),
-            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
-            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
-        )
