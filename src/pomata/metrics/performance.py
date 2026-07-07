@@ -279,7 +279,7 @@ def stability(
     returns = float64_expr(returns)
     defined = returns.drop_nulls()
     cumulative_log = defined.log1p().cum_sum()
-    index = pl.int_range(0, defined.len(), dtype=pl.Int64).cast(pl.Float64)
+    index = pl.int_range(0, defined.len(), dtype=pl.Int64)
     # Clamp to the documented [0, 1] upper bound: a perfect linear fit gives a correlation that can round to 1 + eps,
     # whose square would otherwise escape the bound by a floating-point ulp.
     r_squared = (pl.corr(index, cumulative_log) ** 2).clip(upper_bound=1.0)

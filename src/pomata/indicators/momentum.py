@@ -1848,6 +1848,7 @@ def ultimate_oscillator(
     validate_window(window_short, name="window_short")
     validate_window(window_medium, name="window_medium")
     validate_window(window_long, name="window_long")
+    # 3-way chain: validate_window_order in the hub is pairwise by design, so this ordering guard stays inline.
     if not window_short <= window_medium <= window_long:
         raise ValueError(
             f"windows must be ordered window_short <= window_medium <= window_long, "

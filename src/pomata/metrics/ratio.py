@@ -882,7 +882,7 @@ def probabilistic_sharpe_ratio(
     raw_kurtosis = returns.kurtosis() + 3.0
     observations = returns.drop_nulls().len().cast(pl.Int64)
     standard_error = (1.0 - returns.skew() * sharpe + (raw_kurtosis - 1.0) / 4.0 * sharpe**2).sqrt()
-    argument = (sharpe - benchmark_sharpe) * (observations - 1).cast(pl.Float64).sqrt() / standard_error
+    argument = (sharpe - benchmark_sharpe) * (observations - 1).sqrt() / standard_error
     return argument.map_batches(_normal_cdf, return_dtype=pl.Float64, returns_scalar=True)
 
 
