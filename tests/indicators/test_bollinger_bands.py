@@ -8,7 +8,7 @@ oracle (which returns the matching dict) compare band by band.
 
 The ladder is the canonical one: contract (type / struct schema / shape / lazy-eager / ``.over`` independence), edge
 (warm-up / window collapse / single-row / null / NaN), correctness (vs the closed-form reference, a frozen golden
-master, and ``num_std`` scaling), and properties (reference agreement incl. missing data, degree-1 scale-homogeneity,
+master, and ``multiplier`` scaling), and properties (reference agreement incl. missing data, degree-1 scale-homogeneity,
 and large-magnitude stability). Categories are split into classes; cross-cutting categories use markers (see
 ``tests/README.md``).
 """
@@ -77,13 +77,13 @@ def _cases[T](draw: st.DrawFn, values: st.SearchStrategy[T]) -> tuple[list[T], i
 def apply_bollinger_bands(
     values: Sequence[float | None],
     window: int,
-    num_std: float = 2.0,
+    multiplier: float = 2.0,
 ) -> dict[str, list[float | None]]:
     """
     Materialize each band of ``bollinger_bands`` over a one-column frame, as a dict mirroring the oracle's output.
     """
     return {
-        field: apply_expr(values, bollinger_bands(pl.col(COLUMN_X), window, num_std=num_std).struct.field(field))
+        field: apply_expr(values, bollinger_bands(pl.col(COLUMN_X), window, multiplier=multiplier).struct.field(field))
         for field in FIELDS
     }
 
@@ -127,14 +127,14 @@ class TestBollingerBandsEdge:
         with pytest.raises(ValueError, match="window must be >= 1"):
             bollinger_bands(pl.col(COLUMN_X), 0)
 
-    def test_invalid_num_std_raises(self) -> None:
+    def test_invalid_multiplier_raises(self) -> None:
         """
-        Verifies that a ``num_std`` that is not a finite number ``> 0`` (zero, negative, ``NaN``, or ``±inf``)
+        Verifies that a ``multiplier`` that is not a finite number ``> 0`` (zero, negative, ``NaN``, or ``±inf``)
         raises ``ValueError`` (a non-positive width would collapse or invert the bands).
         """
         for invalid in (0.0, -1.0, math.nan, math.inf, -math.inf):
-            with pytest.raises(ValueError, match="num_std must be a finite number > 0"):
-                bollinger_bands(pl.col(COLUMN_X), 3, num_std=invalid)
+            with pytest.raises(ValueError, match="multiplier must be a finite number > 0"):
+                bollinger_bands(pl.col(COLUMN_X), 3, multiplier=invalid)
 
     def test_warmup_null_count(self) -> None:
         """
@@ -201,7 +201,7 @@ class TestBollingerBandsEdge:
 
 class TestBollingerBandsCorrectness:
     """
-    Against the naive reference oracle, frozen golden-master values, and the ``num_std`` contract.
+    Against the naive reference oracle, frozen golden-master values, and the ``multiplier`` contract.
     """
 
     def test_matches_reference(self) -> None:
@@ -217,20 +217,20 @@ class TestBollingerBandsCorrectness:
 
     def test_golden_master(self) -> None:
         """
-        Verifies the frozen reference: bands(window=2, num_std=2) over [2, 4, 4, 8].
+        Verifies the frozen reference: bands(window=2, multiplier=2) over [2, 4, 4, 8].
         """
         bands = apply_bollinger_bands([2.0, 4.0, 4.0, 8.0], 2)
         assert_matches(bands["lower"], [None, 1.0, 4.0, 2.0])
         assert_matches(bands["middle"], [None, 3.0, 4.0, 6.0])
         assert_matches(bands["upper"], [None, 5.0, 4.0, 10.0])
 
-    def test_num_std_scales_width(self) -> None:
+    def test_multiplier_scales_width(self) -> None:
         """
-        Verifies that the band half-width is linear in ``num_std``: the gap to the center doubles from ``1`` to ``2``.
+        Verifies that the band half-width is linear in ``multiplier``: it doubles from ``1`` to ``2``.
         """
         values = [10.0, 11.0, 12.0, 11.0, 13.0]
-        narrow = apply_bollinger_bands(values, 3, num_std=1.0)
-        wide = apply_bollinger_bands(values, 3, num_std=2.0)
+        narrow = apply_bollinger_bands(values, 3, multiplier=1.0)
+        wide = apply_bollinger_bands(values, 3, multiplier=2.0)
         for index in range(len(values)):
             center = narrow["middle"][index]
             narrow_upper = narrow["upper"][index]

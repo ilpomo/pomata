@@ -67,13 +67,13 @@ def _frame(size: int) -> pl.DataFrame:
 
 
 CASES: dict[str, Callable[[], pl.Expr]] = {
-    "cost_borrow": lambda: cost_borrow(pl.col("quantity"), pl.col("price"), 0.01),
-    "cost_fixed": lambda: cost_fixed(pl.col("quantity"), 1.0),
+    "cost_borrow": lambda: cost_borrow(pl.col("quantity"), pl.col("price"), rate=0.01),
+    "cost_fixed": lambda: cost_fixed(pl.col("quantity"), fee=1.0),
     "cost_funding": lambda: cost_funding(pl.col("quantity"), pl.col("price"), pl.col("rate")),
-    "cost_notional": lambda: cost_notional(pl.col("quantity"), pl.col("price"), 0.01),
-    "cost_per_share": lambda: cost_per_share(pl.col("quantity"), 1.0),
-    "cost_proportional": lambda: cost_proportional(pl.col("weight"), 0.01),
-    "cost_slippage": lambda: cost_slippage(pl.col("weight"), 0.0005),
+    "cost_notional": lambda: cost_notional(pl.col("quantity"), pl.col("price"), rate=0.01),
+    "cost_per_share": lambda: cost_per_share(pl.col("quantity"), fee=1.0),
+    "cost_proportional": lambda: cost_proportional(pl.col("weight"), rate=0.01),
+    "cost_slippage": lambda: cost_slippage(pl.col("weight"), half_spread=0.0005),
     "cumulative_pnl": lambda: cumulative_pnl(pl.col("returns")),
     "dividend": lambda: dividend(pl.col("quantity"), pl.col("dividend_per_share")),
     "equity_curve": lambda: equity_curve(pl.col("returns")),

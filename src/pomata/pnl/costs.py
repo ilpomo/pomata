@@ -21,6 +21,7 @@ __all__ = (
 def cost_borrow(
     quantity: pl.Expr,
     price: pl.Expr,
+    *,
     rate: float,
 ) -> pl.Expr:
     r"""
@@ -86,7 +87,7 @@ def cost_borrow(
         ...         "price": [10.0, 11.0, 12.0, 13.0, 14.0],
         ...     }
         ... )
-        >>> expr = cost_borrow(pl.col("quantity"), pl.col("price"), 0.0001).round(6)
+        >>> expr = cost_borrow(pl.col("quantity"), pl.col("price"), rate=0.0001).round(6)
         >>> frame.select(expr.alias("cost"))["cost"].to_list()
         [0.0, 0.055, 0.06, 0.026, 0.028]
 
@@ -100,7 +101,7 @@ def cost_borrow(
         ...         "price": [10.0, 11.0, 12.0, 13.0, 14.0, 15.0],
         ...     }
         ... )
-        >>> expr = cost_borrow(pl.col("quantity"), pl.col("price"), 0.0001).over("ticker").round(6)
+        >>> expr = cost_borrow(pl.col("quantity"), pl.col("price"), rate=0.0001).over("ticker").round(6)
         >>> frame.with_columns(expr.alias("c"))["c"].to_list()
         [0.0, 0.055, 0.06, 0.026, 0.028, 0.0]
 
@@ -112,7 +113,7 @@ def cost_borrow(
         ...         "price": [10.0, 11.0, float("nan"), 12.0, 13.0],
         ...     }
         ... )
-        >>> expr = cost_borrow(pl.col("quantity"), pl.col("price"), 0.0001).round(6)
+        >>> expr = cost_borrow(pl.col("quantity"), pl.col("price"), rate=0.0001).round(6)
         >>> frame.select(expr.alias("cost"))["cost"].to_list()
         [0.05, None, nan, nan, 0.026]
     """
@@ -126,6 +127,7 @@ def cost_borrow(
 
 def cost_fixed(
     quantity: pl.Expr,
+    *,
     fee: float,
 ) -> pl.Expr:
     r"""
@@ -167,7 +169,7 @@ def cost_fixed(
           references the previous quantity); ``null`` takes precedence over ``NaN``.
         - **NaN** — a ``NaN`` quantity propagates to its own row and the next, yielding ``NaN`` there.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the turnover never reaches
-          across series boundaries, e.g. ``cost_fixed(pl.col("quantity"), 1.0).over("ticker")``.
+          across series boundaries, e.g. ``cost_fixed(pl.col("quantity"), fee=1.0).over("ticker")``.
 
     See Also:
         - :func:`cost_per_share`: A per-unit-traded commission.
@@ -182,7 +184,7 @@ def cost_fixed(
         >>> from pomata.pnl import cost_fixed
         >>>
         >>> frame = pl.DataFrame({"quantity": [10.0, 10.0, -5.0, -5.0, 20.0]})
-        >>> frame.select(cost_fixed(pl.col("quantity"), 1.0).round(4).alias("cost"))["cost"].to_list()
+        >>> frame.select(cost_fixed(pl.col("quantity"), fee=1.0).round(4).alias("cost"))["cost"].to_list()
         [1.0, 0.0, 1.0, 0.0, 1.0]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker starts flat:
@@ -193,13 +195,15 @@ def cost_fixed(
         ...         "quantity": [10.0, 10.0, -5.0, 2.0, 2.0, 2.0],
         ...     }
         ... )
-        >>> frame.with_columns(cost_fixed(pl.col("quantity"), 1.0).over("ticker").round(4).alias("c"))["c"].to_list()
+        >>> frame.with_columns(cost_fixed(pl.col("quantity"), fee=1.0).over("ticker").round(4).alias("c"))[
+        ...     "c"
+        ... ].to_list()
         [1.0, 0.0, 1.0, 1.0, 0.0, 0.0]
 
         A ``null`` (which voids its own row and the next) and a ``NaN`` make the missing-data handling visible:
 
         >>> frame = pl.DataFrame({"quantity": [10.0, None, -5.0, float("nan"), 20.0]})
-        >>> frame.select(cost_fixed(pl.col("quantity"), 1.0).round(4).alias("cost"))["cost"].to_list()
+        >>> frame.select(cost_fixed(pl.col("quantity"), fee=1.0).round(4).alias("cost"))["cost"].to_list()
         [1.0, None, None, nan, nan]
     """
     quantity = float64_expr(quantity)
@@ -213,7 +217,7 @@ def cost_fixed(
 def cost_funding(
     quantity: pl.Expr,
     price: pl.Expr,
-    rate: pl.Expr,
+    funding_rate: pl.Expr,
 ) -> pl.Expr:
     r"""
     Funding Cost, the per-bar perpetual-swap funding payment seen as a cost to the holder.
@@ -224,7 +228,7 @@ def cost_funding(
 
     .. math::
 
-        c_t = q_t \cdot P_t \cdot f_t, \qquad q = \text{quantity},\ f = \text{rate}.
+        c_t = q_t \cdot P_t \cdot f_t, \qquad q = \text{quantity},\ f = \text{funding\_rate}.
 
     The rate is **signed and per-bar**: a positive rate debits a long (a positive cost) and credits a short (a negative
     cost — a rebate), and a negative rate flips both. It is a holding cost (charged on the position held, not on a
@@ -234,7 +238,8 @@ def cost_funding(
     Args:
         quantity: Signed position size in units / shares / contracts held over the bar (e.g. ``100``, ``-2``).
         price: Instrument price series (e.g. ``pl.col("close")``); must share a length and alignment with ``quantity``.
-        rate: Per-bar funding rate as a signed fraction of notional, supplied as a series so it can be ``0`` on the bars
+        funding_rate: Per-bar funding rate as a signed fraction of notional, supplied as a series so it can be ``0`` on
+            the bars
             between funding events (e.g. ``0.0001`` = 1 bp); a positive rate charges longs and rebates shorts.
 
     Returns:
@@ -250,9 +255,9 @@ def cost_funding(
 
         **Edge-case behavior:**
 
-        - **Sign** — the cost follows ``sign(quantity) * sign(rate)``: a long pays a positive rate and is rebated by a
+        - **Sign** — the cost follows ``sign(quantity) * sign(funding_rate)``: a long pays a positive rate and is
           negative one; a short is the mirror image.
-        - **Off-funding bars** — pass ``rate = 0`` on bars with no funding event; the cost is then ``0`` there.
+        - **Off-funding bars** — pass ``funding_rate = 0`` on bars with no funding event; the cost is then ``0`` there.
         - **Null** — a ``null`` in any input makes that row ``null`` (``null`` takes precedence over ``NaN``).
         - **NaN** — a ``NaN`` in any input (with no ``null``) propagates, yielding ``NaN`` for that row.
         - **Partitioning** — the cost is elementwise (each row uses only its own triple), so ``.over(...)`` partitions
@@ -277,10 +282,10 @@ def cost_funding(
         ...     {
         ...         "quantity": [10.0, 10.0, -5.0, -5.0, 20.0],
         ...         "price": [100.0, 102.0, 101.0, 104.0, 103.0],
-        ...         "rate": [0.0001, 0.0001, 0.0001, -0.0001, 0.0001],
+        ...         "funding_rate": [0.0001, 0.0001, 0.0001, -0.0001, 0.0001],
         ...     }
         ... )
-        >>> expr = cost_funding(pl.col("quantity"), pl.col("price"), pl.col("rate")).round(6)
+        >>> expr = cost_funding(pl.col("quantity"), pl.col("price"), pl.col("funding_rate")).round(6)
         >>> frame.select(expr.alias("cost"))["cost"].to_list()
         [0.1, 0.102, -0.0505, 0.052, 0.206]
 
@@ -292,10 +297,10 @@ def cost_funding(
         ...         "ticker": ["A"] * 3 + ["B"] * 3,
         ...         "quantity": [10.0, 10.0, -5.0, 2.0, 2.0, -3.0],
         ...         "price": [100.0, 102.0, 101.0, 50.0, 51.0, 49.0],
-        ...         "rate": [0.0001, 0.0001, 0.0001, 0.0001, -0.0001, 0.0001],
+        ...         "funding_rate": [0.0001, 0.0001, 0.0001, 0.0001, -0.0001, 0.0001],
         ...     }
         ... )
-        >>> expr = cost_funding(pl.col("quantity"), pl.col("price"), pl.col("rate")).over("ticker").round(6)
+        >>> expr = cost_funding(pl.col("quantity"), pl.col("price"), pl.col("funding_rate")).over("ticker").round(6)
         >>> frame.with_columns(expr.alias("c"))["c"].to_list()
         [0.1, 0.102, -0.0505, 0.01, -0.0102, -0.0147]
 
@@ -305,24 +310,25 @@ def cost_funding(
         ...     {
         ...         "quantity": [10.0, None, -5.0, float("nan"), 20.0],
         ...         "price": [100.0, 102.0, 101.0, 104.0, 103.0],
-        ...         "rate": [0.0001, 0.0001, 0.0001, 0.0001, 0.0001],
+        ...         "funding_rate": [0.0001, 0.0001, 0.0001, 0.0001, 0.0001],
         ...     }
         ... )
-        >>> expr = cost_funding(pl.col("quantity"), pl.col("price"), pl.col("rate")).round(6)
+        >>> expr = cost_funding(pl.col("quantity"), pl.col("price"), pl.col("funding_rate")).round(6)
         >>> frame.select(expr.alias("cost"))["cost"].to_list()
         [0.1, None, -0.0505, nan, 0.206]
     """
     quantity = float64_expr(quantity)
     price = float64_expr(price)
-    rate = float64_expr(rate)
+    funding_rate = float64_expr(funding_rate)
     # The funding payment on the held notional: position times price times the signed per-bar rate. Elementwise; null /
     # NaN propagate through the arithmetic. The rate carries its own sign, so there is no parameter to validate here.
-    return quantity * price * rate
+    return quantity * price * funding_rate
 
 
 def cost_notional(
     quantity: pl.Expr,
     price: pl.Expr,
+    *,
     rate: float,
 ) -> pl.Expr:
     r"""
@@ -365,7 +371,8 @@ def cost_notional(
           (``null`` takes precedence over ``NaN``).
         - **NaN** — a ``NaN`` in either input propagates, yielding ``NaN``.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the turnover never reaches
-          across series boundaries, e.g. ``cost_notional(pl.col("quantity"), pl.col("price"), 0.001).over("ticker")``.
+          across series boundaries, e.g.
+          ``cost_notional(pl.col("quantity"), pl.col("price"), rate=0.001).over("ticker")``.
 
     See Also:
         - :func:`cost_per_share`: A per-unit-traded commission.
@@ -385,7 +392,7 @@ def cost_notional(
         ...         "price": [100.0, 102.0, 101.0, 104.0, 103.0],
         ...     }
         ... )
-        >>> expr = cost_notional(pl.col("quantity"), pl.col("price"), 0.001).round(4)
+        >>> expr = cost_notional(pl.col("quantity"), pl.col("price"), rate=0.001).round(4)
         >>> frame.select(expr.alias("cost"))["cost"].to_list()
         [1.0, 0.0, 1.515, 0.0, 2.575]
 
@@ -399,7 +406,7 @@ def cost_notional(
         ...     }
         ... )
         >>> frame.with_columns(
-        ...     cost_notional(pl.col("quantity"), pl.col("price"), 0.001).over("ticker").round(4).alias("c")
+        ...     cost_notional(pl.col("quantity"), pl.col("price"), rate=0.001).over("ticker").round(4).alias("c")
         ... )["c"].to_list()
         [1.0, 0.0, 1.515, 0.1, 0.0, 0.0]
 
@@ -411,7 +418,7 @@ def cost_notional(
         ...         "price": [100.0, 102.0, 101.0, 104.0, float("nan")],
         ...     }
         ... )
-        >>> expr = cost_notional(pl.col("quantity"), pl.col("price"), 0.001).round(4)
+        >>> expr = cost_notional(pl.col("quantity"), pl.col("price"), rate=0.001).round(4)
         >>> frame.select(expr.alias("cost"))["cost"].to_list()
         [1.0, None, None, nan, nan]
     """
@@ -423,6 +430,7 @@ def cost_notional(
 
 def cost_per_share(
     quantity: pl.Expr,
+    *,
     fee: float,
 ) -> pl.Expr:
     r"""
@@ -463,7 +471,7 @@ def cost_per_share(
           references the previous quantity); ``null`` takes precedence over ``NaN``.
         - **NaN** — a ``NaN`` quantity propagates to its own row and the next, yielding ``NaN`` there.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the turnover never reaches
-          across series boundaries, e.g. ``cost_per_share(pl.col("quantity"), 0.01).over("ticker")``.
+          across series boundaries, e.g. ``cost_per_share(pl.col("quantity"), fee=0.01).over("ticker")``.
 
     See Also:
         - :func:`cost_fixed`: A flat charge per trade.
@@ -478,7 +486,7 @@ def cost_per_share(
         >>> from pomata.pnl import cost_per_share
         >>>
         >>> frame = pl.DataFrame({"quantity": [10.0, 10.0, -5.0, -5.0, 20.0]})
-        >>> frame.select(cost_per_share(pl.col("quantity"), 0.01).round(4).alias("cost"))["cost"].to_list()
+        >>> frame.select(cost_per_share(pl.col("quantity"), fee=0.01).round(4).alias("cost"))["cost"].to_list()
         [0.1, 0.0, 0.15, 0.0, 0.25]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker starts flat:
@@ -489,7 +497,7 @@ def cost_per_share(
         ...         "quantity": [10.0, 10.0, -5.0, 2.0, 2.0, 2.0],
         ...     }
         ... )
-        >>> frame.with_columns(cost_per_share(pl.col("quantity"), 0.01).over("ticker").round(4).alias("c"))[
+        >>> frame.with_columns(cost_per_share(pl.col("quantity"), fee=0.01).over("ticker").round(4).alias("c"))[
         ...     "c"
         ... ].to_list()
         [0.1, 0.0, 0.15, 0.02, 0.0, 0.0]
@@ -497,7 +505,7 @@ def cost_per_share(
         A ``null`` (which voids its own row and the next) and a ``NaN`` make the missing-data handling visible:
 
         >>> frame = pl.DataFrame({"quantity": [10.0, None, -5.0, float("nan"), 20.0]})
-        >>> frame.select(cost_per_share(pl.col("quantity"), 0.01).round(4).alias("cost"))["cost"].to_list()
+        >>> frame.select(cost_per_share(pl.col("quantity"), fee=0.01).round(4).alias("cost"))["cost"].to_list()
         [0.1, None, None, nan, nan]
     """
     quantity = float64_expr(quantity)
@@ -507,6 +515,7 @@ def cost_per_share(
 
 def cost_proportional(
     weight: pl.Expr,
+    *,
     rate: float,
 ) -> pl.Expr:
     r"""
@@ -549,7 +558,7 @@ def cost_proportional(
           references the previous weight), then resumes; ``null`` takes precedence over ``NaN``.
         - **NaN** — a ``NaN`` weight propagates to its own row and the next, yielding ``NaN`` there.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the turnover never reaches
-          across series boundaries, e.g. ``cost_proportional(pl.col("weight"), 0.001).over("ticker")``.
+          across series boundaries, e.g. ``cost_proportional(pl.col("weight"), rate=0.001).over("ticker")``.
 
     See Also:
         - :func:`cost_slippage`: The fixed half-spread cost, the other MVP cost axis; sum the two for both.
@@ -567,7 +576,7 @@ def cost_proportional(
         >>> from pomata.pnl import cost_proportional
         >>>
         >>> frame = pl.DataFrame({"weight": [0.5, 1.0, -0.5, -0.5, 0.0]})
-        >>> expr = cost_proportional(pl.col("weight"), 0.001).round(4)
+        >>> expr = cost_proportional(pl.col("weight"), rate=0.001).round(4)
         >>> frame.select(expr.alias("cost"))["cost"].to_list()
         [0.0005, 0.0005, 0.0015, 0.0, 0.0005]
 
@@ -580,7 +589,7 @@ def cost_proportional(
         ...         "weight": [0.5, 1.0, -0.5, 1.0, 1.0, 0.0],
         ...     }
         ... )
-        >>> frame.with_columns(cost_proportional(pl.col("weight"), 0.001).over("ticker").round(4).alias("c"))[
+        >>> frame.with_columns(cost_proportional(pl.col("weight"), rate=0.001).over("ticker").round(4).alias("c"))[
         ...     "c"
         ... ].to_list()
         [0.0005, 0.0005, 0.0015, 0.001, 0.0, 0.001]
@@ -588,7 +597,7 @@ def cost_proportional(
         A ``null`` (which voids its own row and the next) and a ``NaN`` make the missing-data handling visible:
 
         >>> frame = pl.DataFrame({"weight": [0.5, None, -0.5, float("nan"), 0.0]})
-        >>> frame.select(cost_proportional(pl.col("weight"), 0.001).round(4).alias("cost"))["cost"].to_list()
+        >>> frame.select(cost_proportional(pl.col("weight"), rate=0.001).round(4).alias("cost"))["cost"].to_list()
         [0.0005, None, None, nan, nan]
     """
     weight = float64_expr(weight)
@@ -598,6 +607,7 @@ def cost_proportional(
 
 def cost_slippage(
     weight: pl.Expr,
+    *,
     half_spread: float,
 ) -> pl.Expr:
     r"""
@@ -640,7 +650,7 @@ def cost_slippage(
           references the previous weight), then resumes; ``null`` takes precedence over ``NaN``.
         - **NaN** — a ``NaN`` weight propagates to its own row and the next, yielding ``NaN`` there.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the turnover never reaches
-          across series boundaries, e.g. ``cost_slippage(pl.col("weight"), 0.002).over("ticker")``.
+          across series boundaries, e.g. ``cost_slippage(pl.col("weight"), half_spread=0.002).over("ticker")``.
 
     See Also:
         - :func:`cost_proportional`: The proportional broker fee, the other MVP cost axis; sum the two for both.
@@ -657,7 +667,7 @@ def cost_slippage(
         >>> from pomata.pnl import cost_slippage
         >>>
         >>> frame = pl.DataFrame({"weight": [0.5, 1.0, -0.5, -0.5, 0.0]})
-        >>> expr = cost_slippage(pl.col("weight"), 0.002).round(4)
+        >>> expr = cost_slippage(pl.col("weight"), half_spread=0.002).round(4)
         >>> frame.select(expr.alias("cost"))["cost"].to_list()
         [0.001, 0.001, 0.003, 0.0, 0.001]
 
@@ -670,13 +680,15 @@ def cost_slippage(
         ...         "weight": [0.5, 1.0, -0.5, 1.0, 1.0, 0.0],
         ...     }
         ... )
-        >>> frame.with_columns(cost_slippage(pl.col("weight"), 0.002).over("ticker").round(4).alias("c"))["c"].to_list()
+        >>> frame.with_columns(cost_slippage(pl.col("weight"), half_spread=0.002).over("ticker").round(4).alias("c"))[
+        ...     "c"
+        ... ].to_list()
         [0.001, 0.001, 0.003, 0.002, 0.0, 0.002]
 
         A ``null`` (which voids its own row and the next) and a ``NaN`` make the missing-data handling visible:
 
         >>> frame = pl.DataFrame({"weight": [0.5, None, -0.5, float("nan"), 0.0]})
-        >>> frame.select(cost_slippage(pl.col("weight"), 0.002).round(4).alias("cost"))["cost"].to_list()
+        >>> frame.select(cost_slippage(pl.col("weight"), half_spread=0.002).round(4).alias("cost"))["cost"].to_list()
         [0.001, None, None, nan, nan]
     """
     weight = float64_expr(weight)

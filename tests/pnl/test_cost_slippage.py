@@ -71,10 +71,10 @@ class TestCostSlippageContract:
         reaches across group boundaries.
         """
         frame = pl.DataFrame({GROUP_KEY: ["a"] * 3 + ["b"] * 3, COLUMN_X: [0.5, 1.0, -0.5, 1.0, 1.0, 0.0]})
-        expr = cost_slippage(pl.col(COLUMN_X), HALF_SPREAD).over(GROUP_KEY)
+        expr = cost_slippage(pl.col(COLUMN_X), half_spread=HALF_SPREAD).over(GROUP_KEY)
         grouped = frame.select(expr.alias("y"))["y"].to_list()
-        group_a = apply_expr([0.5, 1.0, -0.5], cost_slippage(pl.col(COLUMN_X), HALF_SPREAD))
-        group_b = apply_expr([1.0, 1.0, 0.0], cost_slippage(pl.col(COLUMN_X), HALF_SPREAD))
+        group_a = apply_expr([0.5, 1.0, -0.5], cost_slippage(pl.col(COLUMN_X), half_spread=HALF_SPREAD))
+        group_b = apply_expr([1.0, 1.0, 0.0], cost_slippage(pl.col(COLUMN_X), half_spread=HALF_SPREAD))
         assert_matches(grouped, group_a + group_b)
 
 
@@ -88,14 +88,15 @@ class TestCostSlippageEdge:
         Verifies the first row is ``|weight_0| * half_spread`` (the cost of the entry trade from a flat start).
         """
         assert_matches(
-            apply_expr([0.5, 1.0, -0.5], cost_slippage(pl.col(COLUMN_X), HALF_SPREAD)), [0.001, 0.001, 0.003]
+            apply_expr([0.5, 1.0, -0.5], cost_slippage(pl.col(COLUMN_X), half_spread=HALF_SPREAD)),
+            [0.001, 0.001, 0.003],
         )
 
     def test_single_row(self) -> None:
         """
         Verifies that a one-element series resolves to ``|weight_0| * half_spread`` (the entry trade), not null.
         """
-        assert_matches(apply_expr([0.5], cost_slippage(pl.col(COLUMN_X), HALF_SPREAD)), [0.001])
+        assert_matches(apply_expr([0.5], cost_slippage(pl.col(COLUMN_X), half_spread=HALF_SPREAD)), [0.001])
 
     def test_null_propagates(self) -> None:
         """
@@ -103,7 +104,7 @@ class TestCostSlippageEdge:
         """
         values = [0.5, None, 1.0, -0.5]
         assert_matches(
-            apply_expr(values, cost_slippage(pl.col(COLUMN_X), HALF_SPREAD)),
+            apply_expr(values, cost_slippage(pl.col(COLUMN_X), half_spread=HALF_SPREAD)),
             cost_slippage_reference(values, HALF_SPREAD),
         )
 
@@ -113,7 +114,7 @@ class TestCostSlippageEdge:
         """
         values = [0.5, math.nan, 1.0, -0.5]
         assert_matches(
-            apply_expr(values, cost_slippage(pl.col(COLUMN_X), HALF_SPREAD)),
+            apply_expr(values, cost_slippage(pl.col(COLUMN_X), half_spread=HALF_SPREAD)),
             cost_slippage_reference(values, HALF_SPREAD),
         )
 
@@ -125,7 +126,7 @@ class TestCostSlippageEdge:
         """
         values = [math.inf, math.inf, 1.0, -math.inf]
         assert_matches(
-            apply_expr(values, cost_slippage(pl.col(COLUMN_X), HALF_SPREAD)),
+            apply_expr(values, cost_slippage(pl.col(COLUMN_X), half_spread=HALF_SPREAD)),
             cost_slippage_reference(values, HALF_SPREAD),
         )
 
@@ -137,7 +138,7 @@ class TestCostSlippageEdge:
         """
         for invalid in (-0.002, math.nan, math.inf, -math.inf):
             with pytest.raises(ValueError, match="half_spread must be a finite number >= 0"):
-                cost_slippage(pl.col(COLUMN_X), invalid)
+                cost_slippage(pl.col(COLUMN_X), half_spread=invalid)
 
 
 class TestCostSlippageCorrectness:
@@ -151,7 +152,7 @@ class TestCostSlippageCorrectness:
         """
         values = [0.5, 1.0, -0.5, -0.5, 0.0, 1.5, -1.0, 0.25]
         assert_matches(
-            apply_expr(values, cost_slippage(pl.col(COLUMN_X), HALF_SPREAD)),
+            apply_expr(values, cost_slippage(pl.col(COLUMN_X), half_spread=HALF_SPREAD)),
             cost_slippage_reference(values, HALF_SPREAD),
             rel_tol=RELATIVE_TOLERANCE_REFERENCE,
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
@@ -161,7 +162,9 @@ class TestCostSlippageCorrectness:
         """
         Verifies the frozen reference over a five-bar weight series at a 20 bps half-spread.
         """
-        result = apply_expr([0.5, 1.0, -0.5, -0.5, 0.0], cost_slippage(pl.col(COLUMN_X), HALF_SPREAD).round(4))
+        result = apply_expr(
+            [0.5, 1.0, -0.5, -0.5, 0.0], cost_slippage(pl.col(COLUMN_X), half_spread=HALF_SPREAD).round(4)
+        )
         assert_matches(result, [0.001, 0.001, 0.003, 0.0, 0.001])
 
 
@@ -181,7 +184,7 @@ class TestCostSlippageProperties:
         """
         values = case
         assert_matches(
-            apply_expr(values, cost_slippage(pl.col(COLUMN_X), half_spread)),
+            apply_expr(values, cost_slippage(pl.col(COLUMN_X), half_spread=half_spread)),
             cost_slippage_reference(values, half_spread),
             rel_tol=RELATIVE_TOLERANCE_PROPERTY,
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
@@ -198,7 +201,7 @@ class TestCostSlippageProperties:
         """
         values = case
         assert_matches(
-            apply_expr(values, cost_slippage(pl.col(COLUMN_X), half_spread)),
+            apply_expr(values, cost_slippage(pl.col(COLUMN_X), half_spread=half_spread)),
             cost_slippage_reference(values, half_spread),
             rel_tol=RELATIVE_TOLERANCE_PROPERTY,
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
@@ -217,8 +220,10 @@ class TestCostSlippageProperties:
         """
         k = 2.0**exponent
         values = case
-        result_base = apply_expr(values, cost_slippage(pl.col(COLUMN_X), HALF_SPREAD))
-        result_scaled = apply_expr([value * k for value in values], cost_slippage(pl.col(COLUMN_X), HALF_SPREAD))
+        result_base = apply_expr(values, cost_slippage(pl.col(COLUMN_X), half_spread=HALF_SPREAD))
+        result_scaled = apply_expr(
+            [value * k for value in values], cost_slippage(pl.col(COLUMN_X), half_spread=HALF_SPREAD)
+        )
         assert_scale_homogeneous(result_scaled, result_base, k=k, degree=1)
 
     @given(case=_cases(finite_floats()), scale=st.sampled_from([1e-6, 1e6, 1e9]), half_spread=_HALF_SPREADS)
@@ -233,7 +238,7 @@ class TestCostSlippageProperties:
         """
         values = [value * scale for value in case]
         assert_matches(
-            apply_expr(values, cost_slippage(pl.col(COLUMN_X), half_spread)),
+            apply_expr(values, cost_slippage(pl.col(COLUMN_X), half_spread=half_spread)),
             cost_slippage_reference(values, half_spread),
             rel_tol=RELATIVE_TOLERANCE_SCALE,
             abs_tol=ABSOLUTE_TOLERANCE_STREAMING,

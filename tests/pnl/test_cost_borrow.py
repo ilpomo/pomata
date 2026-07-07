@@ -73,7 +73,7 @@ def apply_cost_borrow(
     """
     Materialize ``cost_borrow`` over a two-column ``Float64`` frame from the aligned input lists.
     """
-    return materialize({QUANTITY: quantity, PRICE: price}, cost_borrow(pl.col(QUANTITY), pl.col(PRICE), rate))
+    return materialize({QUANTITY: quantity, PRICE: price}, cost_borrow(pl.col(QUANTITY), pl.col(PRICE), rate=rate))
 
 
 class TestCostBorrowContract:
@@ -93,8 +93,8 @@ class TestCostBorrowContract:
                 PRICE: pl.Series(PRICE, [10.0, 11.0, 12.0, 13.0, 14.0, 15.0], dtype=pl.Float64),
             }
         )
-        plain = frame.select(cost_borrow(pl.col(QUANTITY), pl.col(PRICE), RATE).alias("y"))["y"].to_list()
-        grouped = frame.select(cost_borrow(pl.col(QUANTITY), pl.col(PRICE), RATE).over("ticker").alias("y"))[
+        plain = frame.select(cost_borrow(pl.col(QUANTITY), pl.col(PRICE), rate=RATE).alias("y"))["y"].to_list()
+        grouped = frame.select(cost_borrow(pl.col(QUANTITY), pl.col(PRICE), rate=RATE).over("ticker").alias("y"))[
             "y"
         ].to_list()
         assert_matches(plain, grouped)
@@ -147,7 +147,7 @@ class TestCostBorrowEdge:
         """
         for invalid in (-0.0001, math.nan, math.inf, -math.inf):
             with pytest.raises(ValueError, match="rate must be a finite number >= 0"):
-                cost_borrow(pl.col(QUANTITY), pl.col(PRICE), invalid)
+                cost_borrow(pl.col(QUANTITY), pl.col(PRICE), rate=invalid)
 
 
 class TestCostBorrowCorrectness:
@@ -174,7 +174,7 @@ class TestCostBorrowCorrectness:
         """
         result = materialize(
             {QUANTITY: [100.0, -50.0, -50.0, -20.0, -20.0], PRICE: [10.0, 11.0, 12.0, 13.0, 14.0]},
-            cost_borrow(pl.col(QUANTITY), pl.col(PRICE), RATE).round(6),
+            cost_borrow(pl.col(QUANTITY), pl.col(PRICE), rate=RATE).round(6),
         )
         assert_matches(result, [0.0, 0.055, 0.06, 0.026, 0.028])
 
