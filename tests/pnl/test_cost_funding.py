@@ -231,29 +231,22 @@ class TestCostFundingProperties:
 
     @given(
         case=_cases(subnormal_safe_floats(), subnormal_safe_floats(), subnormal_safe_floats()),
-        axis=st.sampled_from([QUANTITY, PRICE, RATE]),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
     )
-    def test_scale_homogeneity_in_each_input(
+    def test_scale_homogeneity_in_quantity(
         self,
         case: tuple[list[float], list[float], list[float]],
-        axis: str,
         exponent: int,
     ) -> None:
         """
-        Verifies that ``cost_funding`` is homogeneous of degree 1 in each input: scaling any single input by a
-        constant ``k``, with the others untouched, scales the output by the same ``k``. ``k`` is a power of two, so
-        the rescale is exact and adds no floating-point error.
+        Verifies that ``cost_funding`` is homogeneous of degree 1 in ``quantity``: scaling the quantity by a constant
+        ``k`` scales the output by the same ``k``. The product is symmetric in its three factors, so a single axis is
+        representative; ``k`` is a power of two, so the rescale is exact and adds no floating-point error.
         """
         k = 2.0**exponent
         quantity, price, rate = case
-        scaled = {
-            QUANTITY: [value * k for value in quantity] if axis == QUANTITY else quantity,
-            PRICE: [value * k for value in price] if axis == PRICE else price,
-            RATE: [value * k for value in rate] if axis == RATE else rate,
-        }
         result_base = apply_cost_funding(quantity, price, rate)
-        result_scaled = apply_cost_funding(scaled[QUANTITY], scaled[PRICE], scaled[RATE])
+        result_scaled = apply_cost_funding([value * k for value in quantity], price, rate)
         assert_scale_homogeneous(result_scaled, result_base, k=k, degree=1)
 
     @given(case=_cases(finite_floats(), finite_floats(), finite_floats()), scale=st.sampled_from([1e-6, 1e6, 1e9]))

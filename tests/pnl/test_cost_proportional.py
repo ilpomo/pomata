@@ -82,6 +82,16 @@ class TestCostProportionalEdge:
     Boundaries, the flat start, null / NaN handling, and the rate guard.
     """
 
+    def test_invalid_rate_raises(self) -> None:
+        """
+        Verifies that a rate that is not a finite number ``>= 0`` (negative, ``NaN``, or ``±inf``) raises
+        ``ValueError`` -- a cost rate is a finite non-negative number, so a non-finite value fails fast at the call site
+        rather than silently poisoning the output with ``NaN`` / ``inf``.
+        """
+        for invalid in (-0.001, math.nan, math.inf, -math.inf):
+            with pytest.raises(ValueError, match="rate must be a finite number >= 0"):
+                cost_proportional(pl.col(COLUMN_X), rate=invalid)
+
     def test_flat_start_first_row(self) -> None:
         """
         Verifies the first row is ``|weight_0| * rate`` (the cost of the entry trade from a flat start).
@@ -127,16 +137,6 @@ class TestCostProportionalEdge:
             apply_expr(values, cost_proportional(pl.col(COLUMN_X), rate=RATE)),
             cost_proportional_reference(values, RATE),
         )
-
-    def test_invalid_rate_raises(self) -> None:
-        """
-        Verifies that a rate that is not a finite number ``>= 0`` (negative, ``NaN``, or ``±inf``) raises
-        ``ValueError`` -- a cost rate is a finite non-negative number, so a non-finite value fails fast at the call site
-        rather than silently poisoning the output with ``NaN`` / ``inf``.
-        """
-        for invalid in (-0.001, math.nan, math.inf, -math.inf):
-            with pytest.raises(ValueError, match="rate must be a finite number >= 0"):
-                cost_proportional(pl.col(COLUMN_X), rate=invalid)
 
 
 class TestCostProportionalCorrectness:

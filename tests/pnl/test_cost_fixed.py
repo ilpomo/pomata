@@ -84,6 +84,16 @@ class TestCostFixedEdge:
     Boundaries, the flat start, null / NaN handling, and the fee guard.
     """
 
+    def test_invalid_fee_raises(self) -> None:
+        """
+        Verifies that a fee that is not a finite number ``>= 0`` (negative, ``NaN``, or ``±inf``) raises
+        ``ValueError`` -- a charge is a finite non-negative number, so a non-finite value fails fast at the call site
+        rather than silently poisoning the output with ``NaN`` / ``inf``.
+        """
+        for invalid in (-1.0, math.nan, math.inf, -math.inf):
+            with pytest.raises(ValueError, match="fee must be a finite number >= 0"):
+                cost_fixed(pl.col(COLUMN_X), fee=invalid)
+
     def test_flat_start_first_row(self) -> None:
         """
         Verifies the first row charges the fee (the entry trade from a flat start), then the held bar is zero.
@@ -118,16 +128,6 @@ class TestCostFixedEdge:
         """
         values = [math.inf, math.inf, 1.0, -math.inf]
         assert_matches(apply_expr(values, cost_fixed(pl.col(COLUMN_X), fee=FEE)), cost_fixed_reference(values, FEE))
-
-    def test_invalid_fee_raises(self) -> None:
-        """
-        Verifies that a fee that is not a finite number ``>= 0`` (negative, ``NaN``, or ``±inf``) raises
-        ``ValueError`` -- a charge is a finite non-negative number, so a non-finite value fails fast at the call site
-        rather than silently poisoning the output with ``NaN`` / ``inf``.
-        """
-        for invalid in (-1.0, math.nan, math.inf, -math.inf):
-            with pytest.raises(ValueError, match="fee must be a finite number >= 0"):
-                cost_fixed(pl.col(COLUMN_X), fee=invalid)
 
 
 class TestCostFixedCorrectness:

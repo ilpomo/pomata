@@ -83,6 +83,16 @@ class TestCostSlippageEdge:
     Boundaries, the flat start, null / NaN handling, and the half-spread guard.
     """
 
+    def test_invalid_half_spread_raises(self) -> None:
+        """
+        Verifies that a half-spread that is not a finite number ``>= 0`` (negative, ``NaN``, or ``±inf``) raises
+        ``ValueError`` -- a spread is a finite non-negative number, so a non-finite value fails fast at the call site
+        rather than silently poisoning the output with ``NaN`` / ``inf``.
+        """
+        for invalid in (-0.002, math.nan, math.inf, -math.inf):
+            with pytest.raises(ValueError, match="half_spread must be a finite number >= 0"):
+                cost_slippage(pl.col(COLUMN_X), half_spread=invalid)
+
     def test_flat_start_first_row(self) -> None:
         """
         Verifies the first row is ``|weight_0| * half_spread`` (the cost of the entry trade from a flat start).
@@ -129,16 +139,6 @@ class TestCostSlippageEdge:
             apply_expr(values, cost_slippage(pl.col(COLUMN_X), half_spread=HALF_SPREAD)),
             cost_slippage_reference(values, HALF_SPREAD),
         )
-
-    def test_invalid_half_spread_raises(self) -> None:
-        """
-        Verifies that a half-spread that is not a finite number ``>= 0`` (negative, ``NaN``, or ``±inf``) raises
-        ``ValueError`` -- a spread is a finite non-negative number, so a non-finite value fails fast at the call site
-        rather than silently poisoning the output with ``NaN`` / ``inf``.
-        """
-        for invalid in (-0.002, math.nan, math.inf, -math.inf):
-            with pytest.raises(ValueError, match="half_spread must be a finite number >= 0"):
-                cost_slippage(pl.col(COLUMN_X), half_spread=invalid)
 
 
 class TestCostSlippageCorrectness:
