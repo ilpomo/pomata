@@ -266,14 +266,14 @@ def bollinger_bands(
     expr: pl.Expr,
     window: int,
     *,
-    num_std: float = 2.0,
+    multiplier: float = 2.0,
 ) -> pl.Expr:
     r"""
     Bollinger Bands, volatility bands around a moving average.
 
     Introduced by John Bollinger in the 1980s: a center band that is the :func:`sma` of ``expr``, with an upper and a
-    lower band placed ``num_std`` population standard deviations away. The bands widen as volatility rises and contract
-    as it falls, so price is read relative to a band that breathes with the market:
+    lower band placed ``multiplier`` population standard deviations away. The bands widen as volatility rises and
+    contract as it falls, so price is read relative to a band that breathes with the market:
 
     .. math::
 
@@ -281,29 +281,29 @@ def bollinger_bands(
         \mathrm{upper}_t &= \mathrm{middle}_t + k \, \sigma_t, \\
         \mathrm{lower}_t &= \mathrm{middle}_t - k \, \sigma_t,
 
-    where :math:`n` is the window, :math:`k` is ``num_std``, and :math:`\sigma_t` is the population rolling
+    where :math:`n` is the window, :math:`k` is ``multiplier``, and :math:`\sigma_t` is the population rolling
     :func:`standard_deviation_rolling` of ``expr`` over the same window.
 
     Args:
         expr: Input series, typically a price column (e.g. ``pl.col("close")``).
         window: Number of observations in the moving window. Must be ``>= 1``.
-        num_std: Number of standard deviations between the center band and each outer band (default ``2.0``). Must be a
-            finite number ``> 0`` (a non-positive width would collapse or invert the bands). The bands are symmetric;
-            for asymmetric bands compose :func:`sma` and :func:`standard_deviation_rolling` directly.
+        multiplier: Number of standard deviations between the center band and each outer band (default ``2.0``).
+            Must be a finite number ``> 0`` (a non-positive width would collapse or invert the bands). The bands are
+            symmetric; for asymmetric bands compose :func:`sma` and :func:`standard_deviation_rolling` directly.
 
     Returns:
         A struct column (one struct per row, the same length as the input) with three ``Float64`` fields:
 
-        - ``lower`` — the lower band, ``middle - num_std * sigma``.
+        - ``lower`` — the lower band, ``middle - multiplier * sigma``.
         - ``middle`` — the center band, the :func:`sma` of ``expr``.
-        - ``upper`` — the upper band, ``middle + num_std * sigma``.
+        - ``upper`` — the upper band, ``middle + multiplier * sigma``.
 
         Read one band with ``.struct.field("middle")`` (etc.) or split all three into columns with
         ``.struct.unnest()``. The first ``window - 1`` rows are ``null`` (warm-up).
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
-        ValueError: If ``window < 1``, or if ``num_std`` is not a finite number ``> 0``.
+        ValueError: If ``window < 1``, or if ``multiplier`` is not a finite number ``> 0``.
 
     Note:
         **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
@@ -326,7 +326,7 @@ def bollinger_bands(
 
     See Also:
         - :func:`sma`: The center band.
-        - :func:`standard_deviation_rolling`: The band half-width, before scaling by ``num_std``.
+        - :func:`standard_deviation_rolling`: The band half-width, before scaling by ``multiplier``.
         - :func:`keltner_channels`: The same band shape with ATR width instead of a standard deviation.
 
     References:
@@ -367,10 +367,10 @@ def bollinger_bands(
     """
     expr = float64_expr(expr)
     validate_window(window)
-    validate_positive(num_std, "num_std")
-    # Center = SMA; bands = ± num_std * population rolling std (composed, so the warm-up/null/NaN behavior matches).
+    validate_positive(multiplier, "multiplier")
+    # Center = SMA; bands = ± multiplier * population rolling std (composed, so the warm-up/null/NaN behavior matches).
     middle = sma(expr, window)
-    half_width = num_std * standard_deviation_rolling(expr, window)
+    half_width = multiplier * standard_deviation_rolling(expr, window)
     return pl.struct(lower=middle - half_width, middle=middle, upper=middle + half_width)
 
 

@@ -70,10 +70,10 @@ class TestCostProportionalContract:
         reaches across group boundaries.
         """
         frame = pl.DataFrame({GROUP_KEY: ["a"] * 3 + ["b"] * 3, COLUMN_X: [0.5, 1.0, -0.5, 1.0, 1.0, 0.0]})
-        expr = cost_proportional(pl.col(COLUMN_X), RATE).over(GROUP_KEY)
+        expr = cost_proportional(pl.col(COLUMN_X), rate=RATE).over(GROUP_KEY)
         grouped = frame.select(expr.alias("y"))["y"].to_list()
-        group_a = apply_expr([0.5, 1.0, -0.5], cost_proportional(pl.col(COLUMN_X), RATE))
-        group_b = apply_expr([1.0, 1.0, 0.0], cost_proportional(pl.col(COLUMN_X), RATE))
+        group_a = apply_expr([0.5, 1.0, -0.5], cost_proportional(pl.col(COLUMN_X), rate=RATE))
+        group_b = apply_expr([1.0, 1.0, 0.0], cost_proportional(pl.col(COLUMN_X), rate=RATE))
         assert_matches(grouped, group_a + group_b)
 
 
@@ -87,14 +87,14 @@ class TestCostProportionalEdge:
         Verifies the first row is ``|weight_0| * rate`` (the cost of the entry trade from a flat start).
         """
         assert_matches(
-            apply_expr([0.5, 1.0, -0.5], cost_proportional(pl.col(COLUMN_X), RATE)), [0.0005, 0.0005, 0.0015]
+            apply_expr([0.5, 1.0, -0.5], cost_proportional(pl.col(COLUMN_X), rate=RATE)), [0.0005, 0.0005, 0.0015]
         )
 
     def test_single_row(self) -> None:
         """
         Verifies that a one-element series resolves to ``|weight_0| * rate`` (the entry trade), not null.
         """
-        assert_matches(apply_expr([0.5], cost_proportional(pl.col(COLUMN_X), RATE)), [0.0005])
+        assert_matches(apply_expr([0.5], cost_proportional(pl.col(COLUMN_X), rate=RATE)), [0.0005])
 
     def test_null_propagates(self) -> None:
         """
@@ -102,7 +102,8 @@ class TestCostProportionalEdge:
         """
         values = [0.5, None, 1.0, -0.5]
         assert_matches(
-            apply_expr(values, cost_proportional(pl.col(COLUMN_X), RATE)), cost_proportional_reference(values, RATE)
+            apply_expr(values, cost_proportional(pl.col(COLUMN_X), rate=RATE)),
+            cost_proportional_reference(values, RATE),
         )
 
     def test_nan_propagates(self) -> None:
@@ -111,7 +112,8 @@ class TestCostProportionalEdge:
         """
         values = [0.5, math.nan, 1.0, -0.5]
         assert_matches(
-            apply_expr(values, cost_proportional(pl.col(COLUMN_X), RATE)), cost_proportional_reference(values, RATE)
+            apply_expr(values, cost_proportional(pl.col(COLUMN_X), rate=RATE)),
+            cost_proportional_reference(values, RATE),
         )
 
     def test_consecutive_infinities_make_nan(self) -> None:
@@ -122,7 +124,8 @@ class TestCostProportionalEdge:
         """
         values = [math.inf, math.inf, 1.0, -math.inf]
         assert_matches(
-            apply_expr(values, cost_proportional(pl.col(COLUMN_X), RATE)), cost_proportional_reference(values, RATE)
+            apply_expr(values, cost_proportional(pl.col(COLUMN_X), rate=RATE)),
+            cost_proportional_reference(values, RATE),
         )
 
     def test_invalid_rate_raises(self) -> None:
@@ -133,7 +136,7 @@ class TestCostProportionalEdge:
         """
         for invalid in (-0.001, math.nan, math.inf, -math.inf):
             with pytest.raises(ValueError, match="rate must be a finite number >= 0"):
-                cost_proportional(pl.col(COLUMN_X), invalid)
+                cost_proportional(pl.col(COLUMN_X), rate=invalid)
 
 
 class TestCostProportionalCorrectness:
@@ -147,7 +150,7 @@ class TestCostProportionalCorrectness:
         """
         values = [0.5, 1.0, -0.5, -0.5, 0.0, 1.5, -1.0, 0.25]
         assert_matches(
-            apply_expr(values, cost_proportional(pl.col(COLUMN_X), RATE)),
+            apply_expr(values, cost_proportional(pl.col(COLUMN_X), rate=RATE)),
             cost_proportional_reference(values, RATE),
             rel_tol=RELATIVE_TOLERANCE_REFERENCE,
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
@@ -157,7 +160,7 @@ class TestCostProportionalCorrectness:
         """
         Verifies the frozen reference over a five-bar weight series at 10 bps.
         """
-        result = apply_expr([0.5, 1.0, -0.5, -0.5, 0.0], cost_proportional(pl.col(COLUMN_X), RATE).round(4))
+        result = apply_expr([0.5, 1.0, -0.5, -0.5, 0.0], cost_proportional(pl.col(COLUMN_X), rate=RATE).round(4))
         assert_matches(result, [0.0005, 0.0005, 0.0015, 0.0, 0.0005])
 
 
@@ -177,7 +180,7 @@ class TestCostProportionalProperties:
         """
         values = case
         assert_matches(
-            apply_expr(values, cost_proportional(pl.col(COLUMN_X), rate)),
+            apply_expr(values, cost_proportional(pl.col(COLUMN_X), rate=rate)),
             cost_proportional_reference(values, rate),
             rel_tol=RELATIVE_TOLERANCE_PROPERTY,
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
@@ -194,7 +197,7 @@ class TestCostProportionalProperties:
         """
         values = case
         assert_matches(
-            apply_expr(values, cost_proportional(pl.col(COLUMN_X), rate)),
+            apply_expr(values, cost_proportional(pl.col(COLUMN_X), rate=rate)),
             cost_proportional_reference(values, rate),
             rel_tol=RELATIVE_TOLERANCE_PROPERTY,
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
@@ -213,8 +216,8 @@ class TestCostProportionalProperties:
         """
         k = 2.0**exponent
         values = case
-        result_base = apply_expr(values, cost_proportional(pl.col(COLUMN_X), RATE))
-        result_scaled = apply_expr([value * k for value in values], cost_proportional(pl.col(COLUMN_X), RATE))
+        result_base = apply_expr(values, cost_proportional(pl.col(COLUMN_X), rate=RATE))
+        result_scaled = apply_expr([value * k for value in values], cost_proportional(pl.col(COLUMN_X), rate=RATE))
         assert_scale_homogeneous(result_scaled, result_base, k=k, degree=1)
 
     @given(case=_cases(finite_floats()), scale=st.sampled_from([1e-6, 1e6, 1e9]), rate=_RATES)
@@ -229,7 +232,7 @@ class TestCostProportionalProperties:
         """
         values = [value * scale for value in case]
         assert_matches(
-            apply_expr(values, cost_proportional(pl.col(COLUMN_X), rate)),
+            apply_expr(values, cost_proportional(pl.col(COLUMN_X), rate=rate)),
             cost_proportional_reference(values, rate),
             rel_tol=RELATIVE_TOLERANCE_SCALE,
             abs_tol=ABSOLUTE_TOLERANCE_STREAMING,

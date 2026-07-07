@@ -12,19 +12,19 @@ from tests.indicators.oracles.standard_deviation_rolling import standard_deviati
 def bollinger_bands_reference(
     close: Sequence[float | None],
     window: int,
-    num_std: float = 2.0,
+    multiplier: float = 2.0,
 ) -> dict[str, list[float | None]]:
     """
     Naive Bollinger Bands over a Python list.
 
-    The center band is :func:`sma_reference`; the outer bands sit ``num_std`` population standard deviations
+    The center band is :func:`sma_reference`; the outer bands sit ``multiplier`` population standard deviations
     (:func:`standard_deviation_rolling_reference`) away. Recomputed from scratch as the oracle for
     :func:`pomata.indicators.bollinger_bands`.
 
     Args:
         close: Close-price series (may contain ``None`` and ``float('nan')``).
         window: Number of observations in the moving window. Must be ``>= 1``.
-        num_std: Number of standard deviations between the center band and each outer band.
+        multiplier: Number of standard deviations between the center band and each outer band.
 
     Returns:
         A dict with three lists the same length as ``close`` — ``"lower"``, ``"middle"``, and ``"upper"`` — matching the
@@ -52,7 +52,7 @@ def bollinger_bands_reference(
             center.append(math.nan)
             upper.append(math.nan)
         else:
-            lower.append(mean - num_std * deviation)
+            lower.append(mean - multiplier * deviation)
             center.append(mean)
-            upper.append(mean + num_std * deviation)
+            upper.append(mean + multiplier * deviation)
     return {"lower": lower, "middle": center, "upper": upper}

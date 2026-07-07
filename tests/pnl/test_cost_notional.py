@@ -74,7 +74,7 @@ def apply_cost_notional(
     """
     Materialize ``cost_notional`` over a two-column ``Float64`` frame from the aligned input lists.
     """
-    return materialize({QUANTITY: quantity, PRICE: price}, cost_notional(pl.col(QUANTITY), pl.col(PRICE), rate))
+    return materialize({QUANTITY: quantity, PRICE: price}, cost_notional(pl.col(QUANTITY), pl.col(PRICE), rate=rate))
 
 
 class TestCostNotionalContract:
@@ -93,7 +93,7 @@ class TestCostNotionalContract:
                 PRICE: pl.Series(PRICE, [100.0, 102.0, 101.0, 50.0, 51.0, 49.0], dtype=pl.Float64),
             }
         )
-        grouped = frame.select(cost_notional(pl.col(QUANTITY), pl.col(PRICE), RATE).over("ticker").alias("y"))[
+        grouped = frame.select(cost_notional(pl.col(QUANTITY), pl.col(PRICE), rate=RATE).over("ticker").alias("y"))[
             "y"
         ].to_list()
         group_a = apply_cost_notional([10.0, 10.0, -5.0], [100.0, 102.0, 101.0])
@@ -152,7 +152,7 @@ class TestCostNotionalEdge:
         """
         for invalid in (-0.001, math.nan, math.inf, -math.inf):
             with pytest.raises(ValueError, match="rate must be a finite number >= 0"):
-                cost_notional(pl.col(QUANTITY), pl.col(PRICE), invalid)
+                cost_notional(pl.col(QUANTITY), pl.col(PRICE), rate=invalid)
 
 
 class TestCostNotionalCorrectness:
@@ -179,7 +179,7 @@ class TestCostNotionalCorrectness:
         """
         result = materialize(
             {QUANTITY: [10.0, 10.0, -5.0, -5.0, 20.0], PRICE: [100.0, 102.0, 101.0, 104.0, 103.0]},
-            cost_notional(pl.col(QUANTITY), pl.col(PRICE), RATE).round(4),
+            cost_notional(pl.col(QUANTITY), pl.col(PRICE), rate=RATE).round(4),
         )
         assert_matches(result, [1.0, 0.0, 1.515, 0.0, 2.575])
 

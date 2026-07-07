@@ -72,10 +72,10 @@ class TestCostFixedContract:
         Verifies that under ``.over`` the turnover resets per group (each group gets its own flat start).
         """
         frame = pl.DataFrame({GROUP_KEY: ["a"] * 3 + ["b"] * 3, COLUMN_X: [10.0, 10.0, -5.0, 2.0, 2.0, 2.0]})
-        expr = cost_fixed(pl.col(COLUMN_X), FEE).over(GROUP_KEY)
+        expr = cost_fixed(pl.col(COLUMN_X), fee=FEE).over(GROUP_KEY)
         grouped = frame.select(expr.alias("y"))["y"].to_list()
-        group_a = apply_expr([10.0, 10.0, -5.0], cost_fixed(pl.col(COLUMN_X), FEE))
-        group_b = apply_expr([2.0, 2.0, 2.0], cost_fixed(pl.col(COLUMN_X), FEE))
+        group_a = apply_expr([10.0, 10.0, -5.0], cost_fixed(pl.col(COLUMN_X), fee=FEE))
+        group_b = apply_expr([2.0, 2.0, 2.0], cost_fixed(pl.col(COLUMN_X), fee=FEE))
         assert_matches(grouped, group_a + group_b)
 
 
@@ -88,27 +88,27 @@ class TestCostFixedEdge:
         """
         Verifies the first row charges the fee (the entry trade from a flat start), then the held bar is zero.
         """
-        assert_matches(apply_expr([10.0, 10.0, -5.0], cost_fixed(pl.col(COLUMN_X), FEE)), [1.0, 0.0, 1.0])
+        assert_matches(apply_expr([10.0, 10.0, -5.0], cost_fixed(pl.col(COLUMN_X), fee=FEE)), [1.0, 0.0, 1.0])
 
     def test_single_row(self) -> None:
         """
         Verifies that a one-element series charges the fee (the entry trade), not null.
         """
-        assert_matches(apply_expr([10.0], cost_fixed(pl.col(COLUMN_X), FEE)), [1.0])
+        assert_matches(apply_expr([10.0], cost_fixed(pl.col(COLUMN_X), fee=FEE)), [1.0])
 
     def test_null_propagates(self) -> None:
         """
         Verifies that a null voids its own row and the next (via turnover), matching the naive reference.
         """
         values = [10.0, None, -5.0, 20.0]
-        assert_matches(apply_expr(values, cost_fixed(pl.col(COLUMN_X), FEE)), cost_fixed_reference(values, FEE))
+        assert_matches(apply_expr(values, cost_fixed(pl.col(COLUMN_X), fee=FEE)), cost_fixed_reference(values, FEE))
 
     def test_nan_propagates(self) -> None:
         """
         Verifies that a NaN propagates to its own row and the next (matching the naive reference).
         """
         values = [10.0, math.nan, -5.0, 20.0]
-        assert_matches(apply_expr(values, cost_fixed(pl.col(COLUMN_X), FEE)), cost_fixed_reference(values, FEE))
+        assert_matches(apply_expr(values, cost_fixed(pl.col(COLUMN_X), fee=FEE)), cost_fixed_reference(values, FEE))
 
     def test_infinity_propagates(self) -> None:
         """
@@ -117,7 +117,7 @@ class TestCostFixedEdge:
         masked fee ``NaN``. The property tiers cannot reach this (their strategies set ``allow_infinity=False``).
         """
         values = [math.inf, math.inf, 1.0, -math.inf]
-        assert_matches(apply_expr(values, cost_fixed(pl.col(COLUMN_X), FEE)), cost_fixed_reference(values, FEE))
+        assert_matches(apply_expr(values, cost_fixed(pl.col(COLUMN_X), fee=FEE)), cost_fixed_reference(values, FEE))
 
     def test_invalid_fee_raises(self) -> None:
         """
@@ -127,7 +127,7 @@ class TestCostFixedEdge:
         """
         for invalid in (-1.0, math.nan, math.inf, -math.inf):
             with pytest.raises(ValueError, match="fee must be a finite number >= 0"):
-                cost_fixed(pl.col(COLUMN_X), invalid)
+                cost_fixed(pl.col(COLUMN_X), fee=invalid)
 
 
 class TestCostFixedCorrectness:
@@ -141,7 +141,7 @@ class TestCostFixedCorrectness:
         """
         values = [10.0, 10.0, -5.0, -5.0, 20.0, 15.0, -8.0, 12.0]
         assert_matches(
-            apply_expr(values, cost_fixed(pl.col(COLUMN_X), FEE)),
+            apply_expr(values, cost_fixed(pl.col(COLUMN_X), fee=FEE)),
             cost_fixed_reference(values, FEE),
             rel_tol=RELATIVE_TOLERANCE_REFERENCE,
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
@@ -151,7 +151,7 @@ class TestCostFixedCorrectness:
         """
         Verifies the frozen reference over a five-bar quantity series at a flat fee of one.
         """
-        result = apply_expr([10.0, 10.0, -5.0, -5.0, 20.0], cost_fixed(pl.col(COLUMN_X), FEE).round(4))
+        result = apply_expr([10.0, 10.0, -5.0, -5.0, 20.0], cost_fixed(pl.col(COLUMN_X), fee=FEE).round(4))
         assert_matches(result, [1.0, 0.0, 1.0, 0.0, 1.0])
 
 
@@ -171,7 +171,7 @@ class TestCostFixedProperties:
         """
         values = case
         assert_matches(
-            apply_expr(values, cost_fixed(pl.col(COLUMN_X), fee)),
+            apply_expr(values, cost_fixed(pl.col(COLUMN_X), fee=fee)),
             cost_fixed_reference(values, fee),
             rel_tol=RELATIVE_TOLERANCE_PROPERTY,
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
@@ -188,7 +188,7 @@ class TestCostFixedProperties:
         """
         values = case
         assert_matches(
-            apply_expr(values, cost_fixed(pl.col(COLUMN_X), fee)),
+            apply_expr(values, cost_fixed(pl.col(COLUMN_X), fee=fee)),
             cost_fixed_reference(values, fee),
             rel_tol=RELATIVE_TOLERANCE_PROPERTY,
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
@@ -207,8 +207,8 @@ class TestCostFixedProperties:
         """
         k = 2.0**exponent
         values = case
-        result_base = apply_expr(values, cost_fixed(pl.col(COLUMN_X), FEE))
-        result_scaled = apply_expr([value * k for value in values], cost_fixed(pl.col(COLUMN_X), FEE))
+        result_base = apply_expr(values, cost_fixed(pl.col(COLUMN_X), fee=FEE))
+        result_scaled = apply_expr([value * k for value in values], cost_fixed(pl.col(COLUMN_X), fee=FEE))
         assert_matches(
             result_scaled, result_base, rel_tol=RELATIVE_TOLERANCE_PROPERTY, abs_tol=ABSOLUTE_TOLERANCE_REFERENCE
         )

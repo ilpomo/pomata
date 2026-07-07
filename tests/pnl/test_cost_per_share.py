@@ -66,10 +66,10 @@ class TestCostPerShareContract:
         Verifies that under ``.over`` the turnover resets per group (each group gets its own flat start).
         """
         frame = pl.DataFrame({GROUP_KEY: ["a"] * 3 + ["b"] * 3, COLUMN_X: [10.0, 10.0, -5.0, 2.0, 2.0, 2.0]})
-        expr = cost_per_share(pl.col(COLUMN_X), FEE).over(GROUP_KEY)
+        expr = cost_per_share(pl.col(COLUMN_X), fee=FEE).over(GROUP_KEY)
         grouped = frame.select(expr.alias("y"))["y"].to_list()
-        group_a = apply_expr([10.0, 10.0, -5.0], cost_per_share(pl.col(COLUMN_X), FEE))
-        group_b = apply_expr([2.0, 2.0, 2.0], cost_per_share(pl.col(COLUMN_X), FEE))
+        group_a = apply_expr([10.0, 10.0, -5.0], cost_per_share(pl.col(COLUMN_X), fee=FEE))
+        group_b = apply_expr([2.0, 2.0, 2.0], cost_per_share(pl.col(COLUMN_X), fee=FEE))
         assert_matches(grouped, group_a + group_b)
 
 
@@ -82,27 +82,31 @@ class TestCostPerShareEdge:
         """
         Verifies the first row is ``|quantity_0| * fee`` (the cost of the entry trade from a flat start).
         """
-        assert_matches(apply_expr([10.0, 10.0, -5.0], cost_per_share(pl.col(COLUMN_X), FEE)), [0.1, 0.0, 0.15])
+        assert_matches(apply_expr([10.0, 10.0, -5.0], cost_per_share(pl.col(COLUMN_X), fee=FEE)), [0.1, 0.0, 0.15])
 
     def test_single_row(self) -> None:
         """
         Verifies that a one-element series resolves to ``|quantity_0| * fee`` (the entry trade), not null.
         """
-        assert_matches(apply_expr([10.0], cost_per_share(pl.col(COLUMN_X), FEE)), [0.1])
+        assert_matches(apply_expr([10.0], cost_per_share(pl.col(COLUMN_X), fee=FEE)), [0.1])
 
     def test_null_propagates(self) -> None:
         """
         Verifies that a null voids its own row and the next (via turnover), matching the naive reference.
         """
         values = [10.0, None, -5.0, 20.0]
-        assert_matches(apply_expr(values, cost_per_share(pl.col(COLUMN_X), FEE)), cost_per_share_reference(values, FEE))
+        assert_matches(
+            apply_expr(values, cost_per_share(pl.col(COLUMN_X), fee=FEE)), cost_per_share_reference(values, FEE)
+        )
 
     def test_nan_propagates(self) -> None:
         """
         Verifies that a NaN propagates to its own row and the next (matching the naive reference).
         """
         values = [10.0, math.nan, -5.0, 20.0]
-        assert_matches(apply_expr(values, cost_per_share(pl.col(COLUMN_X), FEE)), cost_per_share_reference(values, FEE))
+        assert_matches(
+            apply_expr(values, cost_per_share(pl.col(COLUMN_X), fee=FEE)), cost_per_share_reference(values, FEE)
+        )
 
     def test_consecutive_infinities_make_nan(self) -> None:
         """
@@ -111,7 +115,9 @@ class TestCostPerShareEdge:
         property tiers cannot reach this (their strategies set ``allow_infinity=False``), so it is pinned here.
         """
         values = [math.inf, math.inf, 1.0, -math.inf]
-        assert_matches(apply_expr(values, cost_per_share(pl.col(COLUMN_X), FEE)), cost_per_share_reference(values, FEE))
+        assert_matches(
+            apply_expr(values, cost_per_share(pl.col(COLUMN_X), fee=FEE)), cost_per_share_reference(values, FEE)
+        )
 
     def test_invalid_fee_raises(self) -> None:
         """
@@ -121,7 +127,7 @@ class TestCostPerShareEdge:
         """
         for invalid in (-0.01, math.nan, math.inf, -math.inf):
             with pytest.raises(ValueError, match="fee must be a finite number >= 0"):
-                cost_per_share(pl.col(COLUMN_X), invalid)
+                cost_per_share(pl.col(COLUMN_X), fee=invalid)
 
 
 class TestCostPerShareCorrectness:
@@ -135,7 +141,7 @@ class TestCostPerShareCorrectness:
         """
         values = [10.0, 10.0, -5.0, -5.0, 20.0, 15.0, -8.0, 12.0]
         assert_matches(
-            apply_expr(values, cost_per_share(pl.col(COLUMN_X), FEE)),
+            apply_expr(values, cost_per_share(pl.col(COLUMN_X), fee=FEE)),
             cost_per_share_reference(values, FEE),
             rel_tol=RELATIVE_TOLERANCE_REFERENCE,
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
@@ -145,7 +151,7 @@ class TestCostPerShareCorrectness:
         """
         Verifies the frozen reference over a five-bar quantity series at one cent per share.
         """
-        result = apply_expr([10.0, 10.0, -5.0, -5.0, 20.0], cost_per_share(pl.col(COLUMN_X), FEE).round(4))
+        result = apply_expr([10.0, 10.0, -5.0, -5.0, 20.0], cost_per_share(pl.col(COLUMN_X), fee=FEE).round(4))
         assert_matches(result, [0.1, 0.0, 0.15, 0.0, 0.25])
 
 
@@ -165,7 +171,7 @@ class TestCostPerShareProperties:
         """
         values = case
         assert_matches(
-            apply_expr(values, cost_per_share(pl.col(COLUMN_X), fee)),
+            apply_expr(values, cost_per_share(pl.col(COLUMN_X), fee=fee)),
             cost_per_share_reference(values, fee),
             rel_tol=RELATIVE_TOLERANCE_PROPERTY,
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
@@ -182,7 +188,7 @@ class TestCostPerShareProperties:
         """
         values = case
         assert_matches(
-            apply_expr(values, cost_per_share(pl.col(COLUMN_X), fee)),
+            apply_expr(values, cost_per_share(pl.col(COLUMN_X), fee=fee)),
             cost_per_share_reference(values, fee),
             rel_tol=RELATIVE_TOLERANCE_PROPERTY,
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
@@ -201,8 +207,8 @@ class TestCostPerShareProperties:
         """
         k = 2.0**exponent
         values = case
-        result_base = apply_expr(values, cost_per_share(pl.col(COLUMN_X), FEE))
-        result_scaled = apply_expr([value * k for value in values], cost_per_share(pl.col(COLUMN_X), FEE))
+        result_base = apply_expr(values, cost_per_share(pl.col(COLUMN_X), fee=FEE))
+        result_scaled = apply_expr([value * k for value in values], cost_per_share(pl.col(COLUMN_X), fee=FEE))
         assert_scale_homogeneous(result_scaled, result_base, k=k, degree=1)
 
     @given(case=_cases(finite_floats()), scale=st.sampled_from([1e-6, 1e6, 1e9]), fee=_FEES)
@@ -217,7 +223,7 @@ class TestCostPerShareProperties:
         """
         values = [value * scale for value in case]
         assert_matches(
-            apply_expr(values, cost_per_share(pl.col(COLUMN_X), fee)),
+            apply_expr(values, cost_per_share(pl.col(COLUMN_X), fee=fee)),
             cost_per_share_reference(values, fee),
             rel_tol=RELATIVE_TOLERANCE_SCALE,
             abs_tol=ABSOLUTE_TOLERANCE_STREAMING,
