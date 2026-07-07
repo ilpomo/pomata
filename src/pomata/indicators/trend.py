@@ -7,7 +7,7 @@ from functools import partial
 
 import polars as pl
 
-from pomata._expr import float64_expr, validate_positive, validate_window
+from pomata._expr import float64_expr, validate_positive, validate_unit_fraction, validate_window
 from pomata.indicators.price_transform import price_median
 from pomata.indicators.volatility import atr
 
@@ -201,10 +201,8 @@ def parabolic_sar(
     """
     high = float64_expr(high)
     low = float64_expr(low)
-    if not 0.0 < acceleration <= 1.0:
-        raise ValueError(f"acceleration must be in the half-open interval (0, 1], got {acceleration}")
-    if not 0.0 < maximum <= 1.0:
-        raise ValueError(f"maximum must be in the half-open interval (0, 1], got {maximum}")
+    validate_unit_fraction(acceleration, "acceleration")
+    validate_unit_fraction(maximum, "maximum")
     if acceleration > maximum:
         raise ValueError(f"acceleration must be <= maximum, got acceleration={acceleration}, maximum={maximum}")
     return pl.struct(high=high, low=low).map_batches(
@@ -270,11 +268,9 @@ def _supertrend_kernel(
             line[index] = final_upper
         direction[index] = trend
         previous_close = close_value
-    rows = [
-        {"line": line_value, "direction": direction_value}
-        for line_value, direction_value in zip(line, direction, strict=True)
-    ]
-    return pl.Series(rows, dtype=_SUPERTREND_DTYPE)
+    return pl.DataFrame(
+        {"line": pl.Series(line, dtype=pl.Float64), "direction": pl.Series(direction, dtype=pl.Float64)}
+    ).to_struct()
 
 
 def supertrend(

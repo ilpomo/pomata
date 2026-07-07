@@ -242,3 +242,27 @@ def validate_confidence(
     """
     if not 0.0 < confidence < 1.0:
         raise ValueError(f"confidence must be in the open interval (0, 1), got {confidence}")
+
+
+def validate_unit_fraction(
+    value: float,
+    name: str,
+) -> None:
+    """
+    Validate a scalar lies in the half-open unit interval ``(0, 1]``, raising the canonical message on failure.
+
+    Shared by the factories whose smoothing / acceleration weight is a fraction of one (the parabolic SAR's
+    acceleration factor and its cap, MAMA's fast / slow alpha limits), so the bound and its message stay identical
+    across the package. Zero is excluded (a zero weight is a no-op) and one is included (the maximal weight); a ``NaN``
+    or ``inf`` is rejected at the call site.
+
+    Args:
+        value: The scalar parameter value.
+        name: The parameter name, for the error message.
+
+    Raises:
+        ValueError: If ``value`` is not in the half-open interval ``(0, 1]`` (i.e. ``<= 0``, ``> 1``, ``NaN``, or
+            ``inf``).
+    """
+    if not 0.0 < value <= 1.0:
+        raise ValueError(f"{name} must be in the half-open interval (0, 1], got {value}")

@@ -251,6 +251,7 @@ def ichimoku(
     validate_window(window_tenkan, name="window_tenkan")
     validate_window(window_kijun, name="window_kijun")
     validate_window(window_senkou, name="window_senkou")
+    # 3-way chain: validate_window_order in the hub is pairwise by design, so this ordering guard stays inline.
     if not window_tenkan <= window_kijun <= window_senkou:
         raise ValueError(
             f"windows must be ordered window_tenkan <= window_kijun <= window_senkou, "

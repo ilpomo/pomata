@@ -105,9 +105,10 @@ def _rolling_has_nan(
     Whether the trailing ``window`` holds any ``NaN`` -- the rolling counterpart of the whole-series NaN-poison guard.
 
     A single ``NaN`` anywhere in the window poisons that window's rolling statistic, so it is mapped to a ``NaN`` result
-    rather than a spuriously finite one; detected as the ``rolling_max`` of the ``NaN`` indicator reaching ``1``.
+    rather than a spuriously finite one; detected as the ``rolling_max`` of the ``NaN`` indicator (a Boolean that turns
+    ``True`` once any value in the window is ``NaN``).
     """
-    return expr.is_nan().cast(pl.Float64).rolling_max(window, min_samples=window) == 1.0
+    return expr.is_nan().rolling_max(window, min_samples=window)
 
 
 def _rolling_downside_deviation(

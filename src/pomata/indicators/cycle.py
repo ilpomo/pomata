@@ -16,7 +16,7 @@ from functools import partial
 
 import polars as pl
 
-from pomata._expr import float64_expr
+from pomata._expr import float64_expr, validate_unit_fraction
 
 __all__ = (
     "dominant_cycle_period",
@@ -606,10 +606,8 @@ def mama(
         (99.67, 99.96)
     """
     expr = float64_expr(expr)
-    if not 0.0 < limit_fast <= 1.0:
-        raise ValueError(f"limit_fast must be in the half-open interval (0, 1], got {limit_fast}")
-    if not 0.0 < limit_slow <= 1.0:
-        raise ValueError(f"limit_slow must be in the half-open interval (0, 1], got {limit_slow}")
+    validate_unit_fraction(limit_fast, "limit_fast")
+    validate_unit_fraction(limit_slow, "limit_slow")
     if limit_fast < limit_slow:
         raise ValueError(f"limit_fast must be >= limit_slow, got limit_fast={limit_fast}, limit_slow={limit_slow}")
     return expr.map_batches(
