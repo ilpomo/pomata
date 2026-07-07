@@ -430,7 +430,7 @@ def kama(
     window_slow: int,
 ) -> pl.Expr:
     r"""
-    Kaufman's Adaptive Moving Average (KAMA).
+    Kaufman's Adaptive Moving Average (KAMA) — an EMA whose smoothing constant is driven by an efficiency ratio.
 
     Introduced by Perry Kaufman (1995): a moving average whose smoothing constant adapts to how *efficiently* price is
     moving. Over the ``window``, the efficiency ratio compares the net move to the summed bar-to-bar travel; a high
@@ -642,7 +642,7 @@ def sma(
     window: int,
 ) -> pl.Expr:
     r"""
-    Simple Moving Average (SMA).
+    Simple Moving Average (SMA) — the unweighted arithmetic mean over a trailing window.
 
     The unweighted arithmetic mean of the last ``window`` observations, assigning equal weight to every point in the
     window:

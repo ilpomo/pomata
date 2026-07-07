@@ -18,7 +18,7 @@ def adx(
     window: int,
 ) -> pl.Expr:
     r"""
-    Average Directional Index (ADX).
+    Average Directional Index (ADX) — the Wilder-smoothed DX, a non-directional gauge of trend strength.
 
     The Wilder-smoothed :func:`dx`: a single, non-directional measure of *trend strength* (it says how strongly price is
     trending, not in which direction), bounded in ``[0, 100]`` — low values mean a range, high values a strong trend.
@@ -131,7 +131,7 @@ def adxr(
     window: int,
 ) -> pl.Expr:
     r"""
-    Average Directional Index Rating (ADXR).
+    Average Directional Index Rating (ADXR) — the mean of the current ADX and the ADX from window bars ago.
 
     Wilder's smoothing of the trend-strength reading: the mean of the current :func:`adx` and the ADX from ``window``
     bars ago, which damps the ADX and is often used to compare trend strength across time:
@@ -242,7 +242,7 @@ def di_minus(
     window: int,
 ) -> pl.Expr:
     r"""
-    Minus Directional Indicator (-DI).
+    Minus Directional Indicator (-DI) — the Wilder-smoothed minus directional movement as a percentage of the ATR.
 
     The Wilder-smoothed minus directional movement (:func:`dm_minus`) as a percentage of the average true range
     (:func:`atr`), so downward trend pressure is comparable across instruments and bounded in ``[0, 100]``:
@@ -357,7 +357,7 @@ def di_plus(
     window: int,
 ) -> pl.Expr:
     r"""
-    Plus Directional Indicator (+DI).
+    Plus Directional Indicator (+DI) — the Wilder-smoothed plus directional movement as a percentage of the ATR.
 
     The Wilder-smoothed plus directional movement (:func:`dm_plus`) as a percentage of the average true range
     (:func:`atr`), so upward trend pressure is comparable across instruments and bounded in ``[0, 100]``:
@@ -717,7 +717,7 @@ def dx(
     window: int,
 ) -> pl.Expr:
     r"""
-    Directional Index (DX).
+    Directional Index (DX) — the normalized spread between the plus and minus directional indicators.
 
     The normalized spread between the plus and minus directional indicators — how one-sided the trend is, bounded in
     ``[0, 100]`` (``0`` when up- and down-pressure are equal, ``100`` when only one side moves):

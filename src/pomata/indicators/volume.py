@@ -297,7 +297,7 @@ def chaikin_money_flow(
     window: int,
 ) -> pl.Expr:
     r"""
-    Chaikin Money Flow (CMF).
+    Chaikin Money Flow (CMF) — the windowed volume-weighted average of the money-flow multiplier.
 
     A volume-weighted breadth oscillator (Marc Chaikin) that gauges buying versus selling pressure over a rolling
     window. Each bar is first scored by where its ``close`` sits inside the bar's range via the Money Flow Multiplier

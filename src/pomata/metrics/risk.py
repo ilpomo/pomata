@@ -679,7 +679,7 @@ def kurtosis_rolling(
 
     Note:
         **Correctness** -- each window matches an independent reference oracle (the reducing :func:`kurtosis` recomputed
-        over the window), and every edge case (missing data and boundaries) has a defined behavior.
+        over the window).
 
         **Edge-case behavior:**
 
@@ -977,7 +977,9 @@ def risk_of_ruin(
         This is the **symmetric** form: it depends only on the win rate and the bet count, assuming equal-sized wins and
         losses and ruin at the loss of all capital. It deliberately ignores win/loss size and capital units. Because the
         bet count ``n`` doubles as the capital cushion, the result is sensitive to the series length: more bars drive it
-        toward ``0`` with an edge and toward ``1`` without one. Compare series of the same length.
+        toward ``0`` with an edge and toward ``1`` without one. Compare series of the same length. The win rate ``p``
+        counts only decisive (non-zero) bars, while ``n`` counts every non-null bar, so padding a series with flat
+        ``0`` bars raises ``n`` without moving ``p``.
 
         **Edge-case behavior:**
 
@@ -1159,7 +1161,7 @@ def skewness_rolling(
 
     Note:
         **Correctness** -- each window matches an independent reference oracle (the reducing :func:`skewness` recomputed
-        over the window), and every edge case (missing data and boundaries) has a defined behavior.
+        over the window).
 
         **Edge-case behavior:**
 
@@ -1912,7 +1914,7 @@ def volatility_rolling(
 
     Note:
         **Correctness** -- each window matches an independent reference oracle (the reducing :func:`volatility`
-        recomputed over the window), and every edge case (missing data and boundaries) has a defined behavior.
+        recomputed over the window).
 
         **Edge-case behavior:**
 

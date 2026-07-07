@@ -8,7 +8,7 @@ What a version number promises, and what it does not, so you can decide how tigh
 API is not frozen, and a **minor** bump (`0.1` to `0.2`) may carry a breaking change. That is SemVer's own rule for
 `0.x`, not a local invention — it is the room a young library needs to get the surface right before committing to it.
 
-If you depend on `pomata` today, pin accordingly: `pomata~=0.1` is too loose for production, `pomata==0.1.x` is honest
+If you depend on `pomata` today, pin accordingly: `pomata~=0.1` is too loose for production, `pomata==0.1.*` is honest
 about the pre-1.0 reality.
 
 ## What counts as a breaking change

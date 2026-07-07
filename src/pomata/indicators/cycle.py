@@ -272,7 +272,7 @@ def dominant_cycle_period(
     expr: pl.Expr,
 ) -> pl.Expr:
     r"""
-    Dominant Cycle Period (Hilbert transform).
+    Dominant Cycle Period (Hilbert transform) — the dominant cycle length in bars, via a homodyne discriminator.
 
     John Ehlers' real-time measurement of the market's dominant cycle length, in bars. The price is smoothed and
     detrended, a Hilbert-transform FIR filter resolves it into in-phase and quadrature components, and a homodyne
@@ -339,7 +339,7 @@ def dominant_cycle_phase(
     expr: pl.Expr,
 ) -> pl.Expr:
     r"""
-    Dominant Cycle Phase (Hilbert transform).
+    Dominant Cycle Phase (Hilbert transform) — the phase in degrees of the market's dominant cycle, lag-compensated.
 
     The phase of the market's dominant cycle, in degrees: ``0`` at the upward mean-crossing, ``90`` at the cycle high,
     ``270`` at the cycle low, advancing through the cycle. It is read off a running discrete transform of the smoothed
@@ -469,7 +469,7 @@ def hilbert_trendline(
     expr: pl.Expr,
 ) -> pl.Expr:
     r"""
-    Hilbert Transform Instantaneous Trendline.
+    Hilbert Transform Instantaneous Trendline — the price averaged over one dominant cycle, cancelling the swing.
 
     Ehlers' instantaneous trendline: the price averaged over exactly one dominant cycle (a self-adjusting moving
     average), then smoothed. Because it spans a whole cycle, the cyclic component cancels and only the trend remains.
@@ -628,7 +628,7 @@ def sine_wave(
     expr: pl.Expr,
 ) -> pl.Expr:
     r"""
-    Hilbert Transform Sine Wave.
+    Hilbert Transform Sine Wave — the sine of the dominant-cycle phase, with a lead sine advanced 45°, for cycle turns.
 
     Ehlers' sine-wave indicator: the sine of the dominant-cycle phase, and a lead sine advanced by ``45°``. Their
     crossings mark cycle turning points and lead the price in a cycle (and diverge in a trend).
@@ -696,7 +696,7 @@ def trend_mode(
     expr: pl.Expr,
 ) -> pl.Expr:
     r"""
-    Hilbert Transform Trend vs Cycle Mode.
+    Hilbert Transform Trend vs Cycle Mode — a 1.0/0.0 trend-vs-cycle flag from sine crossings and trendline deviation.
 
     Ehlers' market-mode flag: ``1.0`` when the market is trending, ``0.0`` when it is cycling. It combines the
     sine-wave crossings, the dominant-cycle phase rate, and the deviation of the smoothed price from the instantaneous
