@@ -195,6 +195,7 @@ def alpha(
     References:
         - Jensen, M. C. (1968). "The Performance of Mutual Funds in the Period 1945-1964." *The Journal of Finance*,
           23(2), 389-416.
+        - https://doi.org/10.1111/j.1540-6261.1968.tb00815.x
         - https://en.wikipedia.org/wiki/Jensen%27s_alpha
 
     Examples:
@@ -301,6 +302,7 @@ def alpha_rolling(
     References:
         - Jensen, M. C. (1968). "The Performance of Mutual Funds in the Period 1945-1964." *The Journal of Finance*,
           23(2), 389-416.
+        - https://doi.org/10.1111/j.1540-6261.1968.tb00815.x
         - https://en.wikipedia.org/wiki/Jensen%27s_alpha
 
     Examples:
@@ -407,9 +409,10 @@ def beta(
         - :func:`beta_rolling`: The same slope over a trailing window.
 
     References:
-        - Sharpe, W. F. (1964). "Capital Asset Prices: A Theory of Market Equilibrium under Conditions of Risk."
-          *The Journal of Finance*, 19(3), 425-442.
-        - https://en.wikipedia.org/wiki/Beta_(finance)
+        - Sharpe, W. F. (1964). "Capital Asset Prices: A Theory of Market Equilibrium under Conditions of Risk." *The
+          Journal of Finance*, 19(3), 425-442.
+        - https://doi.org/10.1111/j.1540-6261.1964.tb02865.x
+        - https://en.wikipedia.org/wiki/Beta_%28finance%29
 
     Examples:
         >>> import polars as pl
@@ -505,9 +508,10 @@ def beta_rolling(
         - :func:`treynor_ratio_rolling`: The excess return per unit of this systematic risk.
 
     References:
-        - Sharpe, W. F. (1964). "Capital Asset Prices: A Theory of Market Equilibrium under Conditions of Risk."
-          *The Journal of Finance*, 19(3), 425-442.
-        - https://en.wikipedia.org/wiki/Beta_(finance)
+        - Sharpe, W. F. (1964). "Capital Asset Prices: A Theory of Market Equilibrium under Conditions of Risk." *The
+          Journal of Finance*, 19(3), 425-442.
+        - https://doi.org/10.1111/j.1540-6261.1964.tb02865.x
+        - https://en.wikipedia.org/wiki/Beta_%28finance%29
 
     Examples:
         >>> import polars as pl
@@ -923,6 +927,7 @@ def information_ratio(
 
     References:
         - Goodwin, T. H. (1998). "The Information Ratio." *Financial Analysts Journal*, 54(4), 34-43.
+        - https://doi.org/10.2469/faj.v54.n4.2196
         - https://en.wikipedia.org/wiki/Information_ratio
 
     Examples:
@@ -1029,6 +1034,7 @@ def information_ratio_rolling(
 
     References:
         - Goodwin, T. H. (1998). "The Information Ratio." *Financial Analysts Journal*, 54(4), 34-43.
+        - https://doi.org/10.2469/faj.v54.n4.2196
         - https://en.wikipedia.org/wiki/Information_ratio
 
     Examples:
@@ -1144,6 +1150,7 @@ def modigliani_risk_adjusted_performance(
     References:
         - Modigliani, F. & Modigliani, L. (1997). "Risk-Adjusted Performance." *The Journal of Portfolio Management*,
           23(2), 45-54.
+        - https://doi.org/10.3905/jpm.23.2.45
         - https://en.wikipedia.org/wiki/Modigliani_risk-adjusted_performance
 
     Examples:

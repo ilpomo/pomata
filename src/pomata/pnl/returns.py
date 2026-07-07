@@ -63,9 +63,9 @@ def returns_log(
         - :func:`equity_curve`: Compounds the gross returns into the growth path of one unit of capital.
 
     References:
-        - Meucci, A. (2010). "Quant Nugget 2: Linear vs. Compounded Returns."
+        - Meucci, A. (2010). "Quant Nugget 2: Linear vs. Compounded Returns." *GARP Risk Professional*, April 2010,
+          49-51.
         - https://en.wikipedia.org/wiki/Rate_of_return#Logarithmic_or_continuously_compounded_return
-        - https://www.investopedia.com/terms/c/continuouscompounding.asp
 
     Examples:
         >>> import polars as pl
@@ -150,9 +150,9 @@ def returns_simple(
         - :func:`cumulative_pnl`: The additive running total of a per-bar P&L or return series.
 
     References:
-        - Meucci, A. (2010). "Quant Nugget 2: Linear vs. Compounded Returns."
+        - Meucci, A. (2010). "Quant Nugget 2: Linear vs. Compounded Returns." *GARP Risk Professional*, April 2010,
+          49-51.
         - https://en.wikipedia.org/wiki/Rate_of_return
-        - https://www.investopedia.com/terms/r/rateofreturn.asp
 
     Examples:
         >>> import polars as pl

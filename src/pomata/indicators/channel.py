@@ -79,7 +79,6 @@ def donchian_channels(
 
     References:
         - https://en.wikipedia.org/wiki/Donchian_channel
-        - https://www.investopedia.com/terms/d/donchianchannels.asp
 
     Examples:
         >>> import polars as pl
@@ -201,9 +200,8 @@ def ichimoku(
         - :func:`keltner_channels`: Another channel, an EMA midline with ATR bands rather than rolling midpoints.
 
     References:
-        - Hosoda, Goichi (1969). *Ichimoku Kinkō Hyō*.
+        - Hosoda, G. (1969). *Ichimoku Kinkō Hyō*.
         - https://en.wikipedia.org/wiki/Ichimoku_Kink%C5%8D_Hy%C5%8D
-        - https://www.investopedia.com/terms/i/ichimoku-cloud.asp
 
     Examples:
         >>> import polars as pl
@@ -341,9 +339,8 @@ def keltner_channels(
         - :func:`bollinger_bands`: The same idea with standard-deviation width instead of ATR.
 
     References:
-        - Keltner, Chester W. (1960). *How to Make Money in Commodities*.
+        - Keltner, C. W. (1960). *How to Make Money in Commodities*.
         - https://en.wikipedia.org/wiki/Keltner_channel
-        - https://www.investopedia.com/terms/k/keltnerchannel.asp
 
     Examples:
         >>> import polars as pl
@@ -441,7 +438,7 @@ def midpoint(
         - :func:`donchian_channels`: The high-low band system built from the same rolling extremes.
 
     References:
-        - https://www.investopedia.com/terms/m/midpoint.asp
+        - No canonical external source; the indicator is defined by the formula above.
 
     Examples:
         >>> import polars as pl
@@ -525,7 +522,7 @@ def midprice(
         - :func:`donchian_channels`: The channel whose middle band is exactly this midprice.
 
     References:
-        - https://www.investopedia.com/terms/m/midpoint.asp
+        - No canonical external source; the indicator is defined by the formula above.
 
     Examples:
         >>> import polars as pl

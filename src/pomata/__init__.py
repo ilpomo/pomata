@@ -7,8 +7,7 @@ Three families of atomic, composable building blocks:
 - ``pomata.metrics`` — performance & risk metrics.
 - ``pomata.pnl`` — profit-and-loss accounting and transaction-cost models.
 
-Every public function returns a free-standing Polars expression (or a small, explicit object); nothing forces a
-dataframe shape on the caller.
+Every public function returns a free-standing Polars expression; nothing forces a dataframe shape on the caller.
 """
 
 from importlib.metadata import PackageNotFoundError, version

@@ -67,7 +67,6 @@ def cagr(
 
     References:
         - https://en.wikipedia.org/wiki/Compound_annual_growth_rate
-        - https://www.investopedia.com/terms/c/cagr.asp
 
     Examples:
         >>> import polars as pl
@@ -342,7 +341,6 @@ def total_return(
 
     References:
         - https://en.wikipedia.org/wiki/Total_return
-        - https://www.investopedia.com/terms/t/totalreturn.asp
 
     Examples:
         >>> import polars as pl

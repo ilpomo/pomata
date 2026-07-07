@@ -102,9 +102,8 @@ def atr(
         - :func:`atr_normalized`: The same ATR expressed as a percent of the current close.
 
     References:
-        - Wilder, J. Welles (1978). *New Concepts in Technical Trading Systems*.
+        - Wilder, J. W. (1978). *New Concepts in Technical Trading Systems*. Trend Research.
         - https://en.wikipedia.org/wiki/Average_true_range
-        - https://www.investopedia.com/terms/a/atr.asp
 
     Examples:
         >>> import polars as pl
@@ -211,7 +210,7 @@ def atr_normalized(
         - :func:`bollinger_bands`: Another volatility view, standard-deviation bands around a moving average.
 
     References:
-        - https://www.investopedia.com/terms/a/atr.asp
+        - Wilder, J. W. (1978). *New Concepts in Technical Trading Systems*. Trend Research.
 
     Examples:
         >>> import polars as pl
@@ -331,9 +330,8 @@ def bollinger_bands(
         - :func:`keltner_channels`: The same band shape with ATR width instead of a standard deviation.
 
     References:
-        - Bollinger, John (2001). *Bollinger on Bollinger Bands*.
+        - Bollinger, J. (2001). *Bollinger on Bollinger Bands*. McGraw-Hill.
         - https://en.wikipedia.org/wiki/Bollinger_Bands
-        - https://www.investopedia.com/terms/b/bollingerbands.asp
 
     Examples:
         >>> import polars as pl
@@ -447,7 +445,7 @@ def true_range(
         - :func:`vortex`: A directional indicator that normalizes its movement by this range.
 
     References:
-        - Wilder, J. Welles (1978). *New Concepts in Technical Trading Systems*.
+        - Wilder, J. W. (1978). *New Concepts in Technical Trading Systems*. Trend Research.
         - https://en.wikipedia.org/wiki/Average_true_range
 
     Examples:

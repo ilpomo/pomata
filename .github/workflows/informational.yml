@@ -1,4 +1,4 @@
-name: informational
+name: Informational
 
 # Non-gating parity / floor checks, kept off the PR critical path (like `benchmark.yml`). They block nothing but show
 # red so a real divergence is visible: the differential compares each indicator to TA-Lib (a mismatch flags either a
@@ -34,7 +34,6 @@ jobs:
   # Differential parity against TA-Lib (the C reference). A mismatch flags either a real bug or an undocumented
   # convention difference to investigate -- it shows red here rather than blocking a merge.
   differential:
-    name: differential
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -54,7 +53,6 @@ jobs:
   # 3.14 wheels. An un-pinned transitive release could break the lowest-direct resolution; it shows red here to
   # investigate rather than blocking a merge.
   dependency-floor:
-    name: dependency-floor
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:

@@ -53,6 +53,20 @@ intersphinx_mapping = {"python": ("https://docs.python.org/3", None)}
 
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
+# -- Link checking -----------------------------------------------------------
+
+# The ``linkcheck`` builder verifies every external reference resolves. It runs out of band -- on the nightly Docs
+# schedule and on demand, never on the merge path (see .github/workflows/docs.yml) -- because a dead upstream link is a
+# maintenance signal, not a reason to redden a merge (mirroring the Pages deploy decoupling). Anchors are checked, so a
+# ``#section`` that a page later drops is caught.
+linkcheck_anchors = True
+linkcheck_retries = 2
+linkcheck_timeout = 30
+# DOIs are permanent by design (the DOI system guarantees the redirect, not the publisher URL), and the publisher target
+# frequently answers a bot with 403 -- exactly the anti-bot false positive linkcheck cannot distinguish from real
+# breakage. Each DOI is verified once when the reference is added; thereafter it is trusted, not re-fetched.
+linkcheck_ignore = [r"https://doi\.org/.*"]
+
 # -- HTML output -------------------------------------------------------------
 
 html_theme = "furo"

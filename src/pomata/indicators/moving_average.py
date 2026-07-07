@@ -244,8 +244,10 @@ def ema(
         - :func:`sma`: The equal-weight simple average this is the exponential analogue of.
 
     References:
+        - Roberts, S. W. (1959). "Control Chart Tests Based on Geometric Moving Averages." *Technometrics*, 1(3),
+          239-250.
+        - https://doi.org/10.1080/00401706.1959.10489860
         - https://en.wikipedia.org/wiki/Moving_average#Exponential_moving_average
-        - https://www.investopedia.com/terms/e/ema.asp
 
     Examples:
         >>> import polars as pl
@@ -347,7 +349,8 @@ def hma(
         - :func:`dema`: A lag-reduced average built by the same doubling correction.
 
     References:
-        - Hull, A. (2005). "Hull Moving Average".
+        - Hull, A. (2005). "Hull Moving Average."
+        - https://chartschool.stockcharts.com/table-of-contents/technical-indicators-and-overlays/technical-overlays/hull-moving-average-hma
 
     Examples:
         >>> import polars as pl
@@ -488,7 +491,8 @@ def kama(
         - :func:`mama`: The MESA adaptive average, steered by cycle phase rather than efficiency.
 
     References:
-        - Kaufman, Perry J. (1995). *Smarter Trading*.
+        - Kaufman, P. J. (1995). *Smarter Trading: Improving Performance in Changing Markets*. McGraw-Hill.
+        - https://chartschool.stockcharts.com/table-of-contents/technical-indicators-and-overlays/technical-overlays/kaufmans-adaptive-moving-average-kama
 
     Examples:
         >>> import polars as pl
@@ -596,8 +600,7 @@ def rma(
         - :func:`sma`: The equal-weight baseline.
 
     References:
-        - Wilder, J. Welles (1978). *New Concepts in Technical Trading Systems*.
-        - https://en.wikipedia.org/wiki/Moving_average#Modified_moving_average
+        - Wilder, J. W. (1978). *New Concepts in Technical Trading Systems*. Trend Research.
 
     Examples:
         >>> import polars as pl
@@ -666,7 +669,8 @@ def sma(
         **Edge-case behavior:**
 
         - **Null** — a window that contains a ``null`` yields ``null``.
-        - **NaN** — a window that contains a ``NaN`` yields ``NaN``.
+        - **NaN** — a window that contains a ``NaN`` (and no ``null``) yields ``NaN``; ``null`` takes precedence over
+          ``NaN``.
         - **window == 1** — the one-point mean is the input itself, so the SMA reproduces the input.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the window never spans series
           boundaries, e.g. ``sma(pl.col("close"), 20).over("ticker")``.
@@ -792,7 +796,7 @@ def t3(
         - :func:`ema`: The exponential pass T3 chains six times.
 
     References:
-        - Tillson, Tim (1998). "Better Moving Averages". *Technical Analysis of Stocks & Commodities*, 16(1).
+        - Tillson, T. (1998). "Better Moving Averages." *Technical Analysis of Stocks & Commodities*, 16(1).
 
     Examples:
         >>> import polars as pl
@@ -1021,7 +1025,7 @@ def trima(
         - :func:`hma`: Another average built by composing simpler moving averages.
 
     References:
-        - https://www.investopedia.com/terms/t/triangularaverage.asp
+        - https://en.wikipedia.org/wiki/Moving_average
 
     Examples:
         >>> import polars as pl
@@ -1108,7 +1112,7 @@ def vwma(
         - :func:`wma`: The linearly-weighted mean.
 
     References:
-        - https://www.investopedia.com/articles/trading/11/trading-with-vwap-mvwap.asp
+        - https://en.wikipedia.org/wiki/Moving_average
 
     Examples:
         >>> import polars as pl
@@ -1199,7 +1203,8 @@ def wma(
         **Edge-case behavior:**
 
         - **Null** — a window that contains a ``null`` yields ``null``.
-        - **NaN** — a window that contains a ``NaN`` yields ``NaN``.
+        - **NaN** — a window that contains a ``NaN`` (and no ``null``) yields ``NaN``; ``null`` takes precedence over
+          ``NaN``.
         - **window == 1** — the single weight normalizes to one, so the WMA reproduces the input.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the window never spans series
           boundaries, e.g. ``wma(pl.col("close"), 20).over("ticker")``.
@@ -1211,7 +1216,6 @@ def wma(
 
     References:
         - https://en.wikipedia.org/wiki/Moving_average#Weighted_moving_average
-        - https://www.investopedia.com/articles/technical/060401.asp
 
     Examples:
         >>> import polars as pl

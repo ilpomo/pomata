@@ -86,7 +86,7 @@ def absolute_price_oscillator(
         - :func:`ema`: The exponential moving average each leg is built from.
 
     References:
-        - https://www.investopedia.com/terms/p/apo.asp
+        - Appel, G. (2005). *Technical Analysis: Power Tools for Active Investors*. FT Press.
 
     Examples:
         Basic usage on a single price series:
@@ -183,8 +183,9 @@ def aroon(
         - :func:`williams_r`: Another windowed high-low range oscillator.
 
     References:
-        - Chande, Tushar (1995). "The Aroon Oscillator". *Technical Analysis of Stocks & Commodities*.
-        - https://www.investopedia.com/terms/a/aroon.asp
+        - Chande, T. S. (1995). "The Time Price Oscillator." *Technical Analysis of Stocks & Commodities*, 13(9),
+          369-374.
+        - https://chartschool.stockcharts.com/table-of-contents/technical-indicators-and-overlays/technical-indicators/aroon
 
     Examples:
         Basic usage on high-low bars:
@@ -305,8 +306,9 @@ def aroon_oscillator(
         - :func:`williams_r`: Another windowed high-low range oscillator.
 
     References:
-        - Chande, Tushar (1995). "The Aroon Oscillator". *Technical Analysis of Stocks & Commodities*.
-        - https://www.investopedia.com/terms/a/aroonoscillator.asp
+        - Chande, T. S. (1995). "The Time Price Oscillator." *Technical Analysis of Stocks & Commodities*, 13(9),
+          369-374.
+        - https://chartschool.stockcharts.com/table-of-contents/technical-indicators-and-overlays/technical-indicators/aroon
 
     Examples:
         Basic usage on high-low bars:
@@ -417,8 +419,7 @@ def awesome_oscillator(
         - :func:`price_median`: The bar median each average is taken over.
 
     References:
-        - Williams, Bill (1998). *New Trading Dimensions*. Wiley.
-        - https://www.investopedia.com/terms/a/awesomeoscillator.asp
+        - Williams, B. (1998). *New Trading Dimensions*. Wiley.
 
     Examples:
         Basic usage on high-low bars:
@@ -525,7 +526,8 @@ def balance_of_power(
         - :func:`price_typical`: The per-bar high-low-close average.
 
     References:
-        - Livshin, Igor (2001). "Using the Balance of Power Indicator". *Technical Analysis of Stocks & Commodities*.
+        - Livshin, I. (2001). "Using the Balance of Power Indicator." *Technical Analysis of Stocks & Commodities*.
+        - https://chartschool.stockcharts.com/table-of-contents/technical-indicators-and-overlays/technical-indicators/balance-of-power-bop
 
     Examples:
         Basic usage on a small OHLC frame:
@@ -653,10 +655,9 @@ def cci(
         - :func:`rsi`: A bounded momentum oscillator.
 
     References:
-        - Lambert, Donald R. (1980). "Commodity Channel Index: Tools for Trading Cyclic Trends". *Commodities* (now
+        - Lambert, D. R. (1980). "Commodity Channel Index: Tools for Trading Cyclic Trends." *Commodities* (now
           *Futures*) magazine.
         - https://en.wikipedia.org/wiki/Commodity_channel_index
-        - https://www.investopedia.com/terms/c/commoditychannelindex.asp
 
     Examples:
         Basic usage on high-low-close bars:
@@ -780,8 +781,7 @@ def chande_momentum_oscillator(
         - :func:`mom`: The absolute-difference momentum sibling.
 
     References:
-        - Chande, Tushar S., and Kroll, Stanley (1994). *The New Technical Trader*. Wiley.
-        - https://www.investopedia.com/terms/c/chandemomentumoscillator.asp
+        - Chande, T. S. & Kroll, S. (1994). *The New Technical Trader*. Wiley.
 
     Examples:
         Basic usage on a single price series:
@@ -941,9 +941,7 @@ def fisher_transform(
         - :func:`stochastic_fast`: The %K channel position, the same normalization before the transform.
 
     References:
-        - Ehlers, John F. (2002). "Using the Fisher Transform." *Technical Analysis of Stocks & Commodities*, 20(11).
-        - https://en.wikipedia.org/wiki/Fisher_transformation
-        - https://www.investopedia.com/terms/f/fisher-transform.asp
+        - Ehlers, J. F. (2002). "Using the Fisher Transform." *Technical Analysis of Stocks & Commodities*, 20(11).
 
     Examples:
         Basic usage on high-low bars:
@@ -1066,9 +1064,8 @@ def macd(
         - :func:`ema`: The exponential moving average all three lines are built from.
 
     References:
-        - Appel, Gerald (2005). *Technical Analysis: Power Tools for Active Investors*.
+        - Appel, G. (2005). *Technical Analysis: Power Tools for Active Investors*. FT Press.
         - https://en.wikipedia.org/wiki/MACD
-        - https://www.investopedia.com/terms/m/macd.asp
 
     Examples:
         Basic usage on a single price series:
@@ -1168,8 +1165,7 @@ def mom(
         - :func:`chande_momentum_oscillator`: A bounded net-of-gains-and-losses momentum oscillator.
 
     References:
-        - https://en.wikipedia.org/wiki/Momentum_(technical_analysis)
-        - https://www.investopedia.com/terms/m/momentum.asp
+        - https://en.wikipedia.org/wiki/Momentum_%28technical_analysis%29
 
     Examples:
         Basic usage on a single price series:
@@ -1260,7 +1256,7 @@ def percentage_price_oscillator(
         - :func:`ema`: The exponential moving average each leg is built from.
 
     References:
-        - https://www.investopedia.com/terms/p/ppo.asp
+        - Appel, G. (2005). *Technical Analysis: Power Tools for Active Investors*. FT Press.
 
     Examples:
         Basic usage on a single price series:
@@ -1354,8 +1350,7 @@ def roc(
         - :func:`rsi`: A bounded momentum oscillator.
 
     References:
-        - https://en.wikipedia.org/wiki/Momentum_(technical_analysis)
-        - https://www.investopedia.com/terms/p/pricerateofchange.asp
+        - https://en.wikipedia.org/wiki/Momentum_%28technical_analysis%29
 
     Examples:
         Basic usage on a single price series:
@@ -1458,9 +1453,8 @@ def rsi(
         - :func:`chande_momentum_oscillator`: The unsmoothed sibling that sums gains and losses over a fixed window.
 
     References:
-        - Wilder, J. Welles (1978). *New Concepts in Technical Trading Systems*. Trend Research.
+        - Wilder, J. W. (1978). *New Concepts in Technical Trading Systems*. Trend Research.
         - https://en.wikipedia.org/wiki/Relative_strength_index
-        - https://www.investopedia.com/terms/r/rsi.asp
 
     Examples:
         Basic usage on a single price series:
@@ -1573,7 +1567,7 @@ def rsi_stochastic(
         - :func:`stochastic_slow`: The smoothed %K / %D stochastic variant.
 
     References:
-        - Chande, Tushar S., and Kroll, Stanley (1994). *The New Technical Trader*. Wiley.
+        - Chande, T. S. & Kroll, S. (1994). *The New Technical Trader*. Wiley.
 
     Examples:
         Basic usage on a single price series:
@@ -1671,9 +1665,8 @@ def trix(
         - :func:`tema`: Another triple-EMA construction, blending the three passes differently.
 
     References:
-        - Hutson, Jack K. (1983). "Good Trix". *Technical Analysis of Stocks & Commodities*.
-        - https://en.wikipedia.org/wiki/Trix_(technical_analysis)
-        - https://www.investopedia.com/terms/t/trix.asp
+        - Hutson, J. K. (1983). "Good Trix." *Technical Analysis of Stocks & Commodities*.
+        - https://en.wikipedia.org/wiki/Trix_%28technical_analysis%29
 
     Examples:
         Basic usage on a single price series:
@@ -1795,7 +1788,7 @@ def ultimate_oscillator(
         - :func:`true_range`: The per-bar true range the buying pressure is normalized by.
 
     References:
-        - Williams, Larry (1985). "The Ultimate Oscillator". *Technical Analysis of Stocks & Commodities*.
+        - Williams, L. (1985). "The Ultimate Oscillator." *Technical Analysis of Stocks & Commodities*.
         - https://en.wikipedia.org/wiki/Ultimate_oscillator
 
     Examples:
@@ -1958,9 +1951,8 @@ def williams_r(
         - :func:`cci`: Another bounded oscillator over a rolling window.
 
     References:
-        - Williams, Larry (1973). *How I Made One Million Dollars Last Year Trading Commodities*.
+        - Williams, L. (1973). *How I Made One Million Dollars Last Year Trading Commodities*.
         - https://en.wikipedia.org/wiki/Williams_%25R
-        - https://www.investopedia.com/terms/w/williamsr.asp
 
     Examples:
         Basic usage on high-low-close bars:

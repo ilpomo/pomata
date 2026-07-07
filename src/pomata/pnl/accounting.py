@@ -682,7 +682,8 @@ def returns_gross(
         - :func:`equity_curve`: Compounds these per-bar returns into a capital curve.
 
     References:
-        - Meucci, A. (2010). "Quant Nugget 2: Linear vs. Compounded Returns."
+        - Meucci, A. (2010). "Quant Nugget 2: Linear vs. Compounded Returns." *GARP Risk Professional*, April 2010,
+          49-51.
         - https://en.wikipedia.org/wiki/Rate_of_return
 
     Examples:
@@ -883,7 +884,8 @@ def turnover(
         - :func:`returns_gross`: The gross return of the same ``weight``.
 
     References:
-        - https://www.investopedia.com/terms/p/portfolioturnover.asp
+        - Grinold, R. C. & Kahn, R. N. (2000). *Active Portfolio Management: A Quantitative Approach for Producing
+          Superior Returns and Controlling Risk* (2nd ed.). McGraw-Hill.
 
     Examples:
         Basic usage on a weight series:
