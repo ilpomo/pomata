@@ -1,4 +1,4 @@
-name: benchmark
+name: Benchmark
 
 # The performance / complexity-scaling tier is informational and non-gating, so it deliberately does NOT run on pull
 # requests -- it would only add minutes to the PR critical path. It runs where a regression actually matters: on every
@@ -34,7 +34,6 @@ jobs:
   # main (or a noisy timing) -- it blocks nothing (it runs post-merge / nightly), but it shows red so the regression is
   # visible. The job stays serial (no -n): parallelism would corrupt the timings.
   benchmark:
-    name: benchmark
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

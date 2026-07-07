@@ -72,7 +72,9 @@ def cost_borrow(
         - :func:`pnl_net`: Subtracts the composed cost from the gross PnL.
 
     References:
-        - https://en.wikipedia.org/wiki/Short_(finance)
+        - D'Avolio, G. (2002). "The market for borrowing stock." *Journal of Financial Economics*, 66(2-3), 271-306.
+        - https://doi.org/10.1016/S0304-405X(02)00206-4
+        - https://en.wikipedia.org/wiki/Securities_lending
 
     Examples:
         >>> import polars as pl
@@ -262,6 +264,9 @@ def cost_funding(
         - :func:`pnl_net`: Subtracts the composed cost from the gross PnL.
 
     References:
+        - Shiller, R. J. (1993). "Measuring Asset Values for Cash Settlement in Derivative Markets: Hedonic Repeated
+          Measures Indices and Perpetual Futures." *The Journal of Finance*, 48(3), 911-931.
+        - https://doi.org/10.1111/j.1540-6261.1993.tb04024.x
         - https://en.wikipedia.org/wiki/Perpetual_futures
 
     Examples:
@@ -552,6 +557,9 @@ def cost_proportional(
         - :func:`returns_net`: Subtracts the composed cost from the gross return.
 
     References:
+        - Magill, M. J. P. & Constantinides, G. M. (1976). "Portfolio selection with transactions costs." *Journal of
+          Economic Theory*, 13(2), 245-263.
+        - https://doi.org/10.1016/0022-0531(76)90018-1
         - https://en.wikipedia.org/wiki/Transaction_cost
 
     Examples:
@@ -640,7 +648,9 @@ def cost_slippage(
         - :func:`returns_net`: Subtracts the composed cost from the gross return.
 
     References:
-        - https://en.wikipedia.org/wiki/Slippage_(finance)
+        - Demsetz, H. (1968). "The Cost of Transacting." *The Quarterly Journal of Economics*, 82(1), 33-53.
+        - https://doi.org/10.2307/1882244
+        - https://en.wikipedia.org/wiki/Slippage_%28finance%29
 
     Examples:
         >>> import polars as pl

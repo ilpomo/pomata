@@ -91,9 +91,8 @@ def accumulation_distribution(
         - :func:`obv`: Another cumulative volume-flow line.
 
     References:
-        - Chaikin, Marc. "Accumulation/Distribution Line".
+        - Chaikin, M. "Accumulation/Distribution Line."
         - https://en.wikipedia.org/wiki/Accumulation/distribution_index
-        - https://www.investopedia.com/terms/a/accumulationdistribution.asp
 
     Examples:
         >>> import polars as pl
@@ -220,8 +219,8 @@ def accumulation_distribution_oscillator(
         - :func:`macd`: The same fast-minus-slow-EMA oscillator, applied to price.
 
     References:
-        - Chaikin, Marc. "Chaikin Oscillator".
-        - https://www.investopedia.com/terms/c/chaikinoscillator.asp
+        - Chaikin, M. "Chaikin Oscillator."
+        - https://en.wikipedia.org/wiki/Chaikin_Analytics#Chaikin_Oscillator
 
     Examples:
         >>> import polars as pl
@@ -368,9 +367,8 @@ def chaikin_money_flow(
         - :func:`accumulation_distribution_oscillator`: Chaikin's momentum oscillator over the same line.
 
     References:
-        - Chaikin, Marc. "Chaikin Money Flow".
+        - Chaikin, M. "Chaikin Money Flow."
         - https://en.wikipedia.org/wiki/Chaikin_Analytics#Chaikin_Money_Flow
-        - https://www.investopedia.com/terms/c/chaikinmoneyflow.asp
 
     Examples:
         >>> import polars as pl
@@ -526,10 +524,9 @@ def money_flow_index(
         - :func:`price_typical`: The per-bar typical price this weights by volume.
 
     References:
-        - Quong, Gene & Soudack, Avrum (1989). "Volume-Weighted RSI: Money Flow".
-          *Technical Analysis of Stocks & Commodities*, 7(3).
+        - Quong, G. & Soudack, A. (1989). "Volume-Weighted RSI: Money Flow." *Technical Analysis of Stocks &
+          Commodities*, 7(3).
         - https://en.wikipedia.org/wiki/Money_flow_index
-        - https://www.investopedia.com/terms/m/mfi.asp
 
     Examples:
         >>> import polars as pl
@@ -695,9 +692,8 @@ def obv(
         - :func:`chaikin_money_flow`: A windowed volume-weighted money-flow ratio.
 
     References:
-        - Granville, Joseph E. (1963). *Granville's New Key to Stock Market Profits*. Prentice-Hall.
+        - Granville, J. E. (1963). *Granville's New Key to Stock Market Profits*. Prentice-Hall.
         - https://en.wikipedia.org/wiki/On-balance_volume
-        - https://www.investopedia.com/terms/o/onbalancevolume.asp
 
     Examples:
         >>> import polars as pl
@@ -807,8 +803,10 @@ def vwap(
         - :func:`sma`: The equal-weighted moving average, the volume-blind analogue.
 
     References:
+        - Berkowitz, S. A., Logue, D. E., & Noser, E. A. (1988). "The Total Cost of Transactions on the NYSE." *The
+          Journal of Finance*, 43(1), 97-112.
+        - https://doi.org/10.1111/j.1540-6261.1988.tb02591.x
         - https://en.wikipedia.org/wiki/Volume-weighted_average_price
-        - https://www.investopedia.com/terms/v/vwap.asp
 
     Examples:
         >>> import polars as pl

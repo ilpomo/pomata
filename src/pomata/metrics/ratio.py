@@ -117,6 +117,7 @@ def adjusted_sharpe_ratio(
     References:
         - Pezier, J. & White, A. (2008). "The Relative Merits of Alternative Investments in Passive Portfolios."
           *Journal of Alternative Investments*, 10(4), 37-49.
+        - https://doi.org/10.3905/jai.2008.705531
         - https://en.wikipedia.org/wiki/Sharpe_ratio
 
     Examples:
@@ -213,7 +214,7 @@ def burke_ratio(
 
     References:
         - Burke, G. (1994). "A Sharper Sharpe Ratio." *Futures Magazine*.
-        - https://en.wikipedia.org/wiki/Drawdown_(economics)
+        - https://en.wikipedia.org/wiki/Drawdown_%28economics%29
 
     Examples:
         >>> import polars as pl
@@ -304,7 +305,6 @@ def calmar_ratio(
     References:
         - Young, T. W. (1991). "Calmar Ratio: A Smoother Tool." *Futures Magazine*.
         - https://en.wikipedia.org/wiki/Calmar_ratio
-        - https://www.investopedia.com/terms/c/calmarratio.asp
 
     Examples:
         >>> import polars as pl
@@ -385,7 +385,6 @@ def common_sense_ratio(
 
     References:
         - https://en.wikipedia.org/wiki/Tail_risk
-        - https://www.investopedia.com/terms/t/tailrisk.asp
 
     Examples:
         >>> import polars as pl
@@ -546,9 +545,9 @@ def omega_ratio(
         - :func:`sharpe_ratio`: The moment-based risk-adjusted ratio.
 
     References:
-        - Keating, C. & Shadwick, W. F. (2002). "A Universal Performance Measure." *The Finance Development Centre*.
+        - Keating, C. & Shadwick, W. F. (2002). "A Universal Performance Measure." *The Journal of Performance
+          Measurement*, 6(3), 59-84.
         - https://en.wikipedia.org/wiki/Omega_ratio
-        - https://www.investopedia.com/terms/o/omega-ratio.asp
 
     Examples:
         >>> import polars as pl
@@ -634,6 +633,8 @@ def omega_ratio_rolling(
         - :func:`sharpe_ratio_rolling`: The rolling total-volatility risk-adjusted ratio.
 
     References:
+        - Keating, C. & Shadwick, W. F. (2002). "A Universal Performance Measure." *The Journal of Performance
+          Measurement*, 6(3), 59-84.
         - https://en.wikipedia.org/wiki/Omega_ratio
 
     Examples:
@@ -733,8 +734,7 @@ def pain_ratio(
         - :func:`ulcer_performance_ratio`: The root-mean-square-drawdown counterpart.
 
     References:
-        - Becker, T. "The Pain Index and Pain Ratio." *Zephyr Associates*.
-        - https://en.wikipedia.org/wiki/Pain_index
+        - Becker, T. (2006). "The Pain Index and Pain Ratio." *Zephyr Associates*.
 
     Examples:
         >>> import polars as pl
@@ -827,6 +827,7 @@ def probabilistic_sharpe_ratio(
         - **Null** — a ``null`` return is skipped (excluded from every moment).
         - **NaN** — a ``NaN`` return propagates, yielding ``NaN``.
         - **Fewer than two returns** — the sample Sharpe ratio is undefined, so the result is ``null``.
+        - **Zero volatility** — a constant series has an undefined Sharpe ratio and undefined moments, yielding ``NaN``.
         - **Degenerate** — a negative variance under the inner square root (extreme skewness or kurtosis) yields
           ``NaN``; an exactly-zero inner variance (a measure-zero boundary) yields the limiting ``0`` or ``1``,
           reported rather than forced into range.
@@ -839,8 +840,9 @@ def probabilistic_sharpe_ratio(
         - :func:`sortino_ratio`: The downside-deviation Sharpe variant for the same asymmetric returns.
 
     References:
-        - Bailey, D. H. & López de Prado, M. (2012). "The Sharpe Ratio Efficient Frontier."
-          *Journal of Risk*, 15(2), 3-44.
+        - Bailey, D. H. & López de Prado, M. (2012). "The Sharpe Ratio Efficient Frontier." *Journal of Risk*, 15(2),
+          3-44.
+        - https://doi.org/10.21314/JOR.2012.255
         - https://en.wikipedia.org/wiki/Sharpe_ratio
 
     Examples:
@@ -1021,9 +1023,9 @@ def sharpe_ratio(
         - :func:`adjusted_sharpe_ratio`: The higher-moment correction for non-normal returns.
 
     References:
-        - Sharpe, W. F. (1994). "The Sharpe Ratio." *The Journal of Portfolio Management*.
+        - Sharpe, W. F. (1994). "The Sharpe Ratio." *The Journal of Portfolio Management*, 21(1), 49-58.
+        - https://doi.org/10.3905/jpm.1994.409501
         - https://en.wikipedia.org/wiki/Sharpe_ratio
-        - https://www.investopedia.com/terms/s/sharperatio.asp
 
     Examples:
         >>> import polars as pl
@@ -1113,6 +1115,8 @@ def sharpe_ratio_rolling(
         - :func:`sortino_ratio_rolling`: The downside-only rolling counterpart.
 
     References:
+        - Sharpe, W. F. (1994). "The Sharpe Ratio." *The Journal of Portfolio Management*, 21(1), 49-58.
+        - https://doi.org/10.3905/jpm.1994.409501
         - https://en.wikipedia.org/wiki/Sharpe_ratio
 
     Examples:
@@ -1210,10 +1214,10 @@ def sortino_ratio(
         - :func:`omega_ratio`: The threshold-based gain-to-loss alternative.
 
     References:
-        - Sortino, F. A. & Price, L. N. (1994). "Performance Measurement in a Downside Risk Framework."
-          *The Journal of Investing*.
+        - Sortino, F. A. & Price, L. N. (1994). "Performance Measurement in a Downside Risk Framework." *The Journal of
+          Investing*, 3(3), 59-64.
+        - https://doi.org/10.3905/joi.3.3.59
         - https://en.wikipedia.org/wiki/Sortino_ratio
-        - https://www.investopedia.com/terms/s/sortinoratio.asp
 
     Examples:
         >>> import polars as pl
@@ -1307,6 +1311,9 @@ def sortino_ratio_rolling(
         - :func:`sharpe_ratio_rolling`: The two-sided rolling counterpart.
 
     References:
+        - Sortino, F. A. & Price, L. N. (1994). "Performance Measurement in a Downside Risk Framework." *The Journal of
+          Investing*, 3(3), 59-64.
+        - https://doi.org/10.3905/joi.3.3.59
         - https://en.wikipedia.org/wiki/Sortino_ratio
 
     Examples:
@@ -1499,9 +1506,8 @@ def ulcer_performance_ratio(
         - :func:`calmar_ratio`: The companion return-to-pain ratio scaled by the single worst drawdown.
 
     References:
-        - Martin, P. G. & McCann, B. B. (1989). *The Investor's Guide to Fidelity Funds*.
+        - Martin, P. G. & McCann, B. B. (1989). *The Investor's Guide to Fidelity Funds*. Wiley.
         - https://en.wikipedia.org/wiki/Ulcer_index
-        - https://www.investopedia.com/terms/u/ulcerindex.asp
 
     Examples:
         >>> import polars as pl

@@ -158,7 +158,7 @@ def parabolic_sar(
         - :func:`atr`: Wilder's volatility average.
 
     References:
-        - Wilder, J. Welles (1978). *New Concepts in Technical Trading Systems*.
+        - Wilder, J. W. (1978). *New Concepts in Technical Trading Systems*. Trend Research.
         - https://en.wikipedia.org/wiki/Parabolic_SAR
 
     Examples:
@@ -350,8 +350,7 @@ def supertrend(
         - :func:`keltner_channels`: The other ATR-scaled band envelope, centered on an EMA rather than ratcheting.
 
     References:
-        - Seban, Olivier (2009). *Tout le monde mérite d'être riche*.
-        - https://www.investopedia.com/supertrend-indicator-7976167
+        - Seban, O. (2009). *Tout le monde mérite d'être riche*.
 
     Examples:
         >>> import polars as pl

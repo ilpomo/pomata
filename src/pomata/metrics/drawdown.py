@@ -75,7 +75,8 @@ def conditional_drawdown_at_risk(
     References:
         - Chekhlov, A., Uryasev, S. & Zabarankin, M. (2005). "Drawdown Measure in Portfolio Optimization."
           *International Journal of Theoretical and Applied Finance*, 8(1), 13-58.
-        - https://en.wikipedia.org/wiki/Drawdown_(economics)
+        - https://doi.org/10.1142/S0219024905002767
+        - https://en.wikipedia.org/wiki/Drawdown_%28economics%29
 
     Examples:
         >>> import polars as pl
@@ -162,8 +163,7 @@ def drawdown(
         - :func:`drawdown_rolling`: The trailing-window form, healed once an old peak rolls out.
 
     References:
-        - https://en.wikipedia.org/wiki/Drawdown_(economics)
-        - https://www.investopedia.com/terms/d/drawdown.asp
+        - https://en.wikipedia.org/wiki/Drawdown_%28economics%29
 
     Examples:
         >>> import polars as pl
@@ -240,7 +240,7 @@ def drawdown_rolling(
         - :func:`max_drawdown_duration`: The time dimension (longest underwater stretch).
 
     References:
-        - https://en.wikipedia.org/wiki/Drawdown_(economics)
+        - https://en.wikipedia.org/wiki/Drawdown_%28economics%29
 
     Examples:
         >>> import polars as pl
@@ -317,8 +317,7 @@ def max_drawdown(
         - :func:`max_drawdown_duration`: The duration dimension (longest underwater stretch).
 
     References:
-        - https://en.wikipedia.org/wiki/Drawdown_(economics)
-        - https://www.investopedia.com/terms/m/maximum-drawdown-mdd.asp
+        - https://en.wikipedia.org/wiki/Drawdown_%28economics%29
 
     Examples:
         >>> import polars as pl
@@ -392,7 +391,7 @@ def max_drawdown_duration(
         - :func:`ulcer_index`: Penalizes prolonged declines, blending depth and duration.
 
     References:
-        - https://en.wikipedia.org/wiki/Drawdown_(economics)
+        - https://en.wikipedia.org/wiki/Drawdown_%28economics%29
 
     Examples:
         >>> import polars as pl
@@ -471,7 +470,7 @@ def pain_index(
         - :func:`max_drawdown`: The single worst drawdown, against this average depth.
 
     References:
-        - Becker, T. "The Pain Index and Pain Ratio." *Zephyr Associates*.
+        - Becker, T. (2006). "The Pain Index and Pain Ratio." *Zephyr Associates*.
 
     Examples:
         >>> import polars as pl
@@ -546,9 +545,8 @@ def ulcer_index(
         - :func:`pain_index`: The arithmetic-mean counterpart of this root-mean-square.
 
     References:
-        - Martin, P. G. & McCann, B. B. (1989). *The Investor's Guide to Fidelity Funds*.
+        - Martin, P. G. & McCann, B. B. (1989). *The Investor's Guide to Fidelity Funds*. Wiley.
         - https://en.wikipedia.org/wiki/Ulcer_index
-        - https://www.investopedia.com/terms/u/ulcerindex.asp
 
     Examples:
         >>> import polars as pl

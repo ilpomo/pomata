@@ -100,9 +100,8 @@ def stochastic_fast(
         - :func:`sma`: The moving average that forms %D.
 
     References:
-        - Lane, George C. (1984). "Lane's Stochastics." *Technical Analysis of Stocks & Commodities*, 2(3).
+        - Lane, G. C. (1984). "Lane's Stochastics." *Technical Analysis of Stocks & Commodities*, 2(3), 87-90.
         - https://en.wikipedia.org/wiki/Stochastic_oscillator
-        - https://www.investopedia.com/terms/s/stochasticoscillator.asp
 
     Examples:
         >>> import polars as pl
@@ -234,9 +233,8 @@ def stochastic_slow(
         - :func:`sma`: The moving average behind both the slowing and %D.
 
     References:
-        - Lane, George C. (1984). "Lane's Stochastics." *Technical Analysis of Stocks & Commodities*, 2(3).
+        - Lane, G. C. (1984). "Lane's Stochastics." *Technical Analysis of Stocks & Commodities*, 2(3), 87-90.
         - https://en.wikipedia.org/wiki/Stochastic_oscillator
-        - https://www.investopedia.com/terms/s/stochasticoscillator.asp
 
     Examples:
         >>> import polars as pl

@@ -66,6 +66,9 @@ def price_average(
         - :func:`price_typical`: The equal-weighted mean of high, low, and close.
         - :func:`price_weighted_close`: The OHLC summary that double-weights the close.
 
+    References:
+        - No canonical external source; the indicator is defined by the formula above.
+
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import price_average
@@ -173,6 +176,10 @@ def price_median(
         - :func:`price_average`: The equal-weighted mean of the four OHLC prices.
         - :func:`price_typical`: The equal-weighted mean of high, low, and close.
 
+    References:
+        - Achelis, S. B. (2000). *Technical Analysis from A to Z* (2nd ed.). McGraw-Hill.
+        - https://chartschool.stockcharts.com/table-of-contents/technical-indicators-and-overlays/technical-indicators/median-price
+
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import price_median
@@ -277,6 +284,7 @@ def price_typical(
         - :func:`price_weighted_close`: The OHLC summary that double-weights the close.
 
     References:
+        - Achelis, S. B. (2000). *Technical Analysis from A to Z* (2nd ed.). McGraw-Hill.
         - https://en.wikipedia.org/wiki/Typical_price
 
     Examples:
@@ -385,6 +393,10 @@ def price_weighted_close(
         - :func:`price_average`: The equal-weighted mean of the four OHLC prices.
         - :func:`price_median`: The midpoint of the bar's range, ``(high + low) / 2``.
         - :func:`price_typical`: The equal-weighted mean of high, low, and close.
+
+    References:
+        - Achelis, S. B. (2000). *Technical Analysis from A to Z* (2nd ed.). McGraw-Hill.
+        - https://chartschool.stockcharts.com/table-of-contents/technical-indicators-and-overlays/technical-indicators/weighted-close
 
     Examples:
         >>> import polars as pl

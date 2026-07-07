@@ -187,9 +187,10 @@ def conditional_value_at_risk(
         - :func:`value_at_risk_parametric`: A parametric alternative to this historical tail estimate.
 
     References:
-        - Rockafellar, R. T. & Uryasev, S. (2000). "Optimization of Conditional Value-at-Risk." *Journal of Risk*.
+        - Rockafellar, R. T. & Uryasev, S. (2000). "Optimization of Conditional Value-at-Risk." *Journal of Risk*, 2(3),
+          21-41.
+        - https://doi.org/10.21314/JOR.2000.038
         - https://en.wikipedia.org/wiki/Expected_shortfall
-        - https://www.investopedia.com/terms/c/conditional_value_at_risk.asp
 
     Examples:
         >>> import polars as pl
@@ -303,10 +304,10 @@ def downside_deviation(
         - :func:`downside_deviation_rolling`: The rolling (windowed) form.
 
     References:
-        - Sortino, F. A. & Price, L. N. (1994). "Performance Measurement in a Downside Risk Framework."
-          *The Journal of Investing*.
+        - Sortino, F. A. & Price, L. N. (1994). "Performance Measurement in a Downside Risk Framework." *The Journal of
+          Investing*, 3(3), 59-64.
+        - https://doi.org/10.3905/joi.3.3.59
         - https://en.wikipedia.org/wiki/Downside_risk
-        - https://www.investopedia.com/terms/d/downside-deviation.asp
 
     Examples:
         >>> import polars as pl
@@ -393,6 +394,9 @@ def downside_deviation_rolling(
         - :func:`volatility_rolling`: The symmetric (two-sided) rolling dispersion.
 
     References:
+        - Sortino, F. A. & Price, L. N. (1994). "Performance Measurement in a Downside Risk Framework." *The Journal of
+          Investing*, 3(3), 59-64.
+        - https://doi.org/10.3905/joi.3.3.59
         - https://en.wikipedia.org/wiki/Downside_risk
 
     Examples:
@@ -497,10 +501,10 @@ def kelly_criterion(
         - :func:`risk_of_ruin`: The ruin probability from the same win-rate model.
 
     References:
-        - Kelly, J. L. (1956). "A New Interpretation of Information Rate."
-          *Bell System Technical Journal*, 35(4), 917-926.
+        - Kelly, J. L. (1956). "A New Interpretation of Information Rate." *Bell System Technical Journal*, 35(4),
+          917-926.
+        - https://doi.org/10.1002/j.1538-7305.1956.tb03809.x
         - https://en.wikipedia.org/wiki/Kelly_criterion
-        - https://www.investopedia.com/articles/trading/04/091504.asp
 
     Examples:
         >>> import polars as pl
@@ -593,8 +597,10 @@ def kurtosis(
         - :func:`value_at_risk_modified`: Uses this excess kurtosis in its Cornish-Fisher tail correction.
 
     References:
+        - Joanes, D. N. & Gill, C. A. (1998). "Comparing Measures of Sample Skewness and Kurtosis." *Journal of the
+          Royal Statistical Society: Series D (The Statistician)*, 47(1), 183-189.
+        - https://doi.org/10.1111/1467-9884.00122
         - https://en.wikipedia.org/wiki/Kurtosis
-        - https://www.investopedia.com/terms/k/kurtosis.asp
 
     Examples:
         >>> import polars as pl
@@ -688,6 +694,9 @@ def kurtosis_rolling(
         - :func:`value_at_risk_modified`: Uses excess kurtosis in its Cornish-Fisher tail correction.
 
     References:
+        - Joanes, D. N. & Gill, C. A. (1998). "Comparing Measures of Sample Skewness and Kurtosis." *Journal of the
+          Royal Statistical Society: Series D (The Statistician)*, 47(1), 183-189.
+        - https://doi.org/10.1111/1467-9884.00122
         - https://en.wikipedia.org/wiki/Kurtosis
 
     Examples:
@@ -989,7 +998,6 @@ def risk_of_ruin(
     References:
         - Vince, R. (1990). *Portfolio Management Formulas*. Wiley.
         - https://en.wikipedia.org/wiki/Gambler%27s_ruin
-        - https://www.investopedia.com/terms/r/risk-of-ruin.asp
 
     Examples:
         >>> import polars as pl
@@ -1070,8 +1078,10 @@ def skewness(
         - :func:`value_at_risk_modified`: Uses this skewness in its Cornish-Fisher tail correction.
 
     References:
+        - Joanes, D. N. & Gill, C. A. (1998). "Comparing Measures of Sample Skewness and Kurtosis." *Journal of the
+          Royal Statistical Society: Series D (The Statistician)*, 47(1), 183-189.
+        - https://doi.org/10.1111/1467-9884.00122
         - https://en.wikipedia.org/wiki/Skewness
-        - https://www.investopedia.com/terms/s/skewness.asp
 
     Examples:
         >>> import polars as pl
@@ -1164,6 +1174,9 @@ def skewness_rolling(
         - :func:`value_at_risk_modified`: Uses skewness in its Cornish-Fisher tail correction.
 
     References:
+        - Joanes, D. N. & Gill, C. A. (1998). "Comparing Measures of Sample Skewness and Kurtosis." *Journal of the
+          Royal Statistical Society: Series D (The Statistician)*, 47(1), 183-189.
+        - https://doi.org/10.1111/1467-9884.00122
         - https://en.wikipedia.org/wiki/Skewness
 
     Examples:
@@ -1260,7 +1273,6 @@ def tail_ratio(
 
     References:
         - https://en.wikipedia.org/wiki/Tail_risk
-        - https://www.investopedia.com/terms/t/tailrisk.asp
 
     Examples:
         >>> import polars as pl
@@ -1446,9 +1458,8 @@ def value_at_risk(
         - :func:`value_at_risk_modified`: The skewness/kurtosis-corrected (Cornish-Fisher) estimate.
 
     References:
-        - J.P. Morgan / Reuters (1996). *RiskMetrics -- Technical Document* (4th ed.).
+        - J.P. Morgan / Reuters (1996). *RiskMetrics — Technical Document* (4th ed.).
         - https://en.wikipedia.org/wiki/Value_at_risk
-        - https://www.investopedia.com/terms/v/var.asp
 
     Examples:
         >>> import polars as pl
@@ -1533,8 +1544,9 @@ def value_at_risk_modified(
         - :func:`conditional_value_at_risk`: The expected shortfall beyond the VaR threshold.
 
     References:
-        - Favre, L. & Galeano, J.-A. (2002). "Mean-Modified Value-at-Risk Optimization with Hedge Funds."
-          *Journal of Alternative Investments*, 5(2), 21-25.
+        - Favre, L. & Galeano, J.-A. (2002). "Mean-Modified Value-at-Risk Optimization with Hedge Funds." *Journal of
+          Alternative Investments*, 5(2), 21-25.
+        - https://doi.org/10.3905/jai.2002.319052
         - https://en.wikipedia.org/wiki/Cornish%E2%80%93Fisher_expansion
 
     Examples:
@@ -1651,7 +1663,6 @@ def value_at_risk_parametric(
     References:
         - Jorion, P. (2006). *Value at Risk: The New Benchmark for Managing Financial Risk* (3rd ed.). McGraw-Hill.
         - https://en.wikipedia.org/wiki/Value_at_risk
-        - https://www.investopedia.com/terms/v/var.asp
 
     Examples:
         >>> import polars as pl
@@ -1836,8 +1847,7 @@ def volatility(
         - :func:`~pomata.pnl.returns_net`: The usual source of the net-return series this measures.
 
     References:
-        - https://en.wikipedia.org/wiki/Volatility_(finance)
-        - https://www.investopedia.com/terms/v/volatility.asp
+        - https://en.wikipedia.org/wiki/Volatility_%28finance%29
 
     Examples:
         >>> import polars as pl
@@ -1917,7 +1927,7 @@ def volatility_rolling(
         - :func:`downside_deviation_rolling`: The downside-only rolling counterpart.
 
     References:
-        - https://en.wikipedia.org/wiki/Volatility_(finance)
+        - https://en.wikipedia.org/wiki/Volatility_%28finance%29
 
     Examples:
         >>> import polars as pl

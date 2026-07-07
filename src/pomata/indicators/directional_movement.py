@@ -69,9 +69,8 @@ def adx(
         - :func:`di_plus`: The plus directional indicator.
 
     References:
-        - Wilder, J. Welles (1978). *New Concepts in Technical Trading Systems*.
+        - Wilder, J. W. (1978). *New Concepts in Technical Trading Systems*. Trend Research.
         - https://en.wikipedia.org/wiki/Average_directional_movement_index
-        - https://www.investopedia.com/terms/a/adx.asp
 
     Examples:
         On a small OHLC frame with a short window:
@@ -180,8 +179,8 @@ def adxr(
         - :func:`di_plus`: A directional indicator at the base of the system.
 
     References:
-        - Wilder, J. Welles (1978). *New Concepts in Technical Trading Systems*.
-        - https://www.investopedia.com/terms/a/adxr.asp
+        - Wilder, J. W. (1978). *New Concepts in Technical Trading Systems*. Trend Research.
+        - https://en.wikipedia.org/wiki/Average_directional_movement_index
 
     Examples:
         On a small OHLC frame with a short window:
@@ -296,9 +295,8 @@ def di_minus(
         - :func:`dx`: The directional index built from the two indicators.
 
     References:
-        - Wilder, J. Welles (1978). *New Concepts in Technical Trading Systems*.
+        - Wilder, J. W. (1978). *New Concepts in Technical Trading Systems*. Trend Research.
         - https://en.wikipedia.org/wiki/Average_directional_movement_index
-        - https://www.investopedia.com/terms/d/dmi.asp
 
     Examples:
         On a small OHLC frame with a short window:
@@ -412,9 +410,8 @@ def di_plus(
         - :func:`dx`: The directional index built from the two indicators.
 
     References:
-        - Wilder, J. Welles (1978). *New Concepts in Technical Trading Systems*.
+        - Wilder, J. W. (1978). *New Concepts in Technical Trading Systems*. Trend Research.
         - https://en.wikipedia.org/wiki/Average_directional_movement_index
-        - https://www.investopedia.com/terms/d/dmi.asp
 
     Examples:
         On a small OHLC frame with a short window:
@@ -539,9 +536,8 @@ def dm_minus(
         - :func:`rma`: The Wilder moving average that smooths the raw movement.
 
     References:
-        - Wilder, J. Welles (1978). *New Concepts in Technical Trading Systems*.
+        - Wilder, J. W. (1978). *New Concepts in Technical Trading Systems*. Trend Research.
         - https://en.wikipedia.org/wiki/Average_directional_movement_index
-        - https://www.investopedia.com/terms/d/dmi.asp
 
     Examples:
         On a small high/low frame with a short window:
@@ -662,9 +658,8 @@ def dm_plus(
         - :func:`rma`: The Wilder moving average that smooths the raw movement.
 
     References:
-        - Wilder, J. Welles (1978). *New Concepts in Technical Trading Systems*.
+        - Wilder, J. W. (1978). *New Concepts in Technical Trading Systems*. Trend Research.
         - https://en.wikipedia.org/wiki/Average_directional_movement_index
-        - https://www.investopedia.com/terms/d/dmi.asp
 
     Examples:
         On a small high/low frame with a short window:
@@ -772,9 +767,8 @@ def dx(
         - :func:`adx`: The Wilder-smoothed average of this.
 
     References:
-        - Wilder, J. Welles (1978). *New Concepts in Technical Trading Systems*.
+        - Wilder, J. W. (1978). *New Concepts in Technical Trading Systems*. Trend Research.
         - https://en.wikipedia.org/wiki/Average_directional_movement_index
-        - https://www.investopedia.com/terms/d/dmi.asp
 
     Examples:
         On a small OHLC frame with a short window:
@@ -897,10 +891,9 @@ def vortex(
         - :func:`di_minus`: The minus directional indicator, the Wilder analog of the negative vortex line.
 
     References:
-        - Botes, Etienne, and Douglas Siepman (2010). "The Vortex Indicator", *Technical Analysis of Stocks &
-          Commodities*, 28(1).
+        - Botes, E. & Siepman, D. (2010). "The Vortex Indicator." *Technical Analysis of Stocks & Commodities*, 28(1),
+          20-30.
         - https://en.wikipedia.org/wiki/Vortex_indicator
-        - https://www.investopedia.com/terms/v/vortex-indicator-vi.asp
 
     Examples:
         On a small OHLC frame, reading each vortex line with ``.struct.field``:

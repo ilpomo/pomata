@@ -68,8 +68,8 @@ def linear_regression(
         - :func:`time_series_forecast`: The line extrapolated one bar into the future.
 
     References:
+        - Chande, T. S. & Kroll, S. (1994). *The New Technical Trader*. Wiley.
         - https://en.wikipedia.org/wiki/Simple_linear_regression
-        - https://www.investopedia.com/terms/r/regression.asp
 
     Examples:
         >>> import polars as pl
@@ -148,8 +148,8 @@ def linear_regression_angle(
         - :func:`time_series_forecast`: The same line projected one bar ahead.
 
     References:
+        - Chande, T. S. & Kroll, S. (1994). *The New Technical Trader*. Wiley.
         - https://en.wikipedia.org/wiki/Simple_linear_regression
-        - https://www.investopedia.com/terms/r/regression.asp
 
     Examples:
         >>> import polars as pl
@@ -227,8 +227,8 @@ def linear_regression_intercept(
         - :func:`time_series_forecast`: The same line projected one bar past the most recent.
 
     References:
+        - Chande, T. S. & Kroll, S. (1994). *The New Technical Trader*. Wiley.
         - https://en.wikipedia.org/wiki/Simple_linear_regression
-        - https://www.investopedia.com/terms/r/regression.asp
 
     Examples:
         >>> import polars as pl
@@ -310,8 +310,8 @@ def linear_regression_slope(
         - :func:`time_series_forecast`: The line projected one bar ahead using this slope.
 
     References:
+        - Chande, T. S. & Kroll, S. (1994). *The New Technical Trader*. Wiley.
         - https://en.wikipedia.org/wiki/Simple_linear_regression
-        - https://www.investopedia.com/terms/r/regression.asp
 
     Examples:
         >>> import polars as pl
@@ -373,7 +373,7 @@ def standard_deviation_ewma(
         window: Span of the exponential weighting, mapped to ``alpha = 2 / (window + 1)``. Must be ``>= 2``.
         adjust: When ``False`` (default) use the recursive form; when ``True`` use the finite-window bias-corrected
             weighting (the same flag as :func:`ema`).
-        bias: When ``True`` (default) the population standard deviation; when ``False`` the unbiased sample one.
+        bias: When ``True`` (default) the population standard deviation; when ``False`` the sample one.
             ``True`` mirrors the ``ddof = 0`` default of :func:`standard_deviation_rolling`. See :func:`variance_ewma`.
 
     Returns:
@@ -406,7 +406,7 @@ def standard_deviation_ewma(
         - :func:`ema`: The exponential mean these deviations are measured from.
 
     References:
-        - https://en.wikipedia.org/wiki/Exponentially_weighted_moving_average
+        - J.P. Morgan / Reuters (1996). *RiskMetrics — Technical Document* (4th ed.).
 
     Examples:
         >>> import polars as pl
@@ -494,6 +494,9 @@ def standard_deviation_rolling(
         - :func:`bollinger_bands`: Volatility bands placed a multiple of this standard deviation around the mean.
 
     References:
+        - Pearson, K. (1894). "Contributions to the Mathematical Theory of Evolution." *Philosophical Transactions of
+          the Royal Society A*, 185, 71-110.
+        - https://doi.org/10.1098/rsta.1894.0003
         - https://en.wikipedia.org/wiki/Standard_deviation
 
     Examples:
@@ -574,8 +577,8 @@ def time_series_forecast(
         - :func:`linear_regression_intercept`: The same line's value at the oldest bar of the window.
 
     References:
+        - Chande, T. S. & Kroll, S. (1994). *The New Technical Trader*. Wiley.
         - https://en.wikipedia.org/wiki/Simple_linear_regression
-        - https://www.investopedia.com/terms/r/regression.asp
 
     Examples:
         >>> import polars as pl
@@ -670,7 +673,7 @@ def variance_ewma(
         - :func:`ema`: The exponential mean these deviations are measured from.
 
     References:
-        - https://en.wikipedia.org/wiki/Exponentially_weighted_moving_average
+        - J.P. Morgan / Reuters (1996). *RiskMetrics — Technical Document* (4th ed.).
 
     Examples:
         >>> import polars as pl
@@ -761,6 +764,9 @@ def variance_rolling(
         - :func:`sma`: The moving mean the deviations are measured from.
 
     References:
+        - Fisher, R. A. (1918). "The Correlation between Relatives on the Supposition of Mendelian Inheritance."
+          *Transactions of the Royal Society of Edinburgh*, 52, 399-433.
+        - https://doi.org/10.1017/S0080456800012163
         - https://en.wikipedia.org/wiki/Variance
 
     Examples:

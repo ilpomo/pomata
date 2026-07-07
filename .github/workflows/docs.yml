@@ -83,3 +83,23 @@ jobs:
       - name: "Pages: deploy"
         id: deployment
         uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
+
+  # Verify every external reference resolves, out of band. Runs ONLY on the nightly schedule and on demand -- never on
+  # push/PR -- so a dead upstream link (or an anti-bot 403) surfaces as a maintenance signal without ever reddening a
+  # merge, the same decoupling the Pages deploy uses. Non-gating by construction: no merge-path job needs it and branch
+  # protection does not require it. DOIs are ignored (conf.py): permanent by design, and their publisher targets 403 bots.
+  linkcheck:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: "Setup: checkout"
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: "Setup: install uv"
+        uses: ./.github/actions/setup
+      - name: "Setup: sync docs dependencies"
+        run: uv sync --locked --no-default-groups --group docs
+      - name: "Docs: check external reference links"
+        run: uv run sphinx-build -b linkcheck docs docs/_build/linkcheck

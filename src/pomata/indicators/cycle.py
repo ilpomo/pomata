@@ -29,7 +29,7 @@ __all__ = (
 )
 
 # Per-indicator warm-up: the recursive smoothers settle in ~32 bars; the phase-derived outputs need a further
-# dominant-cycle look-back of ~31 bars for the running discrete transform, hence 63.
+# dominant-cycle look-back of ~31 bars (the running transform / trendline cycle average), hence 63.
 _DIRECT_WARMUP = 32
 _PHASE_WARMUP = 63
 _PHASE_WRAP_DEGREES = 315.0
@@ -318,8 +318,7 @@ def dominant_cycle_period(
         - :func:`hilbert_trendline`: Averages the price over one cycle of this period.
 
     References:
-        - Ehlers, John F. (2001). *Rocket Science for Traders*.
-        - Ehlers, John F. "MAMA — The Mother of Adaptive Moving Averages".
+        - Ehlers, J. F. (2001). *Rocket Science for Traders: Digital Signal Processing Applications*. Wiley.
 
     Examples:
         The dominant cycle of a clean period-20 sine, read at the last bar (close to its true length of ``20`` bars):
@@ -386,7 +385,7 @@ def dominant_cycle_phase(
         - :func:`mama`: The adaptive average this phase's rate drives.
 
     References:
-        - Ehlers, John F. (2001). *Rocket Science for Traders*.
+        - Ehlers, J. F. (2001). *Rocket Science for Traders: Digital Signal Processing Applications*. Wiley.
 
     Examples:
         The dominant-cycle phase of a clean period-20 sine, read at the last bar (in degrees):
@@ -445,7 +444,7 @@ def hilbert_phasor(
         - :func:`dominant_cycle_phase`: The companion dominant-cycle phase.
 
     References:
-        - Ehlers, John F. (2001). *Rocket Science for Traders*.
+        - Ehlers, J. F. (2001). *Rocket Science for Traders: Digital Signal Processing Applications*. Wiley.
 
     Examples:
         The in-phase and quadrature components on a clean period-20 sine, at the last bar:
@@ -507,7 +506,7 @@ def hilbert_trendline(
         - :func:`mama`: The adaptive average from the same pipeline.
 
     References:
-        - Ehlers, John F. (2001). *Rocket Science for Traders*.
+        - Ehlers, J. F. (2001). *Rocket Science for Traders: Digital Signal Processing Applications*. Wiley.
 
     Examples:
         Spanning a whole cycle, the trendline cancels the swing and tracks the mean level (here ``100``):
@@ -539,7 +538,7 @@ def mama(
 
     .. math::
 
-        \alpha_t &= \max\!\Bigl(\text{slow\_limit},\ \frac{\text{fast\_limit}}{\Delta\phi_t}\Bigr), \\
+        \alpha_t &= \max\!\Bigl(\text{limit\_slow},\ \frac{\text{limit\_fast}}{\Delta\phi_t}\Bigr), \\
         \mathrm{MAMA}_t &= \alpha_t\,\mathrm{price}_t + (1 - \alpha_t)\,\mathrm{MAMA}_{t-1}, \\
         \mathrm{FAMA}_t &= \tfrac{1}{2}\alpha_t\,\mathrm{MAMA}_t + (1 - \tfrac{1}{2}\alpha_t)\,\mathrm{FAMA}_{t-1},
 
@@ -592,7 +591,7 @@ def mama(
         - :func:`dominant_cycle_phase`: The dominant-cycle phase from the same pipeline.
 
     References:
-        - Ehlers, John F. "MAMA — The Mother of Adaptive Moving Averages".
+        - Ehlers, J. F. "MAMA — The Mother of Adaptive Moving Averages." MESA Software.
 
     Examples:
         Both adaptive lines track the level of a clean period-20 cycle (here ``100``), at the last bar:
@@ -672,7 +671,7 @@ def sine_wave(
         - :func:`dominant_cycle_period`: The cycle these trace.
 
     References:
-        - Ehlers, John F. (2001). *Rocket Science for Traders*.
+        - Ehlers, J. F. (2001). *Rocket Science for Traders: Digital Signal Processing Applications*. Wiley.
 
     Examples:
         The sine and lead-sine of a clean period-20 cycle, at the last bar (both in ``[-1, 1]``):
@@ -740,7 +739,7 @@ def trend_mode(
         - :func:`dominant_cycle_phase`: The phase rate the mode also uses.
 
     References:
-        - Ehlers, John F. (2001). *Rocket Science for Traders*.
+        - Ehlers, J. F. (2001). *Rocket Science for Traders: Digital Signal Processing Applications*. Wiley.
 
     Examples:
         A small pure cycle -- its swing below ~1.5% of price -- stays in cycle mode, so the flag stays ``0`` over a
