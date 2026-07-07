@@ -105,6 +105,16 @@ class TestCostBorrowEdge:
     Boundaries, the long/flat zero, null / NaN handling, and the rate guard.
     """
 
+    def test_invalid_rate_raises(self) -> None:
+        """
+        Verifies that a rate that is not a finite number ``>= 0`` (negative, ``NaN``, or ``±inf``) raises
+        ``ValueError`` -- a borrow rate is a finite non-negative number, so a non-finite value fails fast at the call
+        site rather than silently poisoning the output with ``NaN`` / ``inf``.
+        """
+        for invalid in (-0.0001, math.nan, math.inf, -math.inf):
+            with pytest.raises(ValueError, match="rate must be a finite number >= 0"):
+                cost_borrow(pl.col(QUANTITY), pl.col(PRICE), rate=invalid)
+
     def test_long_or_flat_is_zero(self) -> None:
         """
         Verifies that a long or flat quantity has zero borrow cost (only the short part is charged).
@@ -138,16 +148,6 @@ class TestCostBorrowEdge:
         Verifies that a row with a ``null`` in one input and a ``NaN`` in the other yields ``null``.
         """
         assert_matches(apply_cost_borrow([None, -50.0], [math.nan, 10.0]), [None, 0.05])
-
-    def test_invalid_rate_raises(self) -> None:
-        """
-        Verifies that a rate that is not a finite number ``>= 0`` (negative, ``NaN``, or ``±inf``) raises
-        ``ValueError`` -- a borrow rate is a finite non-negative number, so a non-finite value fails fast at the call
-        site rather than silently poisoning the output with ``NaN`` / ``inf``.
-        """
-        for invalid in (-0.0001, math.nan, math.inf, -math.inf):
-            with pytest.raises(ValueError, match="rate must be a finite number >= 0"):
-                cost_borrow(pl.col(QUANTITY), pl.col(PRICE), rate=invalid)
 
 
 class TestCostBorrowCorrectness:

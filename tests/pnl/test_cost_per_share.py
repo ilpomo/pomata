@@ -78,6 +78,16 @@ class TestCostPerShareEdge:
     Boundaries, the flat start, null / NaN handling, and the fee guard.
     """
 
+    def test_invalid_fee_raises(self) -> None:
+        """
+        Verifies that a fee that is not a finite number ``>= 0`` (negative, ``NaN``, or ``±inf``) raises
+        ``ValueError`` -- a commission is a finite non-negative number, so a non-finite value fails fast at the call
+        site rather than silently poisoning the output with ``NaN`` / ``inf``.
+        """
+        for invalid in (-0.01, math.nan, math.inf, -math.inf):
+            with pytest.raises(ValueError, match="fee must be a finite number >= 0"):
+                cost_per_share(pl.col(COLUMN_X), fee=invalid)
+
     def test_flat_start_first_row(self) -> None:
         """
         Verifies the first row is ``|quantity_0| * fee`` (the cost of the entry trade from a flat start).
@@ -118,16 +128,6 @@ class TestCostPerShareEdge:
         assert_matches(
             apply_expr(values, cost_per_share(pl.col(COLUMN_X), fee=FEE)), cost_per_share_reference(values, FEE)
         )
-
-    def test_invalid_fee_raises(self) -> None:
-        """
-        Verifies that a fee that is not a finite number ``>= 0`` (negative, ``NaN``, or ``±inf``) raises
-        ``ValueError`` -- a commission is a finite non-negative number, so a non-finite value fails fast at the call
-        site rather than silently poisoning the output with ``NaN`` / ``inf``.
-        """
-        for invalid in (-0.01, math.nan, math.inf, -math.inf):
-            with pytest.raises(ValueError, match="fee must be a finite number >= 0"):
-                cost_per_share(pl.col(COLUMN_X), fee=invalid)
 
 
 class TestCostPerShareCorrectness:

@@ -8,8 +8,9 @@ rate``, so it inherits the flat start and turnover's null / NaN rule and adds th
 so it carries the scale-homogeneity and large-magnitude tiers.
 
 The ladder is the canonical one: contract (type / shape / lazy-eager / ``.over`` per-group independence), edge
-(flat-start / single-row / null / NaN / negative-rate guard), correctness (vs the closed-form reference and a frozen
-golden master), and properties (reference agreement incl. missing data, scale-homogeneity, large-magnitude). Categories
+(flat-start / single-row / null / NaN / consecutive-infinities / negative-rate guard), correctness (vs the
+closed-form reference and a frozen golden master), and properties (reference agreement incl. missing data,
+scale-homogeneity, large-magnitude). Categories
 are split into classes; cross-cutting categories use markers (see ``tests/README.md``).
 """
 
@@ -106,6 +107,16 @@ class TestCostNotionalEdge:
     Boundaries, the flat start, null / NaN handling, and the rate guard.
     """
 
+    def test_invalid_rate_raises(self) -> None:
+        """
+        Verifies that a rate that is not a finite number ``>= 0`` (negative, ``NaN``, or ``±inf``) raises
+        ``ValueError`` -- a cost rate is a finite non-negative number, so a non-finite value fails fast at the call site
+        rather than silently poisoning the output with ``NaN`` / ``inf``.
+        """
+        for invalid in (-0.001, math.nan, math.inf, -math.inf):
+            with pytest.raises(ValueError, match="rate must be a finite number >= 0"):
+                cost_notional(pl.col(QUANTITY), pl.col(PRICE), rate=invalid)
+
     def test_flat_start_first_row(self) -> None:
         """
         Verifies the first row charges on ``|quantity_0| * price_0`` (the entry trade from a flat start).
@@ -143,16 +154,6 @@ class TestCostNotionalEdge:
         quantity = [math.inf, math.inf, 1.0, -math.inf]
         price = [100.0, 100.0, 100.0, 100.0]
         assert_matches(apply_cost_notional(quantity, price), cost_notional_reference(quantity, price, RATE))
-
-    def test_invalid_rate_raises(self) -> None:
-        """
-        Verifies that a rate that is not a finite number ``>= 0`` (negative, ``NaN``, or ``±inf``) raises
-        ``ValueError`` -- a cost rate is a finite non-negative number, so a non-finite value fails fast at the call site
-        rather than silently poisoning the output with ``NaN`` / ``inf``.
-        """
-        for invalid in (-0.001, math.nan, math.inf, -math.inf):
-            with pytest.raises(ValueError, match="rate must be a finite number >= 0"):
-                cost_notional(pl.col(QUANTITY), pl.col(PRICE), rate=invalid)
 
 
 class TestCostNotionalCorrectness:
