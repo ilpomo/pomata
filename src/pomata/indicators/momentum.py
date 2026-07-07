@@ -129,7 +129,7 @@ def aroon(
     window: int,
 ) -> pl.Expr:
     r"""
-    Aroon (up and down).
+    Aroon (up and down) — two lines measuring how recently the window's high and low each occurred, in [0, 100].
 
     Tushar Chande's trend indicator (1995): each line measures how recently the window's extreme occurred, reported as a
     percentage of the window so it sits in ``[0, 100]`` (``100`` when the extreme is the current bar, ``0`` when it is
@@ -264,7 +264,7 @@ def aroon_oscillator(
     window: int,
 ) -> pl.Expr:
     r"""
-    Aroon Oscillator.
+    Aroon Oscillator — Aroon Up minus Aroon Down as a single line, swinging within [-100, 100].
 
     The single-line form of :func:`aroon`: Aroon Up minus Aroon Down, so it swings within ``[-100, 100]`` (positive when
     highs are more recent than lows — an uptrend — and negative in a downtrend):
@@ -593,7 +593,7 @@ def cci(
     window: int,
 ) -> pl.Expr:
     r"""
-    Commodity Channel Index (CCI).
+    Commodity Channel Index (CCI) — the typical price's gap from its rolling mean, scaled by mean absolute deviation.
 
     A momentum oscillator introduced by Donald Lambert (1980) that measures how far the current typical price has
     strayed from its statistical mean, scaled by the typical price's own mean absolute deviation so the result is
@@ -873,7 +873,7 @@ def fisher_transform(
     window: int,
 ) -> pl.Expr:
     r"""
-    Fisher Transform.
+    Fisher Transform — the median price's rolling channel position mapped through the inverse hyperbolic tangent.
 
     Introduced by John F. Ehlers (2002): it presses the price into a sharply-peaked, near-Gaussian oscillator so that
     turning points stand out as decisive extremes rather than the rounded humps of a raw price channel. The median
@@ -1006,7 +1006,7 @@ def macd(
     window_signal: int,
 ) -> pl.Expr:
     r"""
-    Moving Average Convergence/Divergence (MACD).
+    Moving Average Convergence/Divergence (MACD) — the fast-minus-slow EMA gap, its signal EMA, and their histogram.
 
     Gerald Appel's trend-and-momentum oscillator (late 1970s): the gap between a fast and a slow :func:`ema` of the
     close (the MACD line), a further EMA of that gap (the signal line), and their difference (the histogram), returned
@@ -1713,7 +1713,7 @@ def ultimate_oscillator(
     window_long: int,
 ) -> pl.Expr:
     r"""
-    Ultimate Oscillator.
+    Ultimate Oscillator — buying pressure blended over three windows with weights 4:2:1, scaled to [0, 100].
 
     Introduced by Larry Williams (1976): a momentum oscillator that blends buying pressure over three time frames to
     damp the false divergences a single-period oscillator throws off. Each bar's buying pressure is the close above its

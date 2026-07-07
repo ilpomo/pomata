@@ -358,7 +358,7 @@ def standard_deviation_ewma(
     bias: bool = True,
 ) -> pl.Expr:
     r"""
-    Exponentially-Weighted Standard Deviation over a window.
+    Exponentially-Weighted Standard Deviation — the spread around the EW mean, the square root of the EW variance.
 
     The square root of the exponentially-weighted :func:`variance_ewma` — the spread of the input around its
     exponentially-weighted mean, in the same units as the input, with recent observations weighted more heavily
@@ -443,7 +443,7 @@ def standard_deviation_rolling(
     ddof: int = 0,
 ) -> pl.Expr:
     r"""
-    Rolling Standard Deviation over a window.
+    Rolling Standard Deviation — the spread of a window around its mean, the square root of the rolling variance.
 
     The square root of the rolling :func:`variance_rolling` — a measure of how widely the values in each window
     spread around their mean, in the same units as the input:
@@ -532,7 +532,7 @@ def time_series_forecast(
     window: int,
 ) -> pl.Expr:
     r"""
-    Time Series Forecast (the rolling least-squares line extrapolated one bar ahead).
+    Time Series Forecast (TSF) — the rolling least-squares line projected one bar past the window.
 
     The ordinary-least-squares line fitted to the last ``window`` observations, evaluated one bar beyond the window --
     a one-step-ahead projection of the fitted trend:
@@ -616,7 +616,7 @@ def variance_ewma(
     bias: bool = True,
 ) -> pl.Expr:
     r"""
-    Exponentially-Weighted Variance over a window.
+    Exponentially-Weighted Variance — the exponentially-weighted mean squared deviation from the EW mean.
 
     The exponentially-weighted variance of the input around its exponentially-weighted mean — recent observations
     weighted more heavily, with the smoothing factor :math:`\alpha = 2 / (\text{window} + 1)` (the same span convention
@@ -710,7 +710,7 @@ def variance_rolling(
     ddof: int = 0,
 ) -> pl.Expr:
     r"""
-    Rolling Variance over a window.
+    Rolling Variance — the mean squared deviation of a window's values from their window mean.
 
     The mean squared deviation of the values in each window from their window mean — a measure of dispersion in
     squared units of the input:

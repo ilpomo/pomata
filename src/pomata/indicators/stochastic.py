@@ -37,7 +37,7 @@ def stochastic_fast(
     window_d: int,
 ) -> pl.Expr:
     r"""
-    Fast Stochastic Oscillator (%K and %D).
+    Fast Stochastic Oscillator (%K and %D) — the close within its recent high-low range, with %D the SMA of %K.
 
     Introduced by George Lane in the late 1950s: a bounded momentum oscillator that locates the close within its recent
     high-low range. The raw line %K is the close as a percentage of the ``window_k`` range, and the signal line %D is
@@ -167,7 +167,7 @@ def stochastic_slow(
     window_d: int,
 ) -> pl.Expr:
     r"""
-    Slow Stochastic Oscillator (%K and %D).
+    Slow Stochastic Oscillator (%K and %D) — the raw range position smoothed once into %K, then again into %D.
 
     The smoothed form of :func:`stochastic_fast`: the raw %K is averaged once to give the slow %K (which damps the noise
     of the fast line), then averaged again to give the slow %D signal:

@@ -96,7 +96,7 @@ def parabolic_sar(
     maximum: float = 0.20,
 ) -> pl.Expr:
     r"""
-    Parabolic SAR (Stop And Reverse).
+    Parabolic SAR (Stop And Reverse) — a trailing stop that accelerates toward the extreme and reverses on a cross.
 
     Introduced by J. Welles Wilder (1978): a trend-following stop that trails price, tightening as a trend extends and
     flipping to the other side when price crosses it. Each bar the stop steps a fraction — the acceleration factor --
@@ -286,7 +286,7 @@ def supertrend(
     multiplier: float = 3.0,
 ) -> pl.Expr:
     r"""
-    SuperTrend.
+    SuperTrend — an ATR-scaled band around the median price, ratcheted into a stop that flips on a close cross.
 
     Introduced by Olivier Seban: an ATR-scaled trailing band that follows price on one side and flips to the other when
     a close crosses it, so the line reads as a dynamic stop and the sign of its move as the prevailing trend. Each bar

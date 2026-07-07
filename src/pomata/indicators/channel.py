@@ -133,7 +133,7 @@ def ichimoku(
     window_senkou: int,
 ) -> pl.Expr:
     r"""
-    Ichimoku Kinkō Hyō (Ichimoku Cloud).
+    Ichimoku Kinkō Hyō (Ichimoku Cloud) — rolling high-low midpoints over three horizons: two lines and the cloud.
 
     Introduced by Goichi Hosoda: a one-glance equilibrium chart built from rolling midpoints of the high-low range over
     three horizons. The conversion line (*tenkan-sen*) and base line (*kijun-sen*) are short and medium midpoints, and

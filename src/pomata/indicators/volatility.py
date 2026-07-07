@@ -163,7 +163,7 @@ def atr_normalized(
     window: int,
 ) -> pl.Expr:
     r"""
-    Normalized Average True Range (NATR).
+    Normalized Average True Range (NATR) — the ATR as a percentage of the current close.
 
     The :func:`atr` expressed as a percentage of the current close, so volatility is comparable across instruments and
     price levels (unlike the raw ATR, which is in price units). With the ATR over the same ``window``:
