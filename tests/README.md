@@ -97,8 +97,11 @@ matching behaviour, and the self-check proves the declaration is true of the cod
 
 - **`SKIPPED`** *(reducing only)* — the `null` is dropped from the reduction; the scalar is exactly what it would be if
   the `null` were absent. *e.g. `sharpe_ratio`, `value_at_risk`.*
-- **`PROPAGATES`** *(elementwise)* — the `null` nulls at most its own output row (and a fixed lag); the output recovers
-  immediately after. A pointwise map. *e.g. `price_average`, `mom`, `returns_simple`.*
+- **`ABSORBED`** *(elementwise)* — the pointwise computation **skips** the `null` candidate entirely: no output row
+  is nulled at all. *e.g. `true_range` (its `max_horizontal` drops the null leg).*
+- **`PROPAGATES`** *(elementwise)* — the `null` nulls at most its own output row (and a fixed lag), never zero rows
+  and never a window; the output recovers immediately after. A pointwise map. *e.g. `price_average`, `mom`,
+  `returns_simple`.*
 - **`IN_WINDOW_IS_NULL`** *(elementwise)* — a single `null` nulls **every rolling window that overlaps it** — about
   `window` rows — then the output recovers. *e.g. `sma`, `rsi_stochastic`, `value_at_risk_rolling`.*
 - **`BRIDGED`** *(elementwise)* — a **recursion steps over** the `null`: its state carries across the gap, so later

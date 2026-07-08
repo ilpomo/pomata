@@ -19,6 +19,7 @@ from pomata._expr import (
     validate_finite,
     validate_periods_per_year,
     validate_positive,
+    validate_unit_fraction,
     validate_window,
     validate_window_order,
 )
@@ -139,3 +140,15 @@ def test_validate_confidence() -> None:
         validate_confidence(0.0)
     with pytest.raises(ValueError, match=r"confidence must be in the open interval \(0, 1\), got 1.0"):
         validate_confidence(1.0)
+
+
+def test_validate_unit_fraction() -> None:
+    """A unit-fraction weight must lie in the half-open interval ``(0, 1]``: zero and ``NaN`` fail, one passes."""
+    validate_unit_fraction(1.0, "acceleration")
+    validate_unit_fraction(0.02, "acceleration")
+    with pytest.raises(ValueError, match=r"acceleration must be in the half-open interval \(0, 1\], got 0.0"):
+        validate_unit_fraction(0.0, "acceleration")
+    with pytest.raises(ValueError, match=r"acceleration must be in the half-open interval \(0, 1\], got 1.5"):
+        validate_unit_fraction(1.5, "acceleration")
+    with pytest.raises(ValueError, match=r"acceleration must be in the half-open interval \(0, 1\], got nan"):
+        validate_unit_fraction(math.nan, "acceleration")

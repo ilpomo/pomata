@@ -14,7 +14,8 @@ class NullPolicy(Enum):
     """What an interior ``null`` does to the output (see ``tests/README.md`` for the full definition of each)."""
 
     SKIPPED = "skipped"  # excluded from the reduction; the result is as if the null were absent
-    PROPAGATES = "propagates"  # nulls only its own output row (a pointwise map)
+    ABSORBED = "absorbed"  # the pointwise computation skips the null candidate entirely; no output row is nulled
+    PROPAGATES = "propagates"  # nulls at most its own output row and a one-bar lag (a pointwise map)
     IN_WINDOW_IS_NULL = "in_window_is_null"  # nulls every window that overlaps it, then recovers
     BRIDGED = "bridged"  # a recursion steps over it (state carries), so later rows recover
     LATCHES = "latches"  # contaminates every subsequent row
@@ -98,7 +99,7 @@ POLICIES: dict[str, tuple[NullPolicy, NanPolicy]] = {
     "trend_mode": (NullPolicy.LATCHES, NanPolicy.LATCHES),
     "trima": (NullPolicy.IN_WINDOW_IS_NULL, NanPolicy.PROPAGATES),
     "trix": (NullPolicy.BRIDGED, NanPolicy.LATCHES),
-    "true_range": (NullPolicy.PROPAGATES, NanPolicy.PROPAGATES),
+    "true_range": (NullPolicy.ABSORBED, NanPolicy.PROPAGATES),
     "ultimate_oscillator": (NullPolicy.IN_WINDOW_IS_NULL, NanPolicy.PROPAGATES),
     "variance_ewma": (NullPolicy.BRIDGED, NanPolicy.LATCHES),
     "variance_rolling": (NullPolicy.IN_WINDOW_IS_NULL, NanPolicy.PROPAGATES),

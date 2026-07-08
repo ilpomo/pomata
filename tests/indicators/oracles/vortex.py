@@ -88,6 +88,8 @@ def vortex_reference(
     """
     if window < 1:
         raise ValueError(f"window must be >= 1, got {window}")
+    if not high:
+        return {"plus": [], "minus": []}
     range_sum = _rolling_sum(true_range_reference(high, low, close), window)
     plus_sum = _rolling_sum(_lagged_abs_diff(high, low), window)
     minus_sum = _rolling_sum(_lagged_abs_diff(low, high), window)

@@ -31,6 +31,7 @@ from tests.support import (
     assert_matches,
     assert_scale_homogeneous,
     missing_data_floats,
+    subnormal_safe_floats,
 )
 
 from pomata.indicators import chande_momentum_oscillator
@@ -258,7 +259,7 @@ class TestChandeMomentumOscillatorProperties:
     Invariants that must hold for all inputs (property-based).
     """
 
-    @given(case=_cases(st.floats(min_value=-1e6, max_value=1e6, allow_nan=False, allow_infinity=False)))
+    @given(case=_cases(subnormal_safe_floats(bound=1e6)))
     def test_matches_reference_for_any_input(
         self,
         case: tuple[list[float], int],
@@ -291,7 +292,7 @@ class TestChandeMomentumOscillatorProperties:
         )
 
     @given(
-        case=_cases(st.floats(min_value=-1e6, max_value=1e6, allow_nan=False, allow_infinity=False)),
+        case=_cases(subnormal_safe_floats(bound=1e6)),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
     )
     def test_scale_invariance(
@@ -312,7 +313,7 @@ class TestChandeMomentumOscillatorProperties:
         )
         assert_scale_homogeneous(result_scaled, result_base, k=k, degree=0)
 
-    @given(case=_cases(st.floats(min_value=-1e6, max_value=1e6, allow_nan=False, allow_infinity=False)))
+    @given(case=_cases(subnormal_safe_floats(bound=1e6)))
     def test_bounded(
         self,
         case: tuple[list[float], int],

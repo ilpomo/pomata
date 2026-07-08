@@ -13,6 +13,7 @@ are split into classes; cross-cutting categories use markers.
 """
 
 import math
+from collections.abc import Sequence
 
 import polars as pl
 from hypothesis import assume, given
@@ -27,6 +28,7 @@ from tests.support import (
     RETURNS,
     assert_matches,
     complete_benchmark,
+    input_scale,
     materialize,
     split_pairs,
     subnormal_safe_floats,
@@ -54,6 +56,18 @@ _PAIR_MISSING = st.tuples(_VALUE_MISSING, _VALUE_MISSING)
 def _cases[T](draw: st.DrawFn, pairs: st.SearchStrategy[T], min_size: int = 1) -> list[T]:
     """A list of (return, benchmark) pairs sized from the facts above."""
     return draw(st.lists(pairs, min_size=min_size, max_size=SERIES_MAX))
+
+
+def _legs_commensurate(returns: Sequence[float | None], benchmark: Sequence[float | None]) -> bool:
+    """
+    Whether the two legs' scales sit within twelve orders of magnitude of each other: beyond that the one-pass and
+    two-pass covariances resolve an eps-level cancellation with opposite outcomes (a 7.6e22 against an exact 0), a
+    pure float-conditioning regime no market pair reaches.
+    """
+    scale_returns = input_scale(returns)
+    scale_benchmark = input_scale(benchmark)
+    ratio = max(scale_returns, scale_benchmark) / min(scale_returns, scale_benchmark)
+    return ratio < 1e12
 
 
 class TestBetaContract:
@@ -153,7 +167,7 @@ class TestBetaProperties:
         Verifies that, for any well-conditioned pair of series, the implementation matches the naive reference.
         """
         returns, benchmark = split_pairs(case)
-        assume(well_spread(complete_benchmark(returns, benchmark)))
+        assume(well_spread(complete_benchmark(returns, benchmark)) and _legs_commensurate(returns, benchmark))
         assert_matches(
             materialize({RETURNS: returns, BENCHMARK: benchmark}, beta(pl.col(RETURNS), pl.col(BENCHMARK))),
             [beta_reference(returns, benchmark)],
@@ -168,7 +182,7 @@ class TestBetaProperties:
         reference.
         """
         returns, benchmark = split_pairs(case)
-        assume(well_spread(complete_benchmark(returns, benchmark)))
+        assume(well_spread(complete_benchmark(returns, benchmark)) and _legs_commensurate(returns, benchmark))
         assert_matches(
             materialize({RETURNS: returns, BENCHMARK: benchmark}, beta(pl.col(RETURNS), pl.col(BENCHMARK))),
             [beta_reference(returns, benchmark)],
@@ -184,7 +198,7 @@ class TestBetaProperties:
         floating-point error.
         """
         returns, benchmark = split_pairs(case)
-        assume(well_spread(complete_benchmark(returns, benchmark)))
+        assume(well_spread(complete_benchmark(returns, benchmark)) and _legs_commensurate(returns, benchmark))
         k = 2.0**exponent
         base = materialize({RETURNS: returns, BENCHMARK: benchmark}, beta(pl.col(RETURNS), pl.col(BENCHMARK)))
         scaled = materialize(

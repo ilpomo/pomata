@@ -14,6 +14,7 @@ into classes; cross-cutting categories use markers.
 """
 
 import math
+from collections.abc import Sequence
 
 import polars as pl
 import pytest
@@ -51,6 +52,25 @@ _RISK_FREE = st.sampled_from([0.0, 0.02, 0.05])
 def _cases[T](draw: st.DrawFn, returns: st.SearchStrategy[T], min_size: int = 1) -> list[T]:
     """A return series sized from the facts above."""
     return draw(st.lists(returns, min_size=min_size, max_size=SERIES_MAX))
+
+
+def _bounded_excess_sharpe(values: Sequence[float | None], risk_free_rate: float, periods_per_year: int) -> bool:
+    """
+    Whether the per-period excess Sharpe ratio is bounded (``|SR| < 1e6``): the statistic embeds it, so a near-zero
+    return series against a non-trivial risk-free rate drives the excess to a near-constant whose sub-ULP dispersion
+    the one-pass and two-pass paths resolve with opposite signs -- ``well_spread`` guards the returns' own
+    conditioning, not this excess blow-up (the same guard the probabilistic Sharpe tier uses).
+    """
+    finite = [value for value in values if value is not None and not math.isnan(value)]
+    if len(finite) < 2:
+        return True
+    rf_period = math.pow(1.0 + risk_free_rate, 1.0 / periods_per_year) - 1.0
+    excess = [value - rf_period for value in finite]
+    mean = sum(excess) / len(excess)
+    variance = sum((value - mean) ** 2 for value in excess) / (len(excess) - 1)
+    if variance == 0.0:
+        return False
+    return abs(mean) / math.sqrt(variance) < 1e6
 
 
 class TestAdjustedSharpeRatioContract:
@@ -153,7 +173,7 @@ class TestAdjustedSharpeRatioProperties:
         """
         Verifies that, for any well-conditioned return series, the implementation matches the naive reference.
         """
-        assume(well_spread(case))
+        assume(well_spread(case) and _bounded_excess_sharpe(case, risk_free, periods))
         assert_matches(
             apply_expr(
                 case, adjusted_sharpe_ratio(pl.col(COLUMN_X), periods_per_year=periods, risk_free_rate=risk_free)
@@ -171,7 +191,7 @@ class TestAdjustedSharpeRatioProperties:
         Verifies that, for well-conditioned inputs freely mixing null / NaN / finite, the implementation matches the
         naive reference.
         """
-        assume(well_spread(case))
+        assume(well_spread(case) and _bounded_excess_sharpe(case, risk_free, periods))
         assert_matches(
             apply_expr(
                 case, adjusted_sharpe_ratio(pl.col(COLUMN_X), periods_per_year=periods, risk_free_rate=risk_free)

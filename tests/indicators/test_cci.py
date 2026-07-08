@@ -12,7 +12,7 @@ from collections.abc import Sequence
 
 import polars as pl
 import pytest
-from hypothesis import given
+from hypothesis import assume, given
 from hypothesis import strategies as st
 from tests.indicators.oracles import cci_reference
 from tests.support import (
@@ -31,6 +31,7 @@ from tests.support import (
     count_leading_nulls,
     materialize,
     split_triples,
+    windows_well_spread,
 )
 
 from pomata.indicators import cci
@@ -302,6 +303,27 @@ class TestCciCorrectness:
         )
 
 
+def _typical_windows_spread(
+    high: Sequence[float | None],
+    low: Sequence[float | None],
+    close: Sequence[float | None],
+    window: int,
+) -> bool:
+    """
+    Whether every window of the typical price is well spread: CCI divides by ``0.015`` times the window's mean
+    absolute deviation, so a near-flat (non-bit-identical) window puts an eps-level denominator under the quotient
+    and the one-pass and two-pass paths round it apart without bound -- the same conditioning idiom the standardized
+    moments guard with, applied to the typical price the statistic actually consumes.
+    """
+    typical = [
+        None
+        if value_high is None or value_low is None or value_close is None
+        else (value_high + value_low + value_close) / 3.0
+        for value_high, value_low, value_close in zip(high, low, close, strict=True)
+    ]
+    return windows_well_spread(typical, window)
+
+
 class TestCciProperties:
     """
     Invariants that must hold for all inputs (property-based).
@@ -318,6 +340,7 @@ class TestCciProperties:
         """
         rows, window = case
         high_values, low_values, close_values = split_triples(rows)
+        assume(_typical_windows_spread(high_values, low_values, close_values, window))
         assert_matches(
             apply_cci(high_values, low_values, close_values, window),
             cci_reference(high_values, low_values, close_values, window),
@@ -335,6 +358,7 @@ class TestCciProperties:
         """
         rows, window = case
         high, low, close = split_triples(rows)
+        assume(_typical_windows_spread(high, low, close, window))
         assert_matches(
             apply_cci(high, low, close, window),
             cci_reference(high, low, close, window),

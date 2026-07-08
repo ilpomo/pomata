@@ -28,10 +28,14 @@ def _materialize(factory: Callable[..., pl.Expr], series: list[float | None]) ->
     return frame.select(factory(*positional, **keywords).alias("y"))
 
 
-def _values(result: pl.DataFrame) -> list[float | None]:
-    """The output column as a flat list, unnesting a struct's first field so struct and series read alike."""
-    column = result.unnest("y").to_series(0) if isinstance(result.schema["y"], pl.Struct) else result["y"]
-    return column.to_list()
+def _field_lists(result: pl.DataFrame) -> list[list[float | None]]:
+    """Every output column as its own list — all of a struct's fields, in field order — so no field escapes a
+    per-field contract (a partition leak in a non-first struct field must fail exactly like one in the first).
+    """
+    if isinstance(result.schema["y"], pl.Struct):
+        fields = result.unnest("y")
+        return [fields[column].to_list() for column in fields.columns]
+    return [result["y"].to_list()]
 
 
 def _observe(factory: Callable[..., pl.Expr]) -> str:
@@ -95,13 +99,16 @@ def assert_over_partitions(factory: Callable[..., pl.Expr]) -> None:
             COLUMN_X: pl.Series(COLUMN_X, _GROUP_A + _GROUP_B, dtype=pl.Float64),
         }
     )
-    grouped = _values(frame.select(factory(*positional, **keywords).over(GROUP_KEY).alias("y")))
-    alone_a, alone_b = _values(_materialize(factory, _GROUP_A)), _values(_materialize(factory, _GROUP_B))
-    if _observe(factory) == "reducing":
-        expected = alone_a * len(_GROUP_A) + alone_b * len(_GROUP_B)
-    else:
-        expected = alone_a + alone_b
-    assert_matches(grouped, expected)
+    grouped = _field_lists(frame.select(factory(*positional, **keywords).over(GROUP_KEY).alias("y")))
+    alone_a = _field_lists(_materialize(factory, _GROUP_A))
+    alone_b = _field_lists(_materialize(factory, _GROUP_B))
+    reducing = _observe(factory) == "reducing"
+    for grouped_field, alone_field_a, alone_field_b in zip(grouped, alone_a, alone_b, strict=True):
+        if reducing:
+            expected = alone_field_a * len(_GROUP_A) + alone_field_b * len(_GROUP_B)
+        else:
+            expected = alone_field_a + alone_field_b
+        assert_matches(grouped_field, expected)
 
 
 def assert_all_null(factory: Callable[..., pl.Expr]) -> None:

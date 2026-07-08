@@ -77,6 +77,8 @@ def _beta_nondegenerate(returns: Sequence[float | None], benchmark: Sequence[flo
         and not math.isnan(value_returns)
         and not math.isnan(value_benchmark)
     ]
+    if not well_spread([value_returns for value_returns, _ in pairs]):
+        return False  # a (near-)constant returns leg makes the two-pass slope pure rounding noise (F-class residue)
     if len(pairs) < 2:
         return True
     complete_returns = [value for value, _ in pairs]
