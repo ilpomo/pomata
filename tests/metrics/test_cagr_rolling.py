@@ -13,6 +13,8 @@ frozen golden master), and properties (reference agreement for any input and und
 into classes; cross-cutting categories use markers.
 """
 
+import math
+
 import polars as pl
 import pytest
 from hypothesis import given
@@ -120,6 +122,16 @@ class TestCagrRollingEdge:
         assert_matches(
             apply_expr(values, cagr_rolling(pl.col(COLUMN_X), 3, periods_per_year=PERIODS)),
             cagr_rolling_reference(values, 3, PERIODS),
+        )
+
+    def test_window_crossing_zero_is_nan(self) -> None:
+        """
+        Verifies that a window whose endpoint ratio is non-positive (the equity crossed or touched zero) is out of
+        the geometric-growth domain, so that window is a loud ``NaN`` while clean windows stay defined.
+        """
+        assert_matches(
+            apply_expr([1.0, -0.5, 0.8, 1.2], cagr_rolling(pl.col(COLUMN_X), 2, periods_per_year=1)),
+            [None, math.nan, math.nan, 0.5],
         )
 
 

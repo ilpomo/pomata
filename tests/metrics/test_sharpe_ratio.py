@@ -91,7 +91,8 @@ class TestSharpeRatioEdge:
         Verifies that a constant series has zero dispersion with a positive mean, so the ratio is ``+inf``.
         """
         assert_matches(
-            apply_expr([0.5, 0.5, 0.5, 0.5], sharpe_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS)), [math.inf]
+            apply_expr([0.01, 0.01, 0.01, 0.01], sharpe_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS)),
+            [math.inf],
         )
 
     def test_null_skipped(self) -> None:

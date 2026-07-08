@@ -125,6 +125,16 @@ documents this limit in the affected indicators rather than papering over it, an
 unconditional — the Chande momentum oscillator, the money flow index, Chaikin money flow — to that bound, so an
 out-of-domain input degrades in precision rather than escaping the range.
 
+Two places close this limit outright rather than documenting it. The rolling skewness and kurtosis recompute any
+window at residue risk exactly (a fresh two-pass mean-centered moment wherever a value two-plus orders of magnitude
+above the window's own scale has already slid out), so one bad tick can no longer poison every later window. And the
+reducing dispersions pin an exactly-constant series to exactly zero, so the ratios built on them (Sharpe and its
+family, the information ratio's tracking error) degenerate to the documented signed infinity instead of a
+residue-driven huge finite. The windowed win / loss ratios (the Chande momentum oscillator, the rolling omega) keep
+the documented dynamic-range limit above instead: their sliding sums are guarded exactly at the bit-constant edge and
+clamped where the output is bounded, and the residue regime needs a spread tens of orders of magnitude beyond any
+market series.
+
 A related caveat applies wherever an output cancels toward zero, not only to one family: the squaring statistics
 (variance, standard deviation, Bollinger bands) as their near-constant-window output approaches zero, and equally any
 mean or sum (an SMA over a window straddling large values of either sign, the price transforms) at a near-zero result.
