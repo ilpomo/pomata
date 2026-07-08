@@ -223,6 +223,36 @@ class TestSupertrendCorrectness:
                     abs_tol=input_scale(close) * EXACT_TOLERANCE_FACTOR,
                 )
 
+    def test_band_reset_after_close_above_upper(self) -> None:
+        """
+        Verifies the upper-band reset half of the carry rule (``previous_close > final_upper`` re-anchors the band):
+        an explosive rally rides above the upper band, so on the crash that follows the band must re-anchor to the
+        basic band instead of flipping against a stale level on every bar -- pinned against the non-mirror reference,
+        which implements the canonical rule independently.
+        """
+        high = [10.0 * 1.08**i for i in range(25)] + [10.0 * 1.08**24 * 0.90**i for i in range(1, 15)]
+        low = [value * 0.985 for value in high]
+        close = [value * 0.999 for value in high]
+        bands = apply_supertrend(high, low, close, 3, multiplier=0.5)
+        reference = supertrend_reference(high, low, close, 3, 0.5)
+        for field in FIELDS:
+            assert_matches(
+                bands[field],
+                reference[field],
+                rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+                abs_tol=input_scale(close) * EXACT_TOLERANCE_FACTOR,
+            )
+
+    def test_lower_band_exact_touch_stays_up(self) -> None:
+        """
+        Verifies the tie convention on an exact lower-band touch in an uptrend: the flip requires a STRICT break
+        (``close < final_lower``), so a close exactly ON the carried band holds the trend -- the mirror of the
+        upper-band touch, on dyadic values so the equality is exact.
+        """
+        bands = apply_supertrend([11.0, 13.0, 12.5], [9.0, 11.0, 10.5], [10.5, 12.0, 11.375], 1, multiplier=0.25)
+        assert_matches(bands["line"], [9.5, 11.375, 11.375])
+        assert_matches(bands["direction"], [1.0, 1.0, 1.0])
+
     def test_golden_master_uptrend_then_flip(self) -> None:
         """
         Verifies the frozen reference, hand-derived for ``window = 3``, ``multiplier = 2.0`` over a rising series that

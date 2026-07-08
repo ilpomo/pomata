@@ -174,6 +174,15 @@ class TestEmaEdge:
         values = [2.0, 4.0, None, 8.0, 10.0, 12.0]
         assert_matches(apply_expr(values, ema(pl.col(COLUMN_X), 3)), ema_reference(values, 3))
 
+    def test_interior_null_after_seed_bridged(self) -> None:
+        """
+        Verifies the gap-aware renormalization on a ``null`` strictly AFTER the seed: the recursion must carry its
+        state across the gap with the documented ``(1 - alpha) ** k`` decay, pinned deterministically against the
+        closed-form reference (a pre-seed gap alone leaves this branch to the property tier's chance).
+        """
+        values = [2.0, 4.0, 6.0, None, 8.0, 10.0]
+        assert_matches(apply_expr(values, ema(pl.col(COLUMN_X), 3)), ema_reference(values, 3))
+
     def test_nan_latches(self) -> None:
         """
         Verifies that a ``NaN`` latches into the recursion and poisons every subsequent value.

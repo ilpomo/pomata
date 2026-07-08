@@ -8,12 +8,14 @@ silently loosen or tighten the property tiers, and the ladder's ordering encodes
 import math
 
 from tests.support import (
+    ABSOLUTE_TOLERANCE_EXACT,
     ABSOLUTE_TOLERANCE_PROPERTY,
     ABSOLUTE_TOLERANCE_REFERENCE,
     ABSOLUTE_TOLERANCE_SCALE,
     ABSOLUTE_TOLERANCE_STREAMING,
     BOUND_MARGIN,
     EXACT_TOLERANCE_FACTOR,
+    RELATIVE_TOLERANCE_EXACT,
     RELATIVE_TOLERANCE_PROPERTY,
     RELATIVE_TOLERANCE_REFERENCE,
     RELATIVE_TOLERANCE_SCALE,
@@ -23,12 +25,14 @@ from tests.support import (
 )
 
 ALL_TOLERANCES = (
+    ABSOLUTE_TOLERANCE_EXACT,
     ABSOLUTE_TOLERANCE_PROPERTY,
     ABSOLUTE_TOLERANCE_REFERENCE,
     ABSOLUTE_TOLERANCE_SCALE,
     ABSOLUTE_TOLERANCE_STREAMING,
     BOUND_MARGIN,
     EXACT_TOLERANCE_FACTOR,
+    RELATIVE_TOLERANCE_EXACT,
     RELATIVE_TOLERANCE_PROPERTY,
     RELATIVE_TOLERANCE_REFERENCE,
     RELATIVE_TOLERANCE_SCALE,
@@ -41,6 +45,14 @@ class TestInputScale:
     """
     ``input_scale`` returns the largest absolute finite value (``1.0`` when there are none).
     """
+
+    def test_infinity_is_not_finite(self) -> None:
+        """
+        Verifies that an ``inf`` never sets the scale: it would size every magnitude-relative tolerance to ``inf``
+        and silently disarm the assert built on it for the whole example.
+        """
+        assert input_scale([1.0, math.inf, 2.0]) == 2.0
+        assert input_scale([-math.inf]) == 1.0
 
     def test_largest_absolute_finite(self) -> None:
         """

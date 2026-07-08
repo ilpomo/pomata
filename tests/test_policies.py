@@ -29,6 +29,10 @@ _FAMILIES = {"indicators": indicators, "pnl": pnl, "metrics": metrics}
 # pipeline -- so the flow read is never taken on an all-null baseline (which would pass a latch check vacuously).
 _SERIES: list[float | None] = [100.0 + 5.0 * math.sin(i) + 0.3 * i for i in range(96)]
 _GAP = 75  # an interior index past the deepest warm-up, with room after it for the recovery / span read
+# A sign-mixed fallback probe for the reducing skip check: the strictly-positive _SERIES leaves every loss-conditioned
+# denominator empty (payoff, omega, kelly, the captures, ...), which made their skip proof permanently vacuous; this
+# series keeps both win and loss legs populated so the proof concludes for them too.
+_SIGNED_SERIES: list[float | None] = [0.02 * math.sin(1.7 * i) + 0.003 for i in range(96)]
 _SPREAD = 3.0  # keeps a coherent bar's high strictly above its low, so a directional movement is never degenerate
 
 
@@ -136,15 +140,16 @@ class _Observation:
         self._nan_runs = [_run(factory, math.nan, target)[0] for target in targets]
 
     def reduction_skips_null(self, factory: Callable[..., pl.Expr]) -> bool:
-        removed, _ = _run(factory, base=[v for i, v in enumerate(_SERIES) if i != _GAP])
-        here, there = self._null_runs[0][0], removed[0]
-        if not (isinstance(here, float) and math.isfinite(here)) or not (
-            isinstance(there, float) and math.isfinite(there)
-        ):
-            return (
-                True  # inconclusive on this frame (e.g. a degenerate denominator); the class-tier contracts verify it
-            )
-        return math.isclose(here, there, rel_tol=1e-9, abs_tol=1e-9)
+        gapped_first = self._null_runs[0][0]
+        for base, precomputed in ((_SERIES, gapped_first), (_SIGNED_SERIES, None)):
+            here = precomputed if precomputed is not None else _run(factory, None, base=base)[0][0]
+            removed, _ = _run(factory, base=[v for i, v in enumerate(base) if i != _GAP])
+            there = removed[0]
+            if (isinstance(here, float) and math.isfinite(here)) and (
+                isinstance(there, float) and math.isfinite(there)
+            ):
+                return math.isclose(here, there, rel_tol=1e-9, abs_tol=1e-9)
+        return True  # inconclusive on both probes (a genuinely degenerate regime); the class-tier contracts verify it
 
     @property
     def reduction_poisons_on_nan(self) -> bool:
@@ -213,7 +218,9 @@ def test_declared_policy_matches_actual_behaviour(name: str) -> None:
         if null_policy is NullPolicy.IN_WINDOW_IS_NULL:
             assert span >= 2, f"{name}: declares IN_WINDOW_IS_NULL but a null spans only {span} row(s)"
         elif null_policy is NullPolicy.PROPAGATES:
-            assert span <= 2, f"{name}: declares PROPAGATES but a null spans {span} rows (windowed?)"
+            assert 1 <= span <= 2, f"{name}: declares PROPAGATES but a null spans {span} rows (absorbed? windowed?)"
+        elif null_policy is NullPolicy.ABSORBED:
+            assert span == 0, f"{name}: declares ABSORBED but a null spans {span} row(s)"
 
     if nan_policy is NanPolicy.LATCHES:
         assert not observation.nan_recovers, f"{name}: declares nan LATCHES but the output recovers"

@@ -8,7 +8,7 @@ that blurred the ``null`` / ``NaN`` / finite distinction would silently weaken t
 import math
 
 import pytest
-from tests.support import assert_matches
+from tests.support import assert_matches, assert_scale_homogeneous
 
 
 class TestAssertMatches:
@@ -71,3 +71,30 @@ class TestAssertMatches:
         assert_matches([-math.inf], [-math.inf])
         with pytest.raises(AssertionError):
             assert_matches([-math.inf], [math.inf])
+
+
+class TestAssertScaleHomogeneous:
+    """
+    ``assert_scale_homogeneous`` checks element-wise degree-``degree`` homogeneity with a magnitude-sized floor.
+    """
+
+    def test_passes_on_exact_homogeneity(self) -> None:
+        """
+        Verifies that an exactly rescaled output (including ``None`` and matching infinities) passes.
+        """
+        assert_scale_homogeneous([None, 2.0, 4.0, math.inf], [None, 1.0, 2.0, math.inf], k=2.0, degree=1)
+
+    def test_fails_out_of_band(self) -> None:
+        """
+        Verifies that a value off the rescaling relation fails.
+        """
+        with pytest.raises(AssertionError):
+            assert_scale_homogeneous([2.0, 5.0], [1.0, 2.0], k=2.0, degree=1)
+
+    def test_infinite_base_row_does_not_disarm(self) -> None:
+        """
+        Verifies that an ``inf`` in the base output cannot size the absolute floor to ``inf`` and silently pass every
+        other (wholly wrong) row of the example.
+        """
+        with pytest.raises(AssertionError):
+            assert_scale_homogeneous([math.inf, 999999.0, -42.0], [math.inf, 2.0, 3.0], k=2.0, degree=1)

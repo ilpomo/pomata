@@ -102,5 +102,5 @@ def fisher_transform_reference(
         smoothed = max(-0.999, min(0.999, smoothed))
         transform = 0.5 * math.log((1.0 + smoothed) / (1.0 - smoothed)) + 0.5 * transform
         fisher.append(transform)
-    signal: list[float | None] = [None, *fisher[:-1]]
+    signal: list[float | None] = [None, *fisher[:-1]] if fisher else []
     return {"fisher": fisher, "signal": signal}

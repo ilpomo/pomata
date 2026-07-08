@@ -91,7 +91,7 @@ def input_scale(values: Sequence[float | None]) -> float:
     Returns:
         The maximum absolute finite value, or ``1.0`` if ``values`` holds no finite numbers.
     """
-    finite = [abs(value) for value in values if isinstance(value, float) and not math.isnan(value)]
+    finite = [abs(value) for value in values if isinstance(value, float) and math.isfinite(value)]
     return max(finite, default=1.0)
 
 

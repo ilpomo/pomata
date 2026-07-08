@@ -66,6 +66,25 @@ def _complete_returns(returns: Sequence[float | None], benchmark: Sequence[float
     return [x for x, y in zip(returns, benchmark, strict=True) if x is not None and y is not None]
 
 
+def _bounded_excess_sharpe(values: Sequence[float | None], risk_free_rate: float, periods_per_year: int) -> bool:
+    """
+    Whether the per-period excess Sharpe ratio is bounded (``|SR| < 1e6``): the statistic embeds it, so a near-zero
+    return series against a non-trivial risk-free rate drives the excess to a near-constant whose sub-ULP dispersion
+    the one-pass and two-pass paths resolve with opposite signs -- ``well_spread`` guards the returns' own
+    conditioning, not this excess blow-up (the same guard the probabilistic Sharpe tier uses).
+    """
+    finite = [value for value in values if value is not None and not math.isnan(value)]
+    if len(finite) < 2:
+        return True
+    rf_period = math.pow(1.0 + risk_free_rate, 1.0 / periods_per_year) - 1.0
+    excess = [value - rf_period for value in finite]
+    mean = sum(excess) / len(excess)
+    variance = sum((value - mean) ** 2 for value in excess) / (len(excess) - 1)
+    if variance == 0.0:
+        return False
+    return abs(mean) / math.sqrt(variance) < 1e6
+
+
 class TestModiglianiRiskAdjustedPerformanceContract:
     """
     Type, shape, and lazy/eager guarantees.
@@ -200,7 +219,10 @@ class TestModiglianiRiskAdjustedPerformanceProperties:
         Verifies that, for any well-conditioned pair of series, the implementation matches the naive reference.
         """
         returns, benchmark = split_pairs(case)
-        assume(well_spread(_complete_returns(returns, benchmark)))
+        assume(
+            well_spread(_complete_returns(returns, benchmark))
+            and _bounded_excess_sharpe(_complete_returns(returns, benchmark), risk_free, periods)
+        )
         assert_matches(
             materialize(
                 {RETURNS: returns, BENCHMARK: benchmark},
@@ -222,7 +244,10 @@ class TestModiglianiRiskAdjustedPerformanceProperties:
         reference.
         """
         returns, benchmark = split_pairs(case)
-        assume(well_spread(_complete_returns(returns, benchmark)))
+        assume(
+            well_spread(_complete_returns(returns, benchmark))
+            and _bounded_excess_sharpe(_complete_returns(returns, benchmark), risk_free, periods)
+        )
         assert_matches(
             materialize(
                 {RETURNS: returns, BENCHMARK: benchmark},
@@ -244,7 +269,10 @@ class TestModiglianiRiskAdjustedPerformanceProperties:
         ratio scaled by the benchmark :func:`volatility`, computed as separate metrics.
         """
         returns, benchmark = split_pairs(case)
-        assume(well_spread(_complete_returns(returns, benchmark)))
+        assume(
+            well_spread(_complete_returns(returns, benchmark))
+            and _bounded_excess_sharpe(_complete_returns(returns, benchmark), risk_free, periods)
+        )
         composed = risk_free + sharpe_ratio(
             pl.col(RETURNS), periods_per_year=periods, risk_free_rate=risk_free
         ) * volatility(pl.col(BENCHMARK), periods_per_year=periods)

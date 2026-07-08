@@ -37,6 +37,7 @@ _RESERVED_NULL = {
     "test_null_skipped": NullPolicy.SKIPPED,
     "test_null_propagates": NullPolicy.PROPAGATES,
     "test_null_in_window_is_null": NullPolicy.IN_WINDOW_IS_NULL,
+    "test_null_absorbed": NullPolicy.ABSORBED,
     "test_null_bridged": NullPolicy.BRIDGED,
     "test_null_latches": NullPolicy.LATCHES,
 }
