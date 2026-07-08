@@ -1,0 +1,81 @@
+name: Labels
+
+# Fail-closed guard for the label-driven changelog: .github/release.yml groups the generated release notes
+# by the PR's type label, so every PR must carry exactly one type label and it must mirror the
+# conventional-commit title prefix -- the title stays the single source of truth, the label just makes it
+# machine-readable, and this guard keeps the two from drifting. It re-runs on label and title edits so a
+# late relabel or retitle is re-checked, and on ready_for_review so a promoted draft gets its verdict.
+# No checkout and no third-party actions: the job reads only the event payload GitHub already provides.
+on:
+  pull_request:
+    types: [opened, edited, labeled, unlabeled, synchronize, ready_for_review]
+
+# The job reads only the event payload on disk; it needs no API scope at all.
+permissions: {}
+
+# One in-flight check per PR: a rapid label/title edit burst only needs the last verdict.
+concurrency:
+  group: labels-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  coherence:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # The payload is read with jq from $GITHUB_EVENT_PATH -- never interpolated into the script via
+      # ${{ }} -- so a crafted title or body cannot inject into the shell.
+      - name: "Guard: type label mirrors the conventional-commit prefix"
+        run: |
+          title=$(jq -r '.pull_request.title' "$GITHUB_EVENT_PATH")
+          body=$(jq -r '.pull_request.body // ""' "$GITHUB_EVENT_PATH")
+          labels=$(jq -r '.pull_request.labels[].name' "$GITHUB_EVENT_PATH")
+
+          fail() { echo "::error::$1"; exit 1; }
+          has_label() { grep -Fxq "$1" <<< "$labels"; }
+
+          types="feat fix perf docs refactor style test build ci chore"
+
+          # 1. The title must carry a valid conventional-commit prefix: type(scope)!: subject.
+          if [[ ! "$title" =~ ^([a-z]+)(\(([a-z0-9_,-]+)\))?(!)?:\  ]]; then
+            fail "title lacks a conventional-commit prefix (type(scope): subject): '$title'"
+          fi
+          prefix="${BASH_REMATCH[1]}"
+          scope="${BASH_REMATCH[3]}"
+          bang="${BASH_REMATCH[4]}"
+          known=false
+          for t in $types; do [[ "$t" == "$prefix" ]] && known=true; done
+          [[ "$known" == true ]] || fail "unknown conventional-commit type '$prefix' in title"
+
+          # 2. Exactly one type label, equal to the prefix. A PR labeled `dependencies` (dependabot) files
+          #    under the Dependencies section regardless of type, so it satisfies the requirement as-is.
+          present=""
+          for t in $types; do has_label "$t" && present="$present $t"; done
+          present="${present# }"
+          count=$(wc -w <<< "$present")
+          if ! has_label dependencies || [[ "$count" -gt 0 ]]; then
+            [[ "$count" -eq 1 ]] || fail "exactly one type label is required, got: ${present:-none}"
+            [[ "$present" == "$prefix" ]] || fail "type label '$present' does not match the title prefix '$prefix'"
+          fi
+
+          # 3. A breaking marker requires the `breaking` label, so the release notes' leading section can
+          #    never miss one. Only explicit markers count -- a `!` in the title, a bold **BREAKING**, or
+          #    the conventional-commits BREAKING(-| )CHANGE footer -- so prose that merely mentions the
+          #    word (e.g. this very rule described in a PR body) does not trip the guard.
+          if [[ -n "$bang" ]] || grep -qE '\*\*BREAKING\*\*|BREAKING CHANGE|BREAKING-CHANGE' <<< "$body"; then
+            has_label breaking || fail "title/body marks this PR breaking but the 'breaking' label is missing"
+          fi
+
+          # 4. A family scope in the title requires its area label, so triage filters stay complete.
+          for area in indicators metrics pnl; do
+            if [[ ",$scope," == *",$area,"* ]]; then
+              has_label "$area" || fail "scope '($scope)' requires the '$area' area label"
+            fi
+          done
+
+          echo "label coherence OK: type='$prefix' scope='${scope:-—}' breaking='${bang:+yes}'"

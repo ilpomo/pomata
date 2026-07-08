@@ -1,21 +1,40 @@
-# Groups GitHub's automatically generated release notes by triage label.
+# Groups GitHub's automatically generated release notes by the PR's type label (which mirrors the
+# conventional-commit title prefix 1:1; .github/workflows/labels.yml enforces the pairing fail-closed).
+# A PR lands in the FIRST category whose label matches, so the order is load-bearing: `Breaking changes`
+# leads (docs/versioning.md promises breaking changes are called out first), and `Dependencies` outranks
+# the type labels so a dependabot bump (labeled `dependencies` + typed `build`) files under Dependencies.
+# `Other` is a safety net that should stay empty; anything appearing there is a labeling bug.
 changelog:
   exclude:
     labels:
       - ignore-for-release
   categories:
-    - title: Features
+    - title: Breaking changes
       labels:
-        - enhancement
-    - title: Bug Fixes
-      labels:
-        - bug
-    - title: Documentation
-      labels:
-        - documentation
+        - breaking
     - title: Dependencies
       labels:
         - dependencies
-    - title: Other Changes
+    - title: Features
+      labels:
+        - feat
+    - title: Bug fixes
+      labels:
+        - fix
+    - title: Performance
+      labels:
+        - perf
+    - title: Documentation
+      labels:
+        - docs
+    - title: Maintenance
+      labels:
+        - refactor
+        - test
+        - build
+        - ci
+        - chore
+        - style
+    - title: Other
       labels:
         - "*"
