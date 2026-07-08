@@ -126,6 +126,20 @@ class TestCaptureUpsideRatioEdge:
             [math.nan],
         )
 
+    def test_return_below_negative_one_is_nan(self) -> None:
+        """
+        Verifies that a selected gross return at or below ``-1`` (a wiped-out leg) is out of the geometric-growth
+        domain, so the result is a loud ``NaN`` (the up-market benchmark leg is positive by construction, so only
+        the returns leg can carry the violation here).
+        """
+        assert_matches(
+            materialize(
+                {RETURNS: [0.02, -1.5, 0.01], BENCHMARK: [0.01, 0.02, 0.03]},
+                capture_upside_ratio(pl.col(RETURNS), pl.col(BENCHMARK), periods_per_year=PERIODS),
+            ),
+            [math.nan],
+        )
+
 
 class TestCaptureUpsideRatioCorrectness:
     """

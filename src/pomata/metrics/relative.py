@@ -17,7 +17,7 @@ import polars as pl
 
 from pomata._expr import float64_expr, per_period_rate, validate_finite, validate_periods_per_year, validate_window
 from pomata.metrics.ratio import sharpe_ratio
-from pomata.metrics.risk import volatility
+from pomata.metrics.risk import volatility, volatility_rolling
 
 __all__ = (
     "alpha",
@@ -125,10 +125,17 @@ def _capture(
     portfolio_growth = (1.0 + returns_leg).product() ** (periods_per_year / count) - 1.0
     benchmark_growth = (1.0 + benchmark_leg).product() ** (periods_per_year / count) - 1.0
     poisoned = (returns.is_nan() | benchmark.is_nan()).any()
+    # Domain: the geometric (compounded) growth is defined only while every selected gross return 1 + r stays
+    # positive — a return at or below -1 wipes the leg out (or worse), and the fractional power of a non-positive
+    # product is meaningless (parity-dependent sign, NaN on most inputs). Out of domain is a loud NaN, never a
+    # plausible wrong number.
+    out_of_domain = ((1.0 + returns_leg) <= 0.0).any() | ((1.0 + benchmark_leg) <= 0.0).any()
     return (
         pl.when(returns.len() < 1)
         .then(None)
         .when(poisoned)
+        .then(float("nan"))
+        .when(out_of_domain)
         .then(float("nan"))
         .when(count < 1)
         .then(None)
@@ -593,6 +600,10 @@ def capture_downside_ratio(
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
         case (missing data and boundaries) is given a defined behavior.
 
+        **Domain** — the compounded (geometric) leg growth is defined only while every selected gross return
+        ``1 + r`` stays positive: a selected return at or below ``-1`` (a wiped-out leg) makes the result a loud
+        ``NaN``.
+
         **Edge-case behavior:**
 
         - **Null** — an observation is used only where both legs are present; a ``null`` in either drops that pair.
@@ -699,6 +710,10 @@ def capture_ratio(
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
         case (missing data and boundaries) is given a defined behavior.
 
+        **Domain** — the compounded (geometric) leg growth is defined only while every selected gross return
+        ``1 + r`` stays positive: a selected return at or below ``-1`` (a wiped-out leg) makes the result a loud
+        ``NaN``.
+
         **Edge-case behavior:**
 
         - **Null** — an observation is used only where both legs are present; a ``null`` in either drops that pair.
@@ -802,6 +817,10 @@ def capture_upside_ratio(
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
         case (missing data and boundaries) is given a defined behavior.
+
+        **Domain** — the compounded (geometric) leg growth is defined only while every selected gross return
+        ``1 + r`` stays positive: a selected return at or below ``-1`` (a wiped-out leg) makes the result a loud
+        ``NaN``.
 
         **Edge-case behavior:**
 
@@ -978,7 +997,9 @@ def information_ratio(
     validate_periods_per_year(periods_per_year)
     returns_paired, benchmark_paired = _paired(returns, benchmark)
     active = returns_paired - benchmark_paired
-    annualized = active.mean() / active.std(ddof=1) * math.sqrt(periods_per_year)
+    # volatility at periods_per_year=1 is the per-period tracking error with the exactly-constant active series
+    # pinned to exactly zero, so the documented "zero tracking error -> +/-inf" contract holds bit-exactly.
+    annualized = active.mean() / volatility(active, periods_per_year=1) * math.sqrt(periods_per_year)
     return pl.when(active.len() < _MINIMUM_PAIRED_OBSERVATIONS).then(None).otherwise(annualized).name.keep()
 
 
@@ -1088,8 +1109,11 @@ def information_ratio_rolling(
     validate_periods_per_year(periods_per_year)
     active = returns - benchmark
     mean_active = active.rolling_mean(window, min_samples=window)
-    tracking_error = active.rolling_std(window, ddof=1, min_samples=window)
-    return mean_active / tracking_error * math.sqrt(periods_per_year)
+    # The guarded rolling volatility core (the same one sharpe_ratio_rolling composes) pins a bit-constant window's
+    # tracking error to exactly zero, so the documented "zero tracking error -> +/-inf" contract holds even after a
+    # much larger active value has slid out of the window (the incremental rolling_std residue regime).
+    tracking_error = volatility_rolling(active, window, periods_per_year=periods_per_year)
+    return (mean_active * periods_per_year / tracking_error).name.keep()
 
 
 def modigliani_risk_adjusted_performance(

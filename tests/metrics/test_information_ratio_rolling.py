@@ -159,6 +159,20 @@ class TestInformationRatioRollingEdge:
             information_ratio_rolling_reference(returns, benchmark, 3, PERIODS),
         )
 
+    def test_constant_window_by_slide_is_inf(self) -> None:
+        """
+        Verifies that a window left bit-constant once a much larger active value slides out has an exactly-zero
+        tracking error, so the ratio degenerates to the documented ``inf`` -- not the plausible finite the raw
+        incremental ``rolling_std`` residue would fake.
+        """
+        result = materialize(
+            {RETURNS: [1_000_000.0, 0.1, 0.1, 0.1, 0.1], BENCHMARK: [0.0, 0.0, 0.0, 0.0, 0.0]},
+            information_ratio_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 3, periods_per_year=PERIODS),
+        )
+        assert result[:2] == [None, None]
+        assert result[3] == math.inf
+        assert result[4] == math.inf
+
 
 class TestInformationRatioRollingCorrectness:
     """

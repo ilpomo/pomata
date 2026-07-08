@@ -617,7 +617,10 @@ def omega_ratio_rolling(
 
     Note:
         **Correctness** -- each window matches an independent reference oracle (the reducing :func:`omega_ratio`
-        recomputed over the window).
+        recomputed over the window) within the documented dynamic range. The clipped means ride Polars' incremental
+        sliding kernel, so a window whose scale sits tens of orders of magnitude below a value that has already slid
+        out can inherit a stale residue -- the float-conditioning limit ``CORRECTNESS.md`` documents for the rolling
+        sums; the bit-constant edge is guarded exactly, and no real market series builds that spread.
 
         **Edge-case behavior:**
 
@@ -878,7 +881,9 @@ def probabilistic_sharpe_ratio(
     validate_finite(risk_free_rate, "risk_free_rate")
     rf_period = per_period_rate(risk_free_rate, periods_per_year, name="risk_free_rate")
     excess = returns - rf_period
-    sharpe = excess.mean() / excess.std(ddof=1)
+    # volatility at periods_per_year=1 is the per-period sample deviation with the exactly-constant series pinned to
+    # exactly zero, so a zero-dispersion excess degenerates to a signed infinity, never a residue-driven huge finite.
+    sharpe = excess.mean() / volatility(excess, periods_per_year=1)
     raw_kurtosis = returns.kurtosis() + 3.0
     observations = returns.drop_nulls().len().cast(pl.Int64)
     standard_error = (1.0 - returns.skew() * sharpe + (raw_kurtosis - 1.0) / 4.0 * sharpe**2).sqrt()

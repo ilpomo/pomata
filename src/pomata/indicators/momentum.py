@@ -761,7 +761,10 @@ def chande_momentum_oscillator(
     Note:
         **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
         any finite input within a sane dynamic range; ``CORRECTNESS.md`` gives the method and the float-conditioning
-        limit beyond it.
+        limit beyond it. For this oscillator the limit is concrete: the windowed gain / loss sums ride Polars'
+        incremental sliding kernel, so a window whose scale sits tens of orders of magnitude below a value that has
+        already slid out can inherit a stale residue; the clamp keeps the output inside ``[-100, 100]``, and no real
+        market series builds that spread.
 
         **Edge-case behavior:**
 

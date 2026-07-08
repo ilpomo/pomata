@@ -39,6 +39,9 @@ __all__ = (
     "win_rate",
 )
 
+# The smallest number of observations a sample (ddof = 1) standard deviation is defined over.
+_MINIMUM_SAMPLE_OBSERVATIONS = 2
+
 
 def _rolling_moment(
     expr: pl.Expr,
@@ -53,21 +56,71 @@ def _rolling_moment(
     stable on a *near*-constant (non-bit-identical) window far from zero, where the one-pass raw-moment form
     (``E[x^k]`` less the mean terms) cancels catastrophically. Those two native kernels panic on a length-0 series
     (unlike ``rolling_var`` / ``rolling_std``), and a ``pl.when`` length guard cannot prevent it (both branches
-    evaluate), so the empty case is short-circuited inside a thin ``map_batches`` wrapper -- one call around a native
-    Rust kernel, faster than the four rolling passes a one-pass moment would need. A *bit*-constant window has zero
-    variance, so the standardized moment is ``0 / 0`` = ``NaN``; the native incremental kernel can instead leave a
-    residue -- a spuriously huge finite -- once a much larger value exits the window (a window constant only by
-    sliding), so a constant or NaN-bearing window is forced to ``NaN`` explicitly, mirroring :func:`volatility_rolling`.
-    The population (biased) convention matches the reducing :func:`skewness` / :func:`kurtosis`, and warm-up,
-    ``null``-in-window, and ``NaN`` propagation follow the native rolling policy.
+    evaluate), so the empty case is short-circuited inside a thin ``map_batches`` wrapper.
+
+    The native kernels are *incremental*: their running sums carry every value that ever passed through the window,
+    so once a value much larger than the current window's scale exits, the sums keep a stale residue and every later
+    window's moment is silently wrong -- permanently, not just on the exit bar (one bad tick in a returns column is
+    enough). The wrapper therefore tracks the largest magnitude seen so far against each window's own scale (a
+    monotonic-deque sliding maximum, O(n)) and recomputes the windows at risk exactly, with a fresh two-pass
+    mean-centered moment; clean series never leave the native fast path. A *bit*-constant window has zero variance,
+    so the standardized moment is ``0 / 0`` = ``NaN``; that and the NaN-bearing window are still forced explicitly,
+    mirroring :func:`volatility_rolling`. The population (biased) convention matches the reducing :func:`skewness` /
+    :func:`kurtosis`, and warm-up, ``null``-in-window, and ``NaN`` propagation follow the native rolling policy.
     """
+
+    def _exact(values: list[float | None]) -> float | None:
+        if any(value is None for value in values):
+            return None
+        observations = [value for value in values if value is not None]
+        if any(not math.isfinite(value) for value in observations):
+            return math.nan
+        mean = math.fsum(observations) / len(observations)
+        centered = [value - mean for value in observations]
+        second = math.fsum(delta**2 for delta in centered) / len(observations)
+        if second == 0.0:
+            return math.nan
+        if kind == "skew":
+            third = math.fsum(delta**3 for delta in centered) / len(observations)
+            return third / math.pow(second, 1.5)
+        fourth = math.fsum(delta**4 for delta in centered) / len(observations)
+        return fourth / (second * second) - 3.0
 
     def _kernel(series: pl.Series) -> pl.Series:
         if series.len() == 0:
             return pl.Series(series.name, [], dtype=pl.Float64)
         if kind == "skew":
-            return series.rolling_skew(window_size=window, bias=True)
-        return series.rolling_kurtosis(window_size=window, fisher=True, bias=True)
+            native = series.rolling_skew(window_size=window, bias=True)
+        else:
+            native = series.rolling_kurtosis(window_size=window, fisher=True, bias=True)
+        values = series.to_list()
+        result = native.to_list()
+        # Sliding maximum of |x| over the trailing window via a monotonic deque (O(n)); prefix_scale tracks the
+        # largest magnitude the incremental sums have ever absorbed. A window whose own scale sits two-plus orders
+        # below that prefix is at residue risk (the onset measured against the reducing oracle is ~200x) and is
+        # recomputed exactly; everything else keeps the native result untouched.
+        deque_indices: list[int] = []
+        prefix_scale = 0.0
+        for index, value in enumerate(values):
+            magnitude = abs(value) if value is not None and math.isfinite(value) else 0.0
+            prefix_scale = max(prefix_scale, magnitude)
+            while deque_indices and deque_indices[0] <= index - window:
+                deque_indices.pop(0)
+            while deque_indices:
+                tail = values[deque_indices[-1]]
+                tail_magnitude = abs(tail) if tail is not None and math.isfinite(tail) else 0.0
+                if tail_magnitude <= magnitude:
+                    deque_indices.pop()
+                else:
+                    break
+            deque_indices.append(index)
+            if index < window - 1:
+                continue
+            head = values[deque_indices[0]]
+            window_scale = abs(head) if head is not None and math.isfinite(head) else 0.0
+            if prefix_scale > window_scale * 1e2:
+                result[index] = _exact(values[index - window + 1 : index + 1])
+        return pl.Series(series.name, result, dtype=pl.Float64)
 
     moment = expr.map_batches(_kernel, return_dtype=pl.Float64)
     # A NaN window stays NaN; a bit-constant window has zero variance, so the standardized moment is 0/0 -> NaN. The
@@ -131,6 +184,29 @@ def _rolling_downside_deviation(
     no_downside = shortfall.rolling_min(window, min_samples=window) == 0.0
     safe_mean_square = pl.when(no_downside).then(0.0).otherwise(mean_square).clip(lower_bound=0.0)
     return safe_mean_square.sqrt() * math.sqrt(periods_per_year)
+
+
+def _dispersion(
+    expr: pl.Expr,
+) -> pl.Expr:
+    """
+    The sample standard deviation with an exactly-constant series pinned to exactly ``0.0``.
+
+    ``std(ddof=1)`` of a bit-identical series is mathematically zero, but the chunked mean can round a non-dyadic
+    constant (e.g. ``0.01``) a few ULP away from its own values, leaving a ~1e-18 residue that a downstream ratio then
+    amplifies into a spuriously huge finite instead of the documented ``+/-inf``. Pin the constant case — two or more
+    observations, no ``NaN``, one distinct non-null value — to exactly zero; a single observation keeps the native
+    ``null`` (the sample deviation is undefined) and a ``NaN`` keeps poisoning through the native path. The core of
+    :func:`volatility`, through which (at ``periods_per_year=1``) every ratio whose zero-dispersion contract is a
+    signed infinity — the Sharpe family's denominator, the probabilistic Sharpe's inner Sharpe, the information
+    ratio's tracking error — reaches the same pinning.
+    """
+    constant = (
+        (expr.count() >= _MINIMUM_SAMPLE_OBSERVATIONS)
+        & expr.is_nan().any().not_()
+        & (expr.drop_nulls().n_unique() == 1)
+    )
+    return pl.when(constant).then(0.0).otherwise(expr.std(ddof=1))
 
 
 def conditional_value_at_risk(
@@ -1532,6 +1608,11 @@ def value_at_risk_modified(
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
         case (missing data and boundaries) is given a defined behavior.
 
+        **Domain** — the one-term Cornish-Fisher expansion is valid only where its quantile map is order-preserving:
+        locally monotonic at the requested quantile, and with the corrected quantile on the same side of the median
+        as the Gaussian one. Tail moments outside that region make the corrected number statistically meaningless
+        (it can even flip sign, reporting a crash-bearing series as a gain), so the result is a loud ``NaN``.
+
         **Edge-case behavior:**
 
         - **Null** — a ``null`` return is skipped (excluded from every moment).
@@ -1610,7 +1691,23 @@ def value_at_risk_modified(
         + (z**3 - 3.0 * z) / 24.0 * excess_kurtosis
         - (2.0 * z**3 - 5.0 * z) / 36.0 * skew**2
     )
-    return returns.mean() + z_cornish_fisher * returns.std(ddof=1)
+    # Validity domain, two order-preservation requirements of the one-term expansion: (a) the quantile map stays
+    # locally monotonic at the requested quantile — d(z_cf)/dz = 1 + z*S/3 + (z^2 - 1)*K/8 - (6*z^2 - 5)*S^2/36 > 0 —
+    # and (b) the corrected quantile stays on its own side of the median (z_cf and z agree in sign): a tail moment
+    # extreme enough to push the alpha-quantile across the median has left the expansion's validity region, and the
+    # corrected number can even flip sign, reporting a crash-bearing series as a GAIN. Outside the domain the result
+    # is a loud NaN, never a plausible wrong number. A NaN-poisoned skew/kurtosis fails both comparisons and falls
+    # through to the (already NaN) estimate, preserving the poison contract.
+    slope = 1.0 + z * skew / 3.0 + (z**2 - 1.0) / 8.0 * excess_kurtosis - (6.0 * z**2 - 5.0) / 36.0 * skew**2
+    estimate = returns.mean() + z_cornish_fisher * returns.std(ddof=1)
+    return (
+        pl.when(slope <= 0.0)
+        .then(pl.lit(float("nan")))
+        .when(z_cornish_fisher * z < 0.0)
+        .then(pl.lit(float("nan")))
+        .otherwise(estimate)
+        .name.keep()
+    )
 
 
 def value_at_risk_parametric(
@@ -1660,7 +1757,7 @@ def value_at_risk_parametric(
 
     See Also:
         - :func:`value_at_risk`: The historical (empirical) form.
-        - :func:`value_at_risk_modified`: The skewness/kurtosis-corrected form.
+        - :func:`value_at_risk_modified`: The skewness/kurtosis-corrected form (within its documented validity domain).
         - :func:`conditional_value_at_risk`: The expected shortfall beyond the VaR threshold.
 
     References:
@@ -1880,7 +1977,9 @@ def volatility(
     """
     returns = float64_expr(returns)
     validate_periods_per_year(periods_per_year)
-    return returns.std(ddof=1) * math.sqrt(periods_per_year)
+    # The constant series is pinned to exactly 0.0 (not the chunked-mean ULP residue), so a ratio dividing by this
+    # volatility degenerates to the documented signed infinity rather than a spuriously huge finite.
+    return (_dispersion(returns) * math.sqrt(periods_per_year)).name.keep()
 
 
 def volatility_rolling(

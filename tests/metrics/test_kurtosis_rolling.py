@@ -146,6 +146,20 @@ class TestKurtosisRollingEdge:
             rel_tol=RELATIVE_TOLERANCE_REFERENCE,
         )
 
+    def test_outlier_exit_matches_reference(self) -> None:
+        """
+        Verifies that every window after a much larger value has slid out -- the regime where the incremental native
+        kernel keeps a stale residue in its running sums -- is recomputed exactly and matches the fresh per-window
+        reference, including a ``null``, a ``NaN``, and a bit-constant stretch inside that regime.
+        """
+        values = [5000.0, 0.013, -0.008, 0.011, 0.005, -0.012, 0.009, None, 0.007, -0.004, 0.010, 0.006]
+        values += [math.nan, 0.008, -0.009, 0.012, 0.5, 0.5, 0.5, 0.5, 0.5, 0.005, -0.007, 0.011]
+        assert_matches(
+            apply_expr(values, kurtosis_rolling(pl.col(COLUMN_X), 5)),
+            kurtosis_rolling_reference(values, 5),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+        )
+
 
 class TestKurtosisRollingCorrectness:
     """

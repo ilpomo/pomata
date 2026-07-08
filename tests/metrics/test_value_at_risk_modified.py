@@ -111,6 +111,16 @@ class TestValueAtRiskModifiedEdge:
         values = [0.01, math.nan, -0.02, 0.03]
         assert_matches(apply_expr(values, value_at_risk_modified(pl.col(COLUMN_X), confidence=CONFIDENCE)), [math.nan])
 
+    def test_out_of_domain_is_nan(self) -> None:
+        """
+        Verifies both validity-domain violations of the one-term Cornish-Fisher expansion: a non-monotonic quantile
+        map at the requested quantile, and tail moments extreme enough to push the alpha-quantile across the median
+        (where the corrected number can even flip sign) -- each is a loud ``NaN``.
+        """
+        assert_matches(apply_expr([1.0, -1.0, -1.0, -1.0], value_at_risk_modified(pl.col(COLUMN_X))), [math.nan])
+        assert_matches(apply_expr([0.0] * 12 + [1.0], value_at_risk_modified(pl.col(COLUMN_X))), [math.nan])
+        assert_matches(apply_expr([-1.0, 1.0] + [0.0] * 198, value_at_risk_modified(pl.col(COLUMN_X))), [math.nan])
+
 
 class TestValueAtRiskModifiedCorrectness:
     """

@@ -49,6 +49,10 @@ def cagr(
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
         case (missing data and boundaries) is given a defined behavior.
 
+        **Domain** — the geometric growth rate is defined only on a positive terminal equity: a curve whose last
+        defined value is ``<= 0`` has no fractional-power growth (the raw power would be parity-dependent garbage),
+        so the result is a loud ``NaN``.
+
         **Edge-case behavior:**
 
         - **Null** — ``null`` equities are skipped; the rate uses the last defined equity and the count of defined
@@ -98,7 +102,17 @@ def cagr(
     validate_periods_per_year(periods_per_year)
     defined = equity_curve.drop_nulls()
     growth = defined.last() ** (periods_per_year / defined.count()) - 1
-    return pl.when(equity_curve.is_nan().any()).then(pl.lit(float("nan"))).otherwise(growth).name.keep()
+    # Domain: the fractional power is defined only on a positive terminal equity. A wiped-out (or sign-flipped)
+    # curve has no geometric growth rate — the raw power would be parity-dependent garbage (a plausible finite for
+    # integer-valued exponents, NaN otherwise) — so out of domain is a loud NaN, never a plausible wrong number.
+    return (
+        pl.when(equity_curve.is_nan().any())
+        .then(pl.lit(float("nan")))
+        .when(defined.last() <= 0.0)
+        .then(pl.lit(float("nan")))
+        .otherwise(growth)
+        .name.keep()
+    )
 
 
 def cagr_rolling(
@@ -135,6 +149,9 @@ def cagr_rolling(
 
     Note:
         **Correctness** -- each window matches an independent reference oracle (the endpoint ratio annualized).
+
+        **Domain** — the geometric growth rate is defined only on a positive endpoint ratio: a window whose equity
+        crossed or touched zero has no fractional-power growth, so that window is a loud ``NaN``.
 
         **Edge-case behavior:**
 
@@ -180,7 +197,15 @@ def cagr_rolling(
     equity_curve = float64_expr(equity_curve)
     validate_window(window, minimum=2)
     validate_periods_per_year(periods_per_year)
-    return (equity_curve / equity_curve.shift(window - 1)) ** (periods_per_year / (window - 1)) - 1.0
+    ratio = equity_curve / equity_curve.shift(window - 1)
+    # Domain: the fractional power is defined only on a positive endpoint ratio (see cagr) — a window whose equity
+    # crossed or touched zero has no geometric growth rate, so that window is a loud NaN.
+    return (
+        pl.when(ratio <= 0.0)
+        .then(pl.lit(float("nan")))
+        .otherwise(ratio ** (periods_per_year / (window - 1)) - 1.0)
+        .name.keep()
+    )
 
 
 def stability(

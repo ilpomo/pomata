@@ -15,6 +15,9 @@ def value_at_risk_modified_reference(returns: Sequence[float | None], confidence
     ``mean + z_cf * std`` (sample ``std``, ``ddof = 1``), recomputed from scratch as the oracle for
     :func:`pomata.metrics.value_at_risk_modified`. ``None`` returns are skipped; with fewer than two the result is
     ``None``; a ``nan`` anywhere poisons it to ``nan``; zero dispersion (undefined skew/kurtosis) yields ``nan``.
+    Out of the expansion's validity domain — a non-monotonic quantile map at ``z``, or a corrected quantile pushed
+    across the median (``z_cf`` and ``z`` disagreeing in sign) — the estimate is ``nan``, mirroring the documented
+    domain contract.
     """
     observations = [value for value in returns if value is not None]
     if len(observations) < 2:
@@ -38,4 +41,7 @@ def value_at_risk_modified_reference(returns: Sequence[float | None], confidence
         + (z**3 - 3.0 * z) / 24.0 * excess_kurtosis
         - (2.0 * z**3 - 5.0 * z) / 36.0 * skewness**2
     )
+    slope = 1.0 + z * skewness / 3.0 + (z**2 - 1.0) / 8.0 * excess_kurtosis - (6.0 * z**2 - 5.0) / 36.0 * skewness**2
+    if slope <= 0.0 or z_cornish_fisher * z < 0.0:
+        return math.nan
     return mean + z_cornish_fisher * deviation

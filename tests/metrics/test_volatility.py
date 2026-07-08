@@ -114,7 +114,7 @@ class TestVolatilityEdge:
         Verifies that a constant return series has zero dispersion, so the volatility is ``0``.
         """
         assert_matches(
-            apply_expr([0.01, 0.01, 0.01, 0.01], volatility(pl.col(COLUMN_X), periods_per_year=PERIODS).round(10)),
+            apply_expr([0.01, 0.01, 0.01, 0.01], volatility(pl.col(COLUMN_X), periods_per_year=PERIODS)),
             [0.0],
         )
 

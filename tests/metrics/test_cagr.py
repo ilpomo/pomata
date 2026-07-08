@@ -97,6 +97,14 @@ class TestCagrEdge:
             rel_tol=RELATIVE_TOLERANCE_REFERENCE,
         )
 
+    def test_non_positive_terminal_equity_is_nan(self) -> None:
+        """
+        Verifies that a non-positive terminal equity is out of the geometric-growth domain, so the result is a loud
+        ``NaN`` -- never the parity-dependent value a fractional power of a negative base would fake.
+        """
+        assert_matches(apply_expr([1.0, 0.5, -0.2], cagr(pl.col(COLUMN_X), periods_per_year=PERIODS)), [math.nan])
+        assert_matches(apply_expr([1.0, 0.5, 0.0], cagr(pl.col(COLUMN_X), periods_per_year=PERIODS)), [math.nan])
+
 
 class TestCagrCorrectness:
     """
