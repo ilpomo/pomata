@@ -606,7 +606,8 @@ def omega_ratio_rolling(
     Args:
         returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         window: Number of observations in the moving window. Must be ``>= 1``.
-        threshold: The return level separating gains from losses / the minimum acceptable return (default ``0.0``).
+        threshold: The **per-period** return level separating gains from losses / the minimum acceptable return
+            (default ``0.0``); an annual target must be de-annualized by the caller before it is passed.
             Must be finite.
 
     Returns:

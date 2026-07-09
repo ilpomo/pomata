@@ -1816,7 +1816,8 @@ def value_at_risk_rolling(
     Args:
         returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         window: Number of observations in the moving window. Must be ``>= 1``.
-        confidence: The tail confidence level in the open interval ``(0, 1)`` (canonically ``0.95``).
+        confidence: The tail confidence level in the open interval ``(0, 1)`` (canonically ``0.95``); the quantile
+            taken is ``1 - confidence``.
 
     Returns:
         The rolling value-at-risk for each row, the same length as the input. The first ``window - 1`` rows are ``null``

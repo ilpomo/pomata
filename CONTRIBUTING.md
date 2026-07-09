@@ -78,10 +78,14 @@ conventional-commit subject.
 
 ## Releases and labels
 
-Releases use GitHub's native release notes: tag a SemVer version and **Generate release notes**, which group the
-merged pull requests by **label** (see `.github/release.yml`) — `enhancement` → Features, `bug` → Bug Fixes,
-`documentation` → Documentation, and so on. Apply the matching triage label to each pull request. Labels are for
-triage and grouping; they do not classify the change *type* — that is the conventional-commit prefix's job.
+Every pull request carries exactly one **type** label mirroring its conventional-commit title prefix 1:1 (`feat`,
+`fix`, `perf`, `docs`, `refactor`, `style`, `test`, `build`, `ci`, `chore` — plus `breaking` whenever the title
+carries `!`), enforced fail-closed by `.github/workflows/labels.yml`; the **area** labels (`indicators` / `metrics` /
+`pnl`) mirror the title scope and are triage-only. Releases use GitHub's native release notes: tag a SemVer version
+and **Generate release notes**, which `.github/release.yml` groups by those type labels — breaking changes first,
+Dependabot under `dependencies`. Publish only once the release checklist is complete (the `CITATION.cff` version bump
+already merged on `main`): Zenodo archives the release the moment it is published, independently of CI, and its
+records are immutable — a delete-and-recreate leaves a duplicate archive behind.
 
 ## Conventions
 
