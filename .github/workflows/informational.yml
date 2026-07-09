@@ -49,9 +49,9 @@ jobs:
         run: uv run pytest -m differential
 
   # Prove the declared dependency floor: resolve the LOWEST versions the constraints allow (ignoring the lockfile) and
-  # run the suite, so `polars>=1.40.0` stays a tested promise. Pinned to Python 3.12 -- the floor release predates the
-  # 3.14 wheels. An un-pinned transitive release could break the lowest-direct resolution; it shows red here to
-  # investigate rather than blocking a merge.
+  # run the suite, so the declared `polars` floor stays a tested promise. Pinned to Python 3.12 -- the floor release
+  # predates the 3.14 wheels. An un-pinned transitive release could break the lowest-direct resolution; it shows red
+  # here to investigate rather than blocking a merge.
   dependency-floor:
     runs-on: ubuntu-latest
     timeout-minutes: 20

@@ -3,9 +3,9 @@ Naive reference implementations — the correctness oracles, one module per prim
 
 Each function recomputes one PnL primitive from scratch in plain Python, sharing no code with the Polars implementation
 it checks, so agreement between the two is evidence of correctness rather than coincidence. They target the semantics of
-Polars 1.40.0 (the project's floor); each docstring states the definition, the subtle points the reimplementation
-must reproduce, and its null / NaN / degeneracy contract. This package re-exports them flat, mirroring ``pomata.pnl``:
-``from tests.pnl.oracles import returns_simple_reference``.
+the project's Polars floor (declared in ``pyproject.toml``); each docstring states the definition, the subtle points the
+reimplementation must reproduce, and its null / NaN / degeneracy contract. This package re-exports them flat, mirroring
+``pomata.pnl``: ``from tests.pnl.oracles import returns_simple_reference``.
 """
 
 from tests.pnl.oracles.cost_borrow import cost_borrow_reference
