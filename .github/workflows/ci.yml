@@ -16,7 +16,9 @@ permissions:
 # Cancel superseded in-flight runs of the same PR/branch to save runner minutes (head_ref groups PR runs by source
 # branch; ref covers push events on main).
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  # The PR number (not head_ref) keys pull-request runs: two forks sharing a branch name (e.g. patch-1) must not
+  # cancel each other's in-flight runs; pushes to main key by ref as before.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 # bash on every runner (including Windows) so any future multi-command step stays portable.

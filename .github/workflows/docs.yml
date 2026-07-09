@@ -19,12 +19,12 @@ on:
 permissions:
   contents: read
 
-# Per-ref concurrency: cancel a superseded PR docs build (as ci.yml does), but never cancel a non-PR run -- the
-# workflow-level cancel would otherwise kill an in-flight Pages deploy (carried by the scheduled / dispatched publish),
-# which the deploy job's own `pages` queue cannot prevent (that queue guards deploys against each other, not against
-# the parent run's cancellation). So PR builds supersede; main / scheduled / dispatched runs serialize.
+# Concurrency: cancel a superseded PR docs build (keyed by PR number, so same-named fork branches never collide),
+# and keep every other trigger in its own per-event lane -- a queued nightly publish must not be replaced by a later
+# push-to-main run (GitHub keeps at most one pending run per group), and a workflow-level cancel must never kill an
+# in-flight Pages deploy. Within one lane, runs serialize; the deploy job's own `pages` queue guards actual deploys.
 concurrency:
-  group: Docs-${{ github.head_ref || github.ref }}
+  group: Docs-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 defaults:

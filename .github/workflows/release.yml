@@ -44,6 +44,15 @@ jobs:
         with:
           fetch-depth: 0 # hatch-vcs reads the tag history to stamp the version
           persist-credentials: false
+      # Fail closed before building anything: the tag must point at a commit already on main (i.e. one that went
+      # through the gated merge path -- a tag on a stray commit publishes nothing), and CITATION.cff must carry the
+      # tag's version so the citation metadata can never ship one release stale again.
+      - name: "Guard: tag is on main and CITATION.cff matches it"
+        run: |
+          git fetch --no-tags --quiet origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main || { echo "::error::release tag is not on main"; exit 1; }
+          version="${GITHUB_REF_NAME#v}"
+          grep -q "^version: ${version}$" CITATION.cff || { echo "::error::CITATION.cff version does not match tag ${version}"; exit 1; }
       - name: "Setup: install uv"
         uses: ./.github/actions/setup
         with:
