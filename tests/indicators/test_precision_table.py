@@ -1,12 +1,12 @@
 """
-Pins the precision figures published in ``README.md`` to the suite, so they cannot silently drift or become
+Pins the precision figures published in ``docs/trust.md`` to the suite, so they cannot silently drift or become
 unreproducible.
 
-Builds the deterministic 400-bar OHLC series the README quotes (closed-form, no RNG, so the figures regenerate from a
-fresh clone), and for every indicator in the table checks two things: the final value still equals the published figure,
-and it agrees with the independent reference oracle to the precision promise. This is the single source of truth for the
-series; ``scripts/precision_table.py`` imports it to regenerate the full table, including the TA-Lib column (which needs
-the optional ``differential`` dependency and is verified separately by the differential checks).
+Builds the deterministic 400-bar OHLC series the trust page quotes (closed-form, no RNG, so the figures regenerate from
+a fresh clone), and for every indicator in the table checks two things: the final value still equals the published
+figure, and it agrees with the independent reference oracle to the precision promise. This is the single source of truth
+for the series; ``scripts/precision_table.py`` imports it to regenerate the full table, including the TA-Lib column
+(which needs the optional ``differential`` dependency and is verified separately by the differential checks).
 """
 
 import math

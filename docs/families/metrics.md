@@ -74,8 +74,8 @@ Performance measured against a benchmark — what the strategy added, and how mu
 {py:func}`~pomata.metrics.information_ratio_rolling`
 
 The family in one query — the strategy tracks its benchmark closely (`beta` just above one), adds a genuinely
-positive residual (`alpha`, annualized), earns it consistently (`information_ratio`), and compounds more than twice
-the benchmark's growth (`capture_ratio`):
+positive residual (`alpha`, annualized), earns it consistently (`information_ratio`), and captures about twice as
+much of the benchmark's upside as of its downside (`capture_ratio`):
 
 ```{doctest}
 >>> import polars as pl

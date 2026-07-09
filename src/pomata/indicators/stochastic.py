@@ -93,7 +93,8 @@ def stochastic_fast(
           and ``+/-inf`` when it lies outside it (a malformed bar whose close sits outside its own high-low range;
           a gap on well-formed bars cannot produce it).
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so no window spans series
-          boundaries, e.g. ``stochastic_fast(pl.col("high"), pl.col("low"), pl.col("close")).over("ticker")``.
+          boundaries, e.g. ``stochastic_fast(pl.col("high"), pl.col("low"), pl.col("close"), window_k=14,
+          window_d=3).over("ticker")``.
 
     See Also:
         - :func:`stochastic_slow`: The slow variant, %K smoothed once more before %D.
@@ -226,7 +227,8 @@ def stochastic_slow(
           raw %K is ``0 / 0 = NaN`` when the close sits on that flat level (``+/-inf`` when it lies outside it), which
           then propagates through both averages.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so no window spans series
-          boundaries, e.g. ``stochastic_slow(pl.col("high"), pl.col("low"), pl.col("close")).over("ticker")``.
+          boundaries, e.g. ``stochastic_slow(pl.col("high"), pl.col("low"), pl.col("close"), window_k=14,
+          window_slowing=3, window_d=3).over("ticker")``.
 
     See Also:
         - :func:`stochastic_fast`: The unsmoothed variant, whose raw %K this smooths.
