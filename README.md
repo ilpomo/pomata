@@ -1,5 +1,7 @@
 # pomata
 
+[![PyPI](https://img.shields.io/pypi/v/pomata?style=flat-square&label=PyPI&color=0073B7)](https://pypi.org/project/pomata/)
+[![docs](https://img.shields.io/badge/docs-ilpomo.github.io%2Fpomata-0075CA?style=flat-square)](https://ilpomo.github.io/pomata)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20980041.svg)](https://doi.org/10.5281/zenodo.20980041)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/13392/badge)](https://www.bestpractices.dev/projects/13392)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/ilpomo/pomata/badge)](https://securityscorecards.dev/viewer/?uri=github.com/ilpomo/pomata)
@@ -15,10 +17,8 @@
 ![Linux](https://img.shields.io/badge/Linux-505050?style=flat-square&logo=linux&logoColor=white)
 ![macOS](https://img.shields.io/badge/macOS-505050?style=flat-square&logo=apple&logoColor=white)
 ![Windows](https://custom-icon-badges.demolab.com/badge/Windows-505050.svg?style=flat-square&logo=windows11&logoColor=white)
-[![PyPI](https://img.shields.io/pypi/v/pomata?style=flat-square&label=PyPI&color=0073B7)](https://pypi.org/project/pomata/)
-[![docs](https://img.shields.io/badge/docs-ilpomo.github.io%2Fpomata-0075CA?style=flat-square)](https://ilpomo.github.io/pomata)
 [![python](https://img.shields.io/badge/python-3.12%20|%203.13%20|%203.14-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/downloads/)
-[![Polars](https://img.shields.io/badge/Polars-%E2%89%A51.40-CD792C?style=flat-square)](https://pola.rs)
+[![Polars](https://img.shields.io/badge/Polars-%E2%89%A51.39-CD792C?style=flat-square)](https://pola.rs)
 
 **A Polars-native quant toolkit — technical indicators, PnL accounting, and performance & risk metrics.** Each is a
 composable `pl.Expr`, so an entire study is one lazy Polars pipeline, from price to performance.
