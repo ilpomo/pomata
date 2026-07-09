@@ -65,7 +65,7 @@ The `.shift(1)` is the whole no-look-ahead story: a signal computed at the close
 - **{doc}`trust`** — what pomata tests, and the precision it is confident to guarantee.
 - **The families** — {doc}`indicators <families/indicators>` · {doc}`pnl <families/pnl>` · {doc}`metrics <families/metrics>`: the catalogs, and how `pomata` solves the classic pains.
 - **{doc}`API reference <api/index>`** — every function, generated from the docstrings.
-- **Guides** — {doc}`faq` · {doc}`troubleshooting` · {doc}`versioning`.
+- **Guides** — {doc}`faq` · {doc}`troubleshooting` · {doc}`versioning` · {doc}`glossary`.
 
 ```{toctree}
 :hidden:
@@ -93,6 +93,7 @@ families/metrics
 faq
 troubleshooting
 versioning
+glossary
 ```
 
 ```{toctree}

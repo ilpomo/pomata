@@ -4,7 +4,8 @@ You have a table of prices and a strategy. You want a single number that says wh
 money — honestly, after costs, without cheating on timing. This walks the whole way there: signal, position, costs,
 equity, metrics, on three real tickers, in one Polars query.
 
-Every block below runs against a small sample of daily bars shipped with these docs, so paste them in order and you get
+Every block below runs against a small sample of daily bars shipped **in the repository** — clone it and run from
+its root (or point `read_parquet` at any OHLCV frame of your own, adjusting the column names). Paste them in order and you get
 exactly the numbers you see.
 
 ## The data, in whatever shape it arrives

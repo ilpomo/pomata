@@ -10,6 +10,8 @@ left a stale ``momentum`` in the indicator list after it was renamed to ``mom``.
 import re
 from pathlib import Path
 
+import pytest
+
 import pomata.indicators
 import pomata.metrics
 import pomata.pnl
@@ -71,3 +73,26 @@ def test_readme_category_counts_match_listing() -> None:
     assert counts, "expected per-category (N) counts in the indicators block"
     for name, declared, listed in counts:
         assert declared == listed, f"indicators category {name!r}: declared {declared}, listed {listed}"
+
+
+_FAMILY_PAGES = {
+    "indicators": (Path(__file__).parent.parent / "docs" / "families" / "indicators.md", pomata.indicators),
+    "metrics": (Path(__file__).parent.parent / "docs" / "families" / "metrics.md", pomata.metrics),
+    "pnl": (Path(__file__).parent.parent / "docs" / "families" / "pnl.md", pomata.pnl),
+}
+
+
+@pytest.mark.parametrize("family", sorted(_FAMILY_PAGES))
+def test_family_page_catalog_matches_all(family: str) -> None:
+    """
+    Verifies the docs-site family page references exactly the public surface: every ``{py:func}`` role on the page
+    resolves to a public name, and every public name appears at least once — the drift guard the hand-written
+    catalogs previously lacked (a stale or misspelled entry passes ``sphinx -W``, whose nitpick mode is off).
+    """
+    page, module = _FAMILY_PAGES[family]
+    text = page.read_text(encoding="utf-8")
+    pattern = r"\{py:func\}`~pomata\." + re.escape(family) + r"\.(\w+)`"
+    referenced = set(re.findall(pattern, text))
+    public = set(module.__all__)
+    assert referenced <= public, f"stale page entries: {sorted(referenced - public)}"
+    assert public <= referenced, f"missing page entries: {sorted(public - referenced)}"

@@ -26,6 +26,48 @@ A quantity of units and a price, for instrument-level booking with contract mult
 {py:func}`~pomata.pnl.cost_notional` · {py:func}`~pomata.pnl.cost_per_share` · {py:func}`~pomata.pnl.cost_borrow` ·
 {py:func}`~pomata.pnl.cost_funding`
 
+The whole flow, end to end — a position built, paid a dividend, and unwound, with per-share and notional fees booked
+on every trade. `quantity` at a row is the position held **over the price change into that row** (decide at the
+close, lag by one — the no-look-ahead note on {py:func}`~pomata.pnl.pnl_gross`), so the entry sits on the second row
+and the entry fees land where the first defined P&L does:
+
+```{doctest}
+>>> import polars as pl
+>>> from pomata.pnl import pnl_gross, dividend, cost_per_share, cost_notional, pnl_net, cumulative_pnl
+>>>
+>>> frame = pl.DataFrame(
+...     {
+...         "quantity": [0.0, 100.0, 150.0, 150.0, 0.0],
+...         "price": [50.0, 51.5, 51.0, 52.5, 52.0],
+...         "dividend_per_share": [0.0, 0.0, 0.4, 0.0, 0.0],
+...     }
+... )
+>>> gross = pnl_gross(pl.col("quantity"), pl.col("price"))
+>>> income = dividend(pl.col("quantity"), pl.col("dividend_per_share"))
+>>> fees = cost_per_share(pl.col("quantity"), fee=0.01) + cost_notional(
+...     pl.col("quantity"), pl.col("price"), rate=0.0005
+... )
+>>> net = pnl_net(gross + income, fees)
+>>> frame.with_columns(net=net.round(2), total=cumulative_pnl(net).round(2))
+shape: (5, 5)
+┌──────────┬───────┬────────────────────┬────────┬────────┐
+│ quantity ┆ price ┆ dividend_per_share ┆ net    ┆ total  │
+│ ---      ┆ ---   ┆ ---                ┆ ---    ┆ ---    │
+│ f64      ┆ f64   ┆ f64                ┆ f64    ┆ f64    │
+╞══════════╪═══════╪════════════════════╪════════╪════════╡
+│ 0.0      ┆ 50.0  ┆ 0.0                ┆ null   ┆ null   │
+│ 100.0    ┆ 51.5  ┆ 0.0                ┆ 146.43 ┆ 146.43 │
+│ 150.0    ┆ 51.0  ┆ 0.4                ┆ -16.77 ┆ 129.65 │
+│ 150.0    ┆ 52.5  ┆ 0.0                ┆ 225.0  ┆ 354.65 │
+│ 0.0      ┆ 52.0  ┆ 0.0                ┆ -5.4   ┆ 349.25 │
+└──────────┴───────┴────────────────────┴────────┴────────┘
+```
+
+Row by row: the entry earns `100 x 1.5 = 150` gross less `1.00` per-share and `2.575` notional fees; the add-on bar
+loses `150 x (-0.5) = -75` but collects the `150 x 0.4 = 60` dividend, less the fees on the 50-share trade; the flat
+bar rides `150 x 1.5` cost-free; the unwind pays only its exit fees on a flat price move. The running ``total`` is
+additive — currency P&L sums, it does not compound.
+
 ## Common pains, solved
 
 ### Gross vs net: the costs that actually bite

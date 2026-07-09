@@ -33,7 +33,8 @@ resamples your data or guesses the frequency, so it has to match the bars you ac
 A `null` is missing data; a `NaN` is a real floating-point value that happens to be "not a number". `pomata` keeps the
 two apart, the way Polars does, because they mean different things: a `null` is a gap to skip or carry across, while a
 `NaN` is a value that propagates and will poison a sum or a reduction it touches. If a metric comes back `NaN`, you
-have a real `NaN` somewhere upstream — not a missing value. [trust](trust.md) spells out the exact rule per function.
+have a real `NaN` somewhere upstream — not a missing value. [trust](trust.md) states the rule per family; each
+function's docstring **Note** spells out its own exact null/NaN contract.
 
 ## Which Python and Polars versions are supported?
 
