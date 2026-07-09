@@ -11,6 +11,10 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
+    # A week of cooldown before a fresh release is proposed: a compromised package published right before the scan
+    # is not pulled in blind (zizmor: dependabot-cooldown).
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 10
     commit-message:
       prefix: "build"
@@ -27,12 +31,19 @@ updates:
         patterns: ["*"]
         update-types: ["minor", "patch"]
 
-  # GitHub Actions pins across .github/workflows. All minor and patch bumps land in one PR; majors arrive ungrouped.
+  # GitHub Actions pins across .github/workflows AND the composite action (its setup-uv pin is invisible to the
+  # default "/" directory, which only scans workflows). All minor and patch bumps land in one PR; majors ungrouped.
   - package-ecosystem: "github-actions"
-    directory: "/"
+    directories:
+      - "/"
+      - "/.github/actions/setup"
     schedule:
       interval: "weekly"
       day: "monday"
+    # A week of cooldown before a fresh release is proposed: a compromised package published right before the scan
+    # is not pulled in blind (zizmor: dependabot-cooldown).
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 10
     commit-message:
       prefix: "build"
@@ -50,6 +61,10 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
+    # A week of cooldown before a fresh release is proposed: a compromised package published right before the scan
+    # is not pulled in blind (zizmor: dependabot-cooldown).
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 10
     commit-message:
       prefix: "build"

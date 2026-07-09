@@ -30,11 +30,11 @@ classifiers = [
     "Typing :: Typed",
 ]
 # Runtime dependencies are kept to the absolute minimum. The polars floor is the oldest release the full suite passes
-# on -- bisected, not guessed: 1.40.0 is green, 1.32.0 fails on the rolling-window API, and the `dependency-floor` job
-# proves the floor on every push to main (`uv sync --resolution lowest-direct`). uv.lock pins the current release for
-# everyday installs.
+# on -- bisected, not guessed: 1.39.0 is green, 1.38.1 fails (a rolling-window value drifts past the suite's bands),
+# and the `dependency-floor` job re-proves the floor on every push to main and nightly
+# (`uv sync --resolution lowest-direct`). uv.lock pins the current release for everyday installs.
 dependencies = [
-    "polars>=1.40.0",
+    "polars>=1.39.0",
 ]
 
 [project.urls]
