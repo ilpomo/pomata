@@ -134,7 +134,8 @@ lives in one argument instead of scattered across your call sites.
 
 ### A single `NaN`, made visible
 
-One bad print in a feed can silently rewrite a metric. `pomata` draws a hard line: a `null` is a gap and is skipped,
+One bad print in a feed can silently rewrite a metric. For the reducing metrics `pomata` draws a hard line: a `null`
+is a gap and is skipped,
 but a non-null `NaN` is corrupt data and poisons the result — so you see the problem instead of a plausible lie.
 
 ```{doctest}

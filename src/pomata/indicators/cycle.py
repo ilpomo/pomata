@@ -28,7 +28,8 @@ __all__ = (
     "trend_mode",
 )
 
-# Per-indicator warm-up: the recursive smoothers settle in ~32 bars; the phase-derived outputs need a further
+# Per-indicator warm-up: the structural minima (TA-Lib's lookbacks) — the recursive smoothers settle in ~32 bars; the
+# phase-derived outputs need a further
 # dominant-cycle look-back of ~31 bars (the running transform / trendline cycle average), hence 63.
 _DIRECT_WARMUP = 32
 _PHASE_WARMUP = 63
@@ -300,9 +301,11 @@ def dominant_cycle_period(
         **Precision** -- the fixed FIR smoothing and quadrature stages are computed independently, but the adaptive
         dominant-cycle period feeds back into its own measurement and the stages built on it, so the reference oracle
         replays Ehlers' pipeline and confirms its internal consistency rather than independence; the independent witness
-        is the set of frozen golden masters (and, for MAMA, TA-Lib parity). Where measurable the oracle agrees to ten
-        significant figures (a ``1e-10`` band) on any finite input within a sane dynamic range, except on a flat or
-        period-two (even-lag) series, where the Hilbert quadrature is a pure cancellation residual and the measurement
+        is the set of frozen golden masters, plus TA-Lib parity on the converged tail (the differential tier compares
+        the whole cycle cluster — every HT_* counterpart plus MAMA — against the C reference). Where measurable the
+        oracle agrees to ten significant figures (a ``1e-10`` band) on any finite input within a sane dynamic
+        range, except on a flat or period-two (even-lag) series, where the Hilbert quadrature is a pure cancellation
+        residual and the measurement
         is ill-conditioned (there is no cycle to measure). ``CORRECTNESS.md`` gives the method and the
         float-conditioning limit beyond it.
 
@@ -361,9 +364,11 @@ def dominant_cycle_phase(
         **Precision** -- the fixed FIR smoothing and quadrature stages are computed independently, but the adaptive
         dominant-cycle period feeds back into its own measurement and the stages built on it, so the reference oracle
         replays Ehlers' pipeline and confirms its internal consistency rather than independence; the independent witness
-        is the set of frozen golden masters (and, for MAMA, TA-Lib parity). Where measurable the oracle agrees to ten
-        significant figures (a ``1e-10`` band) on any finite input within a sane dynamic range, except on a flat or
-        period-two (even-lag) series, where the Hilbert quadrature is a pure cancellation residual and the measurement
+        is the set of frozen golden masters, plus TA-Lib parity on the converged tail (the differential tier compares
+        the whole cycle cluster — every HT_* counterpart plus MAMA — against the C reference). Where measurable the
+        oracle agrees to ten significant figures (a ``1e-10`` band) on any finite input within a sane dynamic
+        range, except on a flat or period-two (even-lag) series, where the Hilbert quadrature is a pure cancellation
+        residual and the measurement
         is ill-conditioned (there is no cycle to measure). ``CORRECTNESS.md`` gives the method and the
         float-conditioning limit beyond it.
 
@@ -430,9 +435,11 @@ def hilbert_phasor(
         **Precision** -- the fixed FIR smoothing and quadrature stages are computed independently, but the adaptive
         dominant-cycle period feeds back into its own measurement and the stages built on it, so the reference oracle
         replays Ehlers' pipeline and confirms its internal consistency rather than independence; the independent witness
-        is the set of frozen golden masters (and, for MAMA, TA-Lib parity). Where measurable the oracle agrees to ten
-        significant figures (a ``1e-10`` band) on any finite input within a sane dynamic range, except on a flat or
-        period-two (even-lag) series, where the Hilbert quadrature is a pure cancellation residual and the measurement
+        is the set of frozen golden masters, plus TA-Lib parity on the converged tail (the differential tier compares
+        the whole cycle cluster — every HT_* counterpart plus MAMA — against the C reference). Where measurable the
+        oracle agrees to ten significant figures (a ``1e-10`` band) on any finite input within a sane dynamic
+        range, except on a flat or period-two (even-lag) series, where the Hilbert quadrature is a pure cancellation
+        residual and the measurement
         is ill-conditioned (there is no cycle to measure). ``CORRECTNESS.md`` gives the method and the
         float-conditioning limit beyond it.
 
@@ -494,9 +501,11 @@ def hilbert_trendline(
         **Precision** -- the fixed FIR smoothing and quadrature stages are computed independently, but the adaptive
         dominant-cycle period feeds back into its own measurement and the stages built on it, so the reference oracle
         replays Ehlers' pipeline and confirms its internal consistency rather than independence; the independent witness
-        is the set of frozen golden masters (and, for MAMA, TA-Lib parity). Where measurable the oracle agrees to ten
-        significant figures (a ``1e-10`` band) on any finite input within a sane dynamic range, except on a flat or
-        period-two (even-lag) series, where the Hilbert quadrature is a pure cancellation residual and the measurement
+        is the set of frozen golden masters, plus TA-Lib parity on the converged tail (the differential tier compares
+        the whole cycle cluster — every HT_* counterpart plus MAMA — against the C reference). Where measurable the
+        oracle agrees to ten significant figures (a ``1e-10`` band) on any finite input within a sane dynamic
+        range, except on a flat or period-two (even-lag) series, where the Hilbert quadrature is a pure cancellation
+        residual and the measurement
         is ill-conditioned (there is no cycle to measure). ``CORRECTNESS.md`` gives the method and the
         float-conditioning limit beyond it.
 
@@ -555,8 +564,10 @@ def mama(
 
     Args:
         expr: Input series, typically a price column (e.g. ``pl.col("close")``).
-        limit_fast: Upper bound on the smoothing constant (a fast cycle). Must be in ``(0, 1]`` and ``>= limit_slow``.
-        limit_slow: Lower bound on the smoothing constant (a slow cycle). Must be in ``(0, 1]``.
+        limit_fast: Upper bound on the smoothing constant (a fast cycle; canonical default ``0.5``). Must be in
+            ``(0, 1]`` and ``>= limit_slow``.
+        limit_slow: Lower bound on the smoothing constant (a slow cycle; canonical default ``0.05``). Must be in
+            ``(0, 1]``.
 
     Returns:
         A struct ``pl.Expr`` with ``Float64`` fields ``mama`` / ``fama``, the same length as ``expr``. The first ``32``
@@ -574,9 +585,11 @@ def mama(
         **Precision** -- the fixed FIR smoothing and quadrature stages are computed independently, but the adaptive
         dominant-cycle period feeds back into its own measurement and the stages built on it, so the reference oracle
         replays Ehlers' pipeline and confirms its internal consistency rather than independence; the independent witness
-        is the set of frozen golden masters (and, for MAMA, TA-Lib parity). Where measurable the oracle agrees to ten
-        significant figures (a ``1e-10`` band) on any finite input within a sane dynamic range, except on a flat or
-        period-two (even-lag) series, where the Hilbert quadrature is a pure cancellation residual and the measurement
+        is the set of frozen golden masters, plus TA-Lib parity on the converged tail (the differential tier compares
+        the whole cycle cluster — every HT_* counterpart plus MAMA — against the C reference). Where measurable the
+        oracle agrees to ten significant figures (a ``1e-10`` band) on any finite input within a sane dynamic
+        range, except on a flat or period-two (even-lag) series, where the Hilbert quadrature is a pure cancellation
+        residual and the measurement
         is ill-conditioned (there is no cycle to measure). ``CORRECTNESS.md`` gives the method and the
         float-conditioning limit beyond it.
 
@@ -656,9 +669,11 @@ def sine_wave(
         **Precision** -- the fixed FIR smoothing and quadrature stages are computed independently, but the adaptive
         dominant-cycle period feeds back into its own measurement and the stages built on it, so the reference oracle
         replays Ehlers' pipeline and confirms its internal consistency rather than independence; the independent witness
-        is the set of frozen golden masters (and, for MAMA, TA-Lib parity). Where measurable the oracle agrees to ten
-        significant figures (a ``1e-10`` band) on any finite input within a sane dynamic range, except on a flat or
-        period-two (even-lag) series, where the Hilbert quadrature is a pure cancellation residual and the measurement
+        is the set of frozen golden masters, plus TA-Lib parity on the converged tail (the differential tier compares
+        the whole cycle cluster — every HT_* counterpart plus MAMA — against the C reference). Where measurable the
+        oracle agrees to ten significant figures (a ``1e-10`` band) on any finite input within a sane dynamic
+        range, except on a flat or period-two (even-lag) series, where the Hilbert quadrature is a pure cancellation
+        residual and the measurement
         is ill-conditioned (there is no cycle to measure). ``CORRECTNESS.md`` gives the method and the
         float-conditioning limit beyond it.
 
@@ -726,9 +741,11 @@ def trend_mode(
         **Precision** -- the fixed FIR smoothing and quadrature stages are computed independently, but the adaptive
         dominant-cycle period feeds back into its own measurement and the stages built on it, so the reference oracle
         replays Ehlers' pipeline and confirms its internal consistency rather than independence; the independent witness
-        is the set of frozen golden masters (and, for MAMA, TA-Lib parity). Where measurable the oracle agrees to ten
-        significant figures (a ``1e-10`` band) on any finite input within a sane dynamic range, except on a flat or
-        period-two (even-lag) series, where the Hilbert quadrature is a pure cancellation residual and the measurement
+        is the set of frozen golden masters, plus TA-Lib parity on the converged tail (the differential tier compares
+        the whole cycle cluster — every HT_* counterpart plus MAMA — against the C reference). Where measurable the
+        oracle agrees to ten significant figures (a ``1e-10`` band) on any finite input within a sane dynamic
+        range, except on a flat or period-two (even-lag) series, where the Hilbert quadrature is a pure cancellation
+        residual and the measurement
         is ill-conditioned (there is no cycle to measure). ``CORRECTNESS.md`` gives the method and the
         float-conditioning limit beyond it.
 

@@ -1416,7 +1416,7 @@ def rsi(
 
     Args:
         expr: Input series, typically a price column (e.g. ``pl.col("close")``).
-        window: Number of observations in the moving window. Must be ``>= 1``.
+        window: Number of observations in the Wilder moving window. Must be ``>= 1``.
 
     Returns:
         The RSI for each row, the same length as ``expr``. The first ``window`` values are ``null`` (warm-up) --
@@ -1440,7 +1440,8 @@ def rsi(
         **Edge-case behavior:**
 
         - **Null** — a leading ``null`` run is skipped: the warm-up counts only non-null observations, so the
-          ``window`` warm-up is measured from the first non-null value. An interior ``null`` yields ``null`` at that row
+          ``window`` warm-up is measured from the first non-null value. An interior ``null`` voids its own row and the
+          next (the one-bar difference reads the missing close twice)
           while the Wilder recursion bridges the gap.
         - **NaN** — a ``NaN`` poisons the recursion and latches ``NaN`` for every subsequent non-warm-up row.
         - **Flat window** — no up and no down move is the indeterminate ``0 / 0`` relative strength, surfaced as
@@ -1558,7 +1559,8 @@ def rsi_stochastic(
         **Edge-case behavior:**
 
         - **Null** — a ``null`` reaching any stage yields ``null`` on the dependent field at that row.
-        - **NaN** — a ``NaN`` propagates, yielding ``NaN``.
+        - **NaN** — a ``NaN`` poisons the underlying Wilder recursion and latches ``NaN`` for every later defined
+          row (the recursion cannot flush it).
         - **Flat RSI** — when the RSI does not move over the look-back (highest equals lowest, e.g. a sustained trend
           pinning the RSI) the denominator is zero, so ``k`` follows IEEE-754: ``0 / 0`` is ``NaN``.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so neither the RSI recursion nor

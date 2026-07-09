@@ -45,7 +45,7 @@ def atr(
         high: High-price series (e.g. ``pl.col("high")``).
         low: Low-price series (e.g. ``pl.col("low")``).
         close: Close-price series (e.g. ``pl.col("close")``); the previous close seeds the two gap terms.
-        window: Number of observations in the moving window. Must be ``>= 1``.
+        window: Number of observations in the Wilder moving window. Must be ``>= 1``.
 
     Returns:
         The ATR for each row, the same length as the inputs. The first ``window - 1`` values are ``null`` (warm-up),
@@ -88,7 +88,8 @@ def atr(
           when every candidate term is ``null`` (e.g. the first bar with both ``high`` and ``low`` null); a ``null``
           true range yields ``null`` at that row while the Wilder recursion preserves its state and bridges the gap.
         - **NaN** — a ``NaN`` in any active term poisons that true range and then the recursion, latching ``NaN`` for
-          every subsequent value.
+          every subsequent value (except at ``window == 1``, where the smoothing is the identity and no recursion
+          exists to latch: the ``NaN`` clears once it leaves the true range's one-bar reach).
         - **window == 1** — the smoothing factor is ``1`` and the warm-up vanishes, so the ATR reproduces the true
           range exactly: the ``max_horizontal``-reduced true range (not a textbook three-term true range whenever a
           candidate term is dropped by a ``null``).
@@ -299,7 +300,8 @@ def bollinger_bands(
         - ``upper`` — the upper band, ``middle + multiplier * sigma``.
 
         Read one band with ``.struct.field("middle")`` (etc.) or split all three into columns with
-        ``.struct.unnest()``. The first ``window - 1`` rows are ``null`` (warm-up).
+        ``.struct.unnest()``. For the first ``window - 1`` rows (warm-up) every field of the struct is ``null`` (the
+        struct row itself stays a valid struct).
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.

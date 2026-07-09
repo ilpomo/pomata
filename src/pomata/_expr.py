@@ -1,8 +1,10 @@
 """
-Shared input-normalization helper for the indicator and pnl factories.
+Shared input-normalization and validation helpers for all three factory families (indicators, metrics, pnl).
 
-A leaf module: it imports only ``polars`` and nothing in the package imports back into it, so it never participates in a
-cycle. Every public factory routes each of its ``pl.Expr`` inputs through :func:`float64_expr` at the top of its body,
+A leaf module: it imports only the standard library and ``polars``, and nothing in the package imports back into it,
+so it never participates in a
+cycle. Every public factory routes each of its ``pl.Expr`` inputs through :func:`float64_expr` — at the top of its
+own body, or transitively through the factory it composes (``max_drawdown`` and friends route via ``drawdown``) —
 which gives the package two guarantees uniformly: a clear, early error when a caller passes a bare column name instead
 of an expression, and a single output dtype (``Float64``) regardless of the input's numeric dtype.
 """
@@ -33,16 +35,18 @@ def float64_expr(
         TypeError: If ``expr`` is not a ``pl.Expr`` (e.g. a bare ``str`` column name was passed).
 
     Note:
-        The cast is a no-op when the input is already ``Float64``. A non-numeric column (e.g. a string column referenced
-        by a valid ``pl.Expr``) still fails later, at collection time, where Polars reports the dtype error.
+        The cast is a no-op when the input is already ``Float64``. Beware that the cast is *permissive*: a temporal,
+        boolean, or numeric-text string column casts silently (a datetime becomes its epoch representation, a Boolean
+        ``0.0`` / ``1.0``) and the factory computes garbage without an error — only a column that cannot cast at all
+        fails at collection time. Point the factories at genuinely numeric columns.
     """
     # Widen to ``object`` so the runtime guard against a caller passing a bare column-name string is a genuine narrowing
     # (not a check the type system deems unnecessary), while the public signature still promises ``pl.Expr``.
     candidate = cast("object", expr)
     if not isinstance(candidate, pl.Expr):
         raise TypeError(
-            f'expected a Polars expression (pl.Expr), got {type(candidate).__name__}; pass pl.col("close"), '
-            f"not a bare column name"
+            f"expected a Polars expression (pl.Expr), got {type(candidate).__name__}; pass a column expression "
+            f'like pl.col("<column>"), not a bare column name'
         )
     return candidate.cast(pl.Float64)
 
@@ -231,7 +235,8 @@ def validate_confidence(
     """
     Validate a tail confidence level lies strictly inside ``(0, 1)``, raising the canonical message on failure.
 
-    Shared by the historical tail-risk metrics (value-at-risk, conditional value-at-risk), so the open-interval bound
+    Shared by the tail metrics (the value-at-risk family — historical, parametric, modified, rolling — the
+    conditional value-at-risk, and the conditional drawdown-at-risk), so the open-interval bound
     and its message stay identical across the package.
 
     Args:

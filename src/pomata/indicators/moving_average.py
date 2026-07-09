@@ -164,7 +164,8 @@ def dema(
         >>> frame.with_columns(dema(pl.col("close"), 2).over("ticker").round(4).alias("dema"))["dema"].to_list()
         [None, None, 12.0, 11.2222, 12.8148, None, None, 21.0, 22.7778, 22.1852]
 
-        A ``null`` (skipped, and any window it touches yields ``null``) and a ``NaN`` (which propagates) make the
+        A ``null`` (skipped: it voids its own row while the recursion bridges the gap) and a ``NaN`` (which latches)
+        make the
         exact handling visible at a glance:
 
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, 13.0, None, 15.0, float("nan"), 17.0, 18.0, 19.0]})
@@ -232,8 +233,9 @@ def ema(
           resetting the average: the weight of the last non-null observation decays by :math:`(1 - \alpha)^k` over the
           ``k``-step gap, and the next non-null value resumes a gap-aware, renormalized recurrence rather than ignoring
           the missing rows.
-        - **NaN** — a ``NaN`` poisons the recursion arithmetically and yields ``NaN`` for itself and every subsequent
-          non-null row.
+        - **NaN** — a ``NaN`` poisons the recursion arithmetically and latches ``NaN`` for every later defined row;
+          a ``NaN`` still inside the warm-up shows as the warm-up's ``null`` on its own row (the mask wins there),
+          then latches from the first emitted row.
         - **window == 1** — the smoothing factor is ``1``, so the EMA reduces to the identity and reproduces the input.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursion re-seeds per
           series and never spans series boundaries, e.g. ``ema(pl.col("close"), 20).over("ticker")``.
@@ -268,7 +270,8 @@ def ema(
         >>> frame.with_columns(ema(pl.col("close"), 2).over("ticker").round(4).alias("ema"))["ema"].to_list()
         [None, 10.5, 11.5, 11.1667, 12.3889, None, 21.0, 21.0, 22.3333, 22.1111]
 
-        A ``null`` (skipped, and any window it touches yields ``null``) and a ``NaN`` (which propagates) make the
+        A ``null`` (skipped: it voids its own row while the recursion bridges the gap) and a ``NaN`` (which latches)
+        make the
         exact handling visible at a glance:
 
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, 13.0, None, 15.0, float("nan"), 17.0, 18.0, 19.0]})
@@ -571,7 +574,8 @@ def rma(
     Returns:
         The RMA for each row, the same length as ``expr``. The first ``window - 1`` values are ``null`` (warm-up) -- the
         recursion emits only once ``window`` non-null observations have been counted -- seeded there with their simple
-        average -- after which it is defined for every later row.
+        average -- after which every later row is defined wherever its own input is (an interior ``null`` still
+        voids its own row, as the Note details).
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
@@ -621,7 +625,8 @@ def rma(
         >>> frame.with_columns(rma(pl.col("close"), 2).over("ticker").round(4).alias("rma"))["rma"].to_list()
         [None, 10.5, 11.25, 11.125, 12.0625, None, 21.0, 21.0, 22.0, 22.0]
 
-        A ``null`` (skipped, and any window it touches yields ``null``) and a ``NaN`` (which propagates) make the
+        A ``null`` (skipped: it voids its own row while the recursion bridges the gap) and a ``NaN`` (which latches)
+        make the
         exact handling visible at a glance:
 
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, 13.0, None, 15.0, float("nan"), 17.0, 18.0, 19.0]})
@@ -757,7 +762,7 @@ def t3(
         window: Span of the exponential weighting, mapped to ``alpha = 2 / (window + 1)``. Must be ``>= 1``.
         volume_factor: The Tillson volume factor ``v`` controlling smoothing versus responsiveness; the canonical
             default is ``0.7``. Must be a finite number.
-        adjust: Whether to use the assumption-light adjusted EMA weights (``True``), which differ from the recursive
+        adjust: Whether to use the bias-corrected expanding-weights EMA (``True``), which differs from the recursive
             form at every emitted row — the gap largest near the start and decaying as history grows — or the recursive
             Technical-Analysis EMA seeded with the SMA of the first ``window`` observations (``False``, the default).
 
@@ -834,7 +839,8 @@ def t3(
         >>> frame.with_columns(t3(pl.col("close"), 2).over("ticker").round(4).alias("t3"))["t3"].to_list()
         [None, None, None, None, None, None, 13.3568, 14.2815, None, None, None, None, None, None, 24.4079, 24.3942]
 
-        A ``null`` (skipped, and any window it touches yields ``null``) and a ``NaN`` (which propagates) make the
+        A ``null`` (skipped: it voids its own row while the recursion bridges the gap) and a ``NaN`` (which latches)
+        make the
         exact handling visible at a glance:
 
         >>> frame = pl.DataFrame(
@@ -960,7 +966,8 @@ def tema(
         >>> frame.with_columns(tema(pl.col("close"), 2).over("ticker").round(4).alias("tema"))["tema"].to_list()
         [None, None, None, 11.2222, 12.9383, None, None, None, 22.7778, 22.0617]
 
-        A ``null`` (skipped, and any window it touches yields ``null``) and a ``NaN`` (which propagates) make the
+        A ``null`` (skipped: it voids its own row while the recursion bridges the gap) and a ``NaN`` (which latches)
+        make the
         exact handling visible at a glance:
 
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, 13.0, None, 15.0, float("nan"), 17.0, 18.0, 19.0]})
@@ -1102,7 +1109,8 @@ def vwma(
           degenerate); the window is detected exactly (its rolling maximum is zero) and the result is ``NaN``, not the
           rounding noise a sub-ULP residual in the rolling-sum numerator would otherwise turn into ``+/-inf``.
         - **window == 1** — with non-zero volume the single ``(price, volume)`` pair reduces to ``expr`` itself, so
-          the VWMA reproduces the price.
+          the VWMA reproduces the price to within a rounding ULP (``(p * v) / v`` is one float multiply-divide, not
+          an identity copy — its siblings' bit-exact ``window == 1`` identity does not apply here).
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the window never spans series
           boundaries, e.g. ``vwma(pl.col("close"), pl.col("volume"), 20).over("ticker")``.
 

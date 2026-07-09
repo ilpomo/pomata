@@ -341,9 +341,10 @@ def chaikin_money_flow(
         **Zero-range bars:**
 
         The zero-range convention applies only to a genuine equal-range bar (``high == low``), where the multiplier is
-        ``0`` (it adds ``0`` to the numerator while its volume still counts in the denominator). A ``null`` or ``NaN``
-        in any input instead leaves that bar's money-flow volume ``null`` or ``NaN``, so missing data propagates
-        rather than being silently zeroed.
+        ``0`` (it adds ``0`` to the numerator while its volume still counts in the denominator) — and on such a bar it
+        wins outright: the multiplier is ``0`` regardless of the close, so a ``null`` or ``NaN`` close on a doji is
+        absorbed into the zero flow. On a bar with a genuine range, a ``null`` or ``NaN`` in any input leaves that
+        bar's money-flow volume ``null`` or ``NaN``, so missing data propagates rather than being silently zeroed.
 
         **Edge-case behavior:**
 
@@ -510,6 +511,9 @@ def money_flow_index(
           contains it. A ``NaN`` typical price makes both its own change and the next one undefined in sign, so each is
           poisoned into the positive *and* the negative money flow as ``NaN``, voiding every window that reaches either
           change (the same two-position taint as the ``null`` analogue, but surfaced as ``NaN`` rather than ``null``).
+          One carve-out mirrors the flat-bar convention: on a bar whose typical price exactly equals the previous one,
+          the flow is ``0`` by definition regardless of volume, so a ``null`` or ``NaN`` volume there is absorbed into
+          the zero flow rather than voiding the window.
         - **Division by zero** — a window with no negative money flow but non-zero positive flow has money ratio
           ``+inf`` and the MFI saturates at ``100``; symmetrically an all-down window gives ``0``. A window in which
           both flows are zero (the typical price never moves) leaves the money ratio at ``0 / 0`` and yields ``NaN`` --
@@ -794,7 +798,9 @@ def vwap(
         - **Null** — a ``null`` in any input nulls that bar's contribution at its own row; both cumulative sums skip the
           bar together (a ``null`` price input drops its volume from the denominator too), so the bar is a clean
           missing observation, not a denominator-only contribution.
-        - **NaN** — a ``NaN`` in any input poisons the cumulative sum from its row onward (it cannot be subtracted out).
+        - **NaN** — a ``NaN`` in any input poisons the cumulative sum from its row onward (it cannot be subtracted
+          out) — unless a ``null`` sits on the same row: the null masks the whole row out of both sums first, so
+          nothing is poisoned (``null`` takes precedence over ``NaN``, here as everywhere).
         - **Partitioning** — see Anchoring above; ``.over(...)`` is the intended use, not an afterthought.
 
     See Also:

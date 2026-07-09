@@ -152,6 +152,10 @@ def drawdown(
         **Edge-case behavior:**
 
         - **Null** — a ``null`` equity yields ``null`` at that row while the running peak carries across it unchanged.
+        - **Inception** — the running peak starts at the FIRST observation: a curve fed from
+          :func:`~pomata.pnl.equity_curve` begins at its first post-return value, so a drawdown from the starting
+          capital itself (an opening losing streak) is invisible by construction. Prepend a literal ``1.0`` row to
+          count declines from inception; the convention matches quantstats (empyrical instead prepends the start).
         - **NaN** — a ``NaN`` equity yields ``NaN`` at that row; the running peak ignores it (Polars' ``cum_max``
           semantics), so later rows are unaffected.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the running peak restarts per

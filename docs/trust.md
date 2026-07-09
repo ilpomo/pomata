@@ -69,7 +69,8 @@ reference   85.20908701341023   ← independent reimplementation: identical, to 
 TA-Lib      85.20908701341024   ← fifteen figures identical; differs only at the float64 floor
 ```
 
-The same five indicators on the same series — most reproduce the reference *exactly*, the rest sit at the noise floor:
+The same five indicators on the same series — reproducing the reference exactly or at the `float64` noise floor,
+never worse than fourteen figures:
 
 ```{list-table}
 :header-rows: 1
@@ -148,7 +149,8 @@ conditioning predicts — not a round number:
 
 ## Re-run it yourself
 
-None of this is something you have to take on faith. The full gate runs from a clean clone in one command; the
+None of this is something you have to take on faith. The full gate runs from a clean clone (`uv sync`, then the
+lint / type / test commands listed in `CONTRIBUTING.md`); the
 published figures regenerate from `scripts/precision_table.py`, and the realized headroom under the guarantee (it lands
 around `1e-14`) from `scripts/calibrate_tolerances.py`. The complete method — the derivations, the test sizing, exactly
 what is and is not claimed — is in

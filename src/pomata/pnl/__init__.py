@@ -5,7 +5,8 @@ exact return and equity series the performance and risk metrics consume, so you 
 
 One question (what is my P&L?), answered by TWO flows; pick the one that matches the data you hold:
 
-- **Return flow** — you hold a ``weight`` (a signed fraction of capital) and the asset's ``returns`` (in %); for
+- **Return flow** — you hold a ``weight`` (a signed fraction of capital) and the asset's fractional ``returns``
+  (``0.01`` = 1%); for
   strategy research, portfolios, and cross-asset work:
   ``returns_simple`` / ``returns_log`` -> ``returns_gross`` -> (subtract composable costs) -> ``returns_net`` ->
   ``equity_curve`` (the compounded capital curve).

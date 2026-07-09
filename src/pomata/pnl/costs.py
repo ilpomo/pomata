@@ -258,7 +258,7 @@ def cost_funding(
         **Edge-case behavior:**
 
         - **Sign** — the cost follows ``sign(quantity) * sign(funding_rate)``: a long pays a positive rate and is
-          negative one; a short is the mirror image.
+          rebated by a negative one; a short is the mirror image.
         - **Off-funding bars** — pass ``funding_rate = 0`` on bars with no funding event; the cost is then ``0`` there.
         - **Null** — a ``null`` in any input makes that row ``null`` (``null`` takes precedence over ``NaN``).
         - **NaN** — a ``NaN`` in any input (with no ``null``) propagates, yielding ``NaN`` for that row.
@@ -563,7 +563,7 @@ def cost_proportional(
           across series boundaries, e.g. ``cost_proportional(pl.col("weight"), rate=0.001).over("ticker")``.
 
     See Also:
-        - :func:`cost_slippage`: The fixed half-spread cost, the other MVP cost axis; sum the two for both.
+        - :func:`cost_slippage`: The fixed half-spread cost, the complementary per-trade leg; sum the two for both.
         - :func:`turnover`: The traded fraction this scales.
         - :func:`returns_net`: Subtracts the composed cost from the gross return.
 
@@ -655,7 +655,7 @@ def cost_slippage(
           across series boundaries, e.g. ``cost_slippage(pl.col("weight"), half_spread=0.002).over("ticker")``.
 
     See Also:
-        - :func:`cost_proportional`: The proportional broker fee, the other MVP cost axis; sum the two for both.
+        - :func:`cost_proportional`: The proportional broker fee, the complementary per-trade leg; sum the two for both.
         - :func:`turnover`: The traded fraction this scales.
         - :func:`returns_net`: Subtracts the composed cost from the gross return.
 
