@@ -59,11 +59,28 @@ class TestStabilityEdge:
     Boundaries and null / NaN handling.
     """
 
-    def test_single_row_is_null(self) -> None:
+    def test_single_row(self) -> None:
         """
         Verifies that a one-element series yields ``null`` (the regression needs at least two points).
         """
         assert_matches(apply_expr([0.01], stability(pl.col(COLUMN_X))), [None])
+
+    def test_null_skipped(self) -> None:
+        """
+        Verifies that null returns are skipped and the time index runs over the retained observations.
+        """
+        values = [0.01, None, 0.012, 0.009, None, 0.011, 0.013]
+        assert_matches(
+            apply_expr(values, stability(pl.col(COLUMN_X))),
+            [stability_reference(values)],
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+        )
+
+    def test_nan_poisons(self) -> None:
+        """
+        Verifies that a NaN return poisons the result to NaN.
+        """
+        assert_matches(apply_expr([0.01, math.nan, 0.02, 0.03], stability(pl.col(COLUMN_X))), [math.nan])
 
     def test_constant_is_one(self) -> None:
         """
@@ -82,23 +99,6 @@ class TestStabilityEdge:
         Verifies that a return at or below ``-1`` makes the cumulative log undefined, so the result is ``NaN``.
         """
         assert_matches(apply_expr([0.02, -1.5, 0.01], stability(pl.col(COLUMN_X))), [math.nan])
-
-    def test_null_skipped(self) -> None:
-        """
-        Verifies that null returns are skipped and the time index runs over the retained observations.
-        """
-        values = [0.01, None, 0.012, 0.009, None, 0.011, 0.013]
-        assert_matches(
-            apply_expr(values, stability(pl.col(COLUMN_X))),
-            [stability_reference(values)],
-            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
-        )
-
-    def test_nan_poisons(self) -> None:
-        """
-        Verifies that a NaN return poisons the result to NaN.
-        """
-        assert_matches(apply_expr([0.01, math.nan, 0.02, 0.03], stability(pl.col(COLUMN_X))), [math.nan])
 
 
 class TestStabilityCorrectness:

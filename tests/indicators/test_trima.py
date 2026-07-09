@@ -92,13 +92,12 @@ class TestTrimaEdge:
         with pytest.raises(ValueError, match="window must be >= 1"):
             trima(pl.col(COLUMN_X), 0)
 
-    def test_warmup_null_count(self) -> None:
+    def test_single_row(self) -> None:
         """
-        Verifies that the first ``window - 1`` rows are null (warm-up) and the first full window is defined.
+        Verifies behavior on a one-element series: ``window == 1`` returns the value, a larger window is warm-up.
         """
-        result = apply_expr([1.0, 2.0, 3.0, 4.0, 5.0], trima(pl.col(COLUMN_X), 3))
-        assert result[:2] == [None, None]
-        assert result[2] is not None
+        assert_matches(apply_expr([42.0], trima(pl.col(COLUMN_X), 1)), [42.0])
+        assert_matches(apply_expr([42.0], trima(pl.col(COLUMN_X), 3)), [None])
 
     def test_all_null(self) -> None:
         """
@@ -107,25 +106,6 @@ class TestTrimaEdge:
         assert_matches(
             apply_expr([None, None, None, None, None], trima(pl.col(COLUMN_X), 3)), [None, None, None, None, None]
         )
-
-    def test_window_one_is_identity(self) -> None:
-        """
-        Verifies that ``window == 1`` reduces to the identity (both sub-windows are ``1``) and reproduces the input.
-        """
-        assert_matches(apply_expr([1.0, 2.0, 3.0], trima(pl.col(COLUMN_X), 1)), [1.0, 2.0, 3.0])
-
-    def test_window_exceeds_length(self) -> None:
-        """
-        Verifies that a window exceeding the series length yields an all-null output.
-        """
-        assert_matches(apply_expr([1.0, 2.0, 3.0], trima(pl.col(COLUMN_X), 5)), [None, None, None])
-
-    def test_single_row(self) -> None:
-        """
-        Verifies behavior on a one-element series: ``window == 1`` returns the value, a larger window is warm-up.
-        """
-        assert_matches(apply_expr([42.0], trima(pl.col(COLUMN_X), 1)), [42.0])
-        assert_matches(apply_expr([42.0], trima(pl.col(COLUMN_X), 3)), [None])
 
     def test_null_in_window_is_null(self) -> None:
         """
@@ -140,6 +120,26 @@ class TestTrimaEdge:
         """
         result = apply_expr([1.0, math.nan, 3.0, 4.0], trima(pl.col(COLUMN_X), 2))
         assert_matches(result, [None, math.nan, math.nan, 3.5])
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that the first ``window - 1`` rows are null (warm-up) and the first full window is defined.
+        """
+        result = apply_expr([1.0, 2.0, 3.0, 4.0, 5.0], trima(pl.col(COLUMN_X), 3))
+        assert result[:2] == [None, None]
+        assert result[2] is not None
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that a window exceeding the series length yields an all-null output.
+        """
+        assert_matches(apply_expr([1.0, 2.0, 3.0], trima(pl.col(COLUMN_X), 5)), [None, None, None])
+
+    def test_window_one_is_identity(self) -> None:
+        """
+        Verifies that ``window == 1`` reduces to the identity (both sub-windows are ``1``) and reproduces the input.
+        """
+        assert_matches(apply_expr([1.0, 2.0, 3.0], trima(pl.col(COLUMN_X), 1)), [1.0, 2.0, 3.0])
 
 
 class TestTrimaCorrectness:

@@ -56,17 +56,11 @@ class TestMaxDrawdownDurationEdge:
     Boundaries and null / NaN handling.
     """
 
-    def test_single_row_is_zero(self) -> None:
+    def test_single_row(self) -> None:
         """
         Verifies that a one-element series is never underwater, so the duration is ``0``.
         """
         assert_matches(apply_expr([1.0], max_drawdown_duration(pl.col(COLUMN_X))), [0.0])
-
-    def test_no_drawdown_is_zero(self) -> None:
-        """
-        Verifies that a monotonically rising curve is never underwater, so the duration is ``0``.
-        """
-        assert_matches(apply_expr([1.0, 1.1, 1.21], max_drawdown_duration(pl.col(COLUMN_X))), [0.0])
 
     def test_null_skipped(self) -> None:
         """
@@ -83,6 +77,12 @@ class TestMaxDrawdownDurationEdge:
         Verifies that a NaN equity poisons the result to NaN.
         """
         assert_matches(apply_expr([1.0, math.nan, 0.9], max_drawdown_duration(pl.col(COLUMN_X))), [math.nan])
+
+    def test_no_drawdown_is_zero(self) -> None:
+        """
+        Verifies that a monotonically rising curve is never underwater, so the duration is ``0``.
+        """
+        assert_matches(apply_expr([1.0, 1.1, 1.21], max_drawdown_duration(pl.col(COLUMN_X))), [0.0])
 
 
 class TestMaxDrawdownDurationCorrectness:

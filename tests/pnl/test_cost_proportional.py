@@ -7,9 +7,9 @@ helper over a one-column ``Float64`` frame; ``assert_matches`` and the naive ``c
 shared. The cost is degree-1 homogeneous in the weight, so it carries the scale-homogeneity and large-magnitude tiers.
 
 The ladder is the canonical one: contract (type / shape / lazy-eager / ``.over`` per-group independence), edge
-(flat-start / single-row / null / NaN / negative-rate guard), correctness (vs the closed-form reference and a frozen
-golden master), and properties (reference agreement incl. missing data, scale-homogeneity, large-magnitude). Categories
-are split into classes; cross-cutting categories use markers (see ``tests/README.md``).
+(negative-rate guard / single-row / null / NaN / flat-start / consecutive-infinities), correctness (vs the closed-form
+reference and a frozen golden master), and properties (reference agreement incl. missing data, scale-homogeneity,
+large-magnitude). Categories are split into classes; cross-cutting categories use markers (see ``tests/README.md``).
 """
 
 import math
@@ -92,14 +92,6 @@ class TestCostProportionalEdge:
             with pytest.raises(ValueError, match="rate must be a finite number >= 0"):
                 cost_proportional(pl.col(COLUMN_X), rate=invalid)
 
-    def test_flat_start_first_row(self) -> None:
-        """
-        Verifies the first row is ``|weight_0| * rate`` (the cost of the entry trade from a flat start).
-        """
-        assert_matches(
-            apply_expr([0.5, 1.0, -0.5], cost_proportional(pl.col(COLUMN_X), rate=RATE)), [0.0005, 0.0005, 0.0015]
-        )
-
     def test_single_row(self) -> None:
         """
         Verifies that a one-element series resolves to ``|weight_0| * rate`` (the entry trade), not null.
@@ -124,6 +116,14 @@ class TestCostProportionalEdge:
         assert_matches(
             apply_expr(values, cost_proportional(pl.col(COLUMN_X), rate=RATE)),
             cost_proportional_reference(values, RATE),
+        )
+
+    def test_flat_start_first_row(self) -> None:
+        """
+        Verifies the first row is ``|weight_0| * rate`` (the cost of the entry trade from a flat start).
+        """
+        assert_matches(
+            apply_expr([0.5, 1.0, -0.5], cost_proportional(pl.col(COLUMN_X), rate=RATE)), [0.0005, 0.0005, 0.0015]
         )
 
     def test_consecutive_infinities_make_nan(self) -> None:

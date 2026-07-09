@@ -101,20 +101,17 @@ class TestHilbertTrendlineEdge:
     Warm-up and null / NaN latching.
     """
 
+    def test_single_row(self) -> None:
+        """
+        Verifies behavior on a one-element series: the warm-up is never cleared, so the output is all warm-up.
+        """
+        assert_matches(apply_hilbert_trendline([100.0]), [None])
+
     def test_all_null(self) -> None:
         """
         Verifies that an all-null series yields an all-null output.
         """
         assert_matches(apply_hilbert_trendline([None, None, None, None, None]), [None, None, None, None, None])
-
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies that the leading-null run is exactly ``63`` and every later row is defined.
-        """
-        result = apply_hilbert_trendline(_SAMPLE)
-        leading_nulls = count_leading_nulls(result)
-        assert leading_nulls == _WARMUP
-        assert all(value is not None for value in result[_WARMUP:])
 
     def test_null_latches(self) -> None:
         """
@@ -134,6 +131,15 @@ class TestHilbertTrendlineEdge:
         result = apply_hilbert_trendline(values)
         assert all(value is None for value in result[70:])
         assert_matches(result, hilbert_trendline_reference(values))
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that the leading-null run is exactly ``63`` and every later row is defined.
+        """
+        result = apply_hilbert_trendline(_SAMPLE)
+        leading_nulls = count_leading_nulls(result)
+        assert leading_nulls == _WARMUP
+        assert all(value is not None for value in result[_WARMUP:])
 
 
 class TestHilbertTrendlineCorrectness:

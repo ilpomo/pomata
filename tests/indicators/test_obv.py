@@ -106,43 +106,11 @@ class TestObvEdge:
     Boundaries, no-warm-up, and null / NaN handling.
     """
 
-    def test_single_row_starts_at_zero(self) -> None:
+    def test_single_row(self) -> None:
         """
         Verifies that a one-element series yields ``0`` (the first bar has no predecessor, so its direction is ``0``).
         """
         assert_matches(apply_obv([42.0], [10.0]), [0.0])
-
-    def test_starts_at_zero(self) -> None:
-        """
-        Verifies that the series starts at ``0`` regardless of the first volume.
-        """
-        result = apply_obv([10.0, 12.0, 11.0], [100.0, 200.0, 150.0])
-        assert result[0] == 0.0
-
-    def test_no_warmup(self) -> None:
-        """
-        Verifies that there is no warm-up: every row is defined (no leading nulls).
-        """
-        result = apply_obv([10.0, 12.0, 11.0, 11.0, 13.0], [100.0, 200.0, 150.0, 80.0, 300.0])
-        assert all(value is not None for value in result)
-
-    def test_constant_price_is_flat(self) -> None:
-        """
-        Verifies that a constant price never moves the total (every direction is ``0``).
-        """
-        assert_matches(apply_obv([5.0, 5.0, 5.0, 5.0], [10.0, 20.0, 30.0, 40.0]), [0.0, 0.0, 0.0, 0.0])
-
-    def test_zero_volume_is_flat(self) -> None:
-        """
-        Verifies that all-zero volume leaves the total at ``0`` regardless of price direction.
-        """
-        assert_matches(apply_obv([10.0, 12.0, 11.0], [0.0, 0.0, 0.0]), [0.0, 0.0, 0.0])
-
-    def test_negative_prices_sign_correct(self) -> None:
-        """
-        Verifies that the direction tracks the sign of the change even for negative prices.
-        """
-        assert_matches(apply_obv([-5.0, -3.0, -7.0], [10.0, 20.0, 30.0]), [0.0, 20.0, -10.0])
 
     def test_all_null_price_is_flat(self) -> None:
         """
@@ -174,6 +142,15 @@ class TestObvEdge:
             [0.0, 200.0, None, 600.0, 100.0],
         )
 
+    def test_null_volume_on_first_bar_is_null(self) -> None:
+        """
+        Verifies that a ``null`` volume on the first bar yields ``null`` there (``0 * null`` is ``null``).
+        """
+        assert_matches(
+            apply_obv([10.0, 12.0, 11.0], [None, 200.0, 300.0]),
+            obv_reference([10.0, 12.0, 11.0], [None, 200.0, 300.0]),
+        )
+
     def test_nan_price_latches(self) -> None:
         """
         Verifies that a ``NaN`` close poisons the direction and latches the running total to ``NaN`` thereafter.
@@ -201,14 +178,37 @@ class TestObvEdge:
             [0.0, math.nan, math.nan],
         )
 
-    def test_null_volume_on_first_bar_is_null(self) -> None:
+    def test_no_warmup(self) -> None:
         """
-        Verifies that a ``null`` volume on the first bar yields ``null`` there (``0 * null`` is ``null``).
+        Verifies that there is no warm-up: every row is defined (no leading nulls).
         """
-        assert_matches(
-            apply_obv([10.0, 12.0, 11.0], [None, 200.0, 300.0]),
-            obv_reference([10.0, 12.0, 11.0], [None, 200.0, 300.0]),
-        )
+        result = apply_obv([10.0, 12.0, 11.0, 11.0, 13.0], [100.0, 200.0, 150.0, 80.0, 300.0])
+        assert all(value is not None for value in result)
+
+    def test_starts_at_zero(self) -> None:
+        """
+        Verifies that the series starts at ``0`` regardless of the first volume.
+        """
+        result = apply_obv([10.0, 12.0, 11.0], [100.0, 200.0, 150.0])
+        assert result[0] == 0.0
+
+    def test_constant_price_is_flat(self) -> None:
+        """
+        Verifies that a constant price never moves the total (every direction is ``0``).
+        """
+        assert_matches(apply_obv([5.0, 5.0, 5.0, 5.0], [10.0, 20.0, 30.0, 40.0]), [0.0, 0.0, 0.0, 0.0])
+
+    def test_zero_volume_is_flat(self) -> None:
+        """
+        Verifies that all-zero volume leaves the total at ``0`` regardless of price direction.
+        """
+        assert_matches(apply_obv([10.0, 12.0, 11.0], [0.0, 0.0, 0.0]), [0.0, 0.0, 0.0])
+
+    def test_negative_prices_sign_correct(self) -> None:
+        """
+        Verifies that the direction tracks the sign of the change even for negative prices.
+        """
+        assert_matches(apply_obv([-5.0, -3.0, -7.0], [10.0, 20.0, 30.0]), [0.0, 20.0, -10.0])
 
 
 class TestObvCorrectness:
@@ -263,39 +263,6 @@ class TestObvProperties:
         reference. Volume is drawn strictly positive (negative volume is out of spec).
         """
         close_values, volume_values = split_pairs(case)
-        assert_matches(
-            apply_obv(close_values, volume_values),
-            obv_reference(close_values, volume_values),
-            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
-            abs_tol=input_scale(volume_values) * EXACT_TOLERANCE_FACTOR,
-        )
-
-    @given(
-        case=_cases(
-            st.tuples(
-                st.sampled_from(["value", "null", "nan"]),
-                st.floats(min_value=-1e3, max_value=1e3, allow_nan=False, allow_infinity=False),
-                st.sampled_from(["value", "null", "nan"]),
-                st.floats(min_value=0.0, max_value=1e3, allow_nan=False, allow_infinity=False),
-            ),
-        ),
-    )
-    def test_matches_reference_with_nulls_and_nans(
-        self,
-        case: list[tuple[str, float, str, float]],
-    ) -> None:
-        """
-        Verifies that the implementation matches the naive reference even with ``None`` and ``NaN`` injected into both
-        the close and the volume, exercising the null pass-through and the NaN-latch propagation in the property layer.
-        """
-        choices = case
-        close_values: list[float | None] = []
-        volume_values: list[float | None] = []
-        for close_kind, close_number, volume_kind, volume_number in choices:
-            close_values.append(None if close_kind == "null" else (math.nan if close_kind == "nan" else close_number))
-            volume_values.append(
-                None if volume_kind == "null" else (math.nan if volume_kind == "nan" else volume_number)
-            )
         assert_matches(
             apply_obv(close_values, volume_values),
             obv_reference(close_values, volume_values),
@@ -383,6 +350,66 @@ class TestObvProperties:
     @given(
         case=_cases(
             st.tuples(
+                st.floats(min_value=1e-3, max_value=1.0, allow_nan=False, allow_infinity=False),
+                st.floats(min_value=1e-3, max_value=1.0, allow_nan=False, allow_infinity=False),
+            ),
+        ),
+        scale=st.sampled_from([1e-6, 1e6, 1e9]),
+    )
+    def test_matches_reference_at_large_magnitude(
+        self,
+        case: list[tuple[float, float]],
+        scale: float,
+    ) -> None:
+        """
+        Verifies that at extreme positive magnitudes the implementation stays finite where the reference is and agrees.
+        """
+        rows = case
+        close = [close_value * scale for close_value, _ in rows]
+        volume = [volume_value * scale for _, volume_value in rows]
+        assert_matches(
+            apply_obv(close, volume),
+            obv_reference(close, volume),
+            rel_tol=RELATIVE_TOLERANCE_SCALE,
+            abs_tol=input_scale(volume) * EXACT_TOLERANCE_FACTOR,
+        )
+
+    @given(
+        case=_cases(
+            st.tuples(
+                st.sampled_from(["value", "null", "nan"]),
+                st.floats(min_value=-1e3, max_value=1e3, allow_nan=False, allow_infinity=False),
+                st.sampled_from(["value", "null", "nan"]),
+                st.floats(min_value=0.0, max_value=1e3, allow_nan=False, allow_infinity=False),
+            ),
+        ),
+    )
+    def test_matches_reference_with_nulls_and_nans(
+        self,
+        case: list[tuple[str, float, str, float]],
+    ) -> None:
+        """
+        Verifies that the implementation matches the naive reference even with ``None`` and ``NaN`` injected into both
+        the close and the volume, exercising the null pass-through and the NaN-latch propagation in the property layer.
+        """
+        choices = case
+        close_values: list[float | None] = []
+        volume_values: list[float | None] = []
+        for close_kind, close_number, volume_kind, volume_number in choices:
+            close_values.append(None if close_kind == "null" else (math.nan if close_kind == "nan" else close_number))
+            volume_values.append(
+                None if volume_kind == "null" else (math.nan if volume_kind == "nan" else volume_number)
+            )
+        assert_matches(
+            apply_obv(close_values, volume_values),
+            obv_reference(close_values, volume_values),
+            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+            abs_tol=input_scale(volume_values) * EXACT_TOLERANCE_FACTOR,
+        )
+
+    @given(
+        case=_cases(
+            st.tuples(
                 st.floats(min_value=-1e6, max_value=1e6, allow_nan=False, allow_infinity=False),
                 st.floats(min_value=0.0, max_value=1e3, allow_nan=False, allow_infinity=False),
             )
@@ -408,30 +435,3 @@ class TestObvProperties:
                 abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
             )
             previous_total = value
-
-    @given(
-        case=_cases(
-            st.tuples(
-                st.floats(min_value=1e-3, max_value=1.0, allow_nan=False, allow_infinity=False),
-                st.floats(min_value=1e-3, max_value=1.0, allow_nan=False, allow_infinity=False),
-            ),
-        ),
-        scale=st.sampled_from([1e-6, 1e6, 1e9]),
-    )
-    def test_matches_reference_at_large_magnitude(
-        self,
-        case: list[tuple[float, float]],
-        scale: float,
-    ) -> None:
-        """
-        Verifies that at extreme positive magnitudes the implementation stays finite where the reference is and agrees.
-        """
-        rows = case
-        close = [close_value * scale for close_value, _ in rows]
-        volume = [volume_value * scale for _, volume_value in rows]
-        assert_matches(
-            apply_obv(close, volume),
-            obv_reference(close, volume),
-            rel_tol=RELATIVE_TOLERANCE_SCALE,
-            abs_tol=input_scale(volume) * EXACT_TOLERANCE_FACTOR,
-        )

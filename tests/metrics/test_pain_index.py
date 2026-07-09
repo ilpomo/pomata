@@ -59,17 +59,11 @@ class TestPainIndexEdge:
     Boundaries and null / NaN handling.
     """
 
-    def test_single_row_is_zero(self) -> None:
+    def test_single_row(self) -> None:
         """
         Verifies that a one-element series is at its own peak, so the pain index is ``0``.
         """
         assert_matches(apply_expr([1.0], pain_index(pl.col(COLUMN_X))), [0.0])
-
-    def test_no_drawdown_is_zero(self) -> None:
-        """
-        Verifies that a monotonically rising curve is never below its peak, so the pain index is ``0``.
-        """
-        assert_matches(apply_expr([1.0, 1.1, 1.21], pain_index(pl.col(COLUMN_X))), [0.0])
 
     def test_null_skipped(self) -> None:
         """
@@ -87,6 +81,12 @@ class TestPainIndexEdge:
         Verifies that a NaN equity poisons the result to NaN.
         """
         assert_matches(apply_expr([1.1, math.nan, 1.2], pain_index(pl.col(COLUMN_X))), [math.nan])
+
+    def test_no_drawdown_is_zero(self) -> None:
+        """
+        Verifies that a monotonically rising curve is never below its peak, so the pain index is ``0``.
+        """
+        assert_matches(apply_expr([1.0, 1.1, 1.21], pain_index(pl.col(COLUMN_X))), [0.0])
 
 
 class TestPainIndexCorrectness:

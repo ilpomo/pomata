@@ -95,16 +95,6 @@ class TestSupertrendContract:
     Type, struct schema, shape, and lazy/eager guarantees.
     """
 
-    def test_output_is_struct_with_named_fields(self) -> None:
-        """
-        Verifies that the output is a ``Float64`` struct with exactly the fields ``line`` / ``direction``.
-        """
-        frame = pl.DataFrame({HIGH: [3.0, 4.0, 5.0], LOW: [1.0, 2.0, 3.0], CLOSE: [2.0, 3.0, 4.0]})
-        dtype = frame.select(supertrend(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), 2).alias("s")).schema["s"]
-        assert isinstance(dtype, pl.Struct)
-        assert [field.name for field in dtype.fields] == ["line", "direction"]
-        assert all(field.dtype == pl.Float64 for field in dtype.fields)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` the recurrence and ATR do not span group boundaries: each group equals that group
@@ -124,6 +114,16 @@ class TestSupertrendContract:
         group_b = apply_supertrend([20.0, 21.0, 22.0, 21.0], [19.0, 20.0, 21.0, 20.0], [19.5, 20.8, 21.8, 20.2], 2)
         for field in FIELDS:
             assert_matches(grouped[field], group_a[field] + group_b[field])
+
+    def test_output_is_struct_with_named_fields(self) -> None:
+        """
+        Verifies that the output is a ``Float64`` struct with exactly the fields ``line`` / ``direction``.
+        """
+        frame = pl.DataFrame({HIGH: [3.0, 4.0, 5.0], LOW: [1.0, 2.0, 3.0], CLOSE: [2.0, 3.0, 4.0]})
+        dtype = frame.select(supertrend(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), 2).alias("s")).schema["s"]
+        assert isinstance(dtype, pl.Struct)
+        assert [field.name for field in dtype.fields] == ["line", "direction"]
+        assert all(field.dtype == pl.Float64 for field in dtype.fields)
 
 
 class TestSupertrendEdge:
@@ -147,26 +147,6 @@ class TestSupertrendEdge:
             with pytest.raises(ValueError, match="multiplier must be a finite number > 0"):
                 supertrend(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), 3, multiplier=invalid)
 
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null input yields an all-null output on both fields.
-        """
-        bands = apply_supertrend([None, None, None], [None, None, None], [None, None, None], 2)
-        for field in FIELDS:
-            assert_matches(bands[field], [None, None, None])
-
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies that both fields are null for the first ``window - 1`` rows (the ATR warm-up), defined from the next.
-        """
-        high = [10.0, 11.0, 12.0, 11.0, 13.0]
-        low = [9.0, 10.0, 11.0, 10.0, 12.0]
-        close = [9.5, 10.8, 11.8, 10.2, 12.8]
-        bands = apply_supertrend(high, low, close, 3)
-        for field in FIELDS:
-            assert bands[field][:2] == [None, None]
-            assert bands[field][2] is not None
-
     def test_single_row(self) -> None:
         """
         Verifies a one-element series: ``window == 1`` defines the bar (ATR = the range); a larger window is all
@@ -175,16 +155,13 @@ class TestSupertrendEdge:
         assert apply_supertrend([10.0], [8.0], [9.0], 1)["direction"] == [1.0]
         assert apply_supertrend([10.0], [8.0], [9.0], 3)["direction"] == [None]
 
-    def test_flat_series(self) -> None:
+    def test_all_null(self) -> None:
         """
-        Verifies the flat series: a constant ``high == low == close`` run has zero ATR, so both bands collapse onto the
-        midpoint; the seed reads ``close == lower`` as the bearish side and the line tracks the midpoint with direction
-        ``-1`` (a flip needs a strict cross, which a flat series never makes).
+        Verifies that an all-null input yields an all-null output on both fields.
         """
-        flat = [5.0] * 5
-        bands = apply_supertrend(flat, flat, flat, 2)
-        assert_matches(bands["line"], [None, 5.0, 5.0, 5.0, 5.0])
-        assert_matches(bands["direction"], [None, -1.0, -1.0, -1.0, -1.0])
+        bands = apply_supertrend([None, None, None], [None, None, None], [None, None, None], 2)
+        for field in FIELDS:
+            assert_matches(bands[field], [None, None, None])
 
     def test_null_and_nan_bridge(self) -> None:
         """
@@ -198,6 +175,29 @@ class TestSupertrendEdge:
         reference = supertrend_reference(high, low, close, 2, 3.0)
         for field in FIELDS:
             assert_matches(bands[field], reference[field])
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that both fields are null for the first ``window - 1`` rows (the ATR warm-up), defined from the next.
+        """
+        high = [10.0, 11.0, 12.0, 11.0, 13.0]
+        low = [9.0, 10.0, 11.0, 10.0, 12.0]
+        close = [9.5, 10.8, 11.8, 10.2, 12.8]
+        bands = apply_supertrend(high, low, close, 3)
+        for field in FIELDS:
+            assert bands[field][:2] == [None, None]
+            assert bands[field][2] is not None
+
+    def test_flat_series(self) -> None:
+        """
+        Verifies the flat series: a constant ``high == low == close`` run has zero ATR, so both bands collapse onto the
+        midpoint; the seed reads ``close == lower`` as the bearish side and the line tracks the midpoint with direction
+        ``-1`` (a flip needs a strict cross, which a flat series never makes).
+        """
+        flat = [5.0] * 5
+        bands = apply_supertrend(flat, flat, flat, 2)
+        assert_matches(bands["line"], [None, 5.0, 5.0, 5.0, 5.0])
+        assert_matches(bands["direction"], [None, -1.0, -1.0, -1.0, -1.0])
 
 
 class TestSupertrendCorrectness:
@@ -222,36 +222,6 @@ class TestSupertrendCorrectness:
                     rel_tol=RELATIVE_TOLERANCE_PROPERTY,
                     abs_tol=input_scale(close) * EXACT_TOLERANCE_FACTOR,
                 )
-
-    def test_band_reset_after_close_above_upper(self) -> None:
-        """
-        Verifies the upper-band reset half of the carry rule (``previous_close > final_upper`` re-anchors the band):
-        an explosive rally rides above the upper band, so on the crash that follows the band must re-anchor to the
-        basic band instead of flipping against a stale level on every bar -- pinned against the non-mirror reference,
-        which implements the canonical rule independently.
-        """
-        high = [10.0 * 1.08**i for i in range(25)] + [10.0 * 1.08**24 * 0.90**i for i in range(1, 15)]
-        low = [value * 0.985 for value in high]
-        close = [value * 0.999 for value in high]
-        bands = apply_supertrend(high, low, close, 3, multiplier=0.5)
-        reference = supertrend_reference(high, low, close, 3, 0.5)
-        for field in FIELDS:
-            assert_matches(
-                bands[field],
-                reference[field],
-                rel_tol=RELATIVE_TOLERANCE_PROPERTY,
-                abs_tol=input_scale(close) * EXACT_TOLERANCE_FACTOR,
-            )
-
-    def test_lower_band_exact_touch_stays_up(self) -> None:
-        """
-        Verifies the tie convention on an exact lower-band touch in an uptrend: the flip requires a STRICT break
-        (``close < final_lower``), so a close exactly ON the carried band holds the trend -- the mirror of the
-        upper-band touch, on dyadic values so the equality is exact.
-        """
-        bands = apply_supertrend([11.0, 13.0, 12.5], [9.0, 11.0, 10.5], [10.5, 12.0, 11.375], 1, multiplier=0.25)
-        assert_matches(bands["line"], [9.5, 11.375, 11.375])
-        assert_matches(bands["direction"], [1.0, 1.0, 1.0])
 
     def test_golden_master_uptrend_then_flip(self) -> None:
         """
@@ -286,6 +256,36 @@ class TestSupertrendCorrectness:
         )
         assert_matches(bands["direction"], [None, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 1.0])
 
+    def test_band_reset_after_close_above_upper(self) -> None:
+        """
+        Verifies the upper-band reset half of the carry rule (``previous_close > final_upper`` re-anchors the band):
+        an explosive rally rides above the upper band, so on the crash that follows the band must re-anchor to the
+        basic band instead of flipping against a stale level on every bar -- pinned against the non-mirror reference,
+        which implements the canonical rule independently.
+        """
+        high = [10.0 * 1.08**i for i in range(25)] + [10.0 * 1.08**24 * 0.90**i for i in range(1, 15)]
+        low = [value * 0.985 for value in high]
+        close = [value * 0.999 for value in high]
+        bands = apply_supertrend(high, low, close, 3, multiplier=0.5)
+        reference = supertrend_reference(high, low, close, 3, 0.5)
+        for field in FIELDS:
+            assert_matches(
+                bands[field],
+                reference[field],
+                rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+                abs_tol=input_scale(close) * EXACT_TOLERANCE_FACTOR,
+            )
+
+    def test_lower_band_exact_touch_stays_up(self) -> None:
+        """
+        Verifies the tie convention on an exact lower-band touch in an uptrend: the flip requires a STRICT break
+        (``close < final_lower``), so a close exactly ON the carried band holds the trend -- the mirror of the
+        upper-band touch, on dyadic values so the equality is exact.
+        """
+        bands = apply_supertrend([11.0, 13.0, 12.5], [9.0, 11.0, 10.5], [10.5, 12.0, 11.375], 1, multiplier=0.25)
+        assert_matches(bands["line"], [9.5, 11.375, 11.375])
+        assert_matches(bands["direction"], [1.0, 1.0, 1.0])
+
 
 class TestSupertrendProperties:
     """
@@ -311,56 +311,6 @@ class TestSupertrendProperties:
                 rel_tol=RELATIVE_TOLERANCE_PROPERTY,
                 abs_tol=input_scale(close) * EXACT_TOLERANCE_FACTOR,
             )
-
-    @given(case=_cases(coherent_hlc()))
-    def test_line_sits_on_the_trend_side_of_price(
-        self,
-        case: tuple[list[tuple[float, float, float]], int],
-    ) -> None:
-        """
-        Verifies the defining band invariant: in an up-trend (``direction == +1``) the line sits at or below the close,
-        in a down-trend (``-1``) at or above it -- a true property of the definition, asserted on the raw output.
-        """
-        rows, window = case
-        high, low, close = split_triples(rows)
-        bands = apply_supertrend(high, low, close, window)
-        margin = input_scale(close) * EXACT_TOLERANCE_FACTOR
-        for line_value, direction_value, close_value in zip(bands["line"], bands["direction"], close, strict=True):
-            if line_value is None or math.isnan(line_value):
-                continue
-            assert close_value is not None
-            if direction_value == 1.0:
-                assert line_value <= close_value + margin
-            else:
-                assert line_value >= close_value - margin
-
-    @given(case=_cases(coherent_hlc()))
-    def test_line_ratchets_within_a_trend(
-        self,
-        case: tuple[list[tuple[float, float, float]], int],
-    ) -> None:
-        """
-        Verifies the hysteresis: across consecutive defined bars that keep the same direction the line is monotone --
-        non-decreasing while ``+1`` (lower band only rises), non-increasing while ``-1`` (upper band only falls).
-        """
-        rows, window = case
-        high, low, close = split_triples(rows)
-        bands = apply_supertrend(high, low, close, window)
-        margin = input_scale(close) * EXACT_TOLERANCE_FACTOR
-        previous_line: float | None = None
-        previous_direction: float | None = None
-        for line_value, direction_value in zip(bands["line"], bands["direction"], strict=True):
-            if line_value is None or math.isnan(line_value):
-                previous_line = None
-                previous_direction = None
-                continue
-            if previous_line is not None and direction_value == previous_direction:
-                if direction_value == 1.0:
-                    assert line_value >= previous_line - margin
-                else:
-                    assert line_value <= previous_line + margin
-            previous_line = line_value
-            previous_direction = direction_value
 
     @given(case=_cases(coherent_hlc_with_missing()))
     def test_matches_reference_under_missing_data(
@@ -430,3 +380,53 @@ class TestSupertrendProperties:
                 rel_tol=RELATIVE_TOLERANCE_SCALE,
                 abs_tol=input_scale(close) * EXACT_TOLERANCE_FACTOR,
             )
+
+    @given(case=_cases(coherent_hlc()))
+    def test_line_sits_on_the_trend_side_of_price(
+        self,
+        case: tuple[list[tuple[float, float, float]], int],
+    ) -> None:
+        """
+        Verifies the defining band invariant: in an up-trend (``direction == +1``) the line sits at or below the close,
+        in a down-trend (``-1``) at or above it -- a true property of the definition, asserted on the raw output.
+        """
+        rows, window = case
+        high, low, close = split_triples(rows)
+        bands = apply_supertrend(high, low, close, window)
+        margin = input_scale(close) * EXACT_TOLERANCE_FACTOR
+        for line_value, direction_value, close_value in zip(bands["line"], bands["direction"], close, strict=True):
+            if line_value is None or math.isnan(line_value):
+                continue
+            assert close_value is not None
+            if direction_value == 1.0:
+                assert line_value <= close_value + margin
+            else:
+                assert line_value >= close_value - margin
+
+    @given(case=_cases(coherent_hlc()))
+    def test_line_ratchets_within_a_trend(
+        self,
+        case: tuple[list[tuple[float, float, float]], int],
+    ) -> None:
+        """
+        Verifies the hysteresis: across consecutive defined bars that keep the same direction the line is monotone --
+        non-decreasing while ``+1`` (lower band only rises), non-increasing while ``-1`` (upper band only falls).
+        """
+        rows, window = case
+        high, low, close = split_triples(rows)
+        bands = apply_supertrend(high, low, close, window)
+        margin = input_scale(close) * EXACT_TOLERANCE_FACTOR
+        previous_line: float | None = None
+        previous_direction: float | None = None
+        for line_value, direction_value in zip(bands["line"], bands["direction"], strict=True):
+            if line_value is None or math.isnan(line_value):
+                previous_line = None
+                previous_direction = None
+                continue
+            if previous_line is not None and direction_value == previous_direction:
+                if direction_value == 1.0:
+                    assert line_value >= previous_line - margin
+                else:
+                    assert line_value <= previous_line + margin
+            previous_line = line_value
+            previous_direction = direction_value

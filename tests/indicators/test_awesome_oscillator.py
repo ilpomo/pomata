@@ -123,33 +123,12 @@ class TestAwesomeOscillatorEdge:
         with pytest.raises(ValueError, match="window_slow must be >= 1"):
             awesome_oscillator(pl.col(HIGH), pl.col(LOW), window_fast=1, window_slow=0)
 
-    def test_fast_exceeds_slow_raises(self) -> None:
+    def test_fast_above_slow_raises(self) -> None:
         """
         Verifies that ``window_fast > window_slow`` raises ``ValueError`` (the fast leg must be the shorter one).
         """
         with pytest.raises(ValueError, match="windows must be ordered window_fast <= window_slow"):
             awesome_oscillator(pl.col(HIGH), pl.col(LOW), window_fast=5, window_slow=3)
-
-    def test_equal_windows_is_zero(self) -> None:
-        """
-        Verifies that ``window_fast == window_slow`` gives an identically-zero oscillator where defined.
-        """
-        result = apply_awesome_oscillator([2.0, 4.0, 6.0, 8.0], [0.0, 2.0, 4.0, 6.0], 2, 2)
-        assert_matches(result, [None, 0.0, 0.0, 0.0])
-
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null input yields an all-null output.
-        """
-        assert_matches(apply_awesome_oscillator([None, None, None], [None, None, None], 1, 2), [None, None, None])
-
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies that the first ``window_slow - 1`` rows are null (warm-up) and the next is defined.
-        """
-        result = apply_awesome_oscillator([2.0, 4.0, 6.0, 8.0, 10.0], [0.0, 2.0, 4.0, 6.0, 8.0], 2, 3)
-        assert result[:2] == [None, None]
-        assert result[2] is not None
 
     def test_single_row(self) -> None:
         """
@@ -158,12 +137,11 @@ class TestAwesomeOscillatorEdge:
         assert_matches(apply_awesome_oscillator([2.0], [0.0], 1, 1), [0.0])
         assert_matches(apply_awesome_oscillator([2.0], [0.0], 1, 3), [None])
 
-    def test_flat_series_is_zero(self) -> None:
+    def test_all_null(self) -> None:
         """
-        Verifies the flat series: over a constant median both averages equal it, so the oscillator is ``0``.
+        Verifies that an all-null input yields an all-null output.
         """
-        flat = [5.0, 5.0, 5.0, 5.0, 5.0]
-        assert_matches(apply_awesome_oscillator(flat, flat, 2, 3), [None, None, 0.0, 0.0, 0.0])
+        assert_matches(apply_awesome_oscillator([None, None, None], [None, None, None], 1, 2), [None, None, None])
 
     def test_null_and_nan_follow_the_legs(self) -> None:
         """
@@ -174,6 +152,28 @@ class TestAwesomeOscillatorEdge:
         low = [0.0, 2.0, 4.0, 6.0, 8.0, 10.0]
         result = apply_awesome_oscillator(high, low, 1, 2)
         assert_matches(result, awesome_oscillator_reference(high, low, 1, 2))
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that the first ``window_slow - 1`` rows are null (warm-up) and the next is defined.
+        """
+        result = apply_awesome_oscillator([2.0, 4.0, 6.0, 8.0, 10.0], [0.0, 2.0, 4.0, 6.0, 8.0], 2, 3)
+        assert result[:2] == [None, None]
+        assert result[2] is not None
+
+    def test_equal_windows_is_zero(self) -> None:
+        """
+        Verifies that ``window_fast == window_slow`` gives an identically-zero oscillator where defined.
+        """
+        result = apply_awesome_oscillator([2.0, 4.0, 6.0, 8.0], [0.0, 2.0, 4.0, 6.0], 2, 2)
+        assert_matches(result, [None, 0.0, 0.0, 0.0])
+
+    def test_flat_series_is_zero(self) -> None:
+        """
+        Verifies the flat series: over a constant median both averages equal it, so the oscillator is ``0``.
+        """
+        flat = [5.0, 5.0, 5.0, 5.0, 5.0]
+        assert_matches(apply_awesome_oscillator(flat, flat, 2, 3), [None, None, 0.0, 0.0, 0.0])
 
 
 class TestAwesomeOscillatorCorrectness:

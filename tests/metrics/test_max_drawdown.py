@@ -63,12 +63,6 @@ class TestMaxDrawdownEdge:
         """
         assert_matches(apply_expr([1.0], max_drawdown(pl.col(COLUMN_X))), [0.0])
 
-    def test_monotonic_rise_is_zero(self) -> None:
-        """
-        Verifies that a never-declining curve has zero drawdown.
-        """
-        assert_matches(apply_expr([1.0, 1.1, 1.2, 1.3], max_drawdown(pl.col(COLUMN_X))), [0.0])
-
     def test_null_skipped(self) -> None:
         """
         Verifies that null equities are skipped (a missing bar does not start a drawdown), matching the reference.
@@ -81,6 +75,12 @@ class TestMaxDrawdownEdge:
         Verifies that a NaN equity poisons the result to NaN (an undefined equity makes the summary undefined).
         """
         assert_matches(apply_expr([1.0, 1.1, math.nan, 0.9, 1.2], max_drawdown(pl.col(COLUMN_X))), [math.nan])
+
+    def test_monotonic_rise_is_zero(self) -> None:
+        """
+        Verifies that a never-declining curve has zero drawdown.
+        """
+        assert_matches(apply_expr([1.0, 1.1, 1.2, 1.3], max_drawdown(pl.col(COLUMN_X))), [0.0])
 
 
 class TestMaxDrawdownCorrectness:

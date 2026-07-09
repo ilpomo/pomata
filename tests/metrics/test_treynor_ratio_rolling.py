@@ -141,21 +141,6 @@ class TestTreynorRatioRollingEdge:
                     pl.col(RETURNS), pl.col(BENCHMARK), 3, periods_per_year=PERIODS, risk_free_rate=invalid
                 )
 
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies that the first ``window - 1`` rows are ``null`` and the rest match the reference.
-        """
-        returns = [0.01, -0.02, 0.03, -0.01, 0.02]
-        benchmark = [0.008, -0.015, 0.025, -0.008, 0.018]
-        assert_matches(
-            materialize(
-                {RETURNS: returns, BENCHMARK: benchmark},
-                treynor_ratio_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 3, periods_per_year=PERIODS),
-            ),
-            treynor_ratio_rolling_reference(returns, benchmark, 3, PERIODS),
-            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
-        )
-
     def test_null_in_window_is_null(self) -> None:
         """
         Verifies that a window with a ``null`` in either leg yields ``null`` (the window must hold ``window`` pairs).
@@ -183,6 +168,50 @@ class TestTreynorRatioRollingEdge:
                 treynor_ratio_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 3, periods_per_year=PERIODS),
             ),
             treynor_ratio_rolling_reference(returns, benchmark, 3, PERIODS),
+        )
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that the first ``window - 1`` rows are ``null`` and the rest match the reference.
+        """
+        returns = [0.01, -0.02, 0.03, -0.01, 0.02]
+        benchmark = [0.008, -0.015, 0.025, -0.008, 0.018]
+        assert_matches(
+            materialize(
+                {RETURNS: returns, BENCHMARK: benchmark},
+                treynor_ratio_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 3, periods_per_year=PERIODS),
+            ),
+            treynor_ratio_rolling_reference(returns, benchmark, 3, PERIODS),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+        )
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that a window exceeding the series length yields an all-null output.
+        """
+        returns = [0.01, -0.02, 0.03, -0.01, 0.02]
+        benchmark = [0.008, -0.015, 0.025, -0.008, 0.018]
+        assert_matches(
+            materialize(
+                {RETURNS: returns, BENCHMARK: benchmark},
+                treynor_ratio_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 7, periods_per_year=PERIODS),
+            ),
+            [None, None, None, None, None],
+        )
+
+    def test_window_equals_length(self) -> None:
+        """
+        Verifies that when ``window`` equals the series length only the last row is defined, matching the reference.
+        """
+        returns = [0.01, -0.02, 0.03, -0.01, 0.02]
+        benchmark = [0.008, -0.015, 0.025, -0.008, 0.018]
+        assert_matches(
+            materialize(
+                {RETURNS: returns, BENCHMARK: benchmark},
+                treynor_ratio_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 5, periods_per_year=PERIODS),
+            ),
+            treynor_ratio_rolling_reference(returns, benchmark, 5, PERIODS),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
         )
 
     def test_constant_benchmark_window_is_nan(self) -> None:
@@ -233,6 +262,24 @@ class TestTreynorRatioRollingCorrectness:
                 treynor_ratio_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 4, periods_per_year=PERIODS),
             ),
             treynor_ratio_rolling_reference(returns, benchmark, 4, PERIODS),
+            rel_tol=RELATIVE_TOLERANCE_SCALE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
+        )
+
+    def test_matches_reference_with_risk_free_rate(self) -> None:
+        """
+        Verifies agreement with the naive closed-form reference at a non-default ``risk_free_rate``.
+        """
+        returns = [0.01, -0.02, 0.03, -0.01, 0.02]
+        benchmark = [0.008, -0.015, 0.025, -0.008, 0.018]
+        assert_matches(
+            materialize(
+                {RETURNS: returns, BENCHMARK: benchmark},
+                treynor_ratio_rolling(
+                    pl.col(RETURNS), pl.col(BENCHMARK), 3, periods_per_year=PERIODS, risk_free_rate=0.02
+                ),
+            ),
+            treynor_ratio_rolling_reference(returns, benchmark, 3, PERIODS, 0.02),
             rel_tol=RELATIVE_TOLERANCE_SCALE,
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )

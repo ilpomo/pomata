@@ -7,7 +7,7 @@ lag). Tests use a local ``apply_dividend`` helper to materialize it over a two-c
 homogeneous in each input, so it carries the scale-homogeneity and large-magnitude tiers.
 
 The ladder, adapted to an elementwise two-input product: contract (type / shape / lazy-eager / ``.over`` identity), edge
-(empty / single-row / null / NaN / null-precedence), correctness (closed-form reference + frozen golden master), and
+(empty / single-row / null / null-precedence / NaN), correctness (closed-form reference + frozen golden master), and
 properties (reference agreement incl. missing data, scale-homogeneity, large-magnitude). Categories are split into
 classes; cross-cutting categories use markers (see ``tests/README.md``).
 """
@@ -117,6 +117,12 @@ class TestDividendEdge:
         dividend_per_share = [0.0, 0.5, 0.5, 0.5]
         assert_matches(apply_dividend(quantity, dividend_per_share), dividend_reference(quantity, dividend_per_share))
 
+    def test_null_takes_precedence_over_nan(self) -> None:
+        """
+        Verifies that a row with a ``null`` in one input and a ``NaN`` in the other yields ``null``.
+        """
+        assert_matches(apply_dividend([None, 100.0], [math.nan, 0.5]), [None, 50.0])
+
     def test_nan_propagates(self) -> None:
         """
         Verifies that a ``NaN`` in either input makes that row ``NaN`` (matching the naive reference).
@@ -124,12 +130,6 @@ class TestDividendEdge:
         quantity = [100.0, 100.0, math.nan, -50.0]
         dividend_per_share = [0.0, 0.5, 0.5, 0.5]
         assert_matches(apply_dividend(quantity, dividend_per_share), dividend_reference(quantity, dividend_per_share))
-
-    def test_null_takes_precedence_over_nan(self) -> None:
-        """
-        Verifies that a row with a ``null`` in one input and a ``NaN`` in the other yields ``null``.
-        """
-        assert_matches(apply_dividend([None, 100.0], [math.nan, 0.5]), [None, 50.0])
 
 
 class TestDividendCorrectness:

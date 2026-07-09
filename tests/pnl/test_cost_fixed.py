@@ -9,9 +9,9 @@ scale-INVARIANT in the quantity (it carries a scale-invariance property in place
 tiers).
 
 The ladder is the canonical one: contract (type / shape / lazy-eager / ``.over`` per-group independence), edge
-(flat-start / single-row / null / NaN / negative-fee guard), correctness (vs the closed-form reference and a frozen
-golden master), and properties (reference agreement incl. missing data, scale-invariance). Categories are split into
-classes; cross-cutting categories use markers (see ``tests/README.md``).
+(negative-fee guard / single-row / null / NaN / flat-start / consecutive-infinities), correctness (vs the closed-form
+reference and a frozen golden master), and properties (reference agreement incl. missing data, scale-invariance).
+Categories are split into classes; cross-cutting categories use markers (see ``tests/README.md``).
 """
 
 import math
@@ -94,12 +94,6 @@ class TestCostFixedEdge:
             with pytest.raises(ValueError, match="fee must be a finite number >= 0"):
                 cost_fixed(pl.col(COLUMN_X), fee=invalid)
 
-    def test_flat_start_first_row(self) -> None:
-        """
-        Verifies the first row charges the fee (the entry trade from a flat start), then the held bar is zero.
-        """
-        assert_matches(apply_expr([10.0, 10.0, -5.0], cost_fixed(pl.col(COLUMN_X), fee=FEE)), [1.0, 0.0, 1.0])
-
     def test_single_row(self) -> None:
         """
         Verifies that a one-element series charges the fee (the entry trade), not null.
@@ -120,7 +114,13 @@ class TestCostFixedEdge:
         values = [10.0, math.nan, -5.0, 20.0]
         assert_matches(apply_expr(values, cost_fixed(pl.col(COLUMN_X), fee=FEE)), cost_fixed_reference(values, FEE))
 
-    def test_infinity_propagates(self) -> None:
+    def test_flat_start_first_row(self) -> None:
+        """
+        Verifies the first row charges the fee (the entry trade from a flat start), then the held bar is zero.
+        """
+        assert_matches(apply_expr([10.0, 10.0, -5.0], cost_fixed(pl.col(COLUMN_X), fee=FEE)), [1.0, 0.0, 1.0])
+
+    def test_consecutive_infinities_make_nan(self) -> None:
         """
         Verifies the threshold masking against the reference on infinite quantities: a finite-to-``inf`` move is a trade
         (charges the fee), while two consecutive equal-sign infinities make the turnover ``inf - inf = NaN`` and the

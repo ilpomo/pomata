@@ -52,6 +52,7 @@ def _abs_tol(values: Sequence[float | None]) -> float:
 # quantile is an order statistic, so the implementation matches the oracle to a tight reference band.
 # ----------------------------------------------------------------------------------------------------------------------
 CONFIDENCE = 0.95
+_CONFIDENCE = st.sampled_from([0.9, 0.95, 0.99])
 
 
 @st.composite
@@ -89,17 +90,6 @@ class TestValueAtRiskRollingEdge:
             with pytest.raises(ValueError, match="confidence must be in the open interval"):
                 value_at_risk_rolling(pl.col(COLUMN_X), 3, confidence=invalid)
 
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies that the first ``window - 1`` rows are ``null`` and the rest match the reference.
-        """
-        values = [0.01, -0.02, 0.03, -0.01, 0.02]
-        assert_matches(
-            apply_expr(values, value_at_risk_rolling(pl.col(COLUMN_X), 3, confidence=CONFIDENCE)),
-            value_at_risk_rolling_reference(values, 3),
-            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
-        )
-
     def test_null_in_window_is_null(self) -> None:
         """
         Verifies that a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
@@ -119,6 +109,38 @@ class TestValueAtRiskRollingEdge:
         assert_matches(
             apply_expr(values, value_at_risk_rolling(pl.col(COLUMN_X), 3, confidence=CONFIDENCE)),
             value_at_risk_rolling_reference(values, 3),
+        )
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that the first ``window - 1`` rows are ``null`` and the rest match the reference.
+        """
+        values = [0.01, -0.02, 0.03, -0.01, 0.02]
+        assert_matches(
+            apply_expr(values, value_at_risk_rolling(pl.col(COLUMN_X), 3, confidence=CONFIDENCE)),
+            value_at_risk_rolling_reference(values, 3),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+        )
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that a window exceeding the series length yields an all-null output.
+        """
+        values = [0.01, -0.02, 0.03, -0.01, 0.02]
+        assert_matches(
+            apply_expr(values, value_at_risk_rolling(pl.col(COLUMN_X), 7, confidence=CONFIDENCE)),
+            [None, None, None, None, None],
+        )
+
+    def test_window_equals_length(self) -> None:
+        """
+        Verifies that when ``window`` equals the series length only the last row is defined, matching the reference.
+        """
+        values = [0.01, -0.02, 0.03, -0.01, 0.02]
+        assert_matches(
+            apply_expr(values, value_at_risk_rolling(pl.col(COLUMN_X), 5, confidence=CONFIDENCE)),
+            value_at_risk_rolling_reference(values, 5),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
         )
 
     def test_sign_convention_is_signed_quantile(self) -> None:
@@ -164,28 +186,30 @@ class TestValueAtRiskRollingProperties:
     Invariants that must hold for all inputs (property-based).
     """
 
-    @given(case=_cases(subnormal_safe_floats(bound=1e3)))
-    def test_matches_reference_for_any_input(self, case: tuple[list[float], int]) -> None:
+    @given(case=_cases(subnormal_safe_floats(bound=1e3)), confidence=_CONFIDENCE)
+    def test_matches_reference_for_any_input(self, case: tuple[list[float], int], confidence: float) -> None:
         """
         Verifies that, for any well-conditioned series and window, the implementation matches the naive reference.
         """
         values, window = case
         assert_matches(
-            apply_expr(values, value_at_risk_rolling(pl.col(COLUMN_X), window, confidence=CONFIDENCE)),
-            value_at_risk_rolling_reference(values, window),
+            apply_expr(values, value_at_risk_rolling(pl.col(COLUMN_X), window, confidence=confidence)),
+            value_at_risk_rolling_reference(values, window, confidence),
             rel_tol=RELATIVE_TOLERANCE_REFERENCE,
             abs_tol=_abs_tol(values),
         )
 
-    @given(case=_cases(missing_data_floats(min_magnitude=1e-3)))
-    def test_matches_reference_under_missing_data(self, case: tuple[list[float | None], int]) -> None:
+    @given(case=_cases(missing_data_floats(min_magnitude=1e-3)), confidence=_CONFIDENCE)
+    def test_matches_reference_under_missing_data(
+        self, case: tuple[list[float | None], int], confidence: float
+    ) -> None:
         """
         Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
         """
         values, window = case
         assert_matches(
-            apply_expr(values, value_at_risk_rolling(pl.col(COLUMN_X), window, confidence=CONFIDENCE)),
-            value_at_risk_rolling_reference(values, window),
+            apply_expr(values, value_at_risk_rolling(pl.col(COLUMN_X), window, confidence=confidence)),
+            value_at_risk_rolling_reference(values, window, confidence),
             rel_tol=RELATIVE_TOLERANCE_REFERENCE,
             abs_tol=_abs_tol(values),
         )

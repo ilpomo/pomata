@@ -108,17 +108,6 @@ class TestOmegaRatioRollingEdge:
             with pytest.raises(ValueError, match="threshold must be a finite number"):
                 omega_ratio_rolling(pl.col(COLUMN_X), 3, threshold=invalid)
 
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies that the first ``window - 1`` rows are ``null`` and the rest match the reference.
-        """
-        values = [0.01, -0.02, 0.03, -0.01, 0.02]
-        assert_matches(
-            apply_expr(values, omega_ratio_rolling(pl.col(COLUMN_X), 3)),
-            omega_ratio_rolling_reference(values, 3),
-            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
-        )
-
     def test_null_in_window_is_null(self) -> None:
         """
         Verifies that a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
@@ -138,6 +127,35 @@ class TestOmegaRatioRollingEdge:
         assert_matches(
             apply_expr(values, omega_ratio_rolling(pl.col(COLUMN_X), 3)),
             omega_ratio_rolling_reference(values, 3),
+        )
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that the first ``window - 1`` rows are ``null`` and the rest match the reference.
+        """
+        values = [0.01, -0.02, 0.03, -0.01, 0.02]
+        assert_matches(
+            apply_expr(values, omega_ratio_rolling(pl.col(COLUMN_X), 3)),
+            omega_ratio_rolling_reference(values, 3),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+        )
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that a window exceeding the series length yields an all-null output.
+        """
+        values = [0.01, -0.02, 0.03, -0.01, 0.02]
+        assert_matches(apply_expr(values, omega_ratio_rolling(pl.col(COLUMN_X), 7)), [None, None, None, None, None])
+
+    def test_window_equals_length(self) -> None:
+        """
+        Verifies that when ``window`` equals the series length only the last row is defined, matching the reference.
+        """
+        values = [0.01, -0.02, 0.03, -0.01, 0.02]
+        assert_matches(
+            apply_expr(values, omega_ratio_rolling(pl.col(COLUMN_X), 5)),
+            omega_ratio_rolling_reference(values, 5),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
         )
 
     def test_no_downside_window_is_inf(self) -> None:
@@ -173,6 +191,17 @@ class TestOmegaRatioRollingCorrectness:
             omega_ratio_rolling_reference(values, 4),
             rel_tol=RELATIVE_TOLERANCE_REFERENCE,
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
+        )
+
+    def test_matches_reference_with_threshold(self) -> None:
+        """
+        Verifies agreement with the naive closed-form reference at a non-default ``threshold``.
+        """
+        values = [0.01, -0.02, 0.03, -0.01, 0.02]
+        assert_matches(
+            apply_expr(values, omega_ratio_rolling(pl.col(COLUMN_X), 3, threshold=0.01)),
+            omega_ratio_rolling_reference(values, 3, 0.01),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
         )
 
     def test_golden_master(self) -> None:

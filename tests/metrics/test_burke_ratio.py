@@ -77,19 +77,12 @@ class TestBurkeRatioEdge:
             with pytest.raises(ValueError, match="risk_free_rate must be a finite number"):
                 burke_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS, risk_free_rate=invalid)
 
-    def test_single_row_is_nan(self) -> None:
+    def test_single_row(self) -> None:
         """
         Verifies that a one-element series has zero growth and zero drawdown energy, so the ratio is ``0 / 0``, i.e.
         ``NaN``.
         """
         assert_matches(apply_expr([1.0], burke_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS)), [math.nan])
-
-    def test_no_drawdown_is_inf(self) -> None:
-        """
-        Verifies that a monotonically rising curve has zero drawdown energy with positive growth, so the ratio is
-        ``+inf``.
-        """
-        assert_matches(apply_expr([1.0, 1.1, 1.21], burke_ratio(pl.col(COLUMN_X), periods_per_year=1)), [math.inf])
 
     def test_null_skipped(self) -> None:
         """
@@ -110,6 +103,13 @@ class TestBurkeRatioEdge:
         assert_matches(
             apply_expr([1.1, math.nan, 1.2], burke_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS)), [math.nan]
         )
+
+    def test_no_drawdown_is_inf(self) -> None:
+        """
+        Verifies that a monotonically rising curve has zero drawdown energy with positive growth, so the ratio is
+        ``+inf``.
+        """
+        assert_matches(apply_expr([1.0, 1.1, 1.21], burke_ratio(pl.col(COLUMN_X), periods_per_year=1)), [math.inf])
 
 
 class TestBurkeRatioCorrectness:

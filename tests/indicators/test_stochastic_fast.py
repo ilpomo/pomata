@@ -95,18 +95,6 @@ class TestStochasticFastContract:
     Type, struct schema, shape, and lazy/eager guarantees.
     """
 
-    def test_output_is_struct_with_named_fields(self) -> None:
-        """
-        Verifies that the output is a ``Float64`` struct with exactly the fields ``k`` / ``d``.
-        """
-        frame = pl.DataFrame({HIGH: [10.0, 11.0, 12.0], LOW: [9.0, 10.0, 11.0], CLOSE: [9.5, 10.5, 11.5]})
-        dtype = frame.select(
-            stochastic_fast(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), window_k=2, window_d=2).alias("s")
-        ).schema["s"]
-        assert isinstance(dtype, pl.Struct)
-        assert [field.name for field in dtype.fields] == ["k", "d"]
-        assert all(field.dtype == pl.Float64 for field in dtype.fields)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` the windows reset per group and never span boundaries.
@@ -132,6 +120,18 @@ class TestStochasticFastContract:
         for field in FIELDS:
             assert_matches(grouped[field], group_a[field] + group_b[field])
 
+    def test_output_is_struct_with_named_fields(self) -> None:
+        """
+        Verifies that the output is a ``Float64`` struct with exactly the fields ``k`` / ``d``.
+        """
+        frame = pl.DataFrame({HIGH: [10.0, 11.0, 12.0], LOW: [9.0, 10.0, 11.0], CLOSE: [9.5, 10.5, 11.5]})
+        dtype = frame.select(
+            stochastic_fast(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), window_k=2, window_d=2).alias("s")
+        ).schema["s"]
+        assert isinstance(dtype, pl.Struct)
+        assert [field.name for field in dtype.fields] == ["k", "d"]
+        assert all(field.dtype == pl.Float64 for field in dtype.fields)
+
 
 class TestStochasticFastEdge:
     """
@@ -152,6 +152,14 @@ class TestStochasticFastEdge:
         with pytest.raises(ValueError, match="window_d must be >= 1"):
             stochastic_fast(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), window_k=3, window_d=0)
 
+    def test_single_row(self) -> None:
+        """
+        Verifies that a one-row series is all warm-up on both lines (the longest window exceeds the length).
+        """
+        result = apply_stochastic_fast([11.0], [9.0], [10.0], window_k=3, window_d=2)
+        assert_matches(result["k"], [None])
+        assert_matches(result["d"], [None])
+
     def test_all_null(self) -> None:
         """
         Verifies that an all-null input yields an all-null output on both lines.
@@ -161,48 +169,6 @@ class TestStochasticFastEdge:
         )
         assert_matches(result["k"], [None, None, None])
         assert_matches(result["d"], [None, None, None])
-
-    def test_single_row(self) -> None:
-        """
-        Verifies that a one-row series is all warm-up on both lines (the longest window exceeds the length).
-        """
-        result = apply_stochastic_fast([11.0], [9.0], [10.0], window_k=3, window_d=2)
-        assert_matches(result["k"], [None])
-        assert_matches(result["d"], [None])
-
-    def test_window_exceeds_length(self) -> None:
-        """
-        Verifies that a short series whose longest window exceeds the length is all warm-up on both lines.
-        """
-        result = apply_stochastic_fast(
-            [11.0, 12.0, 13.0], [9.0, 10.0, 11.0], [10.0, 11.0, 12.0], window_k=5, window_d=2
-        )
-        assert_matches(result["k"], [None, None, None])
-        assert_matches(result["d"], [None, None, None])
-
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies that ``k`` warms up over ``window_k - 1`` rows and ``d`` over a further ``window_d - 1``.
-        """
-        high = [10.0, 11.0, 12.0, 11.5, 13.0, 12.5]
-        low = [9.0, 10.0, 11.0, 10.5, 12.0, 11.5]
-        close = [9.5, 10.5, 11.5, 11.0, 12.5, 12.0]
-        result = apply_stochastic_fast(high, low, close, window_k=3, window_d=2)
-        assert result["k"][:2] == [None, None]
-        assert result["k"][2] is not None
-        assert result["d"][:3] == [None, None, None]
-        assert result["d"][3] is not None
-
-    def test_flat_window_is_nan(self) -> None:
-        """
-        Verifies that a flat look-back (highest high equals lowest low) yields ``NaN`` on ``k`` (``0 / 0``).
-        """
-        result = apply_stochastic_fast(
-            [10.0, 10.0, 10.0], [10.0, 10.0, 10.0], [10.0, 10.0, 10.0], window_k=2, window_d=1
-        )
-        assert result["k"][0] is None
-        assert result["k"][1] is not None
-        assert math.isnan(result["k"][1])
 
     def test_null_in_window_is_null(self) -> None:
         """
@@ -227,6 +193,40 @@ class TestStochasticFastEdge:
         reference = stochastic_fast_reference(high, low, close, 2, 2)
         for field in FIELDS:
             assert_matches(applied[field], reference[field])
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that ``k`` warms up over ``window_k - 1`` rows and ``d`` over a further ``window_d - 1``.
+        """
+        high = [10.0, 11.0, 12.0, 11.5, 13.0, 12.5]
+        low = [9.0, 10.0, 11.0, 10.5, 12.0, 11.5]
+        close = [9.5, 10.5, 11.5, 11.0, 12.5, 12.0]
+        result = apply_stochastic_fast(high, low, close, window_k=3, window_d=2)
+        assert result["k"][:2] == [None, None]
+        assert result["k"][2] is not None
+        assert result["d"][:3] == [None, None, None]
+        assert result["d"][3] is not None
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that a short series whose longest window exceeds the length is all warm-up on both lines.
+        """
+        result = apply_stochastic_fast(
+            [11.0, 12.0, 13.0], [9.0, 10.0, 11.0], [10.0, 11.0, 12.0], window_k=5, window_d=2
+        )
+        assert_matches(result["k"], [None, None, None])
+        assert_matches(result["d"], [None, None, None])
+
+    def test_flat_window_is_nan(self) -> None:
+        """
+        Verifies that a flat look-back (highest high equals lowest low) yields ``NaN`` on ``k`` (``0 / 0``).
+        """
+        result = apply_stochastic_fast(
+            [10.0, 10.0, 10.0], [10.0, 10.0, 10.0], [10.0, 10.0, 10.0], window_k=2, window_d=1
+        )
+        assert result["k"][0] is None
+        assert result["k"][1] is not None
+        assert math.isnan(result["k"][1])
 
 
 class TestStochasticFastCorrectness:

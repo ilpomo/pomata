@@ -96,21 +96,6 @@ class TestAlphaRollingEdge:
             with pytest.raises(ValueError, match="risk_free_rate must be a finite number"):
                 alpha_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 3, periods_per_year=PERIODS, risk_free_rate=invalid)
 
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies that the first ``window - 1`` rows are ``null`` and the rest match the reference.
-        """
-        returns = [0.01, -0.02, 0.03, -0.01, 0.02]
-        benchmark = [0.008, -0.015, 0.025, -0.008, 0.018]
-        assert_matches(
-            materialize(
-                {RETURNS: returns, BENCHMARK: benchmark},
-                alpha_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 3, periods_per_year=PERIODS),
-            ),
-            alpha_rolling_reference(returns, benchmark, 3, PERIODS),
-            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
-        )
-
     def test_null_in_window_is_null(self) -> None:
         """
         Verifies that a window with a ``null`` in either leg yields ``null`` (the window must hold ``window`` pairs).
@@ -140,6 +125,53 @@ class TestAlphaRollingEdge:
             alpha_rolling_reference(returns, benchmark, 3, PERIODS),
         )
 
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that the first ``window - 1`` rows are ``null`` and the rest match the reference.
+        """
+        returns = [0.01, -0.02, 0.03, -0.01, 0.02]
+        benchmark = [0.008, -0.015, 0.025, -0.008, 0.018]
+        assert_matches(
+            materialize(
+                {RETURNS: returns, BENCHMARK: benchmark},
+                alpha_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 3, periods_per_year=PERIODS),
+            ),
+            alpha_rolling_reference(returns, benchmark, 3, PERIODS),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+        )
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that when ``window`` exceeds the series length the whole output is null (no window ever fills).
+        """
+        returns = [0.01, -0.02, 0.03]
+        benchmark = [0.008, -0.015, 0.025]
+        assert_matches(
+            materialize(
+                {RETURNS: returns, BENCHMARK: benchmark},
+                alpha_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 5, periods_per_year=PERIODS),
+            ),
+            [None, None, None],
+        )
+
+    def test_window_equals_length(self) -> None:
+        """
+        Verifies that when ``window`` equals the series length only the last row is defined, matching the reference.
+        """
+        returns = [0.01, -0.02, 0.03, -0.01]
+        benchmark = [0.008, -0.015, 0.025, -0.008]
+        result = materialize(
+            {RETURNS: returns, BENCHMARK: benchmark},
+            alpha_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 4, periods_per_year=PERIODS),
+        )
+        assert result[:-1] == [None, None, None]
+        assert result[-1] is not None
+        assert_matches(
+            result,
+            alpha_rolling_reference(returns, benchmark, 4, PERIODS),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+        )
+
     def test_constant_benchmark_window_is_nan(self) -> None:
         """
         Verifies that a window whose benchmark is constant makes the embedded slope ``NaN`` (via the
@@ -163,7 +195,8 @@ class TestAlphaRollingCorrectness:
 
     def test_matches_reference(self) -> None:
         """
-        Verifies agreement with the naive closed-form reference over a representative pair of series.
+        Verifies agreement with the naive closed-form reference over a representative pair of series, at the default
+        ``risk_free_rate`` and at a non-default one (``0.05``), which must shift every window's intercept.
         """
         returns = [0.02, -0.01, 0.03, -0.02, 0.015, 0.005, -0.01, 0.02]
         benchmark = [0.015, -0.008, 0.025, -0.015, 0.01, 0.004, -0.012, 0.018]
@@ -173,6 +206,15 @@ class TestAlphaRollingCorrectness:
                 alpha_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 4, periods_per_year=PERIODS),
             ),
             alpha_rolling_reference(returns, benchmark, 4, PERIODS),
+            rel_tol=RELATIVE_TOLERANCE_SCALE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
+        )
+        assert_matches(
+            materialize(
+                {RETURNS: returns, BENCHMARK: benchmark},
+                alpha_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 4, periods_per_year=PERIODS, risk_free_rate=0.05),
+            ),
+            alpha_rolling_reference(returns, benchmark, 4, PERIODS, risk_free_rate=0.05),
             rel_tol=RELATIVE_TOLERANCE_SCALE,
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )

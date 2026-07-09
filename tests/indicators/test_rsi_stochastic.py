@@ -168,18 +168,6 @@ class TestRsiStochasticContract:
     Type, struct schema, shape, and lazy/eager guarantees.
     """
 
-    def test_output_is_struct_with_named_fields(self) -> None:
-        """
-        Verifies that the output is a ``Float64`` struct with exactly the fields ``k`` / ``d``.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 2.0, 3.0, 4.0, 5.0])})
-        dtype = frame.select(rsi_stochastic(pl.col(COLUMN_X), window_rsi=2, window_k=2, window_d=2).alias("s")).schema[
-            "s"
-        ]
-        assert isinstance(dtype, pl.Struct)
-        assert [field.name for field in dtype.fields] == ["k", "d"]
-        assert all(field.dtype == pl.Float64 for field in dtype.fields)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` the RSI recursion and windows reset per group and never span boundaries.
@@ -199,6 +187,18 @@ class TestRsiStochasticContract:
         group_a = apply_rsi_stochastic([50.0, 51.0, 50.5, 52.0, 51.5, 53.0], window_rsi=3, window_k=2, window_d=2)
         group_b = apply_rsi_stochastic([20.0, 21.0, 20.5, 22.0, 21.5, 23.0], window_rsi=3, window_k=2, window_d=2)
         assert_matches(grouped, group_a["k"] + group_b["k"])
+
+    def test_output_is_struct_with_named_fields(self) -> None:
+        """
+        Verifies that the output is a ``Float64`` struct with exactly the fields ``k`` / ``d``.
+        """
+        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 2.0, 3.0, 4.0, 5.0])})
+        dtype = frame.select(rsi_stochastic(pl.col(COLUMN_X), window_rsi=2, window_k=2, window_d=2).alias("s")).schema[
+            "s"
+        ]
+        assert isinstance(dtype, pl.Struct)
+        assert [field.name for field in dtype.fields] == ["k", "d"]
+        assert all(field.dtype == pl.Float64 for field in dtype.fields)
 
 
 class TestRsiStochasticEdge:
@@ -227,16 +227,13 @@ class TestRsiStochasticEdge:
         with pytest.raises(ValueError, match="window_d must be >= 1"):
             rsi_stochastic(pl.col(COLUMN_X), window_rsi=3, window_k=3, window_d=0)
 
-    def test_warmup_null_count(self) -> None:
+    def test_single_row(self) -> None:
         """
-        Verifies that ``k`` warms up over ``window_rsi + window_k - 1`` rows and ``d`` over a further ``window_d - 1``.
+        Verifies that a one-element series is all warm-up on both lines.
         """
-        values = [50.0, 51.0, 50.5, 52.0, 51.5, 53.0, 52.0, 54.0, 53.5, 55.0]
-        result = apply_rsi_stochastic(values, window_rsi=3, window_k=3, window_d=2)
-        assert result["k"][:5] == [None, None, None, None, None]
-        assert result["k"][5] is not None
-        assert result["d"][:6] == [None, None, None, None, None, None]
-        assert result["d"][6] is not None
+        result = apply_rsi_stochastic([42.0], window_rsi=3, window_k=3, window_d=2)
+        for field in FIELDS:
+            assert_matches(result[field], [None])
 
     def test_all_null(self) -> None:
         """
@@ -246,32 +243,6 @@ class TestRsiStochasticEdge:
         result = apply_rsi_stochastic(values, window_rsi=3, window_k=3, window_d=2)
         for field in FIELDS:
             assert_matches(result[field], [None] * 10)
-
-    def test_single_row(self) -> None:
-        """
-        Verifies that a one-element series is all warm-up on both lines.
-        """
-        result = apply_rsi_stochastic([42.0], window_rsi=3, window_k=3, window_d=2)
-        for field in FIELDS:
-            assert_matches(result[field], [None])
-
-    def test_window_exceeds_length(self) -> None:
-        """
-        Verifies that a series shorter than the longest window yields an all-null output on both lines.
-        """
-        values = [1.0, 2.0, 3.0]
-        result = apply_rsi_stochastic(values, window_rsi=3, window_k=3, window_d=2)
-        for field in FIELDS:
-            assert_matches(result[field], [None, None, None])
-
-    def test_flat_window_is_nan(self) -> None:
-        """
-        Verifies that a flat RSI (a sustained trend pinning it, so highest equals lowest) yields ``NaN`` on ``k``.
-        """
-        result = apply_rsi_stochastic([10.0, 11.0, 12.0, 13.0, 14.0], window_rsi=2, window_k=2, window_d=1)
-        defined = [value for value in result["k"] if value is not None]
-        assert defined
-        assert all(math.isnan(value) for value in defined)
 
     def test_null_bridged(self) -> None:
         """
@@ -290,6 +261,35 @@ class TestRsiStochasticEdge:
         applied = apply_rsi_stochastic(values, window_rsi=2, window_k=2, window_d=2)
         reference = rsi_stochastic_reference(values, 2, 2, 2)
         assert_lines_match(applied, reference, values, 2, 2, 2)
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that ``k`` warms up over ``window_rsi + window_k - 1`` rows and ``d`` over a further ``window_d - 1``.
+        """
+        values = [50.0, 51.0, 50.5, 52.0, 51.5, 53.0, 52.0, 54.0, 53.5, 55.0]
+        result = apply_rsi_stochastic(values, window_rsi=3, window_k=3, window_d=2)
+        assert result["k"][:5] == [None, None, None, None, None]
+        assert result["k"][5] is not None
+        assert result["d"][:6] == [None, None, None, None, None, None]
+        assert result["d"][6] is not None
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that a series shorter than the longest window yields an all-null output on both lines.
+        """
+        values = [1.0, 2.0, 3.0]
+        result = apply_rsi_stochastic(values, window_rsi=3, window_k=3, window_d=2)
+        for field in FIELDS:
+            assert_matches(result[field], [None, None, None])
+
+    def test_flat_window_is_nan(self) -> None:
+        """
+        Verifies that a flat RSI (a sustained trend pinning it, so highest equals lowest) yields ``NaN`` on ``k``.
+        """
+        result = apply_rsi_stochastic([10.0, 11.0, 12.0, 13.0, 14.0], window_rsi=2, window_k=2, window_d=1)
+        defined = [value for value in result["k"] if value is not None]
+        assert defined
+        assert all(math.isnan(value) for value in defined)
 
 
 class TestRsiStochasticCorrectness:

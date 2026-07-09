@@ -83,28 +83,6 @@ class TestInformationRatioEdge:
         with pytest.raises(ValueError, match="periods_per_year must be >= 1"):
             information_ratio(pl.col(RETURNS), pl.col(BENCHMARK), periods_per_year=0)
 
-    def test_single_pair(self) -> None:
-        """
-        Verifies that a single complete pair yields ``null`` (the tracking error needs two observations).
-        """
-        assert_matches(
-            materialize(
-                {RETURNS: [0.05], BENCHMARK: [0.04]},
-                information_ratio(pl.col(RETURNS), pl.col(BENCHMARK), periods_per_year=PERIODS),
-            ),
-            [None],
-        )
-
-    def test_zero_tracking_error_is_inf(self) -> None:
-        """
-        Verifies that a constant active series has zero tracking error with a positive mean, so the ratio is ``+inf``.
-        """
-        result = materialize(
-            {RETURNS: [0.01, 0.01, 0.01], BENCHMARK: [0.0, 0.0, 0.0]},
-            information_ratio(pl.col(RETURNS), pl.col(BENCHMARK), periods_per_year=PERIODS),
-        )
-        assert_matches(result, [math.inf])
-
     def test_null_skipped(self) -> None:
         """
         Verifies that a ``null`` in either leg drops that pair (excluded from the reduction), matching the reference.
@@ -134,6 +112,28 @@ class TestInformationRatioEdge:
             ),
             [math.nan],
         )
+
+    def test_single_pair(self) -> None:
+        """
+        Verifies that a single complete pair yields ``null`` (the tracking error needs two observations).
+        """
+        assert_matches(
+            materialize(
+                {RETURNS: [0.05], BENCHMARK: [0.04]},
+                information_ratio(pl.col(RETURNS), pl.col(BENCHMARK), periods_per_year=PERIODS),
+            ),
+            [None],
+        )
+
+    def test_zero_tracking_error_is_inf(self) -> None:
+        """
+        Verifies that a constant active series has zero tracking error with a positive mean, so the ratio is ``+inf``.
+        """
+        result = materialize(
+            {RETURNS: [0.01, 0.01, 0.01], BENCHMARK: [0.0, 0.0, 0.0]},
+            information_ratio(pl.col(RETURNS), pl.col(BENCHMARK), periods_per_year=PERIODS),
+        )
+        assert_matches(result, [math.inf])
 
 
 class TestInformationRatioCorrectness:

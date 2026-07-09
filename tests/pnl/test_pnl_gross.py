@@ -7,9 +7,10 @@ naive ``pnl_gross_reference`` oracle are shared across the suite. The PnL is deg
 and ``price``, so it carries the scale-homogeneity and large-magnitude tiers.
 
 The ladder is the canonical one: contract (type / shape / lazy-eager / ``.over`` per-group independence), edge
-(warm-up / single-row / null / NaN / multiplier guard / multiplier scaling), correctness (vs the closed-form reference
-and a frozen golden master), and properties (reference agreement incl. missing data, scale-homogeneity,
-large-magnitude). Categories are split into classes; cross-cutting categories use markers (see ``tests/README.md``).
+(multiplier guard / single-row / null / null-precedence / NaN / warm-up / multiplier scaling), correctness (vs the
+closed-form reference and a frozen golden master), and properties (reference agreement incl. missing data,
+scale-homogeneity, large-magnitude). Categories are split into classes; cross-cutting categories use markers (see
+``tests/README.md``).
 """
 
 import math
@@ -110,13 +111,15 @@ class TestPnlGrossEdge:
     Boundaries, warm-up, null / NaN handling, and the multiplier guard.
     """
 
-    def test_warmup_null_count(self) -> None:
+    def test_invalid_multiplier_raises(self) -> None:
         """
-        Verifies the warm-up is exactly one row: the first PnL is null (no previous price), the second is defined.
+        Verifies that a multiplier that is not a finite number ``> 0`` (zero, negative, ``NaN``, or ``±inf``) raises
+        ``ValueError`` -- a contract multiplier is a finite positive number, so a non-finite value fails fast at the
+        call site rather than silently poisoning the output with ``NaN`` / ``inf``.
         """
-        result = apply_pnl_gross([10.0, 10.0, -5.0], [100.0, 102.0, 101.0])
-        assert result[0] is None
-        assert result[1] is not None
+        for invalid in (0.0, -5.0, math.nan, math.inf, -math.inf):
+            with pytest.raises(ValueError, match="multiplier must be a finite number > 0"):
+                pnl_gross(pl.col(QUANTITY), pl.col(PRICE), multiplier=invalid)
 
     def test_single_row(self) -> None:
         """
@@ -130,14 +133,6 @@ class TestPnlGrossEdge:
         """
         quantity = [10.0, None, -5.0, 20.0]
         price = [100.0, 102.0, 101.0, 104.0]
-        assert_matches(apply_pnl_gross(quantity, price), pnl_gross_reference(quantity, price))
-
-    def test_nan_propagates(self) -> None:
-        """
-        Verifies that a ``NaN`` propagates to the rows that reference it (matching the reference).
-        """
-        quantity = [10.0, 10.0, -5.0, 20.0]
-        price = [100.0, 102.0, math.nan, 104.0]
         assert_matches(apply_pnl_gross(quantity, price), pnl_gross_reference(quantity, price))
 
     def test_null_takes_precedence_over_nan(self) -> None:
@@ -157,6 +152,22 @@ class TestPnlGrossEdge:
         result_reverse = apply_pnl_gross(nan_quantity, null_price)
         assert result_reverse[1] is None
         assert_matches(result_reverse, pnl_gross_reference(nan_quantity, null_price))
+
+    def test_nan_propagates(self) -> None:
+        """
+        Verifies that a ``NaN`` propagates to the rows that reference it (matching the reference).
+        """
+        quantity = [10.0, 10.0, -5.0, 20.0]
+        price = [100.0, 102.0, math.nan, 104.0]
+        assert_matches(apply_pnl_gross(quantity, price), pnl_gross_reference(quantity, price))
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies the warm-up is exactly one row: the first PnL is null (no previous price), the second is defined.
+        """
+        result = apply_pnl_gross([10.0, 10.0, -5.0], [100.0, 102.0, 101.0])
+        assert result[0] is None
+        assert result[1] is not None
 
     def test_short_on_flat_price_is_negative_zero(self) -> None:
         """
@@ -187,16 +198,6 @@ class TestPnlGrossEdge:
             else:
                 assert value_scaled is not None
                 assert math.isclose(value_scaled, value_unit * MULTIPLIER, rel_tol=RELATIVE_TOLERANCE_REFERENCE)
-
-    def test_invalid_multiplier_raises(self) -> None:
-        """
-        Verifies that a multiplier that is not a finite number ``> 0`` (zero, negative, ``NaN``, or ``±inf``) raises
-        ``ValueError`` -- a contract multiplier is a finite positive number, so a non-finite value fails fast at the
-        call site rather than silently poisoning the output with ``NaN`` / ``inf``.
-        """
-        for invalid in (0.0, -5.0, math.nan, math.inf, -math.inf):
-            with pytest.raises(ValueError, match="multiplier must be a finite number > 0"):
-                pnl_gross(pl.col(QUANTITY), pl.col(PRICE), multiplier=invalid)
 
 
 class TestPnlGrossCorrectness:

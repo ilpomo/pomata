@@ -58,17 +58,11 @@ class TestPayoffRatioEdge:
     Boundaries and null / NaN handling.
     """
 
-    def test_no_losses_is_null(self) -> None:
+    def test_single_row(self) -> None:
         """
-        Verifies that an all-positive series has no losing side, so the ratio is ``null``.
+        Verifies that a one-element series leaves one side (wins or losses) empty, so the ratio is ``null``.
         """
-        assert_matches(apply_expr([0.01, 0.02, 0.03], payoff_ratio(pl.col(COLUMN_X))), [None])
-
-    def test_no_gains_is_null(self) -> None:
-        """
-        Verifies that an all-negative series has no winning side, so the ratio is ``null``.
-        """
-        assert_matches(apply_expr([-0.01, -0.02, -0.03], payoff_ratio(pl.col(COLUMN_X))), [None])
+        assert_matches(apply_expr([0.05], payoff_ratio(pl.col(COLUMN_X))), [None])
 
     def test_null_skipped(self) -> None:
         """
@@ -86,6 +80,18 @@ class TestPayoffRatioEdge:
         Verifies that a NaN return poisons the result to NaN.
         """
         assert_matches(apply_expr([0.01, math.nan, -0.02, 0.03], payoff_ratio(pl.col(COLUMN_X))), [math.nan])
+
+    def test_no_losses_is_null(self) -> None:
+        """
+        Verifies that an all-positive series has no losing side, so the ratio is ``null``.
+        """
+        assert_matches(apply_expr([0.01, 0.02, 0.03], payoff_ratio(pl.col(COLUMN_X))), [None])
+
+    def test_no_gains_is_null(self) -> None:
+        """
+        Verifies that an all-negative series has no winning side, so the ratio is ``null``.
+        """
+        assert_matches(apply_expr([-0.01, -0.02, -0.03], payoff_ratio(pl.col(COLUMN_X))), [None])
 
 
 class TestPayoffRatioCorrectness:

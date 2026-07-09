@@ -94,7 +94,7 @@ class TestPercentagePriceOscillatorEdge:
     Boundaries, warm-up, and null / NaN handling.
     """
 
-    def test_windows_below_one_raises(self) -> None:
+    def test_window_below_one_raises(self) -> None:
         """
         Verifies that a window ``< 1`` raises ``ValueError``.
         """
@@ -112,40 +112,12 @@ class TestPercentagePriceOscillatorEdge:
             percentage_price_oscillator(pl.col(COLUMN_X), window_fast=5, window_slow=3)
         assert isinstance(percentage_price_oscillator(pl.col(COLUMN_X), window_fast=3, window_slow=3), pl.Expr)
 
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies that values are null until the slow EMA leaves its warm-up (the first ``window_slow - 1`` rows).
-        """
-        result = apply_expr(
-            [10.0, 11.0, 12.0, 13.0, 14.0], percentage_price_oscillator(pl.col(COLUMN_X), window_fast=2, window_slow=3)
-        )
-        assert result[:2] == [None, None]
-        assert result[2] is not None
-
-    def test_equal_windows_are_zero(self) -> None:
-        """
-        Verifies that equal fast and slow windows cancel to ``0`` once warmed up (the two EMAs are identical).
-        """
-        result = apply_expr(
-            [10.0, 11.0, 12.0], percentage_price_oscillator(pl.col(COLUMN_X), window_fast=2, window_slow=2)
-        )
-        assert_matches(result, [None, 0.0, 0.0])
-
     def test_single_row(self) -> None:
         """
         Verifies behavior on a one-element series: the slow EMA never warms up, so the result is all warm-up.
         """
         assert_matches(
             apply_expr([42.0], percentage_price_oscillator(pl.col(COLUMN_X), window_fast=2, window_slow=3)), [None]
-        )
-
-    def test_window_exceeds_length(self) -> None:
-        """
-        Verifies that when the longest window exceeds the series length the whole output is null (no slow-EMA value).
-        """
-        assert_matches(
-            apply_expr([1.0, 2.0], percentage_price_oscillator(pl.col(COLUMN_X), window_fast=2, window_slow=3)),
-            [None, None],
         )
 
     def test_all_null(self) -> None:
@@ -178,6 +150,34 @@ class TestPercentagePriceOscillatorEdge:
         )
         assert result[-1] is not None
         assert math.isnan(result[-1])
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that values are null until the slow EMA leaves its warm-up (the first ``window_slow - 1`` rows).
+        """
+        result = apply_expr(
+            [10.0, 11.0, 12.0, 13.0, 14.0], percentage_price_oscillator(pl.col(COLUMN_X), window_fast=2, window_slow=3)
+        )
+        assert result[:2] == [None, None]
+        assert result[2] is not None
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that when the longest window exceeds the series length the whole output is null (no slow-EMA value).
+        """
+        assert_matches(
+            apply_expr([1.0, 2.0], percentage_price_oscillator(pl.col(COLUMN_X), window_fast=2, window_slow=3)),
+            [None, None],
+        )
+
+    def test_equal_windows_are_zero(self) -> None:
+        """
+        Verifies that equal fast and slow windows cancel to ``0`` once warmed up (the two EMAs are identical).
+        """
+        result = apply_expr(
+            [10.0, 11.0, 12.0], percentage_price_oscillator(pl.col(COLUMN_X), window_fast=2, window_slow=2)
+        )
+        assert_matches(result, [None, 0.0, 0.0])
 
     def test_zero_slow_ema_is_nan(self) -> None:
         """

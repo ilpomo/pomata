@@ -111,20 +111,6 @@ class TestAccumulationDistributionEdge:
     Boundaries, doji bars, and null / NaN handling.
     """
 
-    def test_unequal_lengths_raise_in_reference(self) -> None:
-        """
-        Verifies that the reference oracle rejects inputs of differing length (a guard the impl does not need).
-        """
-        with pytest.raises(ValueError, match="high, low, close and volume must have equal length"):
-            accumulation_distribution_reference([1.0, 2.0], [1.0], [1.0, 2.0], [1.0, 2.0])
-
-    def test_no_warmup(self) -> None:
-        """
-        Verifies that there is no warm-up: the first row already carries the first bar's Money Flow Volume.
-        """
-        result = apply_accumulation_distribution([10.0, 11.0], [8.0, 9.0], [9.0, 10.5], [100.0, 200.0])
-        assert result[0] is not None
-
     def test_single_row(self) -> None:
         """
         Verifies behavior on a one-element series.
@@ -142,6 +128,89 @@ class TestAccumulationDistributionEdge:
             ),
             [None, None, None],
         )
+
+    def test_null_in_high_propagates(self) -> None:
+        """
+        Verifies that a ``null`` high yields ``null`` at that bar while the running total is carried across it.
+        """
+        assert_matches(
+            apply_accumulation_distribution(
+                [10.0, None, 12.0, 13.0], [8.0, 9.0, 10.0, 11.0], [10.0, 10.5, 10.0, 13.0], [100.0, 200.0, 300.0, 400.0]
+            ),
+            accumulation_distribution_reference(
+                [10.0, None, 12.0, 13.0], [8.0, 9.0, 10.0, 11.0], [10.0, 10.5, 10.0, 13.0], [100.0, 200.0, 300.0, 400.0]
+            ),
+        )
+
+    def test_null_in_volume_propagates(self) -> None:
+        """
+        Verifies that a ``null`` volume yields ``null`` at that bar while the running total is carried across it.
+        """
+        assert_matches(
+            apply_accumulation_distribution(
+                [10.0, 11.0, 12.0, 13.0], [8.0, 9.0, 10.0, 11.0], [9.0, 10.0, 10.0, 13.0], [100.0, None, 300.0, 400.0]
+            ),
+            accumulation_distribution_reference(
+                [10.0, 11.0, 12.0, 13.0], [8.0, 9.0, 10.0, 11.0], [9.0, 10.0, 10.0, 13.0], [100.0, None, 300.0, 400.0]
+            ),
+        )
+
+    def test_nan_high_and_low_poisons(self) -> None:
+        """
+        Verifies that a ``high == low == NaN`` bar does **not** take the doji branch (``NaN - NaN`` is ``NaN``, never
+        ``== 0``), so the ``NaN`` reaches the cumulative sum and poisons the line rather than contributing ``0``. A
+        ``null`` volume still voids that bar to ``null`` (``NaN * null`` is ``null``).
+        """
+        assert_matches(apply_accumulation_distribution([math.nan], [math.nan], [5.0], [100.0]), [math.nan])
+        assert_matches(apply_accumulation_distribution([math.nan], [math.nan], [5.0], [math.nan]), [math.nan])
+        assert apply_accumulation_distribution([math.nan], [math.nan], [5.0], [None]) == [None]
+        assert_matches(
+            apply_accumulation_distribution([math.nan], [math.nan], [5.0], [100.0]),
+            accumulation_distribution_reference([math.nan], [math.nan], [5.0], [100.0]),
+        )
+        assert_matches(
+            apply_accumulation_distribution([math.nan], [math.nan], [5.0], [math.nan]),
+            accumulation_distribution_reference([math.nan], [math.nan], [5.0], [math.nan]),
+        )
+
+    def test_nan_latches(self) -> None:
+        """
+        Verifies that a ``NaN`` reaching the cumulative sum latches and every later non-null row is ``NaN``.
+        """
+        assert_matches(
+            apply_accumulation_distribution(
+                [10.0, 11.0, 12.0, 13.0],
+                [8.0, 9.0, 10.0, 11.0],
+                [9.0, math.nan, 10.0, 13.0],
+                [100.0, 200.0, 300.0, 400.0],
+            ),
+            [0.0, math.nan, math.nan, math.nan],
+        )
+
+    def test_nan_in_volume_latches(self) -> None:
+        """
+        Verifies that a ``NaN`` volume contributes ``NaN`` and latches the cumulative sum.
+        """
+        assert_matches(
+            apply_accumulation_distribution(
+                [10.0, 11.0, 12.0], [8.0, 9.0, 10.0], [9.0, 10.5, 10.0], [100.0, math.nan, 300.0]
+            ),
+            [0.0, math.nan, math.nan],
+        )
+
+    def test_no_warmup(self) -> None:
+        """
+        Verifies that there is no warm-up: the first row already carries the first bar's Money Flow Volume.
+        """
+        result = apply_accumulation_distribution([10.0, 11.0], [8.0, 9.0], [9.0, 10.5], [100.0, 200.0])
+        assert result[0] is not None
+
+    def test_unequal_lengths_raise_in_reference(self) -> None:
+        """
+        Verifies that the reference oracle rejects inputs of differing length (a guard the impl does not need).
+        """
+        with pytest.raises(ValueError, match="high, low, close and volume must have equal length"):
+            accumulation_distribution_reference([1.0, 2.0], [1.0], [1.0, 2.0], [1.0, 2.0])
 
     def test_close_at_high_is_plus_volume(self) -> None:
         """
@@ -180,50 +249,6 @@ class TestAccumulationDistributionEdge:
         assert_matches(apply_accumulation_distribution([5.0, 6.0], [5.0, 4.0], [5.0, 5.0], [None, 100.0]), [None, 0.0])
         assert apply_accumulation_distribution([5.0], [5.0], [5.0], [None]) == [None]
 
-    def test_null_in_high_propagates(self) -> None:
-        """
-        Verifies that a ``null`` high yields ``null`` at that bar while the running total is carried across it.
-        """
-        assert_matches(
-            apply_accumulation_distribution(
-                [10.0, None, 12.0, 13.0], [8.0, 9.0, 10.0, 11.0], [10.0, 10.5, 10.0, 13.0], [100.0, 200.0, 300.0, 400.0]
-            ),
-            accumulation_distribution_reference(
-                [10.0, None, 12.0, 13.0], [8.0, 9.0, 10.0, 11.0], [10.0, 10.5, 10.0, 13.0], [100.0, 200.0, 300.0, 400.0]
-            ),
-        )
-
-    def test_nan_high_and_low_poisons(self) -> None:
-        """
-        Verifies that a ``high == low == NaN`` bar does **not** take the doji branch (``NaN - NaN`` is ``NaN``, never
-        ``== 0``), so the ``NaN`` reaches the cumulative sum and poisons the line rather than contributing ``0``. A
-        ``null`` volume still voids that bar to ``null`` (``NaN * null`` is ``null``).
-        """
-        assert_matches(apply_accumulation_distribution([math.nan], [math.nan], [5.0], [100.0]), [math.nan])
-        assert_matches(apply_accumulation_distribution([math.nan], [math.nan], [5.0], [math.nan]), [math.nan])
-        assert apply_accumulation_distribution([math.nan], [math.nan], [5.0], [None]) == [None]
-        assert_matches(
-            apply_accumulation_distribution([math.nan], [math.nan], [5.0], [100.0]),
-            accumulation_distribution_reference([math.nan], [math.nan], [5.0], [100.0]),
-        )
-        assert_matches(
-            apply_accumulation_distribution([math.nan], [math.nan], [5.0], [math.nan]),
-            accumulation_distribution_reference([math.nan], [math.nan], [5.0], [math.nan]),
-        )
-
-    def test_null_in_volume_propagates(self) -> None:
-        """
-        Verifies that a ``null`` volume yields ``null`` at that bar while the running total is carried across it.
-        """
-        assert_matches(
-            apply_accumulation_distribution(
-                [10.0, 11.0, 12.0, 13.0], [8.0, 9.0, 10.0, 11.0], [9.0, 10.0, 10.0, 13.0], [100.0, None, 300.0, 400.0]
-            ),
-            accumulation_distribution_reference(
-                [10.0, 11.0, 12.0, 13.0], [8.0, 9.0, 10.0, 11.0], [9.0, 10.0, 10.0, 13.0], [100.0, None, 300.0, 400.0]
-            ),
-        )
-
     def test_interior_null_carries_running_total(self) -> None:
         """
         Verifies that an interior ``null`` yields ``null`` at its position while the cumulative sum bridges the gap.
@@ -233,31 +258,6 @@ class TestAccumulationDistributionEdge:
                 [10.0, 11.0, 12.0, 13.0], [8.0, 9.0, 10.0, 11.0], [9.0, None, 10.0, 13.0], [100.0, 200.0, 300.0, 400.0]
             ),
             [0.0, None, -300.0, 100.0],
-        )
-
-    def test_nan_latches(self) -> None:
-        """
-        Verifies that a ``NaN`` reaching the cumulative sum latches and every later non-null row is ``NaN``.
-        """
-        assert_matches(
-            apply_accumulation_distribution(
-                [10.0, 11.0, 12.0, 13.0],
-                [8.0, 9.0, 10.0, 11.0],
-                [9.0, math.nan, 10.0, 13.0],
-                [100.0, 200.0, 300.0, 400.0],
-            ),
-            [0.0, math.nan, math.nan, math.nan],
-        )
-
-    def test_nan_in_volume_latches(self) -> None:
-        """
-        Verifies that a ``NaN`` volume contributes ``NaN`` and latches the cumulative sum.
-        """
-        assert_matches(
-            apply_accumulation_distribution(
-                [10.0, 11.0, 12.0], [8.0, 9.0, 10.0], [9.0, 10.5, 10.0], [100.0, math.nan, 300.0]
-            ),
-            [0.0, math.nan, math.nan],
         )
 
 
@@ -330,36 +330,6 @@ class TestAccumulationDistributionProperties:
             abs_tol=input_scale(volume_values) * EXACT_TOLERANCE_FACTOR,
         )
 
-    @given(case=_bar_cases(coherent_hlcv()))
-    def test_is_running_difference_of_consecutive_terms(
-        self,
-        case: list[tuple[float, float, float, float]],
-    ) -> None:
-        """
-        Verifies that consecutive line differences equal each bar's Money Flow Volume (the line is a cumulative sum).
-        """
-        high_values, low_values, close_values, volume_values = split_quads(case)
-        line = apply_accumulation_distribution(high_values, low_values, close_values, volume_values)
-        # the line is a cumulative sum, so differencing two large partial sums loses precision proportional to its
-        # magnitude (catastrophic cancellation) -- size the floor to the line, not a flat absolute constant.
-        tolerance = input_scale(line) * EXACT_TOLERANCE_FACTOR
-        for index, value in enumerate(line):
-            assert value is not None
-            previous = 0.0 if index == 0 else line[index - 1]
-            assert previous is not None
-            high = high_values[index]
-            low = low_values[index]
-            close = close_values[index]
-            volume = volume_values[index]
-            multiplier = 0.0 if high == low else ((close - low) - (high - close)) / (high - low)
-            expected_step = multiplier * volume
-            assert math.isclose(
-                value - previous,
-                expected_step,
-                rel_tol=RELATIVE_TOLERANCE_PROPERTY,
-                abs_tol=tolerance,
-            )
-
     @given(case=_bar_cases(coherent_hlcv_with_missing()))
     def test_matches_reference_under_missing_data(
         self,
@@ -420,3 +390,33 @@ class TestAccumulationDistributionProperties:
             rel_tol=RELATIVE_TOLERANCE_SCALE,
             abs_tol=input_scale(volume) * EXACT_TOLERANCE_FACTOR,
         )
+
+    @given(case=_bar_cases(coherent_hlcv()))
+    def test_is_running_difference_of_consecutive_terms(
+        self,
+        case: list[tuple[float, float, float, float]],
+    ) -> None:
+        """
+        Verifies that consecutive line differences equal each bar's Money Flow Volume (the line is a cumulative sum).
+        """
+        high_values, low_values, close_values, volume_values = split_quads(case)
+        line = apply_accumulation_distribution(high_values, low_values, close_values, volume_values)
+        # the line is a cumulative sum, so differencing two large partial sums loses precision proportional to its
+        # magnitude (catastrophic cancellation) -- size the floor to the line, not a flat absolute constant.
+        tolerance = input_scale(line) * EXACT_TOLERANCE_FACTOR
+        for index, value in enumerate(line):
+            assert value is not None
+            previous = 0.0 if index == 0 else line[index - 1]
+            assert previous is not None
+            high = high_values[index]
+            low = low_values[index]
+            close = close_values[index]
+            volume = volume_values[index]
+            multiplier = 0.0 if high == low else ((close - low) - (high - close)) / (high - low)
+            expected_step = multiplier * volume
+            assert math.isclose(
+                value - previous,
+                expected_step,
+                rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+                abs_tol=tolerance,
+            )

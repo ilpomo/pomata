@@ -101,17 +101,6 @@ class TestKeltnerChannelsContract:
     Type, struct schema, shape, and lazy/eager guarantees.
     """
 
-    def test_output_is_struct_with_named_fields(self) -> None:
-        """
-        Verifies that the output is a ``Float64`` struct with exactly the fields ``lower`` / ``middle`` / ``upper``.
-        """
-        frame = pl.DataFrame({HIGH: [3.0, 4.0], LOW: [1.0, 2.0], CLOSE: [2.0, 3.0]})
-        expr = keltner_channels(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), window=2, window_atr=2).alias("kc")
-        dtype = frame.select(expr).schema["kc"]
-        assert isinstance(dtype, pl.Struct)
-        assert [field.name for field in dtype.fields] == ["lower", "middle", "upper"]
-        assert all(field.dtype == pl.Float64 for field in dtype.fields)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` neither smoother spans group boundaries.
@@ -131,6 +120,17 @@ class TestKeltnerChannelsContract:
         assert result[3] is None
         assert result[4] is not None
         assert result[4] > 10.0
+
+    def test_output_is_struct_with_named_fields(self) -> None:
+        """
+        Verifies that the output is a ``Float64`` struct with exactly the fields ``lower`` / ``middle`` / ``upper``.
+        """
+        frame = pl.DataFrame({HIGH: [3.0, 4.0], LOW: [1.0, 2.0], CLOSE: [2.0, 3.0]})
+        expr = keltner_channels(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), window=2, window_atr=2).alias("kc")
+        dtype = frame.select(expr).schema["kc"]
+        assert isinstance(dtype, pl.Struct)
+        assert [field.name for field in dtype.fields] == ["lower", "middle", "upper"]
+        assert all(field.dtype == pl.Float64 for field in dtype.fields)
 
 
 class TestKeltnerChannelsEdge:
@@ -161,36 +161,6 @@ class TestKeltnerChannelsEdge:
             with pytest.raises(ValueError, match="multiplier must be a finite number > 0"):
                 keltner_channels(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), window=3, window_atr=10, multiplier=invalid)
 
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null input yields an all-null output on every band.
-        """
-        bands = apply_keltner_channels([None, None, None], [None, None, None], [None, None, None], 2, window_atr=2)
-        for field in FIELDS:
-            assert_matches(bands[field], [None, None, None])
-
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies that every band is null for the first ``window - 1`` rows and defined from the first full window.
-        """
-        bands = apply_keltner_channels(
-            [3.0, 4.0, 5.0, 6.0, 7.0], [1.0, 2.0, 3.0, 4.0, 5.0], [2.0, 3.0, 4.0, 5.0, 6.0], 3, window_atr=3
-        )
-        for field in FIELDS:
-            assert bands[field][:2] == [None, None]
-            assert bands[field][2] is not None
-
-    def test_flat_series_collapses_to_ema(self) -> None:
-        """
-        Verifies the flat series: over a constant ``high == low == close`` run the ATR is ``0``, so all three bands
-        collapse onto the EMA of ``close`` (here the constant itself).
-        """
-        flat = [10.0, 10.0, 10.0, 10.0, 10.0]
-        bands = apply_keltner_channels(flat, flat, flat, 2, window_atr=2)
-        expected = [None, 10.0, 10.0, 10.0, 10.0]
-        for field in FIELDS:
-            assert_matches(bands[field], expected)
-
     def test_single_row(self) -> None:
         """
         Verifies a one-element series: ``window == 1`` defines the midline; a larger window is all warm-up.
@@ -198,30 +168,13 @@ class TestKeltnerChannelsEdge:
         assert apply_keltner_channels([10.0], [8.0], [9.0], 1, window_atr=1)["middle"] == [9.0]
         assert apply_keltner_channels([10.0], [8.0], [9.0], 3, window_atr=3)["middle"] == [None]
 
-    def test_window_exceeds_length(self) -> None:
+    def test_all_null(self) -> None:
         """
-        Verifies that a window longer than the series yields an all-null result on every band.
+        Verifies that an all-null input yields an all-null output on every band.
         """
-        bands = apply_keltner_channels([3.0, 4.0, 5.0], [1.0, 2.0, 3.0], [2.0, 3.0, 4.0], 5, window_atr=5)
+        bands = apply_keltner_channels([None, None, None], [None, None, None], [None, None, None], 2, window_atr=2)
         for field in FIELDS:
             assert_matches(bands[field], [None, None, None])
-
-    def test_missing_data_follows_the_legs(self) -> None:
-        """
-        Verifies that a missing value is handled by the recursive ``ema`` / ``atr`` legs (matching the composed
-        reference), not by a channel-specific rule: a one-sided null ``high`` is absorbed by the true range (the
-        low-close term survives), so the channel stays defined rather than nulling.
-        """
-        high = [10.0, None, 12.0, 13.0, 14.0]
-        low = [8.0, 9.0, 10.0, 11.0, 12.0]
-        close = [9.0, 10.0, 11.0, 12.0, 13.0]
-        bands = apply_keltner_channels(high, low, close, 2, window_atr=2)
-        reference = keltner_channels_reference(high, low, close, 2, 2, 2.0)
-        for field in FIELDS:
-            assert_matches(bands[field], reference[field])
-        # Past the warm-up the channel stays defined despite the null high (the range absorbs the one-sided gap).
-        for field in FIELDS:
-            assert all(value is not None for value in bands[field][1:])
 
     def test_null_bridged(self) -> None:
         """
@@ -250,6 +203,53 @@ class TestKeltnerChannelsEdge:
         reference = keltner_channels_reference(high, low, close, 2, 2, 2.0)
         for field in ("lower", "upper"):
             assert_matches(bands[field], reference[field])
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that every band is null for the first ``window - 1`` rows and defined from the first full window.
+        """
+        bands = apply_keltner_channels(
+            [3.0, 4.0, 5.0, 6.0, 7.0], [1.0, 2.0, 3.0, 4.0, 5.0], [2.0, 3.0, 4.0, 5.0, 6.0], 3, window_atr=3
+        )
+        for field in FIELDS:
+            assert bands[field][:2] == [None, None]
+            assert bands[field][2] is not None
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that a window longer than the series yields an all-null result on every band.
+        """
+        bands = apply_keltner_channels([3.0, 4.0, 5.0], [1.0, 2.0, 3.0], [2.0, 3.0, 4.0], 5, window_atr=5)
+        for field in FIELDS:
+            assert_matches(bands[field], [None, None, None])
+
+    def test_flat_series_collapses_to_ema(self) -> None:
+        """
+        Verifies the flat series: over a constant ``high == low == close`` run the ATR is ``0``, so all three bands
+        collapse onto the EMA of ``close`` (here the constant itself).
+        """
+        flat = [10.0, 10.0, 10.0, 10.0, 10.0]
+        bands = apply_keltner_channels(flat, flat, flat, 2, window_atr=2)
+        expected = [None, 10.0, 10.0, 10.0, 10.0]
+        for field in FIELDS:
+            assert_matches(bands[field], expected)
+
+    def test_missing_data_follows_the_legs(self) -> None:
+        """
+        Verifies that a missing value is handled by the recursive ``ema`` / ``atr`` legs (matching the composed
+        reference), not by a channel-specific rule: a one-sided null ``high`` is absorbed by the true range (the
+        low-close term survives), so the channel stays defined rather than nulling.
+        """
+        high = [10.0, None, 12.0, 13.0, 14.0]
+        low = [8.0, 9.0, 10.0, 11.0, 12.0]
+        close = [9.0, 10.0, 11.0, 12.0, 13.0]
+        bands = apply_keltner_channels(high, low, close, 2, window_atr=2)
+        reference = keltner_channels_reference(high, low, close, 2, 2, 2.0)
+        for field in FIELDS:
+            assert_matches(bands[field], reference[field])
+        # Past the warm-up the channel stays defined despite the null high (the range absorbs the one-sided gap).
+        for field in FIELDS:
+            assert all(value is not None for value in bands[field][1:])
 
 
 class TestKeltnerChannelsCorrectness:
@@ -360,33 +360,6 @@ class TestKeltnerChannelsProperties:
                 abs_tol=input_scale(close) * EXACT_TOLERANCE_FACTOR,
             )
 
-    @given(case=_cases(coherent_hlc()))
-    def test_matches_public_api_composition(
-        self,
-        case: tuple[list[tuple[float, float, float]], int, int],
-    ) -> None:
-        """
-        Verifies that the bands are exactly the public ``ema`` / ``atr`` composition: a second witness through the
-        certified legs rather than the naive references.
-        """
-        rows, window, window_atr = case
-        high, low, close = split_triples(rows)
-        frame = pl.DataFrame(
-            {
-                HIGH: pl.Series(HIGH, high, dtype=pl.Float64),
-                LOW: pl.Series(LOW, low, dtype=pl.Float64),
-                CLOSE: pl.Series(CLOSE, close, dtype=pl.Float64),
-            }
-        )
-        midline = ema(pl.col(CLOSE), window)
-        half = 2.0 * atr(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), window_atr)
-        expected = frame.select(
-            midline.alias("middle"), (midline - half).alias("lower"), (midline + half).alias("upper")
-        )
-        bands = apply_keltner_channels(high, low, close, window, window_atr=window_atr)
-        for field in FIELDS:
-            assert_matches(bands[field], expected[field].to_list())
-
     @given(case=_cases(coherent_hlc_with_missing()))
     def test_matches_reference_under_missing_data(
         self,
@@ -460,3 +433,30 @@ class TestKeltnerChannelsProperties:
                 rel_tol=RELATIVE_TOLERANCE_SCALE,
                 abs_tol=input_scale(close) * EXACT_TOLERANCE_FACTOR,
             )
+
+    @given(case=_cases(coherent_hlc()))
+    def test_matches_public_api_composition(
+        self,
+        case: tuple[list[tuple[float, float, float]], int, int],
+    ) -> None:
+        """
+        Verifies that the bands are exactly the public ``ema`` / ``atr`` composition: a second witness through the
+        certified legs rather than the naive references.
+        """
+        rows, window, window_atr = case
+        high, low, close = split_triples(rows)
+        frame = pl.DataFrame(
+            {
+                HIGH: pl.Series(HIGH, high, dtype=pl.Float64),
+                LOW: pl.Series(LOW, low, dtype=pl.Float64),
+                CLOSE: pl.Series(CLOSE, close, dtype=pl.Float64),
+            }
+        )
+        midline = ema(pl.col(CLOSE), window)
+        half = 2.0 * atr(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), window_atr)
+        expected = frame.select(
+            midline.alias("middle"), (midline - half).alias("lower"), (midline + half).alias("upper")
+        )
+        bands = apply_keltner_channels(high, low, close, window, window_atr=window_atr)
+        for field in FIELDS:
+            assert_matches(bands[field], expected[field].to_list())

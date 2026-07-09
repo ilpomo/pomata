@@ -90,13 +90,12 @@ class TestSmaEdge:
         with pytest.raises(ValueError, match="window must be >= 1"):
             sma(pl.col(COLUMN_X), 0)
 
-    def test_warmup_null_count(self) -> None:
+    def test_single_row(self) -> None:
         """
-        Verifies that the first ``window - 1`` rows are null (warm-up) and the first full window is defined.
+        Verifies behavior on a one-element series: ``window == 1`` returns the value, a larger window is all warm-up.
         """
-        result = apply_expr([1.0, 2.0, 3.0, 4.0, 5.0], sma(pl.col(COLUMN_X), 3))
-        assert result[:2] == [None, None]
-        assert result[2] is not None
+        assert_matches(apply_expr([42.0], sma(pl.col(COLUMN_X), 1)), [42.0])
+        assert_matches(apply_expr([42.0], sma(pl.col(COLUMN_X), 3)), [None])
 
     def test_all_null(self) -> None:
         """
@@ -105,31 +104,6 @@ class TestSmaEdge:
         assert_matches(
             apply_expr([None, None, None, None, None], sma(pl.col(COLUMN_X), 3)), [None, None, None, None, None]
         )
-
-    def test_window_one_is_identity(self) -> None:
-        """
-        Verifies that ``window == 1`` reproduces the input with no warm-up.
-        """
-        assert_matches(apply_expr([1.0, 2.0, 3.0], sma(pl.col(COLUMN_X), 1)), [1.0, 2.0, 3.0])
-
-    def test_window_equals_length(self) -> None:
-        """
-        Verifies the single defined value (the mean of the whole series) when ``window`` equals the series length.
-        """
-        assert_matches(apply_expr([1.0, 2.0, 3.0], sma(pl.col(COLUMN_X), 3)), [None, None, 2.0])
-
-    def test_window_exceeds_length(self) -> None:
-        """
-        Verifies that a window exceeding the series length yields an all-null output.
-        """
-        assert_matches(apply_expr([1.0, 2.0, 3.0], sma(pl.col(COLUMN_X), 5)), [None, None, None])
-
-    def test_single_row(self) -> None:
-        """
-        Verifies behavior on a one-element series: ``window == 1`` returns the value, a larger window is all warm-up.
-        """
-        assert_matches(apply_expr([42.0], sma(pl.col(COLUMN_X), 1)), [42.0])
-        assert_matches(apply_expr([42.0], sma(pl.col(COLUMN_X), 3)), [None])
 
     def test_null_in_window_is_null(self) -> None:
         """
@@ -142,6 +116,32 @@ class TestSmaEdge:
         Verifies that a ``NaN`` inside the window yields ``NaN`` there (``null`` still takes precedence over ``NaN``).
         """
         assert_matches(apply_expr([1.0, math.nan, 3.0, 4.0], sma(pl.col(COLUMN_X), 2)), [None, math.nan, math.nan, 3.5])
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that the first ``window - 1`` rows are null (warm-up) and the first full window is defined.
+        """
+        result = apply_expr([1.0, 2.0, 3.0, 4.0, 5.0], sma(pl.col(COLUMN_X), 3))
+        assert result[:2] == [None, None]
+        assert result[2] is not None
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that a window exceeding the series length yields an all-null output.
+        """
+        assert_matches(apply_expr([1.0, 2.0, 3.0], sma(pl.col(COLUMN_X), 5)), [None, None, None])
+
+    def test_window_equals_length(self) -> None:
+        """
+        Verifies the single defined value (the mean of the whole series) when ``window`` equals the series length.
+        """
+        assert_matches(apply_expr([1.0, 2.0, 3.0], sma(pl.col(COLUMN_X), 3)), [None, None, 2.0])
+
+    def test_window_one_is_identity(self) -> None:
+        """
+        Verifies that ``window == 1`` reproduces the input with no warm-up.
+        """
+        assert_matches(apply_expr([1.0, 2.0, 3.0], sma(pl.col(COLUMN_X), 1)), [1.0, 2.0, 3.0])
 
 
 class TestSmaCorrectness:

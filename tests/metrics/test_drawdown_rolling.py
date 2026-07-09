@@ -71,17 +71,6 @@ class TestDrawdownRollingEdge:
         with pytest.raises(ValueError, match="window must be >= 1"):
             drawdown_rolling(pl.col(COLUMN_X), 0)
 
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies that the first ``window - 1`` rows are ``null`` and the rest match the reference.
-        """
-        values = [1.0, 1.1, 1.05, 1.2, 1.15]
-        assert_matches(
-            apply_expr(values, drawdown_rolling(pl.col(COLUMN_X), 3)),
-            drawdown_rolling_reference(values, 3),
-            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
-        )
-
     def test_null_in_window_is_null(self) -> None:
         """
         Verifies that a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
@@ -102,6 +91,33 @@ class TestDrawdownRollingEdge:
             apply_expr(values, drawdown_rolling(pl.col(COLUMN_X), 3)),
             drawdown_rolling_reference(values, 3),
         )
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that the first ``window - 1`` rows are ``null`` and the rest match the reference.
+        """
+        values = [1.0, 1.1, 1.05, 1.2, 1.15]
+        assert_matches(
+            apply_expr(values, drawdown_rolling(pl.col(COLUMN_X), 3)),
+            drawdown_rolling_reference(values, 3),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+        )
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that when ``window`` exceeds the series length the whole output is null (no window ever fills).
+        """
+        assert_matches(apply_expr([1.0, 1.1, 1.05], drawdown_rolling(pl.col(COLUMN_X), 5)), [None, None, None])
+
+    def test_window_equals_length(self) -> None:
+        """
+        Verifies that when ``window`` equals the series length only the last row is defined, matching the reference.
+        """
+        values = [1.0, 1.1, 1.05, 1.2]
+        result = apply_expr(values, drawdown_rolling(pl.col(COLUMN_X), 4))
+        assert result[:-1] == [None, None, None]
+        assert result[-1] is not None
+        assert_matches(result, drawdown_rolling_reference(values, 4), rel_tol=RELATIVE_TOLERANCE_REFERENCE)
 
     def test_window_peak_is_zero(self) -> None:
         """

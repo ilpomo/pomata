@@ -89,17 +89,6 @@ class TestVolatilityRollingEdge:
         with pytest.raises(ValueError, match="periods_per_year must be >= 1"):
             volatility_rolling(pl.col(COLUMN_X), 3, periods_per_year=0)
 
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies that the first ``window - 1`` rows are ``null`` and the rest match the reference.
-        """
-        values = [0.01, -0.02, 0.03, -0.01, 0.02]
-        assert_matches(
-            apply_expr(values, volatility_rolling(pl.col(COLUMN_X), 3, periods_per_year=PERIODS)),
-            volatility_rolling_reference(values, 3, PERIODS),
-            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
-        )
-
     def test_null_in_window_is_null(self) -> None:
         """
         Verifies that a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
@@ -119,6 +108,38 @@ class TestVolatilityRollingEdge:
         assert_matches(
             apply_expr(values, volatility_rolling(pl.col(COLUMN_X), 3, periods_per_year=PERIODS)),
             volatility_rolling_reference(values, 3, PERIODS),
+        )
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that the first ``window - 1`` rows are ``null`` and the rest match the reference.
+        """
+        values = [0.01, -0.02, 0.03, -0.01, 0.02]
+        assert_matches(
+            apply_expr(values, volatility_rolling(pl.col(COLUMN_X), 3, periods_per_year=PERIODS)),
+            volatility_rolling_reference(values, 3, PERIODS),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+        )
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that a window exceeding the series length yields an all-null output.
+        """
+        values = [0.01, -0.02, 0.03, -0.01, 0.02]
+        assert_matches(
+            apply_expr(values, volatility_rolling(pl.col(COLUMN_X), 7, periods_per_year=PERIODS)),
+            [None, None, None, None, None],
+        )
+
+    def test_window_equals_length(self) -> None:
+        """
+        Verifies that when ``window`` equals the series length only the last row is defined, matching the reference.
+        """
+        values = [0.01, -0.02, 0.03, -0.01, 0.02]
+        assert_matches(
+            apply_expr(values, volatility_rolling(pl.col(COLUMN_X), 5, periods_per_year=PERIODS)),
+            volatility_rolling_reference(values, 5, PERIODS),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
         )
 
     def test_constant_window_is_zero(self) -> None:

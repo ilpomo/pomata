@@ -8,7 +8,7 @@ homogeneous in each input, so it carries the scale-homogeneity and large-magnitu
 ratio).
 
 The ladder, adapted to an elementwise two-input product: contract (type / shape / lazy-eager / ``.over`` identity), edge
-(empty / single-row / null / NaN / null-precedence), correctness (closed-form reference + frozen golden master), and
+(empty / single-row / null / null-precedence / NaN), correctness (closed-form reference + frozen golden master), and
 properties (reference agreement incl. missing data, scale-homogeneity, large-magnitude). Categories are split into
 classes; cross-cutting categories use markers (see ``tests/README.md``).
 """
@@ -121,6 +121,13 @@ class TestReturnsGrossEdge:
         asset_returns = [0.02, 0.03, 0.01, 0.04]
         assert_matches(apply_returns_gross(weight, asset_returns), returns_gross_reference(weight, asset_returns))
 
+    def test_null_takes_precedence_over_nan(self) -> None:
+        """
+        Verifies that a row with a ``null`` in one input and a ``NaN`` in the other yields ``null`` — ``null`` takes
+        precedence over ``NaN``.
+        """
+        assert_matches(apply_returns_gross([None, 0.5], [math.nan, 0.04]), [None, 0.02])
+
     def test_nan_propagates(self) -> None:
         """
         Verifies that a ``NaN`` in either input makes that row ``NaN`` (matching the naive reference).
@@ -128,13 +135,6 @@ class TestReturnsGrossEdge:
         weight = [1.0, 0.5, -1.0, 0.5]
         asset_returns = [0.02, math.nan, 0.01, 0.04]
         assert_matches(apply_returns_gross(weight, asset_returns), returns_gross_reference(weight, asset_returns))
-
-    def test_null_takes_precedence_over_nan(self) -> None:
-        """
-        Verifies that a row with a ``null`` in one input and a ``NaN`` in the other yields ``null`` — ``null`` takes
-        precedence over ``NaN``.
-        """
-        assert_matches(apply_returns_gross([None, 0.5], [math.nan, 0.04]), [None, 0.02])
 
 
 class TestReturnsGrossCorrectness:

@@ -98,17 +98,6 @@ class TestDownsideDeviationRollingEdge:
             with pytest.raises(ValueError, match="threshold must be a finite number"):
                 downside_deviation_rolling(pl.col(COLUMN_X), 3, periods_per_year=PERIODS, threshold=invalid)
 
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies that the first ``window - 1`` rows are ``null`` and the rest match the reference.
-        """
-        values = [0.01, -0.02, 0.03, -0.01, 0.02]
-        assert_matches(
-            apply_expr(values, downside_deviation_rolling(pl.col(COLUMN_X), 3, periods_per_year=PERIODS)),
-            downside_deviation_rolling_reference(values, 3, PERIODS),
-            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
-        )
-
     def test_null_in_window_is_null(self) -> None:
         """
         Verifies that a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
@@ -130,6 +119,40 @@ class TestDownsideDeviationRollingEdge:
             downside_deviation_rolling_reference(values, 3, PERIODS),
         )
 
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that the first ``window - 1`` rows are ``null`` and the rest match the reference.
+        """
+        values = [0.01, -0.02, 0.03, -0.01, 0.02]
+        assert_matches(
+            apply_expr(values, downside_deviation_rolling(pl.col(COLUMN_X), 3, periods_per_year=PERIODS)),
+            downside_deviation_rolling_reference(values, 3, PERIODS),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+        )
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that when ``window`` exceeds the series length the whole output is null (no window ever fills).
+        """
+        assert_matches(
+            apply_expr([0.01, -0.02, 0.03], downside_deviation_rolling(pl.col(COLUMN_X), 5, periods_per_year=PERIODS)),
+            [None, None, None],
+        )
+
+    def test_window_equals_length(self) -> None:
+        """
+        Verifies that when ``window`` equals the series length only the last row is defined, matching the reference.
+        """
+        values = [0.01, -0.02, 0.03, -0.01]
+        result = apply_expr(values, downside_deviation_rolling(pl.col(COLUMN_X), 4, periods_per_year=PERIODS))
+        assert result[:-1] == [None, None, None]
+        assert result[-1] is not None
+        assert_matches(
+            result,
+            downside_deviation_rolling_reference(values, 4, PERIODS),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+        )
+
     def test_no_downside_window_is_zero(self) -> None:
         """
         Verifies that a window with every return at or above the threshold has zero shortfall, so the result is ``0``.
@@ -149,12 +172,21 @@ class TestDownsideDeviationRollingCorrectness:
 
     def test_matches_reference(self) -> None:
         """
-        Verifies agreement with the naive closed-form reference over a representative series.
+        Verifies agreement with the naive closed-form reference over a representative series, at the default
+        ``threshold`` and at a non-default one (``0.01``), which must widen every window's shortfall.
         """
         values = [0.012, -0.008, 0.02, -0.015, 0.005, 0.0, -0.02, 0.018]
         assert_matches(
             apply_expr(values, downside_deviation_rolling(pl.col(COLUMN_X), 4, periods_per_year=PERIODS)),
             downside_deviation_rolling_reference(values, 4, PERIODS),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
+        )
+        assert_matches(
+            apply_expr(
+                values, downside_deviation_rolling(pl.col(COLUMN_X), 4, periods_per_year=PERIODS, threshold=0.01)
+            ),
+            downside_deviation_rolling_reference(values, 4, PERIODS, threshold=0.01),
             rel_tol=RELATIVE_TOLERANCE_REFERENCE,
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )

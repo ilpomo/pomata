@@ -119,31 +119,17 @@ class TestDxEdge:
         with pytest.raises(ValueError, match="window must be >= 1"):
             dx(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), 0)
 
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null series yields an all-null output.
-        """
-        assert_matches(apply_dx([None] * 4, [None] * 4, [None] * 4, 2), [None, None, None, None])
-
     def test_single_row(self) -> None:
         """
         Verifies that a one-row series with ``window > 1`` is all warm-up (one null).
         """
         assert_matches(apply_dx([10.0], [9.0], [9.5], 2), [None])
 
-    def test_window_exceeds_length(self) -> None:
+    def test_all_null(self) -> None:
         """
-        Verifies that a window exceeding the series length yields an all-null output.
+        Verifies that an all-null series yields an all-null output.
         """
-        assert_matches(apply_dx([10.0, 11.0, 12.0], [9.0, 10.0, 11.0], [9.5, 10.5, 11.5], 5), [None, None, None])
-
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies that the first ``window - 1`` rows are null (warm-up).
-        """
-        result = apply_dx([10.0, 11.0, 12.0, 11.5], [9.0, 10.0, 11.0, 10.5], [9.5, 10.5, 11.5, 11.0], 2)
-        assert result[0] is None
-        assert result[1] is not None
+        assert_matches(apply_dx([None] * 4, [None] * 4, [None] * 4, 2), [None, None, None, None])
 
     def test_null_bridged(self) -> None:
         """
@@ -162,6 +148,20 @@ class TestDxEdge:
         low = [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5]
         close = [9.5, 10.5, 11.5, 11.0, 12.5, 12.0, 13.5, 13.0]
         assert_matches(apply_dx(high, low, close, 2), dx_reference(high, low, close, 2))
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that the first ``window - 1`` rows are null (warm-up).
+        """
+        result = apply_dx([10.0, 11.0, 12.0, 11.5], [9.0, 10.0, 11.0, 10.5], [9.5, 10.5, 11.5, 11.0], 2)
+        assert result[0] is None
+        assert result[1] is not None
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that a window exceeding the series length yields an all-null output.
+        """
+        assert_matches(apply_dx([10.0, 11.0, 12.0], [9.0, 10.0, 11.0], [9.5, 10.5, 11.5], 5), [None, None, None])
 
     def test_flat_window_is_nan(self) -> None:
         """

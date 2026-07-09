@@ -86,15 +86,6 @@ class TestSharpeRatioEdge:
         """
         assert_matches(apply_expr([0.05], sharpe_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS)), [None])
 
-    def test_zero_volatility_is_inf(self) -> None:
-        """
-        Verifies that a constant series has zero dispersion with a positive mean, so the ratio is ``+inf``.
-        """
-        assert_matches(
-            apply_expr([0.01, 0.01, 0.01, 0.01], sharpe_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS)),
-            [math.inf],
-        )
-
     def test_null_skipped(self) -> None:
         """
         Verifies that a ``null`` observation is skipped (excluded from the reduction), matching the reference.
@@ -113,6 +104,15 @@ class TestSharpeRatioEdge:
         """
         values = [0.01, math.nan, -0.02, 0.03]
         assert_matches(apply_expr(values, sharpe_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS)), [math.nan])
+
+    def test_zero_volatility_is_inf(self) -> None:
+        """
+        Verifies that a constant series has zero dispersion with a positive mean, so the ratio is ``+inf``.
+        """
+        assert_matches(
+            apply_expr([0.01, 0.01, 0.01, 0.01], sharpe_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS)),
+            [math.inf],
+        )
 
 
 class TestSharpeRatioCorrectness:

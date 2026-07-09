@@ -94,17 +94,6 @@ class TestSharpeRatioRollingEdge:
             with pytest.raises(ValueError, match="risk_free_rate must be a finite number"):
                 sharpe_ratio_rolling(pl.col(COLUMN_X), 3, periods_per_year=PERIODS, risk_free_rate=invalid)
 
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies that the first ``window - 1`` rows are ``null`` and the rest match the reference.
-        """
-        values = [0.01, -0.02, 0.03, -0.01, 0.02]
-        assert_matches(
-            apply_expr(values, sharpe_ratio_rolling(pl.col(COLUMN_X), 3, periods_per_year=PERIODS)),
-            sharpe_ratio_rolling_reference(values, 3, PERIODS),
-            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
-        )
-
     def test_null_in_window_is_null(self) -> None:
         """
         Verifies that a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
@@ -124,6 +113,38 @@ class TestSharpeRatioRollingEdge:
         assert_matches(
             apply_expr(values, sharpe_ratio_rolling(pl.col(COLUMN_X), 3, periods_per_year=PERIODS)),
             sharpe_ratio_rolling_reference(values, 3, PERIODS),
+        )
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that the first ``window - 1`` rows are ``null`` and the rest match the reference.
+        """
+        values = [0.01, -0.02, 0.03, -0.01, 0.02]
+        assert_matches(
+            apply_expr(values, sharpe_ratio_rolling(pl.col(COLUMN_X), 3, periods_per_year=PERIODS)),
+            sharpe_ratio_rolling_reference(values, 3, PERIODS),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+        )
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that a window exceeding the series length yields an all-null output.
+        """
+        values = [0.01, -0.02, 0.03, -0.01, 0.02]
+        assert_matches(
+            apply_expr(values, sharpe_ratio_rolling(pl.col(COLUMN_X), 7, periods_per_year=PERIODS)),
+            [None, None, None, None, None],
+        )
+
+    def test_window_equals_length(self) -> None:
+        """
+        Verifies that when ``window`` equals the series length only the last row is defined, matching the reference.
+        """
+        values = [0.01, -0.02, 0.03, -0.01, 0.02]
+        assert_matches(
+            apply_expr(values, sharpe_ratio_rolling(pl.col(COLUMN_X), 5, periods_per_year=PERIODS)),
+            sharpe_ratio_rolling_reference(values, 5, PERIODS),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
         )
 
     def test_zero_volatility_is_inf(self) -> None:

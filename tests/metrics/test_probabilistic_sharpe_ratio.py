@@ -113,17 +113,6 @@ class TestProbabilisticSharpeRatioEdge:
             apply_expr([0.05], probabilistic_sharpe_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS)), [None]
         )
 
-    def test_zero_volatility_is_nan(self) -> None:
-        """
-        Verifies that a constant series has zero dispersion (and undefined higher moments), so the result is ``NaN``.
-        """
-        assert_matches(
-            apply_expr(
-                [0.01, 0.01, 0.01, 0.01], probabilistic_sharpe_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS)
-            ),
-            [math.nan],
-        )
-
     def test_null_skipped(self) -> None:
         """
         Verifies that a ``null`` observation is skipped (excluded from the reduction), matching the reference.
@@ -145,6 +134,17 @@ class TestProbabilisticSharpeRatioEdge:
         values = [0.01, math.nan, -0.02, 0.03]
         assert_matches(
             apply_expr(values, probabilistic_sharpe_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS)), [math.nan]
+        )
+
+    def test_zero_volatility_is_nan(self) -> None:
+        """
+        Verifies that a constant series has zero dispersion (and undefined higher moments), so the result is ``NaN``.
+        """
+        assert_matches(
+            apply_expr(
+                [0.01, 0.01, 0.01, 0.01], probabilistic_sharpe_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS)
+            ),
+            [math.nan],
         )
 
 

@@ -70,23 +70,12 @@ class TestOmegaRatioEdge:
             with pytest.raises(ValueError, match="threshold must be a finite number"):
                 omega_ratio(pl.col(COLUMN_X), threshold=invalid)
 
-    def test_all_gain_is_inf(self) -> None:
+    def test_single_row(self) -> None:
         """
-        Verifies that returns all above the threshold have no downside, so the ratio is ``+inf``.
+        Verifies that a one-element series puts all mass on one side of the threshold: a single gain has zero mean
+        loss, so the ratio is ``+inf``.
         """
-        assert_matches(apply_expr([0.01, 0.02, 0.03], omega_ratio(pl.col(COLUMN_X))), [math.inf])
-
-    def test_all_loss_is_zero(self) -> None:
-        """
-        Verifies that returns all below the threshold have no upside, so the ratio is ``0``.
-        """
-        assert_matches(apply_expr([-0.01, -0.02, -0.03], omega_ratio(pl.col(COLUMN_X))), [0.0])
-
-    def test_all_at_threshold_is_nan(self) -> None:
-        """
-        Verifies that returns all exactly at the threshold give ``0 / 0``, so the ratio is ``NaN``.
-        """
-        assert_matches(apply_expr([0.0, 0.0, 0.0], omega_ratio(pl.col(COLUMN_X))), [math.nan])
+        assert_matches(apply_expr([0.05], omega_ratio(pl.col(COLUMN_X))), [math.inf])
 
     def test_null_skipped(self) -> None:
         """
@@ -104,6 +93,24 @@ class TestOmegaRatioEdge:
         Verifies that a NaN return poisons the result to NaN.
         """
         assert_matches(apply_expr([0.01, math.nan, -0.02, 0.03], omega_ratio(pl.col(COLUMN_X))), [math.nan])
+
+    def test_all_gain_is_inf(self) -> None:
+        """
+        Verifies that returns all above the threshold have no downside, so the ratio is ``+inf``.
+        """
+        assert_matches(apply_expr([0.01, 0.02, 0.03], omega_ratio(pl.col(COLUMN_X))), [math.inf])
+
+    def test_all_loss_is_zero(self) -> None:
+        """
+        Verifies that returns all below the threshold have no upside, so the ratio is ``0``.
+        """
+        assert_matches(apply_expr([-0.01, -0.02, -0.03], omega_ratio(pl.col(COLUMN_X))), [0.0])
+
+    def test_all_at_threshold_is_nan(self) -> None:
+        """
+        Verifies that returns all exactly at the threshold give ``0 / 0``, so the ratio is ``NaN``.
+        """
+        assert_matches(apply_expr([0.0, 0.0, 0.0], omega_ratio(pl.col(COLUMN_X))), [math.nan])
 
 
 class TestOmegaRatioCorrectness:

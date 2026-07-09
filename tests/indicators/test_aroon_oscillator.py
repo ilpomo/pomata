@@ -115,20 +115,6 @@ class TestAroonOscillatorEdge:
         with pytest.raises(ValueError, match="window must be >= 1"):
             aroon_oscillator(pl.col(HIGH), pl.col(LOW), 0)
 
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies that the line is null for the first ``window`` rows and defined once a full look-back exists.
-        """
-        result = apply_aroon_oscillator([1.0, 2.0, 3.0, 4.0, 5.0], [0.0, 1.0, 2.0, 3.0, 4.0], 2)
-        assert result[:2] == [None, None]
-        assert result[2] is not None
-
-    def test_window_exceeds_length(self) -> None:
-        """
-        Verifies that when ``window`` exceeds the series length the whole output is null (no full look-back exists).
-        """
-        assert_matches(apply_aroon_oscillator([1.0, 2.0, 3.0], [0.0, 1.0, 2.0], 5), [None, None, None])
-
     def test_single_row(self) -> None:
         """
         Verifies behavior on a one-element series: the lone bar is always warm-up.
@@ -142,20 +128,6 @@ class TestAroonOscillatorEdge:
         assert_matches(
             apply_aroon_oscillator([None, None, None, None], [None, None, None, None], 2), [None, None, None, None]
         )
-
-    def test_equals_up_minus_down(self) -> None:
-        """
-        Verifies the defining identity: the oscillator equals the :func:`aroon` Up line minus the Down line.
-        """
-        high = [10.0, 11.0, 12.0, 11.0, 13.0, 12.0, 14.0, 13.0]
-        low = [9.0, 10.0, 11.0, 10.0, 12.0, 11.0, 13.0, 12.0]
-        oscillator = apply_aroon_oscillator(high, low, 3)
-        frame = pl.DataFrame({HIGH: high, LOW: low})
-        bands = frame.select(aroon(pl.col(HIGH), pl.col(LOW), 3).alias("a")).unnest("a")
-        up = bands["up"].to_list()
-        down = bands["down"].to_list()
-        expected = [None if u is None or d is None else u - d for u, d in zip(up, down, strict=True)]
-        assert_matches(oscillator, expected)
 
     def test_null_in_window_is_null(self) -> None:
         """
@@ -172,6 +144,34 @@ class TestAroonOscillatorEdge:
         high = [10.0, 11.0, 12.0, math.nan, 14.0, 15.0]
         low = [9.0, 10.0, 11.0, 12.0, 13.0, 14.0]
         assert_matches(apply_aroon_oscillator(high, low, 2), aroon_oscillator_reference(high, low, 2))
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that the line is null for the first ``window`` rows and defined once a full look-back exists.
+        """
+        result = apply_aroon_oscillator([1.0, 2.0, 3.0, 4.0, 5.0], [0.0, 1.0, 2.0, 3.0, 4.0], 2)
+        assert result[:2] == [None, None]
+        assert result[2] is not None
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that when ``window`` exceeds the series length the whole output is null (no full look-back exists).
+        """
+        assert_matches(apply_aroon_oscillator([1.0, 2.0, 3.0], [0.0, 1.0, 2.0], 5), [None, None, None])
+
+    def test_equals_up_minus_down(self) -> None:
+        """
+        Verifies the defining identity: the oscillator equals the :func:`aroon` Up line minus the Down line.
+        """
+        high = [10.0, 11.0, 12.0, 11.0, 13.0, 12.0, 14.0, 13.0]
+        low = [9.0, 10.0, 11.0, 10.0, 12.0, 11.0, 13.0, 12.0]
+        oscillator = apply_aroon_oscillator(high, low, 3)
+        frame = pl.DataFrame({HIGH: high, LOW: low})
+        bands = frame.select(aroon(pl.col(HIGH), pl.col(LOW), 3).alias("a")).unnest("a")
+        up = bands["up"].to_list()
+        down = bands["down"].to_list()
+        expected = [None if u is None or d is None else u - d for u, d in zip(up, down, strict=True)]
+        assert_matches(oscillator, expected)
 
 
 class TestAroonOscillatorCorrectness:

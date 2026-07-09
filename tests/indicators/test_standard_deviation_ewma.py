@@ -101,13 +101,17 @@ class TestStandardDeviationEwmaEdge:
         with pytest.raises(ValueError, match="window must be >= 2"):
             standard_deviation_ewma(pl.col(COLUMN_X), 1)
 
-    def test_warmup_null_count(self) -> None:
+    def test_single_row(self) -> None:
         """
-        Verifies that the first ``window - 1`` rows are null (warm-up) and the first full window is defined.
+        Verifies that a one-element series is all warm-up: a window of more than one observation yields null.
         """
-        result = apply_expr([1.0, 2.0, 3.0, 4.0, 5.0], standard_deviation_ewma(pl.col(COLUMN_X), 3))
-        assert result[:2] == [None, None]
-        assert result[2] is not None
+        assert_matches(apply_expr([42.0], standard_deviation_ewma(pl.col(COLUMN_X), 2)), [None])
+
+    def test_all_null(self) -> None:
+        """
+        Verifies that an all-null series stays null (no observation ever seeds the recursion).
+        """
+        assert_matches(apply_expr([None, None, None], standard_deviation_ewma(pl.col(COLUMN_X), 2)), [None, None, None])
 
     def test_null_bridges_and_nan_latches(self) -> None:
         """
@@ -124,23 +128,19 @@ class TestStandardDeviationEwmaEdge:
         assert latched is not None
         assert math.isnan(latched)
 
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that the first ``window - 1`` rows are null (warm-up) and the first full window is defined.
+        """
+        result = apply_expr([1.0, 2.0, 3.0, 4.0, 5.0], standard_deviation_ewma(pl.col(COLUMN_X), 3))
+        assert result[:2] == [None, None]
+        assert result[2] is not None
+
     def test_window_exceeds_length(self) -> None:
         """
         Verifies the whole output is null when ``window`` exceeds the series length (warm-up never completes).
         """
         assert_matches(apply_expr([1.0, 2.0, 3.0], standard_deviation_ewma(pl.col(COLUMN_X), 5)), [None, None, None])
-
-    def test_single_row(self) -> None:
-        """
-        Verifies that a one-element series is all warm-up: a window of more than one observation yields null.
-        """
-        assert_matches(apply_expr([42.0], standard_deviation_ewma(pl.col(COLUMN_X), 2)), [None])
-
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null series stays null (no observation ever seeds the recursion).
-        """
-        assert_matches(apply_expr([None, None, None], standard_deviation_ewma(pl.col(COLUMN_X), 2)), [None, None, None])
 
 
 class TestStandardDeviationEwmaCorrectness:

@@ -10,7 +10,7 @@ metamorphic — the sum of the log returns equals the total log return — the p
 arithmetic sibling.
 
 The ladder is the canonical one: contract (type / shape / lazy-eager / ``.over`` per-group independence), edge
-(warm-up / single-row / null / NaN / domain boundaries), correctness (vs the closed-form reference and a frozen golden
+(single-row / null / NaN / warm-up / domain boundaries), correctness (vs the closed-form reference and a frozen golden
 master), and properties (reference agreement incl. missing data, scale-invariance, across-time aggregation). Categories
 are split into classes; cross-cutting categories use markers (see ``tests/README.md``).
 """
@@ -89,14 +89,6 @@ class TestReturnsLogEdge:
     Boundaries, warm-up, null / NaN handling, and the positive-price domain.
     """
 
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies the warm-up is exactly one row: the first return is null, the second is defined.
-        """
-        result = apply_expr([100.0, 105.0, 102.0], returns_log(pl.col(COLUMN_X)))
-        assert result[0] is None
-        assert result[1] is not None
-
     def test_single_row(self) -> None:
         """
         Verifies that a one-element series is all warm-up (no previous price to take the log-ratio against).
@@ -122,6 +114,14 @@ class TestReturnsLogEdge:
             apply_expr(values, returns_log(pl.col(COLUMN_X))),
             returns_log_reference(values),
         )
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies the warm-up is exactly one row: the first return is null, the second is defined.
+        """
+        result = apply_expr([100.0, 105.0, 102.0], returns_log(pl.col(COLUMN_X)))
+        assert result[0] is None
+        assert result[1] is not None
 
     def test_domain_boundaries(self) -> None:
         """

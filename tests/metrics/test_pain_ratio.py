@@ -77,17 +77,11 @@ class TestPainRatioEdge:
             with pytest.raises(ValueError, match="risk_free_rate must be a finite number"):
                 pain_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS, risk_free_rate=invalid)
 
-    def test_single_row_is_nan(self) -> None:
+    def test_single_row(self) -> None:
         """
         Verifies that a one-element series has zero excess growth and zero pain index, so the ratio is ``NaN``.
         """
         assert_matches(apply_expr([1.0], pain_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS)), [math.nan])
-
-    def test_no_drawdown_is_inf(self) -> None:
-        """
-        Verifies that a monotonically rising curve has a zero pain index with positive growth, so the ratio is ``+inf``.
-        """
-        assert_matches(apply_expr([1.0, 1.1, 1.21], pain_ratio(pl.col(COLUMN_X), periods_per_year=1)), [math.inf])
 
     def test_null_skipped(self) -> None:
         """
@@ -108,6 +102,12 @@ class TestPainRatioEdge:
         assert_matches(
             apply_expr([1.1, math.nan, 1.2], pain_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS)), [math.nan]
         )
+
+    def test_no_drawdown_is_inf(self) -> None:
+        """
+        Verifies that a monotonically rising curve has a zero pain index with positive growth, so the ratio is ``+inf``.
+        """
+        assert_matches(apply_expr([1.0, 1.1, 1.21], pain_ratio(pl.col(COLUMN_X), periods_per_year=1)), [math.inf])
 
 
 class TestPainRatioCorrectness:

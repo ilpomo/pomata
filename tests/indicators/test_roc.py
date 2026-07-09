@@ -83,33 +83,6 @@ class TestRocEdge:
         with pytest.raises(ValueError, match="window must be >= 1"):
             roc(pl.col(COLUMN_X), 0)
 
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies that the first ``window`` rows are null (the lagged term ``expr.shift(window)`` is undefined there) and
-        the row immediately after warm-up is defined.
-        """
-        result = apply_expr([1.0, 2.0, 3.0, 4.0, 5.0], roc(pl.col(COLUMN_X), 2))
-        assert result[:2] == [None, None]
-        assert result[2] is not None
-
-    def test_window_one(self) -> None:
-        """
-        Verifies the single-step percentage change at ``window == 1`` (the one-period simple return in percent).
-        """
-        assert_matches(apply_expr([2.0, 4.0, 6.0], roc(pl.col(COLUMN_X), 1)), [None, 100.0, 50.0])
-
-    def test_window_equals_length(self) -> None:
-        """
-        Verifies that when ``window`` equals the series length the whole output is null (no lag is reachable).
-        """
-        assert_matches(apply_expr([2.0, 4.0, 6.0], roc(pl.col(COLUMN_X), 3)), [None, None, None])
-
-    def test_window_exceeds_length(self) -> None:
-        """
-        Verifies that when ``window`` exceeds the series length the whole output is null.
-        """
-        assert_matches(apply_expr([2.0, 4.0, 6.0], roc(pl.col(COLUMN_X), 5)), [None, None, None])
-
     def test_single_row(self) -> None:
         """
         Verifies behavior on a one-element series.
@@ -121,19 +94,6 @@ class TestRocEdge:
         Verifies that an all-null series yields all null.
         """
         assert_matches(apply_expr([None, None, None], roc(pl.col(COLUMN_X), 1)), [None, None, None])
-
-    def test_all_nan(self) -> None:
-        """
-        Verifies that an all-NaN series yields null at warm-up then NaN (a NaN at either row propagates).
-        """
-        assert_matches(apply_expr([math.nan, math.nan, math.nan], roc(pl.col(COLUMN_X), 1)), [None, math.nan, math.nan])
-
-    def test_constant_series_is_zero(self) -> None:
-        """
-        Verifies that the ROC of a constant non-zero series is ``0`` once warmed up: the change is zero at every defined
-        row, so the percentage return is exactly ``0``.
-        """
-        assert_matches(apply_expr([5.0, 5.0, 5.0, 5.0], roc(pl.col(COLUMN_X), 1)), [None, 0.0, 0.0, 0.0])
 
     def test_null_at_current_or_lagged_propagates(self) -> None:
         """
@@ -156,6 +116,46 @@ class TestRocEdge:
             apply_expr([1.0, math.nan, 3.0, 4.0], roc(pl.col(COLUMN_X), 1)),
             [None, math.nan, math.nan, 33.333333333333336],
         )
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that the first ``window`` rows are null (the lagged term ``expr.shift(window)`` is undefined there) and
+        the row immediately after warm-up is defined.
+        """
+        result = apply_expr([1.0, 2.0, 3.0, 4.0, 5.0], roc(pl.col(COLUMN_X), 2))
+        assert result[:2] == [None, None]
+        assert result[2] is not None
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that when ``window`` exceeds the series length the whole output is null.
+        """
+        assert_matches(apply_expr([2.0, 4.0, 6.0], roc(pl.col(COLUMN_X), 5)), [None, None, None])
+
+    def test_window_equals_length(self) -> None:
+        """
+        Verifies that when ``window`` equals the series length the whole output is null (no lag is reachable).
+        """
+        assert_matches(apply_expr([2.0, 4.0, 6.0], roc(pl.col(COLUMN_X), 3)), [None, None, None])
+
+    def test_window_one_is_single_period_return(self) -> None:
+        """
+        Verifies the single-step percentage change at ``window == 1`` (the one-period simple return in percent).
+        """
+        assert_matches(apply_expr([2.0, 4.0, 6.0], roc(pl.col(COLUMN_X), 1)), [None, 100.0, 50.0])
+
+    def test_all_nan(self) -> None:
+        """
+        Verifies that an all-NaN series yields null at warm-up then NaN (a NaN at either row propagates).
+        """
+        assert_matches(apply_expr([math.nan, math.nan, math.nan], roc(pl.col(COLUMN_X), 1)), [None, math.nan, math.nan])
+
+    def test_constant_series_is_zero(self) -> None:
+        """
+        Verifies that the ROC of a constant non-zero series is ``0`` once warmed up: the change is zero at every defined
+        row, so the percentage return is exactly ``0``.
+        """
+        assert_matches(apply_expr([5.0, 5.0, 5.0, 5.0], roc(pl.col(COLUMN_X), 1)), [None, 0.0, 0.0, 0.0])
 
     def test_zero_lagged_nonzero_change_is_signed_inf(self) -> None:
         """

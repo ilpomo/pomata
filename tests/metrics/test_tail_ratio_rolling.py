@@ -72,17 +72,6 @@ class TestTailRatioRollingEdge:
         with pytest.raises(ValueError, match="window must be >= 1"):
             tail_ratio_rolling(pl.col(COLUMN_X), 0)
 
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies that the first ``window - 1`` rows are ``null`` and the rest match the reference.
-        """
-        values = [0.01, -0.02, 0.03, -0.01, 0.02]
-        assert_matches(
-            apply_expr(values, tail_ratio_rolling(pl.col(COLUMN_X), 3)),
-            tail_ratio_rolling_reference(values, 3),
-            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
-        )
-
     def test_null_in_window_is_null(self) -> None:
         """
         Verifies that a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
@@ -103,6 +92,51 @@ class TestTailRatioRollingEdge:
             apply_expr(values, tail_ratio_rolling(pl.col(COLUMN_X), 3)),
             tail_ratio_rolling_reference(values, 3),
         )
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that the first ``window - 1`` rows are ``null`` and the rest match the reference.
+        """
+        values = [0.01, -0.02, 0.03, -0.01, 0.02]
+        assert_matches(
+            apply_expr(values, tail_ratio_rolling(pl.col(COLUMN_X), 3)),
+            tail_ratio_rolling_reference(values, 3),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+        )
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that a window exceeding the series length yields an all-null output.
+        """
+        values = [0.01, -0.02, 0.03, -0.01, 0.02]
+        assert_matches(apply_expr(values, tail_ratio_rolling(pl.col(COLUMN_X), 7)), [None, None, None, None, None])
+
+    def test_window_equals_length(self) -> None:
+        """
+        Verifies that when ``window`` equals the series length only the last row is defined, matching the reference.
+        """
+        values = [0.01, -0.02, 0.03, -0.01, 0.02]
+        assert_matches(
+            apply_expr(values, tail_ratio_rolling(pl.col(COLUMN_X), 5)),
+            tail_ratio_rolling_reference(values, 5),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+        )
+
+    def test_zero_left_tail_window_is_inf(self) -> None:
+        """
+        Verifies that a window whose 5th-percentile return is zero with a non-zero 95th-percentile gives ``+inf``
+        (reported, not clipped).
+        """
+        assert_matches(
+            apply_expr([0.0, 0.0, 0.0, 0.0, 0.02], tail_ratio_rolling(pl.col(COLUMN_X), 5)),
+            [None, None, None, None, math.inf],
+        )
+
+    def test_all_zero_window_is_nan(self) -> None:
+        """
+        Verifies that an all-zero window gives ``0 / 0``, so the ratio is ``NaN``.
+        """
+        assert_matches(apply_expr([0.0, 0.0, 0.0], tail_ratio_rolling(pl.col(COLUMN_X), 3)), [None, None, math.nan])
 
 
 class TestTailRatioRollingCorrectness:

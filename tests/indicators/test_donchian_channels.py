@@ -88,16 +88,6 @@ class TestDonchianChannelsContract:
     Type, struct schema, shape, and lazy/eager guarantees.
     """
 
-    def test_output_is_struct_with_named_fields(self) -> None:
-        """
-        Verifies that the output is a ``Float64`` struct with exactly the fields ``lower`` / ``middle`` / ``upper``.
-        """
-        frame = pl.DataFrame({HIGH: [11.0, 12.0, 13.0], LOW: [9.0, 10.0, 11.0]})
-        dtype = frame.select(donchian_channels(pl.col(HIGH), pl.col(LOW), 2).alias("dc")).schema["dc"]
-        assert isinstance(dtype, pl.Struct)
-        assert [field.name for field in dtype.fields] == ["lower", "middle", "upper"]
-        assert all(field.dtype == pl.Float64 for field in dtype.fields)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` the window resets per group and never spans group boundaries.
@@ -113,6 +103,16 @@ class TestDonchianChannelsContract:
         result = frame.select(upper.alias("y"))["y"].to_list()
         assert_matches(result, [None, 12.0, 13.0, None, 22.0, 23.0])
 
+    def test_output_is_struct_with_named_fields(self) -> None:
+        """
+        Verifies that the output is a ``Float64`` struct with exactly the fields ``lower`` / ``middle`` / ``upper``.
+        """
+        frame = pl.DataFrame({HIGH: [11.0, 12.0, 13.0], LOW: [9.0, 10.0, 11.0]})
+        dtype = frame.select(donchian_channels(pl.col(HIGH), pl.col(LOW), 2).alias("dc")).schema["dc"]
+        assert isinstance(dtype, pl.Struct)
+        assert [field.name for field in dtype.fields] == ["lower", "middle", "upper"]
+        assert all(field.dtype == pl.Float64 for field in dtype.fields)
+
 
 class TestDonchianChannelsEdge:
     """
@@ -126,32 +126,6 @@ class TestDonchianChannelsEdge:
         with pytest.raises(ValueError, match="window must be >= 1"):
             donchian_channels(pl.col(HIGH), pl.col(LOW), 0)
 
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null input yields an all-null output on every band.
-        """
-        bands = apply_donchian_channels([None, None, None], [None, None, None], 2)
-        for field in FIELDS:
-            assert_matches(bands[field], [None, None, None])
-
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies that every band is null for the first ``window - 1`` rows and defined from the first full window.
-        """
-        bands = apply_donchian_channels([11.0, 12.0, 13.0, 14.0, 15.0], [9.0, 10.0, 11.0, 12.0, 13.0], 3)
-        for field in FIELDS:
-            assert bands[field][:2] == [None, None]
-            assert bands[field][2] is not None
-
-    def test_window_one_is_bar_extremes(self) -> None:
-        """
-        Verifies that ``window == 1`` gives the bar's own ``high`` / ``low`` and their per-bar mean.
-        """
-        bands = apply_donchian_channels([11.0, 12.0, 13.0], [9.0, 10.0, 11.0], 1)
-        assert_matches(bands["upper"], [11.0, 12.0, 13.0])
-        assert_matches(bands["lower"], [9.0, 10.0, 11.0])
-        assert_matches(bands["middle"], [10.0, 11.0, 12.0])
-
     def test_single_row(self) -> None:
         """
         Verifies a one-element series: ``window == 1`` gives the bar's extremes, a larger window is all warm-up.
@@ -160,11 +134,11 @@ class TestDonchianChannelsEdge:
             assert_matches(apply_donchian_channels([11.0], [9.0], 1)[field], [value])
             assert_matches(apply_donchian_channels([11.0], [9.0], 3)[field], [None])
 
-    def test_window_exceeds_length(self) -> None:
+    def test_all_null(self) -> None:
         """
-        Verifies that a window longer than the series yields an all-null result on every band.
+        Verifies that an all-null input yields an all-null output on every band.
         """
-        bands = apply_donchian_channels([11.0, 12.0, 13.0], [9.0, 10.0, 11.0], 5)
+        bands = apply_donchian_channels([None, None, None], [None, None, None], 2)
         for field in FIELDS:
             assert_matches(bands[field], [None, None, None])
 
@@ -187,6 +161,32 @@ class TestDonchianChannelsEdge:
         assert_matches(bands["upper"], [None, math.nan, math.nan, 14.0])
         assert_matches(bands["lower"], [None, 9.0, 10.0, 11.0])
         assert_matches(bands["middle"], [None, math.nan, math.nan, 12.5])
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that every band is null for the first ``window - 1`` rows and defined from the first full window.
+        """
+        bands = apply_donchian_channels([11.0, 12.0, 13.0, 14.0, 15.0], [9.0, 10.0, 11.0, 12.0, 13.0], 3)
+        for field in FIELDS:
+            assert bands[field][:2] == [None, None]
+            assert bands[field][2] is not None
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that a window longer than the series yields an all-null result on every band.
+        """
+        bands = apply_donchian_channels([11.0, 12.0, 13.0], [9.0, 10.0, 11.0], 5)
+        for field in FIELDS:
+            assert_matches(bands[field], [None, None, None])
+
+    def test_window_one_is_bar_extremes(self) -> None:
+        """
+        Verifies that ``window == 1`` gives the bar's own ``high`` / ``low`` and their per-bar mean.
+        """
+        bands = apply_donchian_channels([11.0, 12.0, 13.0], [9.0, 10.0, 11.0], 1)
+        assert_matches(bands["upper"], [11.0, 12.0, 13.0])
+        assert_matches(bands["lower"], [9.0, 10.0, 11.0])
+        assert_matches(bands["middle"], [10.0, 11.0, 12.0])
 
     def test_flat_window_collapses(self) -> None:
         """
@@ -261,52 +261,6 @@ class TestDonchianChannelsProperties:
                 abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
             )
 
-    @given(case=_cases(coherent_hl()))
-    def test_bands_are_ordered(
-        self,
-        case: tuple[list[tuple[float, float]], int],
-    ) -> None:
-        """
-        Verifies the true invariant on coherent bars: ``lower <= middle <= upper`` wherever defined (no clip needed --
-        for ``high >= low`` the window max of ``high`` cannot fall below the window min of ``low``).
-        """
-        rows, window = case
-        high, low = split_pairs(rows)
-        bands = apply_donchian_channels(high, low, window)
-        for lower, middle, upper in zip(bands["lower"], bands["middle"], bands["upper"], strict=True):
-            if lower is None:
-                assert middle is None
-                assert upper is None
-            else:
-                assert middle is not None
-                assert upper is not None
-                assert lower <= middle <= upper
-
-    @given(case=_cases(coherent_hl()))
-    def test_monotone_under_window_growth(
-        self,
-        case: tuple[list[tuple[float, float]], int],
-    ) -> None:
-        """
-        Verifies that widening the window cannot narrow the channel: a longer window admits more bars, so ``upper`` can
-        only rise and ``lower`` can only fall, wherever both windows are defined.
-        """
-        rows, window = case
-        high, low = split_pairs(rows)
-        narrow = apply_donchian_channels(high, low, window)
-        wide = apply_donchian_channels(high, low, window + 1)
-        for index in range(len(rows)):
-            narrow_upper = narrow["upper"][index]
-            wide_upper = wide["upper"][index]
-            if narrow_upper is None or wide_upper is None:
-                continue
-            narrow_lower = narrow["lower"][index]
-            wide_lower = wide["lower"][index]
-            assert narrow_lower is not None
-            assert wide_lower is not None
-            assert wide_upper >= narrow_upper
-            assert wide_lower <= narrow_lower
-
     @given(case=_cases(coherent_hl_with_missing()))
     def test_matches_reference_under_missing_data(
         self,
@@ -373,3 +327,49 @@ class TestDonchianChannelsProperties:
                 rel_tol=RELATIVE_TOLERANCE_PROPERTY,
                 abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
             )
+
+    @given(case=_cases(coherent_hl()))
+    def test_bands_are_ordered(
+        self,
+        case: tuple[list[tuple[float, float]], int],
+    ) -> None:
+        """
+        Verifies the true invariant on coherent bars: ``lower <= middle <= upper`` wherever defined (no clip needed --
+        for ``high >= low`` the window max of ``high`` cannot fall below the window min of ``low``).
+        """
+        rows, window = case
+        high, low = split_pairs(rows)
+        bands = apply_donchian_channels(high, low, window)
+        for lower, middle, upper in zip(bands["lower"], bands["middle"], bands["upper"], strict=True):
+            if lower is None:
+                assert middle is None
+                assert upper is None
+            else:
+                assert middle is not None
+                assert upper is not None
+                assert lower <= middle <= upper
+
+    @given(case=_cases(coherent_hl()))
+    def test_monotone_under_window_growth(
+        self,
+        case: tuple[list[tuple[float, float]], int],
+    ) -> None:
+        """
+        Verifies that widening the window cannot narrow the channel: a longer window admits more bars, so ``upper`` can
+        only rise and ``lower`` can only fall, wherever both windows are defined.
+        """
+        rows, window = case
+        high, low = split_pairs(rows)
+        narrow = apply_donchian_channels(high, low, window)
+        wide = apply_donchian_channels(high, low, window + 1)
+        for index in range(len(rows)):
+            narrow_upper = narrow["upper"][index]
+            wide_upper = wide["upper"][index]
+            if narrow_upper is None or wide_upper is None:
+                continue
+            narrow_lower = narrow["lower"][index]
+            wide_lower = wide["lower"][index]
+            assert narrow_lower is not None
+            assert wide_lower is not None
+            assert wide_upper >= narrow_upper
+            assert wide_lower <= narrow_lower

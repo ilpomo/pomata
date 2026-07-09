@@ -94,16 +94,6 @@ class TestSineWaveContract:
     Type, struct schema, shape, and lazy/eager guarantees.
     """
 
-    def test_output_is_struct_with_named_fields(self) -> None:
-        """
-        Verifies that the output is a ``Float64`` struct with exactly the fields ``sine`` / ``lead_sine``.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, _SAMPLE)})
-        dtype = frame.select(sine_wave(pl.col(COLUMN_X)).alias("s")).schema["s"]
-        assert isinstance(dtype, pl.Struct)
-        assert [field.name for field in dtype.fields] == ["sine", "lead_sine"]
-        assert all(field.dtype == pl.Float64 for field in dtype.fields)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` the recurrence resets per group and never spans group boundaries.
@@ -115,11 +105,29 @@ class TestSineWaveContract:
         expected = apply_sine_wave(_SAMPLE)["sine"] + apply_sine_wave(group_b_input)["sine"]
         assert_matches(result, expected)
 
+    def test_output_is_struct_with_named_fields(self) -> None:
+        """
+        Verifies that the output is a ``Float64`` struct with exactly the fields ``sine`` / ``lead_sine``.
+        """
+        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, _SAMPLE)})
+        dtype = frame.select(sine_wave(pl.col(COLUMN_X)).alias("s")).schema["s"]
+        assert isinstance(dtype, pl.Struct)
+        assert [field.name for field in dtype.fields] == ["sine", "lead_sine"]
+        assert all(field.dtype == pl.Float64 for field in dtype.fields)
+
 
 class TestSineWaveEdge:
     """
     Warm-up and null / NaN latching.
     """
+
+    def test_single_row(self) -> None:
+        """
+        Verifies that a one-element series is all warm-up: both fields are null on the single row.
+        """
+        result = apply_sine_wave([42.0])
+        for field in FIELDS:
+            assert_matches(result[field], [None])
 
     def test_all_null(self) -> None:
         """
@@ -128,16 +136,6 @@ class TestSineWaveEdge:
         result = apply_sine_wave([None, None, None, None, None])
         for field in FIELDS:
             assert_matches(result[field], [None, None, None, None, None])
-
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies that the leading-null run is exactly ``63`` on each line and every later row is defined.
-        """
-        bands = apply_sine_wave(_SAMPLE)
-        for field in FIELDS:
-            leading_nulls = count_leading_nulls(bands[field])
-            assert leading_nulls == _WARMUP
-            assert all(value is not None for value in bands[field][_WARMUP:])
 
     def test_null_latches(self) -> None:
         """
@@ -161,6 +159,16 @@ class TestSineWaveEdge:
         for field in FIELDS:
             assert all(value is None for value in bands[field][70:])
             assert_matches(bands[field], reference[field])
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that the leading-null run is exactly ``63`` on each line and every later row is defined.
+        """
+        bands = apply_sine_wave(_SAMPLE)
+        for field in FIELDS:
+            leading_nulls = count_leading_nulls(bands[field])
+            assert leading_nulls == _WARMUP
+            assert all(value is not None for value in bands[field][_WARMUP:])
 
 
 class TestSineWaveCorrectness:

@@ -190,3 +190,135 @@ def test_missing_data_precedes_scale(name: str) -> None:
             f"{name}: the missing-data rung ({methods[missing_index]}) must precede "
             f"the scale rung ({methods[scale_index]})"
         )
+
+
+# ---- The full within-tier order and the one-rung-one-name law (§4), enforced in full ------------------------------
+
+# One rung, one spelling (§4's naming law): the left spelling is forbidden, the right one is canonical. `window_one`
+# is the one deliberately suffixed stem (the rung states the identity it collapses to), so its PLAIN form is the
+# forbidden one; every other stem is plain, so its suffixed forms are forbidden.
+_FORBIDDEN_SPELLINGS: dict[str, str] = {
+    "test_single_row_is_nan": "test_single_row",
+    "test_single_row_is_zero": "test_single_row",
+    "test_single_row_is_one": "test_single_row",
+    "test_single_row_is_null": "test_single_row",
+    "test_single_row_starts_at_zero": "test_single_row",
+    "test_window_one": "test_window_one_<identity>",
+    "test_infinity_propagates": "test_consecutive_infinities_make_nan",
+    "test_unordered_windows_raise": "test_misordered_windows_raise",
+    "test_fast_exceeds_slow_raises": "test_fast_above_slow_raises",
+    "test_windows_below_one_raises": "test_window_below_one_raises",
+    "test_golden_master_adjust": "test_golden_master_adjusted",
+    "test_matches_reference_adjust": "test_matches_reference_adjusted",
+    "test_constant_series_is_constant": "test_constant_series",
+}
+
+
+# Literal-prefix ranks for the §4 Edge ladder; the prefixes are mutually exclusive, so lookup order is irrelevant.
+_EDGE_PREFIX_RANKS: tuple[tuple[str, int], ...] = (
+    ("test_empty", 1),
+    ("test_all_null", 3),
+    ("test_null", 4),
+    ("test_nan", 5),
+    ("test_warmup", 6),
+    ("test_no_warmup", 6),
+    ("test_window_exceeds_length", 7),
+    ("test_window_equals_length", 8),
+    ("test_window_one", 9),
+    ("test_constant_window", 10),
+)
+
+
+def _edge_rank(method: str) -> int:
+    """The §4 Edge rank of a canonical rung; a bespoke (function-specific) rung ranks last by design."""
+    if method.endswith(("_raises", "_raise")):
+        return 0
+    if method == "test_single_row":
+        return 2
+    for prefix, rank in _EDGE_PREFIX_RANKS:
+        if method.startswith(prefix):
+            return rank
+    return 11  # bespoke / singularity guard: after the shared ladder
+
+
+def _contract_rank(method: str) -> int:
+    if method == "test_returns_expr":
+        return 0
+    if method in {"test_reduces_to_scalar", "test_preserves_length", "test_emits_struct"}:
+        return 1
+    if method.startswith("test_lazy_eager"):
+        return 2
+    if method.startswith("test_over_"):
+        return 3
+    return 4
+
+
+def _correctness_rank(method: str) -> int:
+    if method.startswith("test_matches_reference"):
+        return 0
+    if method.startswith("test_golden_master"):
+        return 1
+    return 2
+
+
+def _properties_rank(method: str) -> int:
+    if method == "test_matches_reference_for_any_input":
+        return 0
+    if method == "test_matches_reference_under_missing_data":
+        return 1
+    if _is_scale(method):
+        return 2
+    if method == "test_matches_reference_at_large_magnitude":
+        return 3
+    return 4
+
+
+_TIER_RANKS = {
+    "Contract": _contract_rank,
+    "Edge": _edge_rank,
+    "Correctness": _correctness_rank,
+    "Properties": _properties_rank,
+}
+_TIER_ORDER = ("Contract", "Edge", "Correctness", "Properties")
+
+
+def _tier_of(cls: str) -> str | None:
+    for tier in _TIER_ORDER:
+        if cls.endswith(tier):
+            return tier
+    return None
+
+
+@pytest.mark.parametrize("name", sorted(POLICIES))
+def test_no_forbidden_spelling(name: str) -> None:
+    """Verifies every rung uses its one canonical spelling (§4's naming law)."""
+    for _, method in _METHODS[name]:
+        assert method not in _FORBIDDEN_SPELLINGS, (
+            f"{name}: {method} is a forbidden spelling; the canonical rung is {_FORBIDDEN_SPELLINGS[method]}"
+        )
+        assert not method.startswith("test_bounded_in_"), (
+            f"{name}: {method} is a forbidden spelling; the canonical rung is test_bounded (the docstring names the "
+            f"range)"
+        )
+
+
+@pytest.mark.parametrize("name", sorted(POLICIES))
+def test_tier_classes_in_order(name: str) -> None:
+    """Verifies the four tier classes appear in the canonical Contract -> Edge -> Correctness -> Properties order."""
+    tiers = [tier for cls, _ in _METHODS[name] if (tier := _tier_of(cls)) is not None]
+    seen: list[str] = []
+    for tier in tiers:
+        if not seen or seen[-1] != tier:
+            seen.append(tier)
+    assert seen == sorted(set(seen), key=_TIER_ORDER.index), f"{name}: tier classes run {seen}"
+
+
+@pytest.mark.parametrize("name", sorted(POLICIES))
+def test_within_tier_rung_order(name: str) -> None:
+    """Verifies each tier lays its rungs out in the §4 order (bespoke rungs close the tier, after the shared ladder)."""
+    for tier in _TIER_ORDER:
+        methods = [method for cls, method in _METHODS[name] if _tier_of(cls) == tier]
+        ranks = [_TIER_RANKS[tier](method) for method in methods]
+        assert ranks == sorted(ranks), (
+            f"{name}: the {tier} tier runs {methods} (ranks {ranks}); the §4 order is non-decreasing"
+        )

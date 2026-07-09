@@ -7,7 +7,7 @@ two-column ``Float64`` frame; ``assert_matches`` and the naive ``cost_borrow_ref
 degree-1 homogeneous in both ``quantity`` and ``price``, so it carries the scale-homogeneity and large-magnitude tiers.
 
 The ladder, adapted to an elementwise two-input charge: contract (type / shape / lazy-eager / ``.over`` identity), edge
-(long-or-flat zero / single-row / null / NaN / null-precedence / negative-rate guard), correctness (closed-form
+(negative-rate guard / single-row / null / null-precedence / NaN / long-or-flat zero), correctness (closed-form
 reference + frozen golden master), and properties (reference agreement incl. missing data, scale-homogeneity,
 large-magnitude). Categories are split into classes; cross-cutting categories use markers (see ``tests/README.md``).
 """
@@ -115,12 +115,6 @@ class TestCostBorrowEdge:
             with pytest.raises(ValueError, match="rate must be a finite number >= 0"):
                 cost_borrow(pl.col(QUANTITY), pl.col(PRICE), rate=invalid)
 
-    def test_long_or_flat_is_zero(self) -> None:
-        """
-        Verifies that a long or flat quantity has zero borrow cost (only the short part is charged).
-        """
-        assert_matches(apply_cost_borrow([100.0, 0.0, 50.0], [10.0, 11.0, 12.0]), [0.0, 0.0, 0.0])
-
     def test_single_row(self) -> None:
         """
         Verifies that a one-row short series resolves to its borrow cost.
@@ -135,6 +129,12 @@ class TestCostBorrowEdge:
         price = [10.0, 11.0, 12.0, 13.0]
         assert_matches(apply_cost_borrow(quantity, price), cost_borrow_reference(quantity, price, RATE))
 
+    def test_null_takes_precedence_over_nan(self) -> None:
+        """
+        Verifies that a row with a ``null`` in one input and a ``NaN`` in the other yields ``null``.
+        """
+        assert_matches(apply_cost_borrow([None, -50.0], [math.nan, 10.0]), [None, 0.05])
+
     def test_nan_propagates(self) -> None:
         """
         Verifies that a ``NaN`` in either input makes that row ``NaN`` (matching the reference).
@@ -143,11 +143,11 @@ class TestCostBorrowEdge:
         price = [10.0, 11.0, 12.0, 13.0]
         assert_matches(apply_cost_borrow(quantity, price), cost_borrow_reference(quantity, price, RATE))
 
-    def test_null_takes_precedence_over_nan(self) -> None:
+    def test_long_or_flat_is_zero(self) -> None:
         """
-        Verifies that a row with a ``null`` in one input and a ``NaN`` in the other yields ``null``.
+        Verifies that a long or flat quantity has zero borrow cost (only the short part is charged).
         """
-        assert_matches(apply_cost_borrow([None, -50.0], [math.nan, 10.0]), [None, 0.05])
+        assert_matches(apply_cost_borrow([100.0, 0.0, 50.0], [10.0, 11.0, 12.0]), [0.0, 0.0, 0.0])
 
 
 class TestCostBorrowCorrectness:

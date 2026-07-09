@@ -59,6 +59,29 @@ class TestWinRateEdge:
     Boundaries and null / NaN handling.
     """
 
+    def test_single_row(self) -> None:
+        """
+        Verifies that a one-element series with a single positive return is one decisive win, so the rate is ``1``.
+        """
+        assert_matches(apply_expr([0.05], win_rate(pl.col(COLUMN_X))), [1.0])
+
+    def test_null_skipped(self) -> None:
+        """
+        Verifies that null returns are skipped, matching the reference.
+        """
+        values = [0.01, None, 0.02, -0.03, 0.04, None, -0.01]
+        assert_matches(
+            apply_expr(values, win_rate(pl.col(COLUMN_X))),
+            [win_rate_reference(values)],
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+        )
+
+    def test_nan_poisons(self) -> None:
+        """
+        Verifies that a NaN return poisons the result to NaN.
+        """
+        assert_matches(apply_expr([0.01, math.nan, -0.02, 0.03], win_rate(pl.col(COLUMN_X))), [math.nan])
+
     def test_all_positive_is_one(self) -> None:
         """
         Verifies that an all-positive series wins every decisive period, so the rate is ``1``.
@@ -82,23 +105,6 @@ class TestWinRateEdge:
         Verifies that exact-zero returns are excluded: two wins out of two decisive (one flat) returns is ``1``.
         """
         assert_matches(apply_expr([0.01, 0.0, 0.02], win_rate(pl.col(COLUMN_X))), [1.0])
-
-    def test_null_skipped(self) -> None:
-        """
-        Verifies that null returns are skipped, matching the reference.
-        """
-        values = [0.01, None, 0.02, -0.03, 0.04, None, -0.01]
-        assert_matches(
-            apply_expr(values, win_rate(pl.col(COLUMN_X))),
-            [win_rate_reference(values)],
-            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
-        )
-
-    def test_nan_poisons(self) -> None:
-        """
-        Verifies that a NaN return poisons the result to NaN.
-        """
-        assert_matches(apply_expr([0.01, math.nan, -0.02, 0.03], win_rate(pl.col(COLUMN_X))), [math.nan])
 
 
 class TestWinRateCorrectness:

@@ -85,32 +85,6 @@ class TestMomEdge:
         with pytest.raises(ValueError, match="window must be >= 1"):
             mom(pl.col(COLUMN_X), 0)
 
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies that the first ``window`` rows are null and the next row is defined.
-        """
-        result = apply_expr([1.0, 2.0, 3.0, 4.0, 5.0], mom(pl.col(COLUMN_X), 3))
-        assert result[:3] == [None, None, None]
-        assert result[3] is not None
-
-    def test_window_one(self) -> None:
-        """
-        Verifies that ``window == 1`` is the first difference with a single leading null.
-        """
-        assert_matches(apply_expr([2.0, 4.0, 6.0, 8.0], mom(pl.col(COLUMN_X), 1)), [None, 2.0, 2.0, 2.0])
-
-    def test_window_equals_length(self) -> None:
-        """
-        Verifies that when ``window`` equals the series length the whole output is null (no value reaches back).
-        """
-        assert_matches(apply_expr([1.0, 2.0, 3.0], mom(pl.col(COLUMN_X), 3)), [None, None, None])
-
-    def test_window_exceeds_length(self) -> None:
-        """
-        Verifies that when ``window`` exceeds the series length the whole output is null (warm-up clamps to length).
-        """
-        assert_matches(apply_expr([1.0, 2.0, 3.0], mom(pl.col(COLUMN_X), 5)), [None, None, None])
-
     def test_single_row(self) -> None:
         """
         Verifies behavior on a one-element series: the lone value is always warm-up.
@@ -123,15 +97,6 @@ class TestMomEdge:
         Verifies that an all-null series yields all null.
         """
         assert_matches(apply_expr([None, None, None, None], mom(pl.col(COLUMN_X), 1)), [None, None, None, None])
-
-    def test_all_nan(self) -> None:
-        """
-        Verifies that an all-NaN series yields null during warm-up and ``NaN`` thereafter.
-        """
-        assert_matches(
-            apply_expr([math.nan, math.nan, math.nan, math.nan], mom(pl.col(COLUMN_X), 1)),
-            [None, math.nan, math.nan, math.nan],
-        )
 
     def test_null_propagates(self) -> None:
         """
@@ -149,6 +114,41 @@ class TestMomEdge:
         assert_matches(
             apply_expr([1.0, math.nan, 3.0, 4.0, 5.0, 6.0], mom(pl.col(COLUMN_X), 2)),
             [None, None, 2.0, math.nan, 2.0, 2.0],
+        )
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that the first ``window`` rows are null and the next row is defined.
+        """
+        result = apply_expr([1.0, 2.0, 3.0, 4.0, 5.0], mom(pl.col(COLUMN_X), 3))
+        assert result[:3] == [None, None, None]
+        assert result[3] is not None
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that when ``window`` exceeds the series length the whole output is null (warm-up clamps to length).
+        """
+        assert_matches(apply_expr([1.0, 2.0, 3.0], mom(pl.col(COLUMN_X), 5)), [None, None, None])
+
+    def test_window_equals_length(self) -> None:
+        """
+        Verifies that when ``window`` equals the series length the whole output is null (no value reaches back).
+        """
+        assert_matches(apply_expr([1.0, 2.0, 3.0], mom(pl.col(COLUMN_X), 3)), [None, None, None])
+
+    def test_window_one_is_first_difference(self) -> None:
+        """
+        Verifies that ``window == 1`` is the first difference with a single leading null.
+        """
+        assert_matches(apply_expr([2.0, 4.0, 6.0, 8.0], mom(pl.col(COLUMN_X), 1)), [None, 2.0, 2.0, 2.0])
+
+    def test_all_nan(self) -> None:
+        """
+        Verifies that an all-NaN series yields null during warm-up and ``NaN`` thereafter.
+        """
+        assert_matches(
+            apply_expr([math.nan, math.nan, math.nan, math.nan], mom(pl.col(COLUMN_X), 1)),
+            [None, math.nan, math.nan, math.nan],
         )
 
     def test_constant_series_is_zero(self) -> None:
@@ -241,19 +241,6 @@ class TestMomProperties:
         result_scaled = apply_expr([value * k for value in values], mom(pl.col(COLUMN_X), window))
         assert_scale_homogeneous(result_scaled, result_base, k=k, degree=1)
 
-    @given(case=_cases(st.floats(min_value=-1e6, max_value=1e6, allow_nan=False, allow_infinity=False)))
-    def test_warmup_null_count_property(
-        self,
-        case: tuple[list[float], int],
-    ) -> None:
-        """
-        Verifies that the leading-null run is exactly ``min(window, len(values))``.
-        """
-        values, window = case
-        result = apply_expr(values, mom(pl.col(COLUMN_X), window))
-        leading_nulls = count_leading_nulls(result)
-        assert leading_nulls == min(window, len(values))
-
     @given(
         case=_cases(st.floats(min_value=1e-3, max_value=1.0, allow_nan=False, allow_infinity=False)),
         scale=st.sampled_from([1e-6, 1e6, 1e9]),
@@ -274,3 +261,16 @@ class TestMomProperties:
             rel_tol=RELATIVE_TOLERANCE_SCALE,
             abs_tol=input_scale(scaled_values) * EXACT_TOLERANCE_FACTOR,
         )
+
+    @given(case=_cases(st.floats(min_value=-1e6, max_value=1e6, allow_nan=False, allow_infinity=False)))
+    def test_warmup_null_count_property(
+        self,
+        case: tuple[list[float], int],
+    ) -> None:
+        """
+        Verifies that the leading-null run is exactly ``min(window, len(values))``.
+        """
+        values, window = case
+        result = apply_expr(values, mom(pl.col(COLUMN_X), window))
+        leading_nulls = count_leading_nulls(result)
+        assert leading_nulls == min(window, len(values))

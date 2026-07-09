@@ -78,17 +78,6 @@ class TestSkewnessRollingEdge:
         with pytest.raises(ValueError, match="window must be >= 2"):
             skewness_rolling(pl.col(COLUMN_X), 1)
 
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies that the first ``window - 1`` rows are ``null`` and the rest match the reference.
-        """
-        values = [0.01, -0.02, 0.03, -0.01, 0.02]
-        assert_matches(
-            apply_expr(values, skewness_rolling(pl.col(COLUMN_X), 3)),
-            skewness_rolling_reference(values, 3),
-            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
-        )
-
     def test_null_in_window_is_null(self) -> None:
         """
         Verifies that a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
@@ -110,6 +99,35 @@ class TestSkewnessRollingEdge:
             skewness_rolling_reference(values, 3),
         )
 
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that the first ``window - 1`` rows are ``null`` and the rest match the reference.
+        """
+        values = [0.01, -0.02, 0.03, -0.01, 0.02]
+        assert_matches(
+            apply_expr(values, skewness_rolling(pl.col(COLUMN_X), 3)),
+            skewness_rolling_reference(values, 3),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+        )
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that a window exceeding the series length yields an all-null output.
+        """
+        values = [0.01, -0.02, 0.03, -0.01, 0.02]
+        assert_matches(apply_expr(values, skewness_rolling(pl.col(COLUMN_X), 7)), [None, None, None, None, None])
+
+    def test_window_equals_length(self) -> None:
+        """
+        Verifies that when ``window`` equals the series length only the last row is defined, matching the reference.
+        """
+        values = [0.01, -0.02, 0.03, -0.01, 0.02]
+        assert_matches(
+            apply_expr(values, skewness_rolling(pl.col(COLUMN_X), 5)),
+            skewness_rolling_reference(values, 5),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+        )
+
     def test_constant_window_is_nan(self) -> None:
         """
         Verifies that a constant window has zero variance, so the skewness is undefined (``0 / 0``) and the native
@@ -120,19 +138,6 @@ class TestSkewnessRollingEdge:
             [None, None, math.nan, math.nan],
         )
 
-    def test_near_constant_window_is_finite(self) -> None:
-        """
-        Verifies that a near-constant (non-bit-identical) window -- which the exact zero-variance test does not cover --
-        yields the finite reference skewness from the native mean-centered moment, not the spurious huge finite a
-        one-pass raw-moment formula would cancel to.
-        """
-        values = [100.0, 100.0, 100.0, 100.000001]
-        assert_matches(
-            apply_expr(values, skewness_rolling(pl.col(COLUMN_X), 4)),
-            skewness_rolling_reference(values, 4),
-            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
-        )
-
     def test_constant_window_by_slide_is_nan(self) -> None:
         """
         Verifies that a window which becomes bit-constant only because a larger value slid out is still zero-variance,
@@ -140,6 +145,19 @@ class TestSkewnessRollingEdge:
         kernel leaves from the exited value's cancellation residue.
         """
         values = [0.03, 0.0, 0.0, 0.0, 0.0]
+        assert_matches(
+            apply_expr(values, skewness_rolling(pl.col(COLUMN_X), 4)),
+            skewness_rolling_reference(values, 4),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+        )
+
+    def test_near_constant_window_is_finite(self) -> None:
+        """
+        Verifies that a near-constant (non-bit-identical) window -- which the exact zero-variance test does not cover --
+        yields the finite reference skewness from the native mean-centered moment, not the spurious huge finite a
+        one-pass raw-moment formula would cancel to.
+        """
+        values = [100.0, 100.0, 100.0, 100.000001]
         assert_matches(
             apply_expr(values, skewness_rolling(pl.col(COLUMN_X), 4)),
             skewness_rolling_reference(values, 4),

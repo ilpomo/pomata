@@ -71,6 +71,12 @@ class TestCagrEdge:
             with pytest.raises(ValueError, match="periods_per_year must be >= 1"):
                 cagr(pl.col(COLUMN_X), periods_per_year=invalid)
 
+    def test_nan_poisons(self) -> None:
+        """
+        Verifies that a NaN equity poisons the result to NaN.
+        """
+        assert_matches(apply_expr([1.1, math.nan, 1.2], cagr(pl.col(COLUMN_X), periods_per_year=PERIODS)), [math.nan])
+
     def test_leading_null_uses_last_defined(self) -> None:
         """
         Verifies that leading warm-up nulls are skipped; the result uses the last defined equity.
@@ -79,12 +85,6 @@ class TestCagrEdge:
         assert_matches(
             apply_expr(values, cagr(pl.col(COLUMN_X), periods_per_year=PERIODS)), [cagr_reference(values, PERIODS)]
         )
-
-    def test_nan_poisons(self) -> None:
-        """
-        Verifies that a NaN equity poisons the result to NaN.
-        """
-        assert_matches(apply_expr([1.1, math.nan, 1.2], cagr(pl.col(COLUMN_X), periods_per_year=PERIODS)), [math.nan])
 
     def test_single_period_annualizes(self) -> None:
         """

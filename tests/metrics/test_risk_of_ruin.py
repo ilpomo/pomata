@@ -58,23 +58,11 @@ class TestRiskOfRuinEdge:
     Boundaries and null / NaN handling.
     """
 
-    def test_all_wins_is_zero(self) -> None:
+    def test_single_row(self) -> None:
         """
-        Verifies that an all-winning series has no ruin risk, so the probability is ``0``.
+        Verifies that a one-element series is a single decisive bet: one win is a win rate of ``1``, so ruin is ``0``.
         """
-        assert_matches(apply_expr([0.01, 0.02, 0.03], risk_of_ruin(pl.col(COLUMN_X))), [0.0])
-
-    def test_all_losses_is_one(self) -> None:
-        """
-        Verifies that an all-losing series is certain ruin, so the probability is ``1``.
-        """
-        assert_matches(apply_expr([-0.01, -0.02, -0.03], risk_of_ruin(pl.col(COLUMN_X))), [1.0])
-
-    def test_all_zero_is_null(self) -> None:
-        """
-        Verifies that an all-zero series has no decisive returns, so the probability is ``null``.
-        """
-        assert_matches(apply_expr([0.0, 0.0, 0.0], risk_of_ruin(pl.col(COLUMN_X))), [None])
+        assert_matches(apply_expr([0.05], risk_of_ruin(pl.col(COLUMN_X))), [0.0])
 
     def test_null_skipped(self) -> None:
         """
@@ -92,6 +80,24 @@ class TestRiskOfRuinEdge:
         Verifies that a NaN return poisons the result to NaN.
         """
         assert_matches(apply_expr([0.01, math.nan, -0.02, 0.03], risk_of_ruin(pl.col(COLUMN_X))), [math.nan])
+
+    def test_all_wins_is_zero(self) -> None:
+        """
+        Verifies that an all-winning series has no ruin risk, so the probability is ``0``.
+        """
+        assert_matches(apply_expr([0.01, 0.02, 0.03], risk_of_ruin(pl.col(COLUMN_X))), [0.0])
+
+    def test_all_losses_is_one(self) -> None:
+        """
+        Verifies that an all-losing series is certain ruin, so the probability is ``1``.
+        """
+        assert_matches(apply_expr([-0.01, -0.02, -0.03], risk_of_ruin(pl.col(COLUMN_X))), [1.0])
+
+    def test_all_zero_is_null(self) -> None:
+        """
+        Verifies that an all-zero series has no decisive returns, so the probability is ``null``.
+        """
+        assert_matches(apply_expr([0.0, 0.0, 0.0], risk_of_ruin(pl.col(COLUMN_X))), [None])
 
 
 class TestRiskOfRuinCorrectness:

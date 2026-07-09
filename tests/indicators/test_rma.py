@@ -70,6 +70,14 @@ class TestRmaContract:
     Type, shape, and lazy/eager guarantees.
     """
 
+    def test_over_partitions_independently(self) -> None:
+        """
+        Verifies that under ``.over`` the recursion resets per group and never spans group boundaries.
+        """
+        frame = pl.DataFrame({GROUP_KEY: ["a", "a", "a", "b", "b", "b"], COLUMN_X: [1.0, 2.0, 3.0, 10.0, 20.0, 30.0]})
+        result = frame.select(rma(pl.col(COLUMN_X), 2).over(GROUP_KEY).alias("y"))["y"].to_list()
+        assert_matches(result, [None, 1.5, 2.25, None, 15.0, 22.5])
+
     def test_window_one_is_float64_on_int_input(self) -> None:
         """
         Verifies that the ``window == 1`` identity short-circuit still yields ``Float64`` on an ``Int64`` input, so the
@@ -78,14 +86,6 @@ class TestRmaContract:
         frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1, 2, 3], dtype=pl.Int64)})
         result = frame.select(rma(pl.col(COLUMN_X), 1).alias("y"))
         assert result.schema["y"] == pl.Float64
-
-    def test_over_partitions_independently(self) -> None:
-        """
-        Verifies that under ``.over`` the recursion resets per group and never spans group boundaries.
-        """
-        frame = pl.DataFrame({GROUP_KEY: ["a", "a", "a", "b", "b", "b"], COLUMN_X: [1.0, 2.0, 3.0, 10.0, 20.0, 30.0]})
-        result = frame.select(rma(pl.col(COLUMN_X), 2).over(GROUP_KEY).alias("y"))["y"].to_list()
-        assert_matches(result, [None, 1.5, 2.25, None, 15.0, 22.5])
 
 
 class TestRmaEdge:
@@ -100,13 +100,12 @@ class TestRmaEdge:
         with pytest.raises(ValueError, match="window must be >= 1"):
             rma(pl.col(COLUMN_X), 0)
 
-    def test_warmup_null_count(self) -> None:
+    def test_single_row(self) -> None:
         """
-        Verifies that the first ``window - 1`` rows are null and the first full window is defined.
+        Verifies behavior on a one-element series.
         """
-        result = apply_expr([1.0, 2.0, 3.0, 4.0, 5.0], rma(pl.col(COLUMN_X), 3))
-        assert result[:2] == [None, None]
-        assert result[2] is not None
+        assert_matches(apply_expr([42.0], rma(pl.col(COLUMN_X), 1)), [42.0])
+        assert_matches(apply_expr([42.0], rma(pl.col(COLUMN_X), 3)), [None])
 
     def test_all_null(self) -> None:
         """
@@ -116,44 +115,6 @@ class TestRmaEdge:
             apply_expr([None, None, None, None, None], rma(pl.col(COLUMN_X), 3)), [None, None, None, None, None]
         )
 
-    def test_all_zero_series_is_zero(self) -> None:
-        """
-        Verifies the degenerate all-zero window: the recursion stays at zero. This is the case the subnormal-floor note
-        pins here, kept out of the property fuzz by ``subnormal_safe_floats``.
-        """
-        assert_matches(apply_expr([0.0, 0.0, 0.0, 0.0], rma(pl.col(COLUMN_X), 3)), [None, None, 0.0, 0.0])
-
-    def test_window_one_is_identity(self) -> None:
-        """
-        Verifies that ``window == 1`` (alpha == 1) reproduces the input with no warm-up.
-        """
-        assert_matches(apply_expr([1.0, 2.0, 3.0], rma(pl.col(COLUMN_X), 1)), [1.0, 2.0, 3.0])
-
-    def test_window_equals_length(self) -> None:
-        """
-        Verifies the single defined value when ``window`` equals the series length.
-        """
-        assert_matches(apply_expr([1.0, 2.0, 3.0], rma(pl.col(COLUMN_X), 3)), [None, None, 2.0])
-
-    def test_window_exceeds_length(self) -> None:
-        """
-        Verifies that a window exceeding the series length yields an all-null output.
-        """
-        assert_matches(apply_expr([1.0, 2.0, 3.0], rma(pl.col(COLUMN_X), 5)), [None, None, None])
-
-    def test_single_row(self) -> None:
-        """
-        Verifies behavior on a one-element series.
-        """
-        assert_matches(apply_expr([42.0], rma(pl.col(COLUMN_X), 1)), [42.0])
-        assert_matches(apply_expr([42.0], rma(pl.col(COLUMN_X), 3)), [None])
-
-    def test_constant_series_is_constant(self) -> None:
-        """
-        Verifies that a constant input yields that same constant at every defined (post-warm-up) row.
-        """
-        assert_matches(apply_expr([5.0, 5.0, 5.0, 5.0], rma(pl.col(COLUMN_X), 3)), [None, None, 5.0, 5.0])
-
     def test_null_bridged(self) -> None:
         """
         Verifies that an interior ``null`` yields ``null`` at that row while the recursion is bridged across the gap.
@@ -162,6 +123,53 @@ class TestRmaEdge:
             apply_expr([1.0, None, 3.0, 4.0], rma(pl.col(COLUMN_X), 2)),
             [None, None, 2.0, 3.0],
         )
+
+    def test_nan_latches(self) -> None:
+        """
+        Verifies that a ``NaN`` latches into the recursion and poisons every subsequent value.
+        """
+        assert_matches(
+            apply_expr([1.0, math.nan, 3.0, 4.0], rma(pl.col(COLUMN_X), 2)), [None, math.nan, math.nan, math.nan]
+        )
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that the first ``window - 1`` rows are null and the first full window is defined.
+        """
+        result = apply_expr([1.0, 2.0, 3.0, 4.0, 5.0], rma(pl.col(COLUMN_X), 3))
+        assert result[:2] == [None, None]
+        assert result[2] is not None
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that a window exceeding the series length yields an all-null output.
+        """
+        assert_matches(apply_expr([1.0, 2.0, 3.0], rma(pl.col(COLUMN_X), 5)), [None, None, None])
+
+    def test_window_equals_length(self) -> None:
+        """
+        Verifies the single defined value when ``window`` equals the series length.
+        """
+        assert_matches(apply_expr([1.0, 2.0, 3.0], rma(pl.col(COLUMN_X), 3)), [None, None, 2.0])
+
+    def test_window_one_is_identity(self) -> None:
+        """
+        Verifies that ``window == 1`` (alpha == 1) reproduces the input with no warm-up.
+        """
+        assert_matches(apply_expr([1.0, 2.0, 3.0], rma(pl.col(COLUMN_X), 1)), [1.0, 2.0, 3.0])
+
+    def test_all_zero_series_is_zero(self) -> None:
+        """
+        Verifies the degenerate all-zero window: the recursion stays at zero. This is the case the subnormal-floor note
+        pins here, kept out of the property fuzz by ``subnormal_safe_floats``.
+        """
+        assert_matches(apply_expr([0.0, 0.0, 0.0, 0.0], rma(pl.col(COLUMN_X), 3)), [None, None, 0.0, 0.0])
+
+    def test_constant_series(self) -> None:
+        """
+        Verifies that a constant input yields that same constant at every defined (post-warm-up) row.
+        """
+        assert_matches(apply_expr([5.0, 5.0, 5.0, 5.0], rma(pl.col(COLUMN_X), 3)), [None, None, 5.0, 5.0])
 
     def test_interior_null_bridged(self) -> None:
         """
@@ -180,14 +188,6 @@ class TestRmaEdge:
         """
         values = [2.0, 4.0, 6.0, None, 8.0, 10.0]
         assert_matches(apply_expr(values, rma(pl.col(COLUMN_X), 3)), rma_reference(values, 3))
-
-    def test_nan_latches(self) -> None:
-        """
-        Verifies that a ``NaN`` latches into the recursion and poisons every subsequent value.
-        """
-        assert_matches(
-            apply_expr([1.0, math.nan, 3.0, 4.0], rma(pl.col(COLUMN_X), 2)), [None, math.nan, math.nan, math.nan]
-        )
 
 
 class TestRmaCorrectness:
@@ -270,26 +270,6 @@ class TestRmaProperties:
         result_scaled = apply_expr(scaled_values, rma(pl.col(COLUMN_X), window))
         assert_scale_homogeneous(result_scaled, result_base, k=k, degree=1)
 
-    @given(case=_cases(subnormal_safe_floats(1e3)))
-    def test_over_matches_per_group(
-        self,
-        case: tuple[list[float], int],
-    ) -> None:
-        """
-        Verifies that ``.over`` computes each group exactly as the reference computes the group in isolation.
-        """
-        values, window = case
-        group_labels = ["a"] * len(values) + ["b"] * len(values)
-        frame = pl.DataFrame({GROUP_KEY: group_labels, COLUMN_X: values + values})
-        result = frame.select(rma(pl.col(COLUMN_X), window).over(GROUP_KEY).alias("y"))["y"].to_list()
-        expected_one = rma_reference(values, window)
-        assert_matches(
-            result,
-            expected_one + expected_one,
-            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
-            abs_tol=input_scale(values) * EXACT_TOLERANCE_FACTOR,
-        )
-
     @given(
         case=_cases(st.floats(min_value=1e-3, max_value=1.0, allow_nan=False, allow_infinity=False)),
         scale=st.sampled_from([1e-6, 1e6, 1e9]),
@@ -309,4 +289,24 @@ class TestRmaProperties:
             rma_reference(scaled_values, window),
             rel_tol=RELATIVE_TOLERANCE_SCALE,
             abs_tol=input_scale(scaled_values) * EXACT_TOLERANCE_FACTOR,
+        )
+
+    @given(case=_cases(subnormal_safe_floats(1e3)))
+    def test_over_matches_per_group(
+        self,
+        case: tuple[list[float], int],
+    ) -> None:
+        """
+        Verifies that ``.over`` computes each group exactly as the reference computes the group in isolation.
+        """
+        values, window = case
+        group_labels = ["a"] * len(values) + ["b"] * len(values)
+        frame = pl.DataFrame({GROUP_KEY: group_labels, COLUMN_X: values + values})
+        result = frame.select(rma(pl.col(COLUMN_X), window).over(GROUP_KEY).alias("y"))["y"].to_list()
+        expected_one = rma_reference(values, window)
+        assert_matches(
+            result,
+            expected_one + expected_one,
+            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+            abs_tol=input_scale(values) * EXACT_TOLERANCE_FACTOR,
         )

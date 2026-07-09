@@ -86,30 +86,6 @@ class TestAlphaEdge:
             with pytest.raises(ValueError, match="risk_free_rate must be a finite number"):
                 alpha(pl.col(RETURNS), pl.col(BENCHMARK), periods_per_year=PERIODS, risk_free_rate=invalid)
 
-    def test_single_pair(self) -> None:
-        """
-        Verifies that a single complete pair yields ``null`` (the regression slope needs two observations).
-        """
-        assert_matches(
-            materialize(
-                {RETURNS: [0.05], BENCHMARK: [0.04]},
-                alpha(pl.col(RETURNS), pl.col(BENCHMARK), periods_per_year=PERIODS),
-            ),
-            [None],
-        )
-
-    def test_constant_benchmark_is_nan(self) -> None:
-        """
-        Verifies that a constant (zero-variance) benchmark makes the embedded beta ``NaN`` (regardless of the constant's
-        magnitude, via the ``max == min`` guard), which propagates here.
-        """
-        for constant in (0.1, 1.0 / 3.0, 0.123456789):
-            result = materialize(
-                {RETURNS: [0.01, -0.02, 0.03], BENCHMARK: [constant, constant, constant]},
-                alpha(pl.col(RETURNS), pl.col(BENCHMARK), periods_per_year=PERIODS),
-            )
-            assert_matches(result, [math.nan])
-
     def test_null_misalignment_drops_pair(self) -> None:
         """
         Verifies that an observation with a ``null`` in either leg is dropped, matching the reference over the retained
@@ -139,6 +115,30 @@ class TestAlphaEdge:
             ),
             [math.nan],
         )
+
+    def test_single_pair(self) -> None:
+        """
+        Verifies that a single complete pair yields ``null`` (the regression slope needs two observations).
+        """
+        assert_matches(
+            materialize(
+                {RETURNS: [0.05], BENCHMARK: [0.04]},
+                alpha(pl.col(RETURNS), pl.col(BENCHMARK), periods_per_year=PERIODS),
+            ),
+            [None],
+        )
+
+    def test_constant_benchmark_is_nan(self) -> None:
+        """
+        Verifies that a constant (zero-variance) benchmark makes the embedded beta ``NaN`` (regardless of the constant's
+        magnitude, via the ``max == min`` guard), which propagates here.
+        """
+        for constant in (0.1, 1.0 / 3.0, 0.123456789):
+            result = materialize(
+                {RETURNS: [0.01, -0.02, 0.03], BENCHMARK: [constant, constant, constant]},
+                alpha(pl.col(RETURNS), pl.col(BENCHMARK), periods_per_year=PERIODS),
+            )
+            assert_matches(result, [math.nan])
 
 
 class TestAlphaCorrectness:

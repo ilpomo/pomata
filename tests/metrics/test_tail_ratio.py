@@ -60,11 +60,28 @@ class TestTailRatioEdge:
     Boundaries and null / NaN handling.
     """
 
-    def test_single_row_is_one(self) -> None:
+    def test_single_row(self) -> None:
         """
         Verifies that a one-element series has equal tails, so the ratio is ``1``.
         """
         assert_matches(apply_expr([0.05], tail_ratio(pl.col(COLUMN_X))), [1.0])
+
+    def test_null_skipped(self) -> None:
+        """
+        Verifies that null returns are skipped, matching the reference.
+        """
+        values = [0.01, None, 0.02, -0.03, 0.04, None, -0.01]
+        assert_matches(
+            apply_expr(values, tail_ratio(pl.col(COLUMN_X))),
+            [tail_ratio_reference(values)],
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+        )
+
+    def test_nan_poisons(self) -> None:
+        """
+        Verifies that a NaN return poisons the result to NaN.
+        """
+        assert_matches(apply_expr([0.01, math.nan, 0.02, 0.03], tail_ratio(pl.col(COLUMN_X))), [math.nan])
 
     def test_constant_is_one(self) -> None:
         """
@@ -83,23 +100,6 @@ class TestTailRatioEdge:
         Verifies that an all-zero series gives ``0 / 0``, so the ratio is ``NaN``.
         """
         assert_matches(apply_expr([0.0, 0.0, 0.0], tail_ratio(pl.col(COLUMN_X))), [math.nan])
-
-    def test_null_skipped(self) -> None:
-        """
-        Verifies that null returns are skipped, matching the reference.
-        """
-        values = [0.01, None, 0.02, -0.03, 0.04, None, -0.01]
-        assert_matches(
-            apply_expr(values, tail_ratio(pl.col(COLUMN_X))),
-            [tail_ratio_reference(values)],
-            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
-        )
-
-    def test_nan_poisons(self) -> None:
-        """
-        Verifies that a NaN return poisons the result to NaN.
-        """
-        assert_matches(apply_expr([0.01, math.nan, 0.02, 0.03], tail_ratio(pl.col(COLUMN_X))), [math.nan])
 
 
 class TestTailRatioCorrectness:

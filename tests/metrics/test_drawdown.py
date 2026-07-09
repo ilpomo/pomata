@@ -64,6 +64,13 @@ class TestDrawdownEdge:
         """
         assert_matches(apply_expr([1.0], drawdown(pl.col(COLUMN_X))), [0.0])
 
+    def test_nan_row(self) -> None:
+        """
+        Verifies that a NaN equity yields NaN at that row while the running peak ignores it (matching the reference).
+        """
+        values = [1.0, 1.1, math.nan, 0.9, 1.2]
+        assert_matches(apply_expr(values, drawdown(pl.col(COLUMN_X))), drawdown_reference(values))
+
     def test_leading_null(self) -> None:
         """
         Verifies that a leading warm-up null stays null and the curve begins at the first defined equity.
@@ -77,13 +84,6 @@ class TestDrawdownEdge:
         naive reference).
         """
         values = [1.0, 1.2, None, 1.1, 1.3]
-        assert_matches(apply_expr(values, drawdown(pl.col(COLUMN_X))), drawdown_reference(values))
-
-    def test_nan_row(self) -> None:
-        """
-        Verifies that a NaN equity yields NaN at that row while the running peak ignores it (matching the reference).
-        """
-        values = [1.0, 1.1, math.nan, 0.9, 1.2]
         assert_matches(apply_expr(values, drawdown(pl.col(COLUMN_X))), drawdown_reference(values))
 
 

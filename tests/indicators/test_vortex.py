@@ -89,16 +89,6 @@ class TestVortexContract:
     Type, struct schema, shape, and lazy/eager guarantees.
     """
 
-    def test_output_is_struct_with_named_fields(self) -> None:
-        """
-        Verifies that the output is a ``Float64`` struct with exactly the fields ``plus`` / ``minus``.
-        """
-        frame = pl.DataFrame({HIGH: [2.0, 4.0, 6.0], LOW: [1.0, 3.0, 4.0], CLOSE: [1.5, 3.5, 5.0]})
-        dtype = frame.select(vortex(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), 2).alias("v")).schema["v"]
-        assert isinstance(dtype, pl.Struct)
-        assert [field.name for field in dtype.fields] == ["plus", "minus"]
-        assert all(field.dtype == pl.Float64 for field in dtype.fields)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` neither the lag nor the window spans group boundaries.
@@ -119,6 +109,16 @@ class TestVortexContract:
         assert result[2] is not None
         assert result[5] is not None
 
+    def test_output_is_struct_with_named_fields(self) -> None:
+        """
+        Verifies that the output is a ``Float64`` struct with exactly the fields ``plus`` / ``minus``.
+        """
+        frame = pl.DataFrame({HIGH: [2.0, 4.0, 6.0], LOW: [1.0, 3.0, 4.0], CLOSE: [1.5, 3.5, 5.0]})
+        dtype = frame.select(vortex(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), 2).alias("v")).schema["v"]
+        assert isinstance(dtype, pl.Struct)
+        assert [field.name for field in dtype.fields] == ["plus", "minus"]
+        assert all(field.dtype == pl.Float64 for field in dtype.fields)
+
 
 class TestVortexEdge:
     """
@@ -132,14 +132,6 @@ class TestVortexEdge:
         with pytest.raises(ValueError, match="window must be >= 1"):
             vortex(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), 0)
 
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null input yields an all-null output on both lines.
-        """
-        bands = apply_vortex([None, None, None], [None, None, None], [None, None, None], 2)
-        for field in FIELDS:
-            assert_matches(bands[field], [None, None, None])
-
     def test_single_row(self) -> None:
         """
         Verifies that a one-row series with ``window > 1`` is all warm-up (one null) on both lines.
@@ -148,13 +140,25 @@ class TestVortexEdge:
         for field in FIELDS:
             assert_matches(bands[field], [None])
 
-    def test_window_exceeds_length(self) -> None:
+    def test_all_null(self) -> None:
         """
-        Verifies that a window exceeding the series length yields an all-null output on both lines.
+        Verifies that an all-null input yields an all-null output on both lines.
         """
-        bands = apply_vortex([2.0, 4.0, 6.0], [1.0, 3.0, 4.0], [1.5, 3.5, 5.0], 5)
+        bands = apply_vortex([None, None, None], [None, None, None], [None, None, None], 2)
         for field in FIELDS:
             assert_matches(bands[field], [None, None, None])
+
+    def test_null_propagates_through_lag(self) -> None:
+        """
+        Verifies that a ``null`` / ``NaN`` flows through the one-bar lag and the rolling sums exactly as the reference.
+        """
+        high = [2.0, None, 6.0, 8.0, math.nan, 12.0, 13.0]
+        low = [1.0, 3.0, 4.0, 6.0, 8.0, 10.0, 11.0]
+        close = [1.5, 2.5, 5.0, 7.0, 9.0, 11.0, 12.0]
+        bands = apply_vortex(high, low, close, 2)
+        reference = vortex_reference(high, low, close, 2)
+        for field in FIELDS:
+            assert_matches(bands[field], reference[field])
 
     def test_warmup_null_count(self) -> None:
         """
@@ -168,6 +172,14 @@ class TestVortexEdge:
         for field in FIELDS:
             assert bands[field][:2] == [None, None]
             assert bands[field][2] is not None
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that a window exceeding the series length yields an all-null output on both lines.
+        """
+        bands = apply_vortex([2.0, 4.0, 6.0], [1.0, 3.0, 4.0], [1.5, 3.5, 5.0], 5)
+        for field in FIELDS:
+            assert_matches(bands[field], [None, None, None])
 
     def test_flat_window_is_nan(self) -> None:
         """
@@ -190,18 +202,6 @@ class TestVortexEdge:
         bands = apply_vortex(flat, flat, flat, 2)
         for field in FIELDS:
             assert_matches(bands[field], [None, None, math.nan, math.nan, math.nan, math.nan])
-
-    def test_null_propagates_through_lag(self) -> None:
-        """
-        Verifies that a ``null`` / ``NaN`` flows through the one-bar lag and the rolling sums exactly as the reference.
-        """
-        high = [2.0, None, 6.0, 8.0, math.nan, 12.0, 13.0]
-        low = [1.0, 3.0, 4.0, 6.0, 8.0, 10.0, 11.0]
-        close = [1.5, 2.5, 5.0, 7.0, 9.0, 11.0, 12.0]
-        bands = apply_vortex(high, low, close, 2)
-        reference = vortex_reference(high, low, close, 2)
-        for field in FIELDS:
-            assert_matches(bands[field], reference[field])
 
 
 class TestVortexCorrectness:
@@ -256,23 +256,6 @@ class TestVortexProperties:
                 abs_tol=ABSOLUTE_TOLERANCE_PROPERTY,
             )
 
-    @given(case=_cases(coherent_hlc()))
-    def test_lines_are_non_negative(
-        self,
-        case: tuple[list[tuple[float, float, float]], int],
-    ) -> None:
-        """
-        Verifies the true invariant: each vortex line is non-negative wherever defined and finite (a sum of absolute
-        movements over a sum of non-negative true ranges).
-        """
-        rows, window = case
-        high, low, close = split_triples(rows)
-        bands = apply_vortex(high, low, close, window)
-        for field in FIELDS:
-            for value in bands[field]:
-                if value is not None and not math.isnan(value):
-                    assert value >= 0.0
-
     @given(case=_cases(coherent_hlc_with_missing()))
     def test_matches_reference_under_missing_data(
         self,
@@ -314,3 +297,20 @@ class TestVortexProperties:
         scaled = apply_vortex([v * k for v in high], [v * k for v in low], [v * k for v in close], window)
         for field in FIELDS:
             assert_scale_homogeneous(scaled[field], base[field], k=k, degree=0)
+
+    @given(case=_cases(coherent_hlc()))
+    def test_lines_are_non_negative(
+        self,
+        case: tuple[list[tuple[float, float, float]], int],
+    ) -> None:
+        """
+        Verifies the true invariant: each vortex line is non-negative wherever defined and finite (a sum of absolute
+        movements over a sum of non-negative true ranges).
+        """
+        rows, window = case
+        high, low, close = split_triples(rows)
+        bands = apply_vortex(high, low, close, window)
+        for field in FIELDS:
+            for value in bands[field]:
+                if value is not None and not math.isnan(value):
+                    assert value >= 0.0

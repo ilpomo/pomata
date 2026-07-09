@@ -8,9 +8,10 @@ oracle are shared. The cost is degree-1 homogeneous in the weight, so it carries
 large-magnitude tiers.
 
 The ladder is the canonical one: contract (type / shape / lazy-eager / ``.over`` per-group independence), edge
-(flat-start / single-row / null / NaN / negative-half-spread guard), correctness (vs the closed-form reference and a
-frozen golden master), and properties (reference agreement incl. missing data, scale-homogeneity, large-magnitude).
-Categories are split into classes; cross-cutting categories use markers (see ``tests/README.md``).
+(negative-half-spread guard / single-row / null / NaN / flat-start / consecutive-infinities), correctness (vs the
+closed-form reference and a frozen golden master), and properties (reference agreement incl. missing data,
+scale-homogeneity, large-magnitude). Categories are split into classes; cross-cutting categories use markers (see
+``tests/README.md``).
 """
 
 import math
@@ -93,15 +94,6 @@ class TestCostSlippageEdge:
             with pytest.raises(ValueError, match="half_spread must be a finite number >= 0"):
                 cost_slippage(pl.col(COLUMN_X), half_spread=invalid)
 
-    def test_flat_start_first_row(self) -> None:
-        """
-        Verifies the first row is ``|weight_0| * half_spread`` (the cost of the entry trade from a flat start).
-        """
-        assert_matches(
-            apply_expr([0.5, 1.0, -0.5], cost_slippage(pl.col(COLUMN_X), half_spread=HALF_SPREAD)),
-            [0.001, 0.001, 0.003],
-        )
-
     def test_single_row(self) -> None:
         """
         Verifies that a one-element series resolves to ``|weight_0| * half_spread`` (the entry trade), not null.
@@ -126,6 +118,15 @@ class TestCostSlippageEdge:
         assert_matches(
             apply_expr(values, cost_slippage(pl.col(COLUMN_X), half_spread=HALF_SPREAD)),
             cost_slippage_reference(values, HALF_SPREAD),
+        )
+
+    def test_flat_start_first_row(self) -> None:
+        """
+        Verifies the first row is ``|weight_0| * half_spread`` (the cost of the entry trade from a flat start).
+        """
+        assert_matches(
+            apply_expr([0.5, 1.0, -0.5], cost_slippage(pl.col(COLUMN_X), half_spread=HALF_SPREAD)),
+            [0.001, 0.001, 0.003],
         )
 
     def test_consecutive_infinities_make_nan(self) -> None:

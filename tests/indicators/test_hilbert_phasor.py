@@ -91,16 +91,6 @@ class TestHilbertPhasorContract:
     Type, struct schema, shape, and lazy/eager guarantees.
     """
 
-    def test_output_is_struct_with_named_fields(self) -> None:
-        """
-        Verifies that the output is a ``Float64`` struct with exactly the fields ``in_phase`` / ``quadrature``.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, _SAMPLE)})
-        dtype = frame.select(hilbert_phasor(pl.col(COLUMN_X)).alias("a")).schema["a"]
-        assert isinstance(dtype, pl.Struct)
-        assert [field.name for field in dtype.fields] == ["in_phase", "quadrature"]
-        assert all(field.dtype == pl.Float64 for field in dtype.fields)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` the recurrence resets per group and never spans group boundaries.
@@ -112,11 +102,29 @@ class TestHilbertPhasorContract:
         expected = apply_hilbert_phasor(_SAMPLE)["in_phase"] + apply_hilbert_phasor(group_b_input)["in_phase"]
         assert_matches(grouped, expected)
 
+    def test_output_is_struct_with_named_fields(self) -> None:
+        """
+        Verifies that the output is a ``Float64`` struct with exactly the fields ``in_phase`` / ``quadrature``.
+        """
+        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, _SAMPLE)})
+        dtype = frame.select(hilbert_phasor(pl.col(COLUMN_X)).alias("a")).schema["a"]
+        assert isinstance(dtype, pl.Struct)
+        assert [field.name for field in dtype.fields] == ["in_phase", "quadrature"]
+        assert all(field.dtype == pl.Float64 for field in dtype.fields)
+
 
 class TestHilbertPhasorEdge:
     """
     Warm-up and null / NaN latching.
     """
+
+    def test_single_row(self) -> None:
+        """
+        Verifies behavior on a one-element series: the warm-up is never cleared, so every field is all warm-up.
+        """
+        result = apply_hilbert_phasor([100.0])
+        for field in FIELDS:
+            assert_matches(result[field], [None])
 
     def test_all_null(self) -> None:
         """
@@ -125,16 +133,6 @@ class TestHilbertPhasorEdge:
         result = apply_hilbert_phasor([None, None, None, None, None])
         for field in FIELDS:
             assert_matches(result[field], [None, None, None, None, None])
-
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies that the leading-null run is exactly ``32`` on both fields and every later row is defined.
-        """
-        result = apply_hilbert_phasor(_SAMPLE)
-        for field in FIELDS:
-            leading_nulls = count_leading_nulls(result[field])
-            assert leading_nulls == _WARMUP
-            assert all(value is not None for value in result[field][_WARMUP:])
 
     def test_null_latches(self) -> None:
         """
@@ -158,6 +156,16 @@ class TestHilbertPhasorEdge:
         for field in FIELDS:
             assert all(value is None for value in result[field][35:])
             assert_matches(result[field], reference[field])
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that the leading-null run is exactly ``32`` on both fields and every later row is defined.
+        """
+        result = apply_hilbert_phasor(_SAMPLE)
+        for field in FIELDS:
+            leading_nulls = count_leading_nulls(result[field])
+            assert leading_nulls == _WARMUP
+            assert all(value is not None for value in result[field][_WARMUP:])
 
 
 class TestHilbertPhasorCorrectness:

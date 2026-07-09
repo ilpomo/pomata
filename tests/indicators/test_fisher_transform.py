@@ -94,16 +94,6 @@ class TestFisherTransformContract:
     Type, struct schema, shape, and lazy/eager guarantees.
     """
 
-    def test_output_is_struct_with_named_fields(self) -> None:
-        """
-        Verifies that the output is a ``Float64`` struct with exactly the fields ``fisher`` / ``signal``.
-        """
-        frame = pl.DataFrame({HIGH: [2.0, 4.0, 6.0], LOW: [1.0, 3.0, 4.0]})
-        dtype = frame.select(fisher_transform(pl.col(HIGH), pl.col(LOW), 2).alias("ft")).schema["ft"]
-        assert isinstance(dtype, pl.Struct)
-        assert [field.name for field in dtype.fields] == ["fisher", "signal"]
-        assert all(field.dtype == pl.Float64 for field in dtype.fields)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` the recurrence and channel do not span group boundaries: a group's Fisher line
@@ -121,6 +111,16 @@ class TestFisherTransformContract:
         standalone = apply_fisher([12.0, 14.0, 16.0, 15.0], [11.0, 13.0, 14.0, 14.0], 2)["fisher"]
         assert_matches(panel[4:], standalone)
 
+    def test_output_is_struct_with_named_fields(self) -> None:
+        """
+        Verifies that the output is a ``Float64`` struct with exactly the fields ``fisher`` / ``signal``.
+        """
+        frame = pl.DataFrame({HIGH: [2.0, 4.0, 6.0], LOW: [1.0, 3.0, 4.0]})
+        dtype = frame.select(fisher_transform(pl.col(HIGH), pl.col(LOW), 2).alias("ft")).schema["ft"]
+        assert isinstance(dtype, pl.Struct)
+        assert [field.name for field in dtype.fields] == ["fisher", "signal"]
+        assert all(field.dtype == pl.Float64 for field in dtype.fields)
+
 
 class TestFisherTransformEdge:
     """
@@ -134,6 +134,18 @@ class TestFisherTransformEdge:
         with pytest.raises(ValueError, match="window must be >= 1"):
             fisher_transform(pl.col(HIGH), pl.col(LOW), 0)
 
+    def test_single_row(self) -> None:
+        """
+        Verifies a one-element series: ``window == 1`` is flat by construction (``fisher`` is ``NaN``, ``signal`` one
+        row behind); a larger window is all warm-up on both lines.
+        """
+        bands = apply_fisher([11.0], [9.0], 1)
+        assert_matches(bands["fisher"], [math.nan])
+        assert_matches(bands["signal"], [None])
+        bands = apply_fisher([11.0], [9.0], 3)
+        for field in FIELDS:
+            assert_matches(bands[field], [None])
+
     def test_all_null(self) -> None:
         """
         Verifies that an all-null input yields an all-null output on both lines.
@@ -141,6 +153,18 @@ class TestFisherTransformEdge:
         bands = apply_fisher([None, None, None], [None, None, None], 2)
         for field in FIELDS:
             assert_matches(bands[field], [None, None, None])
+
+    def test_null_and_nan_bridge(self) -> None:
+        """
+        Verifies that a ``null`` / ``NaN`` flows through the channel and the double recursion exactly as the reference
+        (a transient gap is bridged, not latched).
+        """
+        high = [2.0, 4.0, None, 8.0, math.nan, 12.0, 13.0, 15.0]
+        low = [1.0, 3.0, 4.0, 6.0, 8.0, 10.0, 11.0, 13.0]
+        bands = apply_fisher(high, low, 2)
+        reference = fisher_transform_reference(high, low, 2)
+        for field in FIELDS:
+            assert_matches(bands[field], reference[field])
 
     def test_warmup_null_count(self) -> None:
         """
@@ -154,6 +178,14 @@ class TestFisherTransformEdge:
         assert bands["fisher"][2] is not None
         assert bands["signal"][:3] == [None, None, None]
         assert bands["signal"][3] is not None
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that a window longer than the series is all warm-up on both lines.
+        """
+        bands = apply_fisher([11.0, 12.0, 13.0], [9.0, 10.0, 11.0], 5)
+        for field in FIELDS:
+            assert_matches(bands[field], [None, None, None])
 
     def test_flat_window_is_nan(self) -> None:
         """
@@ -179,18 +211,6 @@ class TestFisherTransformEdge:
         for value in defined:
             assert not math.isnan(value)
             assert abs(value) <= FISHER_BOUND + 1e-9
-
-    def test_null_and_nan_bridge(self) -> None:
-        """
-        Verifies that a ``null`` / ``NaN`` flows through the channel and the double recursion exactly as the reference
-        (a transient gap is bridged, not latched).
-        """
-        high = [2.0, 4.0, None, 8.0, math.nan, 12.0, 13.0, 15.0]
-        low = [1.0, 3.0, 4.0, 6.0, 8.0, 10.0, 11.0, 13.0]
-        bands = apply_fisher(high, low, 2)
-        reference = fisher_transform_reference(high, low, 2)
-        for field in FIELDS:
-            assert_matches(bands[field], reference[field])
 
 
 class TestFisherTransformCorrectness:
@@ -247,36 +267,6 @@ class TestFisherTransformProperties:
                 abs_tol=ABSOLUTE_TOLERANCE_PROPERTY,
             )
 
-    @given(case=_cases(coherent_hl()))
-    def test_fisher_is_bounded(
-        self,
-        case: tuple[list[tuple[float, float]], int],
-    ) -> None:
-        """
-        Verifies the hard bound: wherever defined and finite, both lines satisfy ``|value| <= ln(1999)`` -- asserted on
-        the raw output, never by clipping it.
-        """
-        rows, window = case
-        high, low = split_pairs(rows)
-        bands = apply_fisher(high, low, window)
-        for field in FIELDS:
-            for value in bands[field]:
-                if value is not None and not math.isnan(value):
-                    assert abs(value) <= FISHER_BOUND + 1e-9
-
-    @given(case=_cases(coherent_hl()))
-    def test_signal_is_lagged_fisher(
-        self,
-        case: tuple[list[tuple[float, float]], int],
-    ) -> None:
-        """
-        Verifies the defining identity: ``signal`` is exactly ``fisher`` shifted one row (the trigger line).
-        """
-        rows, window = case
-        high, low = split_pairs(rows)
-        bands = apply_fisher(high, low, window)
-        assert_matches(bands["signal"], [None, *bands["fisher"][:-1]])
-
     @given(case=_cases(coherent_hl_with_missing()))
     def test_matches_reference_under_missing_data(
         self,
@@ -318,3 +308,33 @@ class TestFisherTransformProperties:
         scaled = apply_fisher([v * k for v in high], [v * k for v in low], window)
         for field in FIELDS:
             assert_scale_homogeneous(scaled[field], base[field], k=k, degree=0)
+
+    @given(case=_cases(coherent_hl()))
+    def test_fisher_is_bounded(
+        self,
+        case: tuple[list[tuple[float, float]], int],
+    ) -> None:
+        """
+        Verifies the hard bound: wherever defined and finite, both lines satisfy ``|value| <= ln(1999)`` -- asserted on
+        the raw output, never by clipping it.
+        """
+        rows, window = case
+        high, low = split_pairs(rows)
+        bands = apply_fisher(high, low, window)
+        for field in FIELDS:
+            for value in bands[field]:
+                if value is not None and not math.isnan(value):
+                    assert abs(value) <= FISHER_BOUND + 1e-9
+
+    @given(case=_cases(coherent_hl()))
+    def test_signal_is_lagged_fisher(
+        self,
+        case: tuple[list[tuple[float, float]], int],
+    ) -> None:
+        """
+        Verifies the defining identity: ``signal`` is exactly ``fisher`` shifted one row (the trigger line).
+        """
+        rows, window = case
+        high, low = split_pairs(rows)
+        bands = apply_fisher(high, low, window)
+        assert_matches(bands["signal"], [None, *bands["fisher"][:-1]])

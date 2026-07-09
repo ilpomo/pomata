@@ -58,17 +58,11 @@ class TestGainToPainRatioEdge:
     Boundaries and null / NaN handling.
     """
 
-    def test_no_losses_is_inf(self) -> None:
+    def test_single_row(self) -> None:
         """
-        Verifies that an all-positive series has no loss, so the ratio is ``+inf``.
+        Verifies that a one-element positive series has no loss, so the ratio is ``+inf``.
         """
-        assert_matches(apply_expr([0.01, 0.02, 0.03], gain_to_pain_ratio(pl.col(COLUMN_X))), [math.inf])
-
-    def test_all_negative_is_minus_one(self) -> None:
-        """
-        Verifies that an all-negative series has net loss equal to its total loss, so the ratio is ``-1``.
-        """
-        assert_matches(apply_expr([-0.01, -0.02, -0.03], gain_to_pain_ratio(pl.col(COLUMN_X))), [-1.0])
+        assert_matches(apply_expr([0.02], gain_to_pain_ratio(pl.col(COLUMN_X))), [math.inf])
 
     def test_null_skipped(self) -> None:
         """
@@ -86,6 +80,18 @@ class TestGainToPainRatioEdge:
         Verifies that a NaN return poisons the result to NaN.
         """
         assert_matches(apply_expr([0.01, math.nan, -0.02, 0.03], gain_to_pain_ratio(pl.col(COLUMN_X))), [math.nan])
+
+    def test_no_losses_is_inf(self) -> None:
+        """
+        Verifies that an all-positive series has no loss, so the ratio is ``+inf``.
+        """
+        assert_matches(apply_expr([0.01, 0.02, 0.03], gain_to_pain_ratio(pl.col(COLUMN_X))), [math.inf])
+
+    def test_all_negative_is_minus_one(self) -> None:
+        """
+        Verifies that an all-negative series has net loss equal to its total loss, so the ratio is ``-1``.
+        """
+        assert_matches(apply_expr([-0.01, -0.02, -0.03], gain_to_pain_ratio(pl.col(COLUMN_X))), [-1.0])
 
 
 class TestGainToPainRatioCorrectness:

@@ -111,43 +111,6 @@ class TestTemaEdge:
         with pytest.raises(ValueError, match="window must be >= 1"):
             tema(pl.col(COLUMN_X), 0)
 
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies that the cascade's first ``3 * (window - 1)`` rows are null (warm-up) and the next is defined.
-        """
-        values = [float(index + 1) for index in range(10)]
-        result = apply_expr(values, tema(pl.col(COLUMN_X), 3))
-        assert result[:6] == [None, None, None, None, None, None]
-        assert result[6] is not None
-
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null series yields an all-null output.
-        """
-        assert_matches(
-            apply_expr([None, None, None, None, None], tema(pl.col(COLUMN_X), 3)), [None, None, None, None, None]
-        )
-
-    def test_all_zero_series_is_zero(self) -> None:
-        """
-        Verifies the degenerate all-zero window: the recursion stays at zero. This is the case the subnormal-floor note
-        pins here, kept out of the property fuzz by ``subnormal_safe_floats``.
-        """
-        assert_matches(apply_expr([0.0] * 8, tema(pl.col(COLUMN_X), 3)), [None, None, None, None, None, None, 0.0, 0.0])
-
-    def test_window_one_is_identity(self) -> None:
-        """
-        Verifies that ``window == 1`` reproduces the input, since each of the three nested EMAs collapses to the
-        identity.
-        """
-        assert_matches(apply_expr([1.0, 2.0, 3.0, 4.0], tema(pl.col(COLUMN_X), 1)), [1.0, 2.0, 3.0, 4.0])
-
-    def test_window_exceeds_length(self) -> None:
-        """
-        Verifies that when the ``3 * (window - 1)`` cascade warm-up exceeds the series length the whole output is null.
-        """
-        assert_matches(apply_expr([1.0, 2.0, 3.0], tema(pl.col(COLUMN_X), 5)), [None, None, None])
-
     def test_single_row(self) -> None:
         """
         Verifies behavior on a one-element series: ``window == 1`` returns the value, a larger window is all warm-up.
@@ -155,12 +118,12 @@ class TestTemaEdge:
         assert_matches(apply_expr([42.0], tema(pl.col(COLUMN_X), 1)), [42.0])
         assert_matches(apply_expr([42.0], tema(pl.col(COLUMN_X), 3)), [None])
 
-    def test_constant_series(self) -> None:
+    def test_all_null(self) -> None:
         """
-        Verifies that, after warm-up, the TEMA of a constant series is that constant (the lag correction is exact).
+        Verifies that an all-null series yields an all-null output.
         """
         assert_matches(
-            apply_expr([7.0, 7.0, 7.0, 7.0, 7.0, 7.0], tema(pl.col(COLUMN_X), 2)), [None, None, None, 7.0, 7.0, 7.0]
+            apply_expr([None, None, None, None, None], tema(pl.col(COLUMN_X), 3)), [None, None, None, None, None]
         )
 
     def test_null_bridged(self) -> None:
@@ -173,13 +136,12 @@ class TestTemaEdge:
             [None, None, None, None, 5.037037037037038],
         )
 
-    def test_interior_null_bridged(self) -> None:
+    def test_nan_latches(self) -> None:
         """
-        Verifies that an interior ``null`` yields ``null`` at that position and agrees with the reference.
+        Verifies that a ``NaN`` poisons the recursion (latching to ``NaN`` thereafter) and agrees with the reference.
         """
-        values: list[float | None] = [2.0, 4.0, None, 8.0, 10.0, 12.0]
+        values = [2.0, 4.0, math.nan, 8.0, 10.0, 12.0, 14.0]
         result = apply_expr(values, tema(pl.col(COLUMN_X), 2))
-        assert result[2] is None
         assert_matches(
             result,
             tema_reference(values, 2),
@@ -187,12 +149,50 @@ class TestTemaEdge:
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
-    def test_nan_latches(self) -> None:
+    def test_warmup_null_count(self) -> None:
         """
-        Verifies that a ``NaN`` poisons the recursion (latching to ``NaN`` thereafter) and agrees with the reference.
+        Verifies that the cascade's first ``3 * (window - 1)`` rows are null (warm-up) and the next is defined.
         """
-        values = [2.0, 4.0, math.nan, 8.0, 10.0, 12.0, 14.0]
+        values = [float(index + 1) for index in range(10)]
+        result = apply_expr(values, tema(pl.col(COLUMN_X), 3))
+        assert result[:6] == [None, None, None, None, None, None]
+        assert result[6] is not None
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that when the ``3 * (window - 1)`` cascade warm-up exceeds the series length the whole output is null.
+        """
+        assert_matches(apply_expr([1.0, 2.0, 3.0], tema(pl.col(COLUMN_X), 5)), [None, None, None])
+
+    def test_window_one_is_identity(self) -> None:
+        """
+        Verifies that ``window == 1`` reproduces the input, since each of the three nested EMAs collapses to the
+        identity.
+        """
+        assert_matches(apply_expr([1.0, 2.0, 3.0, 4.0], tema(pl.col(COLUMN_X), 1)), [1.0, 2.0, 3.0, 4.0])
+
+    def test_all_zero_series_is_zero(self) -> None:
+        """
+        Verifies the degenerate all-zero window: the recursion stays at zero. This is the case the subnormal-floor note
+        pins here, kept out of the property fuzz by ``subnormal_safe_floats``.
+        """
+        assert_matches(apply_expr([0.0] * 8, tema(pl.col(COLUMN_X), 3)), [None, None, None, None, None, None, 0.0, 0.0])
+
+    def test_constant_series(self) -> None:
+        """
+        Verifies that, after warm-up, the TEMA of a constant series is that constant (the lag correction is exact).
+        """
+        assert_matches(
+            apply_expr([7.0, 7.0, 7.0, 7.0, 7.0, 7.0], tema(pl.col(COLUMN_X), 2)), [None, None, None, 7.0, 7.0, 7.0]
+        )
+
+    def test_interior_null_bridged(self) -> None:
+        """
+        Verifies that an interior ``null`` yields ``null`` at that position and agrees with the reference.
+        """
+        values: list[float | None] = [2.0, 4.0, None, 8.0, 10.0, 12.0]
         result = apply_expr(values, tema(pl.col(COLUMN_X), 2))
+        assert result[2] is None
         assert_matches(
             result,
             tema_reference(values, 2),
@@ -239,6 +239,17 @@ class TestTemaCorrectness:
         assert_matches(
             apply_expr([2.0, 4.0, 6.0, 8.0, 10.0, 12.0], tema(pl.col(COLUMN_X), 2)),
             [None, None, None, 8.0, 10.0, 12.0],
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
+        )
+
+    def test_golden_master_adjusted(self) -> None:
+        """
+        Verifies the frozen reference under ``adjust=True``: TEMA(window=2) over [2, 4, 6, 8, 10, 12].
+        """
+        assert_matches(
+            apply_expr([2.0, 4.0, 6.0, 8.0, 10.0, 12.0], tema(pl.col(COLUMN_X), 2, adjust=True)),
+            [None, None, None, 8.118158284023668, 10.090675959328463, 12.05595530325017],
             rel_tol=RELATIVE_TOLERANCE_REFERENCE,
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )

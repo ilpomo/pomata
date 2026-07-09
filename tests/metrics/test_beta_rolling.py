@@ -80,18 +80,6 @@ class TestBetaRollingEdge:
         with pytest.raises(ValueError, match="window must be >= 2"):
             beta_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 1)
 
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies that the first ``window - 1`` rows are ``null`` and the rest match the reference.
-        """
-        returns = [0.01, -0.02, 0.03, -0.01, 0.02]
-        benchmark = [0.008, -0.015, 0.025, -0.008, 0.018]
-        assert_matches(
-            materialize({RETURNS: returns, BENCHMARK: benchmark}, beta_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 3)),
-            beta_rolling_reference(returns, benchmark, 3),
-            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
-        )
-
     def test_null_in_window_is_null(self) -> None:
         """
         Verifies that a window with a ``null`` in either leg yields ``null`` (the window must hold ``window`` pairs).
@@ -102,6 +90,19 @@ class TestBetaRollingEdge:
             materialize({RETURNS: returns, BENCHMARK: benchmark}, beta_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 3)),
             beta_rolling_reference(returns, benchmark, 3),
             rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+        )
+
+    def test_null_in_constant_benchmark_window_is_null(self) -> None:
+        """
+        Verifies that a window with a ``null`` in the returns leg but a constant benchmark yields ``null`` (the
+        pairwise-complete contract), not the ``NaN`` the flat-benchmark branch alone would emit -- the branch is gated
+        on the window actually holding complete pairs.
+        """
+        returns = [0.02, None, 0.03, 0.01, 0.02]
+        benchmark = [0.1, 0.1, 0.1, 0.1, 0.1]
+        assert_matches(
+            materialize({RETURNS: returns, BENCHMARK: benchmark}, beta_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 3)),
+            beta_rolling_reference(returns, benchmark, 3),
         )
 
     def test_nan_propagates(self) -> None:
@@ -115,6 +116,46 @@ class TestBetaRollingEdge:
             beta_rolling_reference(returns, benchmark, 3),
         )
 
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that the first ``window - 1`` rows are ``null`` and the rest match the reference.
+        """
+        returns = [0.01, -0.02, 0.03, -0.01, 0.02]
+        benchmark = [0.008, -0.015, 0.025, -0.008, 0.018]
+        assert_matches(
+            materialize({RETURNS: returns, BENCHMARK: benchmark}, beta_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 3)),
+            beta_rolling_reference(returns, benchmark, 3),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+        )
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that when ``window`` exceeds the series length the whole output is null (no window ever fills).
+        """
+        returns = [0.01, -0.02, 0.03]
+        benchmark = [0.008, -0.015, 0.025]
+        assert_matches(
+            materialize({RETURNS: returns, BENCHMARK: benchmark}, beta_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 5)),
+            [None, None, None],
+        )
+
+    def test_window_equals_length(self) -> None:
+        """
+        Verifies that when ``window`` equals the series length only the last row is defined, matching the reference.
+        """
+        returns = [0.01, -0.02, 0.03, -0.01]
+        benchmark = [0.008, -0.015, 0.025, -0.008]
+        result = materialize(
+            {RETURNS: returns, BENCHMARK: benchmark}, beta_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 4)
+        )
+        assert result[:-1] == [None, None, None]
+        assert result[-1] is not None
+        assert_matches(
+            result,
+            beta_rolling_reference(returns, benchmark, 4),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+        )
+
     def test_constant_benchmark_window_is_nan(self) -> None:
         """
         Verifies that a window whose benchmark is constant has zero variance, so the slope is ``NaN`` -- detected via
@@ -123,19 +164,6 @@ class TestBetaRollingEdge:
         """
         returns = [0.01, -0.02, 0.03, -0.01]
         benchmark = [0.1, 0.1, 0.1, 0.1]
-        assert_matches(
-            materialize({RETURNS: returns, BENCHMARK: benchmark}, beta_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 3)),
-            beta_rolling_reference(returns, benchmark, 3),
-        )
-
-    def test_null_in_constant_benchmark_window_is_null(self) -> None:
-        """
-        Verifies that a window with a ``null`` in the returns leg but a constant benchmark yields ``null`` (the
-        pairwise-complete contract), not the ``NaN`` the flat-benchmark branch alone would emit -- the branch is gated
-        on the window actually holding complete pairs.
-        """
-        returns = [0.02, None, 0.03, 0.01, 0.02]
-        benchmark = [0.1, 0.1, 0.1, 0.1, 0.1]
         assert_matches(
             materialize({RETURNS: returns, BENCHMARK: benchmark}, beta_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 3)),
             beta_rolling_reference(returns, benchmark, 3),

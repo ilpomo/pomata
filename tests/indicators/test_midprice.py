@@ -112,28 +112,6 @@ class TestMidpriceEdge:
         with pytest.raises(ValueError, match="window must be >= 1"):
             midprice(pl.col(HIGH), pl.col(LOW), 0)
 
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null input yields an all-null output (each rolling extreme needs ``window`` non-null
-        values).
-        """
-        assert_matches(apply_midprice([None, None, None], [None, None, None], 2), [None, None, None])
-
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies that the first ``window - 1`` rows are null (warm-up) and the first full window is defined.
-        """
-        result = apply_midprice([11.0, 12.0, 13.0, 14.0, 15.0], [9.0, 10.0, 11.0, 12.0, 13.0], 3)
-        assert result[:2] == [None, None]
-        assert result[2] is not None
-
-    def test_window_one_is_price_median(self) -> None:
-        """
-        Verifies that ``window == 1`` reduces to the per-bar ``(high + low) / 2``.
-        """
-        result = apply_midprice([11.0, 12.0, 13.0], [9.0, 10.0, 11.0], 1)
-        assert_matches(result, [10.0, 11.0, 12.0])
-
     def test_single_row(self) -> None:
         """
         Verifies behavior on a one-element series: ``window == 1`` returns the midpoint, a larger window is warm-up.
@@ -141,11 +119,12 @@ class TestMidpriceEdge:
         assert_matches(apply_midprice([11.0], [9.0], 1), [10.0])
         assert_matches(apply_midprice([11.0], [9.0], 3), [None])
 
-    def test_window_exceeds_length(self) -> None:
+    def test_all_null(self) -> None:
         """
-        Verifies that a short series whose window exceeds the length is all warm-up (all-null output).
+        Verifies that an all-null input yields an all-null output (each rolling extreme needs ``window`` non-null
+        values).
         """
-        assert_matches(apply_midprice([11.0, 12.0, 13.0], [9.0, 10.0, 11.0], 5), [None, None, None])
+        assert_matches(apply_midprice([None, None, None], [None, None, None], 2), [None, None, None])
 
     def test_null_in_window_is_null(self) -> None:
         """
@@ -160,6 +139,27 @@ class TestMidpriceEdge:
         """
         result = apply_midprice([11.0, math.nan, 13.0, 14.0], [9.0, 10.0, 11.0, 12.0], 2)
         assert_matches(result, [None, math.nan, math.nan, 12.5])
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that the first ``window - 1`` rows are null (warm-up) and the first full window is defined.
+        """
+        result = apply_midprice([11.0, 12.0, 13.0, 14.0, 15.0], [9.0, 10.0, 11.0, 12.0, 13.0], 3)
+        assert result[:2] == [None, None]
+        assert result[2] is not None
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that a short series whose window exceeds the length is all warm-up (all-null output).
+        """
+        assert_matches(apply_midprice([11.0, 12.0, 13.0], [9.0, 10.0, 11.0], 5), [None, None, None])
+
+    def test_window_one_is_price_median(self) -> None:
+        """
+        Verifies that ``window == 1`` reduces to the per-bar ``(high + low) / 2``.
+        """
+        result = apply_midprice([11.0, 12.0, 13.0], [9.0, 10.0, 11.0], 1)
+        assert_matches(result, [10.0, 11.0, 12.0])
 
 
 class TestMidpriceCorrectness:

@@ -110,13 +110,12 @@ class TestDemaEdge:
         with pytest.raises(ValueError, match="window must be >= 1"):
             dema(pl.col(COLUMN_X), 0)
 
-    def test_warmup_null_count(self) -> None:
+    def test_single_row(self) -> None:
         """
-        Verifies that the first ``2 * (window - 1)`` rows are null and the next is defined.
+        Verifies behavior on a one-element series.
         """
-        result = apply_expr([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0], dema(pl.col(COLUMN_X), 3))
-        assert result[:4] == [None, None, None, None]
-        assert result[4] is not None
+        assert_matches(apply_expr([42.0], dema(pl.col(COLUMN_X), 1)), [42.0])
+        assert_matches(apply_expr([42.0], dema(pl.col(COLUMN_X), 2)), [None])
 
     def test_all_null(self) -> None:
         """
@@ -125,32 +124,6 @@ class TestDemaEdge:
         assert_matches(
             apply_expr([None, None, None, None, None], dema(pl.col(COLUMN_X), 3)), [None, None, None, None, None]
         )
-
-    def test_all_zero_series_is_zero(self) -> None:
-        """
-        Verifies the degenerate all-zero window: the recursion stays at zero. This is the case the subnormal-floor note
-        pins here, kept out of the property fuzz by ``subnormal_safe_floats``.
-        """
-        assert_matches(apply_expr([0.0] * 6, dema(pl.col(COLUMN_X), 3)), [None, None, None, None, 0.0, 0.0])
-
-    def test_window_one_is_identity(self) -> None:
-        """
-        Verifies that ``window == 1`` reproduces the input (each EMA is the identity).
-        """
-        assert_matches(apply_expr([1.0, 2.0, 3.0], dema(pl.col(COLUMN_X), 1)), [1.0, 2.0, 3.0])
-
-    def test_window_fills_entire_series_with_warmup(self) -> None:
-        """
-        Verifies that when the ``2 * (window - 1)`` warm-up meets or exceeds the series length the whole output is null.
-        """
-        assert_matches(apply_expr([1.0, 2.0], dema(pl.col(COLUMN_X), 2)), [None, None])
-
-    def test_single_row(self) -> None:
-        """
-        Verifies behavior on a one-element series.
-        """
-        assert_matches(apply_expr([42.0], dema(pl.col(COLUMN_X), 1)), [42.0])
-        assert_matches(apply_expr([42.0], dema(pl.col(COLUMN_X), 2)), [None])
 
     def test_null_bridged(self) -> None:
         """
@@ -161,15 +134,6 @@ class TestDemaEdge:
             apply_expr([1.0, None, 3.0, 4.0], dema(pl.col(COLUMN_X), 2)), [None, None, None, 3.9999999999999996]
         )
 
-    def test_interior_null_bridged(self) -> None:
-        """
-        Verifies that an interior ``null`` yields ``null`` at its position while the recursion bridges the gap.
-        """
-        assert_matches(
-            apply_expr([2.0, 4.0, None, 8.0, 10.0, 12.0], dema(pl.col(COLUMN_X), 2)),
-            [None, None, None, 9.428571428571429, 10.412698412698413, 12.116402116402117],
-        )
-
     def test_nan_latches(self) -> None:
         """
         Verifies that a ``NaN`` poisons the recursion and latches for every subsequent value.
@@ -177,6 +141,42 @@ class TestDemaEdge:
         assert_matches(
             apply_expr([1.0, math.nan, 3.0, 4.0, 5.0], dema(pl.col(COLUMN_X), 2)),
             [None, None, math.nan, math.nan, math.nan],
+        )
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that the first ``2 * (window - 1)`` rows are null and the next is defined.
+        """
+        result = apply_expr([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0], dema(pl.col(COLUMN_X), 3))
+        assert result[:4] == [None, None, None, None]
+        assert result[4] is not None
+
+    def test_window_one_is_identity(self) -> None:
+        """
+        Verifies that ``window == 1`` reproduces the input (each EMA is the identity).
+        """
+        assert_matches(apply_expr([1.0, 2.0, 3.0], dema(pl.col(COLUMN_X), 1)), [1.0, 2.0, 3.0])
+
+    def test_all_zero_series_is_zero(self) -> None:
+        """
+        Verifies the degenerate all-zero window: the recursion stays at zero. This is the case the subnormal-floor note
+        pins here, kept out of the property fuzz by ``subnormal_safe_floats``.
+        """
+        assert_matches(apply_expr([0.0] * 6, dema(pl.col(COLUMN_X), 3)), [None, None, None, None, 0.0, 0.0])
+
+    def test_window_fills_entire_series_with_warmup(self) -> None:
+        """
+        Verifies that when the ``2 * (window - 1)`` warm-up meets or exceeds the series length the whole output is null.
+        """
+        assert_matches(apply_expr([1.0, 2.0], dema(pl.col(COLUMN_X), 2)), [None, None])
+
+    def test_interior_null_bridged(self) -> None:
+        """
+        Verifies that an interior ``null`` yields ``null`` at its position while the recursion bridges the gap.
+        """
+        assert_matches(
+            apply_expr([2.0, 4.0, None, 8.0, 10.0, 12.0], dema(pl.col(COLUMN_X), 2)),
+            [None, None, None, 9.428571428571429, 10.412698412698413, 12.116402116402117],
         )
 
 
@@ -210,7 +210,7 @@ class TestDemaCorrectness:
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
-    def test_golden_master_adjust(self) -> None:
+    def test_golden_master_adjusted(self) -> None:
         """
         Verifies the frozen adjusted reference: DEMA(window=3, adjust=True) over [3, 1, 4, 1, 5, 9, 2, 6].
         """
@@ -221,7 +221,7 @@ class TestDemaCorrectness:
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
-    def test_constant_series_is_constant(self) -> None:
+    def test_constant_series(self) -> None:
         """
         Verifies that DEMA of a constant series equals that constant once warmed up.
         """
@@ -293,19 +293,6 @@ class TestDemaProperties:
         result_scaled = apply_expr(scaled_values, dema(pl.col(COLUMN_X), window))
         assert_scale_homogeneous(result_scaled, result_base, k=k, degree=1)
 
-    @given(case=_cases(subnormal_safe_floats(1e6)))
-    def test_warmup_null_count_property(
-        self,
-        case: tuple[list[float], int],
-    ) -> None:
-        """
-        Verifies that the leading-null run is exactly ``min(2 * (window - 1), len(values))``.
-        """
-        values, window = case
-        result = apply_expr(values, dema(pl.col(COLUMN_X), window))
-        leading_nulls = count_leading_nulls(result)
-        assert leading_nulls == min(2 * (window - 1), len(values))
-
     @given(
         case=_cases(st.floats(min_value=1e-3, max_value=1.0, allow_nan=False, allow_infinity=False)),
         scale=st.sampled_from([1e-6, 1e6, 1e9]),
@@ -326,3 +313,16 @@ class TestDemaProperties:
             rel_tol=RELATIVE_TOLERANCE_SCALE,
             abs_tol=input_scale(scaled_values) * EXACT_TOLERANCE_FACTOR,
         )
+
+    @given(case=_cases(subnormal_safe_floats(1e6)))
+    def test_warmup_null_count_property(
+        self,
+        case: tuple[list[float], int],
+    ) -> None:
+        """
+        Verifies that the leading-null run is exactly ``min(2 * (window - 1), len(values))``.
+        """
+        values, window = case
+        result = apply_expr(values, dema(pl.col(COLUMN_X), window))
+        leading_nulls = count_leading_nulls(result)
+        assert leading_nulls == min(2 * (window - 1), len(values))

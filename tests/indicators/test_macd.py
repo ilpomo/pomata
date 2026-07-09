@@ -95,18 +95,6 @@ class TestMacdContract:
     Type, struct schema, shape, and lazy/eager guarantees.
     """
 
-    def test_output_is_struct_with_named_fields(self) -> None:
-        """
-        Verifies that the output is a ``Float64`` struct with exactly the fields ``macd`` / ``signal`` / ``histogram``.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 2.0, 3.0, 4.0, 5.0])})
-        dtype = frame.select(macd(pl.col(COLUMN_X), window_fast=2, window_slow=3, window_signal=2).alias("m")).schema[
-            "m"
-        ]
-        assert isinstance(dtype, pl.Struct)
-        assert [field.name for field in dtype.fields] == ["macd", "signal", "histogram"]
-        assert all(field.dtype == pl.Float64 for field in dtype.fields)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` the EMAs reset per group: the partitioned MACD line equals the per-group calls.
@@ -122,6 +110,18 @@ class TestMacdContract:
         group_a = apply_macd([10.0, 11.0, 12.0, 11.0, 13.0])["macd"]
         group_b = apply_macd([20.0, 19.0, 21.0, 22.0, 20.0])["macd"]
         assert_matches(grouped, group_a + group_b)
+
+    def test_output_is_struct_with_named_fields(self) -> None:
+        """
+        Verifies that the output is a ``Float64`` struct with exactly the fields ``macd`` / ``signal`` / ``histogram``.
+        """
+        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 2.0, 3.0, 4.0, 5.0])})
+        dtype = frame.select(macd(pl.col(COLUMN_X), window_fast=2, window_slow=3, window_signal=2).alias("m")).schema[
+            "m"
+        ]
+        assert isinstance(dtype, pl.Struct)
+        assert [field.name for field in dtype.fields] == ["macd", "signal", "histogram"]
+        assert all(field.dtype == pl.Float64 for field in dtype.fields)
 
 
 class TestMacdEdge:
@@ -149,26 +149,6 @@ class TestMacdEdge:
             macd(pl.col(COLUMN_X), window_fast=26, window_slow=12, window_signal=9)
         assert isinstance(macd(pl.col(COLUMN_X), window_fast=3, window_slow=3, window_signal=2), pl.Expr)
 
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies the MACD line warms up over ``window_slow - 1`` rows and the signal / histogram carry an extra
-        ``window_signal - 1`` rows on top.
-        """
-        bands = apply_macd([10.0, 11.0, 12.0, 11.0, 13.0, 14.0])
-        assert bands["macd"][:2] == [None, None]
-        assert bands["macd"][2] is not None
-        for field in ("signal", "histogram"):
-            assert bands[field][:3] == [None, None, None]
-            assert bands[field][3] is not None
-
-    def test_window_exceeds_length(self) -> None:
-        """
-        Verifies that when the longest window exceeds the series length every field is null (no slow-EMA value).
-        """
-        bands = apply_macd([1.0, 2.0])
-        for field in FIELDS:
-            assert_matches(bands[field], [None, None])
-
     def test_single_row(self) -> None:
         """
         Verifies behavior on a one-element series: the slow EMA never warms up, so every field is all warm-up.
@@ -184,18 +164,6 @@ class TestMacdEdge:
         bands = apply_macd([None, None, None, None])
         for field in FIELDS:
             assert_matches(bands[field], [None, None, None, None])
-
-    def test_fast_equals_slow_is_zero(self) -> None:
-        """
-        Verifies that when ``window_fast == window_slow`` the MACD line (and so the signal and histogram) are zero.
-        """
-        bands = apply_macd([10.0, 11.0, 12.0, 13.0, 14.0, 15.0], window_fast=3, window_slow=3, window_signal=2)
-        for value in bands["macd"]:
-            if value is not None:
-                assert value == 0.0
-        for value in bands["histogram"]:
-            if value is not None:
-                assert value == 0.0
 
     def test_null_bridged(self) -> None:
         """
@@ -216,6 +184,38 @@ class TestMacdEdge:
         reference = macd_reference(values, 2, 3, 2)
         for field in FIELDS:
             assert_matches(bands[field], reference[field])
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies the MACD line warms up over ``window_slow - 1`` rows and the signal / histogram carry an extra
+        ``window_signal - 1`` rows on top.
+        """
+        bands = apply_macd([10.0, 11.0, 12.0, 11.0, 13.0, 14.0])
+        assert bands["macd"][:2] == [None, None]
+        assert bands["macd"][2] is not None
+        for field in ("signal", "histogram"):
+            assert bands[field][:3] == [None, None, None]
+            assert bands[field][3] is not None
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that when the longest window exceeds the series length every field is null (no slow-EMA value).
+        """
+        bands = apply_macd([1.0, 2.0])
+        for field in FIELDS:
+            assert_matches(bands[field], [None, None])
+
+    def test_fast_equals_slow_is_zero(self) -> None:
+        """
+        Verifies that when ``window_fast == window_slow`` the MACD line (and so the signal and histogram) are zero.
+        """
+        bands = apply_macd([10.0, 11.0, 12.0, 13.0, 14.0, 15.0], window_fast=3, window_slow=3, window_signal=2)
+        for value in bands["macd"]:
+            if value is not None:
+                assert value == 0.0
+        for value in bands["histogram"]:
+            if value is not None:
+                assert value == 0.0
 
 
 class TestMacdCorrectness:

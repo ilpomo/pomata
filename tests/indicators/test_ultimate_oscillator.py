@@ -182,6 +182,43 @@ class TestUltimateOscillatorEdge:
             pl.Expr,
         )
 
+    def test_single_row(self) -> None:
+        """
+        Verifies that a one-bar series is all warm-up for any windows above one.
+        """
+        assert_matches(apply_ultimate_oscillator([10.0], [9.0], [9.5], 2, 3, 4), [None])
+
+    def test_all_null(self) -> None:
+        """
+        Verifies that an all-null series yields an all-null output.
+        """
+        nulls: list[float | None] = [None] * 8
+        assert_matches(apply_ultimate_oscillator(nulls, nulls, nulls), [None] * 8)
+
+    def test_null_in_window_is_null(self) -> None:
+        """
+        Verifies that an interior ``null`` nulls every window that overlaps it, then the output recovers.
+        """
+        high = [10.0, 11.0, 12.0, None, 13.0, 13.5, 14.0, 13.5, 15.0, 14.5]
+        low = [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5, 14.0, 13.5]
+        close = [9.5, 10.5, 11.5, 11.0, 12.5, 12.0, 13.5, 13.0, 14.5, 14.0]
+        assert_matches(
+            apply_ultimate_oscillator(high, low, close, 2, 3, 4),
+            ultimate_oscillator_reference(high, low, close, 2, 3, 4),
+        )
+
+    def test_nan_propagates(self) -> None:
+        """
+        Verifies that a NaN propagates (matching the naive reference).
+        """
+        high = [10.0, 11.0, 12.0, 12.5, 13.0, math.nan, 14.0, 13.5, 15.0, 14.5]
+        low = [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5, 14.0, 13.5]
+        close = [9.5, 10.5, 11.5, 11.0, 12.5, 12.0, 13.5, 13.0, 14.5, 14.0]
+        assert_matches(
+            apply_ultimate_oscillator(high, low, close, 2, 3, 4),
+            ultimate_oscillator_reference(high, low, close, 2, 3, 4),
+        )
+
     def test_warmup_null_count(self) -> None:
         """
         Verifies that the first ``max(windows) - 1`` rows are null (warm-up from the longest window).
@@ -192,19 +229,6 @@ class TestUltimateOscillatorEdge:
         result = apply_ultimate_oscillator(high, low, close, 2, 3, 4)
         assert result[:3] == [None, None, None]
         assert result[3] is not None
-
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null series yields an all-null output.
-        """
-        nulls: list[float | None] = [None] * 8
-        assert_matches(apply_ultimate_oscillator(nulls, nulls, nulls), [None] * 8)
-
-    def test_single_row(self) -> None:
-        """
-        Verifies that a one-bar series is all warm-up for any windows above one.
-        """
-        assert_matches(apply_ultimate_oscillator([10.0], [9.0], [9.5], 2, 3, 4), [None])
 
     def test_window_exceeds_length(self) -> None:
         """
@@ -235,30 +259,6 @@ class TestUltimateOscillatorEdge:
         assert result[0] is None
         assert result[1] is not None
         assert math.isnan(result[1])
-
-    def test_null_in_window_is_null(self) -> None:
-        """
-        Verifies that an interior ``null`` nulls every window that overlaps it, then the output recovers.
-        """
-        high = [10.0, 11.0, 12.0, None, 13.0, 13.5, 14.0, 13.5, 15.0, 14.5]
-        low = [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5, 14.0, 13.5]
-        close = [9.5, 10.5, 11.5, 11.0, 12.5, 12.0, 13.5, 13.0, 14.5, 14.0]
-        assert_matches(
-            apply_ultimate_oscillator(high, low, close, 2, 3, 4),
-            ultimate_oscillator_reference(high, low, close, 2, 3, 4),
-        )
-
-    def test_nan_propagates(self) -> None:
-        """
-        Verifies that a NaN propagates (matching the naive reference).
-        """
-        high = [10.0, 11.0, 12.0, 12.5, 13.0, math.nan, 14.0, 13.5, 15.0, 14.5]
-        low = [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5, 14.0, 13.5]
-        close = [9.5, 10.5, 11.5, 11.0, 12.5, 12.0, 13.5, 13.0, 14.5, 14.0]
-        assert_matches(
-            apply_ultimate_oscillator(high, low, close, 2, 3, 4),
-            ultimate_oscillator_reference(high, low, close, 2, 3, 4),
-        )
 
 
 class TestUltimateOscillatorCorrectness:

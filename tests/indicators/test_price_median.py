@@ -101,23 +101,17 @@ class TestPriceMedianEdge:
     Boundaries and null / NaN handling.
     """
 
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null input yields an all-null output (the sum propagates ``null`` on every row).
-        """
-        assert_matches(apply_price_median([None, None, None], [None, None, None]), [None, None, None])
-
     def test_single_row(self) -> None:
         """
         Verifies that a one-row series resolves to the single representative price (no window, no warm-up).
         """
         assert_matches(apply_price_median([11.0], [9.0]), [10.0])
 
-    def test_constant_series(self) -> None:
+    def test_all_null(self) -> None:
         """
-        Verifies that when every input price equals the same constant the result is that constant on every row.
+        Verifies that an all-null input yields an all-null output (the sum propagates ``null`` on every row).
         """
-        assert_matches(apply_price_median([5.0, 5.0, 5.0], [5.0, 5.0, 5.0]), [5.0, 5.0, 5.0])
+        assert_matches(apply_price_median([None, None, None], [None, None, None]), [None, None, None])
 
     def test_null_propagates(self) -> None:
         """
@@ -125,18 +119,24 @@ class TestPriceMedianEdge:
         """
         assert_matches(apply_price_median([11.0, None, 13.0], [9.0, 10.0, 11.0]), [10.0, None, 12.0])
 
-    def test_nan_propagates(self) -> None:
-        """
-        Verifies that a ``NaN`` in any input makes that row ``NaN`` (the sum propagates ``NaN``).
-        """
-        assert_matches(apply_price_median([11.0, float("nan"), 13.0], [9.0, 10.0, 11.0]), [10.0, math.nan, 12.0])
-
     def test_null_takes_precedence_over_nan(self) -> None:
         """
         Verifies that a row carrying both a ``null`` (in ``high``) and a ``NaN`` (in ``low``) yields
         ``null`` — ``null`` takes precedence over ``NaN``.
         """
         assert_matches(apply_price_median([11.0, None], [9.0, float("nan")]), [10.0, None])
+
+    def test_nan_propagates(self) -> None:
+        """
+        Verifies that a ``NaN`` in any input makes that row ``NaN`` (the sum propagates ``NaN``).
+        """
+        assert_matches(apply_price_median([11.0, float("nan"), 13.0], [9.0, 10.0, 11.0]), [10.0, math.nan, 12.0])
+
+    def test_constant_series(self) -> None:
+        """
+        Verifies that when every input price equals the same constant the result is that constant on every row.
+        """
+        assert_matches(apply_price_median([5.0, 5.0, 5.0], [5.0, 5.0, 5.0]), [5.0, 5.0, 5.0])
 
 
 class TestPriceMedianCorrectness:

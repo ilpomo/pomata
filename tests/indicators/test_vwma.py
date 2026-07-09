@@ -145,41 +145,6 @@ class TestVwmaEdge:
         with pytest.raises(ValueError, match="window must be >= 1"):
             vwma(pl.col(CLOSE), pl.col(VOLUME), 0)
 
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies that the first ``window - 1`` rows are null (warm-up) and the first full window is defined.
-        """
-        result = apply_vwma([10.0, 11.0, 12.0, 13.0, 14.0], [100.0, 200.0, 300.0, 400.0, 500.0], 3)
-        assert result[:2] == [None, None]
-        assert result[2] is not None
-
-    def test_all_null(self) -> None:
-        """
-        Verifies that all-null price and volume series yield an all-null output.
-        """
-        assert_matches(apply_vwma([None, None, None, None, None], [None, None, None, None, None], 3), [None] * 5)
-
-    def test_window_one_is_identity(self) -> None:
-        """
-        Verifies that ``window == 1`` with non-zero volume reproduces the price.
-        """
-        assert_matches(apply_vwma([10.0, 11.0, 12.0], [5.0, 6.0, 7.0], 1), [10.0, 11.0, 12.0])
-
-    def test_window_equals_length(self) -> None:
-        """
-        Verifies the single defined value when ``window`` equals the series length.
-        """
-        assert_matches(
-            apply_vwma([2.0, 4.0, 6.0], [50.0, 50.0, 50.0], 3),
-            vwma_reference([2.0, 4.0, 6.0], [50.0, 50.0, 50.0], 3),
-        )
-
-    def test_window_exceeds_length(self) -> None:
-        """
-        Verifies that a window exceeding the series length yields an all-null output.
-        """
-        assert_matches(apply_vwma([10.0, 11.0, 12.0], [100.0, 200.0, 300.0], 5), [None, None, None])
-
     def test_single_row(self) -> None:
         """
         Verifies behavior on a one-element series.
@@ -187,14 +152,11 @@ class TestVwmaEdge:
         assert_matches(apply_vwma([42.0], [10.0], 1), [42.0])
         assert_matches(apply_vwma([42.0], [10.0], 3), [None])
 
-    def test_equal_volume_reduces_to_sma(self) -> None:
+    def test_all_null(self) -> None:
         """
-        Verifies that a constant volume in the window reduces the VWMA to the SMA of price.
+        Verifies that all-null price and volume series yield an all-null output.
         """
-        assert_matches(
-            apply_vwma([2.0, 4.0, 6.0, 8.0, 10.0], [50.0, 50.0, 50.0, 50.0, 50.0], 3),
-            [None, None, 4.0, 6.0, 8.0],
-        )
+        assert_matches(apply_vwma([None, None, None, None, None], [None, None, None, None, None], 3), [None] * 5)
 
     def test_null_in_price_propagates(self) -> None:
         """
@@ -214,15 +176,15 @@ class TestVwmaEdge:
             [None, None, None, 12.571428571428571, 13.555555555555555],
         )
 
-    def test_interior_null_propagates(self) -> None:
+    def test_null_takes_precedence_over_nan(self) -> None:
         """
-        Verifies the interior-null case: a ``null`` in price taints exactly the windows that contain it.
+        Verifies that a window containing both a ``null`` and a ``NaN`` yields ``null`` (``null`` precedence).
         """
-        price_values = [2.0, 4.0, None, 8.0, 10.0, 12.0]
-        volume_values = [100.0, 200.0, 300.0, 400.0, 500.0, 600.0]
+        price_values = [10.0, None, 12.0, 13.0]
+        volume_values = [100.0, 200.0, math.nan, 400.0]
         assert_matches(
-            apply_vwma(price_values, volume_values, 2),
-            vwma_reference(price_values, volume_values, 2),
+            apply_vwma(price_values, volume_values, 3),
+            vwma_reference(price_values, volume_values, 3),
         )
 
     def test_nan_in_price_propagates(self) -> None:
@@ -243,15 +205,53 @@ class TestVwmaEdge:
             [None, math.nan, math.nan, 12.571428571428571],
         )
 
-    def test_null_takes_precedence_over_nan(self) -> None:
+    def test_warmup_null_count(self) -> None:
         """
-        Verifies that a window containing both a ``null`` and a ``NaN`` yields ``null`` (``null`` precedence).
+        Verifies that the first ``window - 1`` rows are null (warm-up) and the first full window is defined.
         """
-        price_values = [10.0, None, 12.0, 13.0]
-        volume_values = [100.0, 200.0, math.nan, 400.0]
+        result = apply_vwma([10.0, 11.0, 12.0, 13.0, 14.0], [100.0, 200.0, 300.0, 400.0, 500.0], 3)
+        assert result[:2] == [None, None]
+        assert result[2] is not None
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that a window exceeding the series length yields an all-null output.
+        """
+        assert_matches(apply_vwma([10.0, 11.0, 12.0], [100.0, 200.0, 300.0], 5), [None, None, None])
+
+    def test_window_equals_length(self) -> None:
+        """
+        Verifies the single defined value when ``window`` equals the series length.
+        """
         assert_matches(
-            apply_vwma(price_values, volume_values, 3),
-            vwma_reference(price_values, volume_values, 3),
+            apply_vwma([2.0, 4.0, 6.0], [50.0, 50.0, 50.0], 3),
+            vwma_reference([2.0, 4.0, 6.0], [50.0, 50.0, 50.0], 3),
+        )
+
+    def test_window_one_is_identity(self) -> None:
+        """
+        Verifies that ``window == 1`` with non-zero volume reproduces the price.
+        """
+        assert_matches(apply_vwma([10.0, 11.0, 12.0], [5.0, 6.0, 7.0], 1), [10.0, 11.0, 12.0])
+
+    def test_equal_volume_reduces_to_sma(self) -> None:
+        """
+        Verifies that a constant volume in the window reduces the VWMA to the SMA of price.
+        """
+        assert_matches(
+            apply_vwma([2.0, 4.0, 6.0, 8.0, 10.0], [50.0, 50.0, 50.0, 50.0, 50.0], 3),
+            [None, None, 4.0, 6.0, 8.0],
+        )
+
+    def test_interior_null_propagates(self) -> None:
+        """
+        Verifies the interior-null case: a ``null`` in price taints exactly the windows that contain it.
+        """
+        price_values = [2.0, 4.0, None, 8.0, 10.0, 12.0]
+        volume_values = [100.0, 200.0, 300.0, 400.0, 500.0, 600.0]
+        assert_matches(
+            apply_vwma(price_values, volume_values, 2),
+            vwma_reference(price_values, volume_values, 2),
         )
 
     def test_zero_total_volume_is_nan(self) -> None:
@@ -418,31 +418,6 @@ class TestVwmaProperties:
     @given(
         case=_cases(
             st.tuples(
-                st.floats(min_value=-1e3, max_value=1e3, allow_nan=False, allow_infinity=False),
-                st.floats(min_value=1.0, max_value=1e3, allow_nan=False, allow_infinity=False),
-            )
-        ),
-    )
-    def test_within_price_window_range(
-        self,
-        case: tuple[list[tuple[float, float]], int],
-    ) -> None:
-        """
-        Verifies that with non-negative volume the VWMA is a convex combination of the window's prices and so lies
-        within ``[min, max]`` of the price window.
-        """
-        rows, window = case
-        price_values, volume_values = split_pairs(rows)
-        result = apply_vwma(price_values, volume_values, window)
-        for index, value in enumerate(result):
-            if value is None:
-                continue
-            price_window = price_values[index + 1 - window : index + 1]
-            assert min(price_window) - 1e-6 <= value <= max(price_window) + 1e-6
-
-    @given(
-        case=_cases(
-            st.tuples(
                 st.floats(min_value=1e-3, max_value=1.0, allow_nan=False, allow_infinity=False),
                 st.floats(min_value=1e-3, max_value=1.0, allow_nan=False, allow_infinity=False),
             ),
@@ -466,3 +441,28 @@ class TestVwmaProperties:
             rel_tol=RELATIVE_TOLERANCE_SCALE,
             abs_tol=input_scale(price) * EXACT_TOLERANCE_FACTOR,
         )
+
+    @given(
+        case=_cases(
+            st.tuples(
+                st.floats(min_value=-1e3, max_value=1e3, allow_nan=False, allow_infinity=False),
+                st.floats(min_value=1.0, max_value=1e3, allow_nan=False, allow_infinity=False),
+            )
+        ),
+    )
+    def test_within_price_window_range(
+        self,
+        case: tuple[list[tuple[float, float]], int],
+    ) -> None:
+        """
+        Verifies that with non-negative volume the VWMA is a convex combination of the window's prices and so lies
+        within ``[min, max]`` of the price window.
+        """
+        rows, window = case
+        price_values, volume_values = split_pairs(rows)
+        result = apply_vwma(price_values, volume_values, window)
+        for index, value in enumerate(result):
+            if value is None:
+                continue
+            price_window = price_values[index + 1 - window : index + 1]
+            assert min(price_window) - 1e-6 <= value <= max(price_window) + 1e-6

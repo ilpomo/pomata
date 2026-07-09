@@ -100,21 +100,6 @@ class TestInformationRatioRollingEdge:
         with pytest.raises(ValueError, match="periods_per_year must be >= 1"):
             information_ratio_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 3, periods_per_year=0)
 
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies that the first ``window - 1`` rows are ``null`` and the rest match the reference.
-        """
-        returns = [0.01, -0.02, 0.03, -0.01, 0.02]
-        benchmark = [0.008, -0.015, 0.025, -0.008, 0.018]
-        assert_matches(
-            materialize(
-                {RETURNS: returns, BENCHMARK: benchmark},
-                information_ratio_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 3, periods_per_year=PERIODS),
-            ),
-            information_ratio_rolling_reference(returns, benchmark, 3, PERIODS),
-            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
-        )
-
     def test_null_in_window_is_null(self) -> None:
         """
         Verifies that a window with a ``null`` in either leg yields ``null`` (the window must hold ``window`` pairs).
@@ -144,19 +129,51 @@ class TestInformationRatioRollingEdge:
             information_ratio_rolling_reference(returns, benchmark, 3, PERIODS),
         )
 
-    def test_zero_tracking_error_is_inf(self) -> None:
+    def test_warmup_null_count(self) -> None:
         """
-        Verifies that a window with a constant active return has zero tracking error with a positive mean, so the ratio
-        is ``+inf``.
+        Verifies that the first ``window - 1`` rows are ``null`` and the rest match the reference.
         """
-        returns = [0.01, 0.01, 0.01, 0.01]
-        benchmark = [0.0, 0.0, 0.0, 0.0]
+        returns = [0.01, -0.02, 0.03, -0.01, 0.02]
+        benchmark = [0.008, -0.015, 0.025, -0.008, 0.018]
         assert_matches(
             materialize(
                 {RETURNS: returns, BENCHMARK: benchmark},
                 information_ratio_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 3, periods_per_year=PERIODS),
             ),
             information_ratio_rolling_reference(returns, benchmark, 3, PERIODS),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+        )
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that when ``window`` exceeds the series length the whole output is null (no window ever fills).
+        """
+        returns = [0.01, -0.02, 0.03]
+        benchmark = [0.008, -0.015, 0.025]
+        assert_matches(
+            materialize(
+                {RETURNS: returns, BENCHMARK: benchmark},
+                information_ratio_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 5, periods_per_year=PERIODS),
+            ),
+            [None, None, None],
+        )
+
+    def test_window_equals_length(self) -> None:
+        """
+        Verifies that when ``window`` equals the series length only the last row is defined, matching the reference.
+        """
+        returns = [0.01, -0.02, 0.03, -0.01]
+        benchmark = [0.008, -0.015, 0.025, -0.008]
+        result = materialize(
+            {RETURNS: returns, BENCHMARK: benchmark},
+            information_ratio_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 4, periods_per_year=PERIODS),
+        )
+        assert result[:-1] == [None, None, None]
+        assert result[-1] is not None
+        assert_matches(
+            result,
+            information_ratio_rolling_reference(returns, benchmark, 4, PERIODS),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
         )
 
     def test_constant_window_by_slide_is_inf(self) -> None:
@@ -172,6 +189,21 @@ class TestInformationRatioRollingEdge:
         assert result[:2] == [None, None]
         assert result[3] == math.inf
         assert result[4] == math.inf
+
+    def test_zero_tracking_error_is_inf(self) -> None:
+        """
+        Verifies that a window with a constant active return has zero tracking error with a positive mean, so the ratio
+        is ``+inf``.
+        """
+        returns = [0.01, 0.01, 0.01, 0.01]
+        benchmark = [0.0, 0.0, 0.0, 0.0]
+        assert_matches(
+            materialize(
+                {RETURNS: returns, BENCHMARK: benchmark},
+                information_ratio_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 3, periods_per_year=PERIODS),
+            ),
+            information_ratio_rolling_reference(returns, benchmark, 3, PERIODS),
+        )
 
 
 class TestInformationRatioRollingCorrectness:
