@@ -74,15 +74,6 @@ class TestEmaContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_window_one_is_float64_on_int_input(self) -> None:
-        """
-        Verifies that the ``window == 1`` identity short-circuit still yields ``Float64`` on an ``Int64`` input, so the
-        output dtype is uniform with every ``window >= 2`` path.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1, 2, 3], dtype=pl.Int64)})
-        result = frame.select(ema(pl.col(COLUMN_X), 1).alias("y"))
-        assert result.schema["y"] == pl.Float64
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` the recursion re-seeds per group and never spans group boundaries.
@@ -97,6 +88,15 @@ class TestEmaContract:
             [None, 3.0, 5.0, None, 30.0, 50.0],
         )
 
+    def test_window_one_is_float64_on_int_input(self) -> None:
+        """
+        Verifies that the ``window == 1`` identity short-circuit still yields ``Float64`` on an ``Int64`` input, so the
+        output dtype is uniform with every ``window >= 2`` path.
+        """
+        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1, 2, 3], dtype=pl.Int64)})
+        result = frame.select(ema(pl.col(COLUMN_X), 1).alias("y"))
+        assert result.schema["y"] == pl.Float64
+
 
 class TestEmaEdge:
     """
@@ -110,13 +110,12 @@ class TestEmaEdge:
         with pytest.raises(ValueError, match="window must be >= 1"):
             ema(pl.col(COLUMN_X), 0)
 
-    def test_warmup_null_count(self) -> None:
+    def test_single_row(self) -> None:
         """
-        Verifies that the first ``window - 1`` rows are null and the first full window is defined.
+        Verifies behavior on a one-element series.
         """
-        result = apply_expr([1.0, 2.0, 3.0, 4.0, 5.0], ema(pl.col(COLUMN_X), 3))
-        assert result[:2] == [None, None]
-        assert result[2] is not None
+        assert_matches(apply_expr([42.0], ema(pl.col(COLUMN_X), 1)), [42.0])
+        assert_matches(apply_expr([42.0], ema(pl.col(COLUMN_X), 3)), [None])
 
     def test_all_null(self) -> None:
         """
@@ -126,38 +125,6 @@ class TestEmaEdge:
             apply_expr([None, None, None, None, None], ema(pl.col(COLUMN_X), 3)), [None, None, None, None, None]
         )
 
-    def test_all_zero_series_is_zero(self) -> None:
-        """
-        Verifies the degenerate all-zero window: the recursion stays at zero. This is the case the subnormal-floor note
-        pins here, kept out of the property fuzz by ``subnormal_safe_floats``.
-        """
-        assert_matches(apply_expr([0.0, 0.0, 0.0, 0.0], ema(pl.col(COLUMN_X), 3)), [None, None, 0.0, 0.0])
-
-    def test_window_one_is_identity(self) -> None:
-        """
-        Verifies that ``window == 1`` (alpha == 1) reproduces the input with no warm-up.
-        """
-        assert_matches(apply_expr([1.0, 2.0, 3.0], ema(pl.col(COLUMN_X), 1)), [1.0, 2.0, 3.0])
-
-    def test_window_equals_length(self) -> None:
-        """
-        Verifies the single defined value when ``window`` equals the series length.
-        """
-        assert_matches(apply_expr([1.0, 2.0, 3.0], ema(pl.col(COLUMN_X), 3)), [None, None, 2.0])
-
-    def test_window_exceeds_length(self) -> None:
-        """
-        Verifies that a window exceeding the series length yields an all-null output.
-        """
-        assert_matches(apply_expr([1.0, 2.0, 3.0], ema(pl.col(COLUMN_X), 5)), [None, None, None])
-
-    def test_single_row(self) -> None:
-        """
-        Verifies behavior on a one-element series.
-        """
-        assert_matches(apply_expr([42.0], ema(pl.col(COLUMN_X), 1)), [42.0])
-        assert_matches(apply_expr([42.0], ema(pl.col(COLUMN_X), 3)), [None])
-
     def test_null_bridged(self) -> None:
         """
         Verifies that an interior ``null`` yields ``null`` at that row while the recursion is bridged across the gap.
@@ -166,6 +133,47 @@ class TestEmaEdge:
             apply_expr([1.0, None, 3.0, 4.0], ema(pl.col(COLUMN_X), 2)),
             [None, None, 2.0, 3.333333333333333],
         )
+
+    def test_nan_latches(self) -> None:
+        """
+        Verifies that a ``NaN`` latches into the recursion and poisons every subsequent value.
+        """
+        assert_matches(
+            apply_expr([1.0, math.nan, 3.0, 4.0], ema(pl.col(COLUMN_X), 2)), [None, math.nan, math.nan, math.nan]
+        )
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that the first ``window - 1`` rows are null and the first full window is defined.
+        """
+        result = apply_expr([1.0, 2.0, 3.0, 4.0, 5.0], ema(pl.col(COLUMN_X), 3))
+        assert result[:2] == [None, None]
+        assert result[2] is not None
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that a window exceeding the series length yields an all-null output.
+        """
+        assert_matches(apply_expr([1.0, 2.0, 3.0], ema(pl.col(COLUMN_X), 5)), [None, None, None])
+
+    def test_window_equals_length(self) -> None:
+        """
+        Verifies the single defined value when ``window`` equals the series length.
+        """
+        assert_matches(apply_expr([1.0, 2.0, 3.0], ema(pl.col(COLUMN_X), 3)), [None, None, 2.0])
+
+    def test_window_one_is_identity(self) -> None:
+        """
+        Verifies that ``window == 1`` (alpha == 1) reproduces the input with no warm-up.
+        """
+        assert_matches(apply_expr([1.0, 2.0, 3.0], ema(pl.col(COLUMN_X), 1)), [1.0, 2.0, 3.0])
+
+    def test_all_zero_series_is_zero(self) -> None:
+        """
+        Verifies the degenerate all-zero window: the recursion stays at zero. This is the case the subnormal-floor note
+        pins here, kept out of the property fuzz by ``subnormal_safe_floats``.
+        """
+        assert_matches(apply_expr([0.0, 0.0, 0.0, 0.0], ema(pl.col(COLUMN_X), 3)), [None, None, 0.0, 0.0])
 
     def test_interior_null_bridged(self) -> None:
         """
@@ -182,14 +190,6 @@ class TestEmaEdge:
         """
         values = [2.0, 4.0, 6.0, None, 8.0, 10.0]
         assert_matches(apply_expr(values, ema(pl.col(COLUMN_X), 3)), ema_reference(values, 3))
-
-    def test_nan_latches(self) -> None:
-        """
-        Verifies that a ``NaN`` latches into the recursion and poisons every subsequent value.
-        """
-        assert_matches(
-            apply_expr([1.0, math.nan, 3.0, 4.0], ema(pl.col(COLUMN_X), 2)), [None, math.nan, math.nan, math.nan]
-        )
 
 
 class TestEmaCorrectness:
@@ -304,21 +304,6 @@ class TestEmaProperties:
         result_scaled = apply_expr(scaled_values, ema(pl.col(COLUMN_X), window))
         assert_scale_homogeneous(result_scaled, result_base, k=k, degree=1)
 
-    @given(case=_cases(subnormal_safe_floats(1e3), window_min=2))
-    def test_warmup_null_count_property(
-        self,
-        case: tuple[list[float], int],
-    ) -> None:
-        """
-        Verifies that the leading-null run is exactly ``min(window - 1, len(values))``.
-        """
-        values, window = case
-        result = apply_expr(values, ema(pl.col(COLUMN_X), window))
-        leading_nulls = count_leading_nulls(result)
-        # NOTE: ``_cases`` couples length >= window, so ``min`` always resolves to ``window - 1``; the form is kept to
-        # state the exact warm-up rule (the leading-null run is never clamped by a too-short series here).
-        assert leading_nulls == min(window - 1, len(values))
-
     @given(
         case=_cases(st.floats(min_value=1e-3, max_value=1.0, allow_nan=False, allow_infinity=False)),
         scale=st.sampled_from([1e-6, 1e6, 1e9]),
@@ -339,6 +324,21 @@ class TestEmaProperties:
             rel_tol=RELATIVE_TOLERANCE_SCALE,
             abs_tol=input_scale(scaled_values) * EXACT_TOLERANCE_FACTOR,
         )
+
+    @given(case=_cases(subnormal_safe_floats(1e3), window_min=2))
+    def test_warmup_null_count_property(
+        self,
+        case: tuple[list[float], int],
+    ) -> None:
+        """
+        Verifies that the leading-null run is exactly ``min(window - 1, len(values))``.
+        """
+        values, window = case
+        result = apply_expr(values, ema(pl.col(COLUMN_X), window))
+        leading_nulls = count_leading_nulls(result)
+        # NOTE: ``_cases`` couples length >= window, so ``min`` always resolves to ``window - 1``; the form is kept to
+        # state the exact warm-up rule (the leading-null run is never clamped by a too-short series here).
+        assert leading_nulls == min(window - 1, len(values))
 
     @given(case=_cases(subnormal_safe_floats(1e3)))
     def test_matches_textbook_recurrence_on_clean_data(

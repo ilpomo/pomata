@@ -95,13 +95,17 @@ class TestLinearRegressionSlopeEdge:
         with pytest.raises(ValueError, match="window must be >= 2"):
             linear_regression_slope(pl.col(COLUMN_X), 1)
 
-    def test_warmup_null_count(self) -> None:
+    def test_single_row(self) -> None:
         """
-        Verifies the warm-up is ``window - 1`` rows (a full window is needed for the first fit).
+        Verifies that a one-element series is all warm-up: a window of more than one observation yields null.
         """
-        result = apply_expr([10.0, 11.0, 13.0, 12.0, 14.0], linear_regression_slope(pl.col(COLUMN_X), 3))
-        assert result[:2] == [None, None]
-        assert result[2] is not None
+        assert_matches(apply_expr([42.0], linear_regression_slope(pl.col(COLUMN_X), 2)), [None])
+
+    def test_all_null(self) -> None:
+        """
+        Verifies that an all-null series stays null (no window ever holds the required non-null values).
+        """
+        assert_matches(apply_expr([None, None, None], linear_regression_slope(pl.col(COLUMN_X), 2)), [None, None, None])
 
     def test_null_in_window_is_null(self) -> None:
         """
@@ -123,23 +127,19 @@ class TestLinearRegressionSlopeEdge:
             linear_regression_slope_reference(values, 3),
         )
 
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies the warm-up is ``window - 1`` rows (a full window is needed for the first fit).
+        """
+        result = apply_expr([10.0, 11.0, 13.0, 12.0, 14.0], linear_regression_slope(pl.col(COLUMN_X), 3))
+        assert result[:2] == [None, None]
+        assert result[2] is not None
+
     def test_window_exceeds_length(self) -> None:
         """
         Verifies the whole output is null when ``window`` exceeds the series length (no full window ever forms).
         """
         assert_matches(apply_expr([1.0, 2.0, 3.0], linear_regression_slope(pl.col(COLUMN_X), 5)), [None, None, None])
-
-    def test_single_row(self) -> None:
-        """
-        Verifies that a one-element series is all warm-up: a window of more than one observation yields null.
-        """
-        assert_matches(apply_expr([42.0], linear_regression_slope(pl.col(COLUMN_X), 2)), [None])
-
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null series stays null (no window ever holds the required non-null values).
-        """
-        assert_matches(apply_expr([None, None, None], linear_regression_slope(pl.col(COLUMN_X), 2)), [None, None, None])
 
 
 class TestLinearRegressionSlopeCorrectness:

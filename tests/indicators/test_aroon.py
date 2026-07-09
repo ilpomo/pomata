@@ -100,16 +100,6 @@ class TestAroonContract:
     Type, struct schema, shape, and lazy/eager guarantees.
     """
 
-    def test_output_is_struct_with_named_fields(self) -> None:
-        """
-        Verifies that the output is a ``Float64`` struct with exactly the fields ``up`` / ``down``.
-        """
-        frame = pl.DataFrame({HIGH: [3.0, 2.0, 4.0], LOW: [1.0, 0.0, 2.0]})
-        dtype = frame.select(aroon(pl.col(HIGH), pl.col(LOW), 2).alias("a")).schema["a"]
-        assert isinstance(dtype, pl.Struct)
-        assert [field.name for field in dtype.fields] == ["up", "down"]
-        assert all(field.dtype == pl.Float64 for field in dtype.fields)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` the rolling extremes reset per group: the partitioned line equals the per-group
@@ -128,6 +118,16 @@ class TestAroonContract:
         group_b = apply_aroon([20.0, 22.0, 21.0, 23.0], [19.0, 21.0, 20.0, 22.0], 2)["up"]
         assert_matches(grouped, group_a + group_b)
 
+    def test_output_is_struct_with_named_fields(self) -> None:
+        """
+        Verifies that the output is a ``Float64`` struct with exactly the fields ``up`` / ``down``.
+        """
+        frame = pl.DataFrame({HIGH: [3.0, 2.0, 4.0], LOW: [1.0, 0.0, 2.0]})
+        dtype = frame.select(aroon(pl.col(HIGH), pl.col(LOW), 2).alias("a")).schema["a"]
+        assert isinstance(dtype, pl.Struct)
+        assert [field.name for field in dtype.fields] == ["up", "down"]
+        assert all(field.dtype == pl.Float64 for field in dtype.fields)
+
 
 class TestAroonEdge:
     """
@@ -140,23 +140,6 @@ class TestAroonEdge:
         """
         with pytest.raises(ValueError, match="window must be >= 1"):
             aroon(pl.col(HIGH), pl.col(LOW), 0)
-
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies that both lines are null for the first ``window`` rows and defined once a full look-back exists.
-        """
-        bands = apply_aroon([1.0, 2.0, 3.0, 4.0, 5.0], [0.0, 1.0, 2.0, 3.0, 4.0], 2)
-        for field in FIELDS:
-            assert bands[field][:2] == [None, None]
-            assert bands[field][2] is not None
-
-    def test_window_exceeds_length(self) -> None:
-        """
-        Verifies that when ``window`` exceeds the series length every field is null (no full look-back exists).
-        """
-        bands = apply_aroon([1.0, 2.0, 3.0], [0.0, 1.0, 2.0], 5)
-        for field in FIELDS:
-            assert_matches(bands[field], [None, None, None])
 
     def test_single_row(self) -> None:
         """
@@ -173,21 +156,6 @@ class TestAroonEdge:
         bands = apply_aroon([None, None, None, None], [None, None, None, None], 2)
         for field in FIELDS:
             assert_matches(bands[field], [None, None, None, None])
-
-    def test_current_extreme_reads_100(self) -> None:
-        """
-        Verifies that when the current bar holds the look-back high (low) the up (down) line reads ``100``.
-        """
-        bands = apply_aroon([1.0, 2.0, 3.0], [3.0, 2.0, 1.0], 2)
-        assert_matches(bands["up"], [None, None, 100.0])
-        assert_matches(bands["down"], [None, None, 100.0])
-
-    def test_ties_use_most_recent_extreme(self) -> None:
-        """
-        Verifies that a repeated extreme resolves to the most recent occurrence (here the high ``5`` one bar back).
-        """
-        bands = apply_aroon([5.0, 5.0, 3.0], [1.0, 2.0, 3.0], 2)
-        assert_matches(bands["up"], [None, None, 50.0])
 
     def test_null_in_window_is_null(self) -> None:
         """
@@ -210,6 +178,38 @@ class TestAroonEdge:
         reference = aroon_reference(values_high, values_low, 2)
         for field in FIELDS:
             assert_matches(bands[field], reference[field])
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that both lines are null for the first ``window`` rows and defined once a full look-back exists.
+        """
+        bands = apply_aroon([1.0, 2.0, 3.0, 4.0, 5.0], [0.0, 1.0, 2.0, 3.0, 4.0], 2)
+        for field in FIELDS:
+            assert bands[field][:2] == [None, None]
+            assert bands[field][2] is not None
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that when ``window`` exceeds the series length every field is null (no full look-back exists).
+        """
+        bands = apply_aroon([1.0, 2.0, 3.0], [0.0, 1.0, 2.0], 5)
+        for field in FIELDS:
+            assert_matches(bands[field], [None, None, None])
+
+    def test_current_extreme_reads_100(self) -> None:
+        """
+        Verifies that when the current bar holds the look-back high (low) the up (down) line reads ``100``.
+        """
+        bands = apply_aroon([1.0, 2.0, 3.0], [3.0, 2.0, 1.0], 2)
+        assert_matches(bands["up"], [None, None, 100.0])
+        assert_matches(bands["down"], [None, None, 100.0])
+
+    def test_ties_use_most_recent_extreme(self) -> None:
+        """
+        Verifies that a repeated extreme resolves to the most recent occurrence (here the high ``5`` one bar back).
+        """
+        bands = apply_aroon([5.0, 5.0, 3.0], [1.0, 2.0, 3.0], 2)
+        assert_matches(bands["up"], [None, None, 50.0])
 
 
 class TestAroonCorrectness:

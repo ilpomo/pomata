@@ -78,21 +78,12 @@ class TestUlcerPerformanceRatioEdge:
             with pytest.raises(ValueError, match="risk_free_rate must be a finite number"):
                 ulcer_performance_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS, risk_free_rate=invalid)
 
-    def test_single_row_is_nan(self) -> None:
+    def test_single_row(self) -> None:
         """
         Verifies that a one-element series has zero excess growth and zero ulcer index, so the ratio is ``NaN``.
         """
         assert_matches(
             apply_expr([1.0], ulcer_performance_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS)), [math.nan]
-        )
-
-    def test_no_drawdown_is_inf(self) -> None:
-        """
-        Verifies that a monotonically rising curve has a zero ulcer index with positive excess growth, so the ratio is
-        ``+inf``.
-        """
-        assert_matches(
-            apply_expr([1.0, 1.1, 1.21], ulcer_performance_ratio(pl.col(COLUMN_X), periods_per_year=1)), [math.inf]
         )
 
     def test_null_skipped(self) -> None:
@@ -114,6 +105,15 @@ class TestUlcerPerformanceRatioEdge:
         values = [1.1, math.nan, 1.2]
         assert_matches(
             apply_expr(values, ulcer_performance_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS)), [math.nan]
+        )
+
+    def test_no_drawdown_is_inf(self) -> None:
+        """
+        Verifies that a monotonically rising curve has a zero ulcer index with positive excess growth, so the ratio is
+        ``+inf``.
+        """
+        assert_matches(
+            apply_expr([1.0, 1.1, 1.21], ulcer_performance_ratio(pl.col(COLUMN_X), periods_per_year=1)), [math.inf]
         )
 
 

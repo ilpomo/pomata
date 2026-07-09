@@ -90,15 +90,6 @@ class TestSortinoRatioEdge:
             [sortino_ratio_reference(values, PERIODS, 0.0)],
         )
 
-    def test_no_downside_is_inf(self) -> None:
-        """
-        Verifies that returns all at or above the target have zero downside with a positive mean, so the ratio is
-        ``+inf``.
-        """
-        assert_matches(
-            apply_expr([0.01, 0.02, 0.03], sortino_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS)), [math.inf]
-        )
-
     def test_null_skipped(self) -> None:
         """
         Verifies that a ``null`` observation is skipped (excluded from the reduction), matching the reference.
@@ -117,6 +108,15 @@ class TestSortinoRatioEdge:
         """
         values = [0.01, math.nan, -0.02, 0.03]
         assert_matches(apply_expr(values, sortino_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS)), [math.nan])
+
+    def test_no_downside_is_inf(self) -> None:
+        """
+        Verifies that returns all at or above the target have zero downside with a positive mean, so the ratio is
+        ``+inf``.
+        """
+        assert_matches(
+            apply_expr([0.01, 0.02, 0.03], sortino_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS)), [math.inf]
+        )
 
 
 class TestSortinoRatioCorrectness:

@@ -90,32 +90,6 @@ class TestRsiEdge:
         with pytest.raises(ValueError, match="window must be >= 1"):
             rsi(pl.col(COLUMN_X), 0)
 
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies that the first ``window`` rows are null and the next is defined (``window + 1`` prices are needed).
-        """
-        result = apply_expr([2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0], rsi(pl.col(COLUMN_X), 3))
-        assert result[:3] == [None, None, None]
-        assert result[3] is not None
-
-    def test_window_one(self) -> None:
-        """
-        Verifies that ``window == 1`` reports ``100`` on an up move, ``0`` on a down move, and ``NaN`` on no move.
-        """
-        assert_matches(apply_expr([1.0, 3.0, 2.0, 5.0], rsi(pl.col(COLUMN_X), 1)), [None, 100.0, 0.0, 100.0])
-
-    def test_window_equals_length(self) -> None:
-        """
-        Verifies the whole output is null when ``window`` equals the series length (only ``window`` differences exist).
-        """
-        assert_matches(apply_expr([1.0, 2.0, 3.0], rsi(pl.col(COLUMN_X), 3)), [None, None, None])
-
-    def test_window_exceeds_length(self) -> None:
-        """
-        Verifies the whole output is null when ``window`` exceeds the series length.
-        """
-        assert_matches(apply_expr([1.0, 2.0, 3.0], rsi(pl.col(COLUMN_X), 5)), [None, None, None])
-
     def test_single_row(self) -> None:
         """
         Verifies behavior on a one-element series (no difference exists, so the value is null).
@@ -128,6 +102,41 @@ class TestRsiEdge:
         Verifies that an all-null series stays null (no difference ever seeds the recursion).
         """
         assert_matches(apply_expr([None, None, None], rsi(pl.col(COLUMN_X), 2)), [None, None, None])
+
+    def test_nan_latches(self) -> None:
+        """
+        Verifies that a ``NaN`` poisons the recursion and latches for every subsequent value.
+        """
+        assert_matches(
+            apply_expr([1.0, math.nan, 3.0, 4.0, 5.0], rsi(pl.col(COLUMN_X), 2)),
+            [None, None, math.nan, math.nan, math.nan],
+        )
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that the first ``window`` rows are null and the next is defined (``window + 1`` prices are needed).
+        """
+        result = apply_expr([2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0], rsi(pl.col(COLUMN_X), 3))
+        assert result[:3] == [None, None, None]
+        assert result[3] is not None
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies the whole output is null when ``window`` exceeds the series length.
+        """
+        assert_matches(apply_expr([1.0, 2.0, 3.0], rsi(pl.col(COLUMN_X), 5)), [None, None, None])
+
+    def test_window_equals_length(self) -> None:
+        """
+        Verifies the whole output is null when ``window`` equals the series length (only ``window`` differences exist).
+        """
+        assert_matches(apply_expr([1.0, 2.0, 3.0], rsi(pl.col(COLUMN_X), 3)), [None, None, None])
+
+    def test_window_one_is_move_direction(self) -> None:
+        """
+        Verifies that ``window == 1`` reports ``100`` on an up move, ``0`` on a down move, and ``NaN`` on no move.
+        """
+        assert_matches(apply_expr([1.0, 3.0, 2.0, 5.0], rsi(pl.col(COLUMN_X), 1)), [None, 100.0, 0.0, 100.0])
 
     def test_constant_series_is_nan(self) -> None:
         """
@@ -170,15 +179,6 @@ class TestRsiEdge:
         assert_matches(
             apply_expr([2.0, 4.0, None, 8.0, 10.0, 12.0], rsi(pl.col(COLUMN_X), 2)),
             [None, None, None, None, 100.0, 100.0],
-        )
-
-    def test_nan_latches(self) -> None:
-        """
-        Verifies that a ``NaN`` poisons the recursion and latches for every subsequent value.
-        """
-        assert_matches(
-            apply_expr([1.0, math.nan, 3.0, 4.0, 5.0], rsi(pl.col(COLUMN_X), 2)),
-            [None, None, math.nan, math.nan, math.nan],
         )
 
 
@@ -242,33 +242,6 @@ class TestRsiProperties:
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
-    @given(case=_cases(st.floats(min_value=-1e6, max_value=1e6, allow_nan=False, allow_infinity=False)))
-    def test_bounded_in_unit_interval(
-        self,
-        case: tuple[list[float], int],
-    ) -> None:
-        """
-        Verifies that every defined, non-NaN RSI value lies in ``[0, 100]`` (a perfectly flat window yields ``NaN``).
-        """
-        values, window = case
-        result = apply_expr(values, rsi(pl.col(COLUMN_X), window))
-        for value in result:
-            if value is not None and not math.isnan(value):
-                assert -BOUND_MARGIN <= value <= 100.0 + BOUND_MARGIN
-
-    @given(case=_cases(st.floats(min_value=-1e6, max_value=1e6, allow_nan=False, allow_infinity=False)))
-    def test_warmup_null_count_property(
-        self,
-        case: tuple[list[float], int],
-    ) -> None:
-        """
-        Verifies that the leading-null run is exactly ``min(window, len(values))``.
-        """
-        values, window = case
-        result = apply_expr(values, rsi(pl.col(COLUMN_X), window))
-        leading_nulls = count_leading_nulls(result)
-        assert leading_nulls == min(window, len(values))
-
     @given(case=_cases(missing_data_floats()))
     def test_matches_reference_under_missing_data(
         self,
@@ -304,3 +277,30 @@ class TestRsiProperties:
         result_base = apply_expr(values, rsi(pl.col(COLUMN_X), window))
         result_scaled = apply_expr([value * k for value in values], rsi(pl.col(COLUMN_X), window))
         assert_scale_homogeneous(result_scaled, result_base, k=k, degree=0)
+
+    @given(case=_cases(st.floats(min_value=-1e6, max_value=1e6, allow_nan=False, allow_infinity=False)))
+    def test_bounded(
+        self,
+        case: tuple[list[float], int],
+    ) -> None:
+        """
+        Verifies that every defined, non-NaN RSI value lies in ``[0, 100]`` (a perfectly flat window yields ``NaN``).
+        """
+        values, window = case
+        result = apply_expr(values, rsi(pl.col(COLUMN_X), window))
+        for value in result:
+            if value is not None and not math.isnan(value):
+                assert -BOUND_MARGIN <= value <= 100.0 + BOUND_MARGIN
+
+    @given(case=_cases(st.floats(min_value=-1e6, max_value=1e6, allow_nan=False, allow_infinity=False)))
+    def test_warmup_null_count_property(
+        self,
+        case: tuple[list[float], int],
+    ) -> None:
+        """
+        Verifies that the leading-null run is exactly ``min(window, len(values))``.
+        """
+        values, window = case
+        result = apply_expr(values, rsi(pl.col(COLUMN_X), window))
+        leading_nulls = count_leading_nulls(result)
+        assert leading_nulls == min(window, len(values))

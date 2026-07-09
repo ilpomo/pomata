@@ -63,12 +63,6 @@ class TestUlcerIndexEdge:
         """
         assert_matches(apply_expr([1.0], ulcer_index(pl.col(COLUMN_X))), [0.0])
 
-    def test_monotonic_rise_is_zero(self) -> None:
-        """
-        Verifies that a never-declining curve has all-zero drawdowns, so the Ulcer Index is ``0``.
-        """
-        assert_matches(apply_expr([1.0, 1.1, 1.2, 1.3], ulcer_index(pl.col(COLUMN_X))), [0.0])
-
     def test_null_skipped(self) -> None:
         """
         Verifies that null equities are skipped (excluded from the mean), matching the reference.
@@ -81,6 +75,12 @@ class TestUlcerIndexEdge:
         Verifies that a NaN equity poisons the result to NaN.
         """
         assert_matches(apply_expr([1.0, 1.1, math.nan, 0.9, 1.2], ulcer_index(pl.col(COLUMN_X))), [math.nan])
+
+    def test_monotonic_rise_is_zero(self) -> None:
+        """
+        Verifies that a never-declining curve has all-zero drawdowns, so the Ulcer Index is ``0``.
+        """
+        assert_matches(apply_expr([1.0, 1.1, 1.2, 1.3], ulcer_index(pl.col(COLUMN_X))), [0.0])
 
 
 class TestUlcerIndexCorrectness:

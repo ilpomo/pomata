@@ -7,7 +7,7 @@ the naive ``pnl_net_reference`` oracle are shared across the suite. The differen
 inputs are scaled together, so it carries the scale-homogeneity and large-magnitude tiers.
 
 The ladder, adapted to an elementwise two-input difference: contract (type / shape / lazy-eager / ``.over`` identity),
-edge (empty / single-row / null / NaN / null-precedence), correctness (closed-form reference + frozen golden master),
+edge (empty / single-row / null / null-precedence / NaN), correctness (closed-form reference + frozen golden master),
 and properties (reference agreement incl. missing data, scale-homogeneity, large-magnitude). Categories are split into
 classes; cross-cutting categories use markers (see ``tests/README.md``).
 """
@@ -116,6 +116,12 @@ class TestPnlNetEdge:
         cost = [2.0, 3.0, 0.0, 1.0]
         assert_matches(apply_pnl_net(gross, cost), pnl_net_reference(gross, cost))
 
+    def test_null_takes_precedence_over_nan(self) -> None:
+        """
+        Verifies that a row with a ``null`` in one input and a ``NaN`` in the other yields ``null``.
+        """
+        assert_matches(apply_pnl_net([None, 20.0], [math.nan, 2.0]), [None, 18.0])
+
     def test_nan_propagates(self) -> None:
         """
         Verifies that a ``NaN`` in either input makes that row ``NaN`` (matching the naive reference).
@@ -123,12 +129,6 @@ class TestPnlNetEdge:
         gross = [20.0, 5.0, math.nan, 8.0]
         cost = [2.0, 0.0, 3.0, 1.0]
         assert_matches(apply_pnl_net(gross, cost), pnl_net_reference(gross, cost))
-
-    def test_null_takes_precedence_over_nan(self) -> None:
-        """
-        Verifies that a row with a ``null`` in one input and a ``NaN`` in the other yields ``null``.
-        """
-        assert_matches(apply_pnl_net([None, 20.0], [math.nan, 2.0]), [None, 18.0])
 
 
 class TestPnlNetCorrectness:

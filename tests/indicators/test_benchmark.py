@@ -210,7 +210,7 @@ CASES: dict[str, Callable[[], pl.Expr]] = {
 
 
 @pytest.mark.benchmark
-def test_every_indicator_is_benchmarked() -> None:
+def test_cases_cover_public_surface() -> None:
     """
     Verifies that ``CASES`` covers exactly the public indicator surface, so a newly added indicator cannot slip the
     benchmark net (its complexity-scaling regression would otherwise go unmeasured).

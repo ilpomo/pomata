@@ -8,7 +8,7 @@ scale-INVARIANT (``returns_simple(k * P) == returns_simple(P)``): it carries a s
 scale-homogeneity / large-magnitude tests, which are vacuous when the input scale cancels.
 
 The ladder is the canonical one: contract (type / shape / lazy-eager / ``.over`` per-group independence), edge
-(warm-up / single-row / null / NaN / zero previous price), correctness (vs the closed-form reference and a frozen
+(single-row / null / NaN / warm-up / zero previous price), correctness (vs the closed-form reference and a frozen
 golden master), and properties (reference agreement incl. missing data, scale-invariance). Categories are split into
 classes; cross-cutting categories use markers (see ``tests/README.md``).
 """
@@ -87,14 +87,6 @@ class TestReturnsSimpleEdge:
     Boundaries, warm-up, and null / NaN handling.
     """
 
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies the warm-up is exactly one row: the first return is null, the second is defined.
-        """
-        result = apply_expr([100.0, 105.0, 102.0], returns_simple(pl.col(COLUMN_X)))
-        assert result[0] is None
-        assert result[1] is not None
-
     def test_single_row(self) -> None:
         """
         Verifies that a one-element series is all warm-up (no previous price to difference against).
@@ -120,6 +112,14 @@ class TestReturnsSimpleEdge:
             apply_expr(values, returns_simple(pl.col(COLUMN_X))),
             returns_simple_reference(values),
         )
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies the warm-up is exactly one row: the first return is null, the second is defined.
+        """
+        result = apply_expr([100.0, 105.0, 102.0], returns_simple(pl.col(COLUMN_X)))
+        assert result[0] is None
+        assert result[1] is not None
 
     def test_zero_previous_price(self) -> None:
         """

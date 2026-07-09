@@ -82,21 +82,6 @@ class TestAtrContract:
     Type, shape, and lazy/eager guarantees.
     """
 
-    def test_empty_frame_preserves_shape_and_dtype(self) -> None:
-        """
-        Verifies that an empty input yields an empty ``Float64`` column rather than raising.
-        """
-        frame = pl.DataFrame(
-            {
-                HIGH: pl.Series(HIGH, [], dtype=pl.Float64),
-                LOW: pl.Series(LOW, [], dtype=pl.Float64),
-                CLOSE: pl.Series(CLOSE, [], dtype=pl.Float64),
-            }
-        )
-        result = frame.select(atr(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), 3).alias("y"))
-        assert result.height == 0
-        assert result.schema["y"] == pl.Float64
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` the previous-close shift and Wilder recursion reset per group.
@@ -122,6 +107,21 @@ class TestAtrContract:
         result_b = apply_atr(high_b, low_b, close_b, 2)
         assert_matches(result_over, result_a + result_b)
 
+    def test_empty_frame_preserves_shape_and_dtype(self) -> None:
+        """
+        Verifies that an empty input yields an empty ``Float64`` column rather than raising.
+        """
+        frame = pl.DataFrame(
+            {
+                HIGH: pl.Series(HIGH, [], dtype=pl.Float64),
+                LOW: pl.Series(LOW, [], dtype=pl.Float64),
+                CLOSE: pl.Series(CLOSE, [], dtype=pl.Float64),
+            }
+        )
+        result = frame.select(atr(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), 3).alias("y"))
+        assert result.height == 0
+        assert result.schema["y"] == pl.Float64
+
 
 class TestAtrEdge:
     """
@@ -134,6 +134,33 @@ class TestAtrEdge:
         """
         with pytest.raises(ValueError, match="window must be >= 1"):
             atr(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), 0)
+
+    def test_single_row(self) -> None:
+        """
+        Verifies behavior on a one-element series: the lone true range degenerates to ``high - low``.
+        """
+        assert_matches(apply_atr([10.0], [8.0], [9.0], 1), [2.0])
+        assert_matches(apply_atr([10.0], [8.0], [9.0], 2), [None])
+
+    def test_all_null_is_all_null(self) -> None:
+        """
+        Verifies that an all-null OHLC frame yields an all-null result (every true range is null, the rma never seeds).
+        """
+        high = [None, None, None]
+        low = [None, None, None]
+        close = [None, None, None]
+        assert_matches(apply_atr(high, low, close, 2), atr_reference(high, low, close, 2))
+        assert_matches(apply_atr(high, low, close, 2), [None, None, None])
+
+    def test_nan_latches(self) -> None:
+        """
+        Verifies that a ``NaN`` input poisons the true range and latches for every subsequent value.
+        """
+        high = [10.0, 12.0, 11.0, 13.0, 15.0]
+        low = [8.0, 9.0, 9.5, 10.0, 12.0]
+        close = [9.0, math.nan, 10.0, 12.0, 14.0]
+        assert_matches(apply_atr(high, low, close, 2), atr_reference(high, low, close, 2))
+        assert_matches(apply_atr(high, low, close, 2), [None, 2.5, math.nan, math.nan, math.nan])
 
     def test_warmup_null_count(self) -> None:
         """
@@ -148,15 +175,11 @@ class TestAtrEdge:
         assert result[:2] == [None, None]
         assert result[2] is not None
 
-    def test_window_one_is_true_range(self) -> None:
+    def test_window_exceeds_length(self) -> None:
         """
-        Verifies that ``window == 1`` reproduces the true range (the Wilder smoothing is the identity).
+        Verifies that a window longer than the series yields an all-null result (the warm-up never completes).
         """
-        high = [10.0, 12.0, 11.0, 13.0]
-        low = [8.0, 9.0, 9.5, 10.0]
-        close = [9.0, 11.0, 10.0, 12.0]
-        assert_matches(apply_atr(high, low, close, 1), atr_reference(high, low, close, 1))
-        assert_matches(apply_atr(high, low, close, 1), [2.0, 3.0, 1.5, 3.0])
+        assert_matches(apply_atr([10.0, 12.0, 13.0], [8.0, 9.0, 10.0], [9.0, 11.0, 12.0], 5), [None, None, None])
 
     def test_window_equals_length(self) -> None:
         """
@@ -168,18 +191,15 @@ class TestAtrEdge:
         assert_matches(apply_atr(high, low, close, 3), atr_reference(high, low, close, 3))
         assert_matches(apply_atr(high, low, close, 3), [None, None, 2.1666666666666665])
 
-    def test_single_row(self) -> None:
+    def test_window_one_is_true_range(self) -> None:
         """
-        Verifies behavior on a one-element series: the lone true range degenerates to ``high - low``.
+        Verifies that ``window == 1`` reproduces the true range (the Wilder smoothing is the identity).
         """
-        assert_matches(apply_atr([10.0], [8.0], [9.0], 1), [2.0])
-        assert_matches(apply_atr([10.0], [8.0], [9.0], 2), [None])
-
-    def test_window_exceeds_length(self) -> None:
-        """
-        Verifies that a window longer than the series yields an all-null result (the warm-up never completes).
-        """
-        assert_matches(apply_atr([10.0, 12.0, 13.0], [8.0, 9.0, 10.0], [9.0, 11.0, 12.0], 5), [None, None, None])
+        high = [10.0, 12.0, 11.0, 13.0]
+        low = [8.0, 9.0, 9.5, 10.0]
+        close = [9.0, 11.0, 10.0, 12.0]
+        assert_matches(apply_atr(high, low, close, 1), atr_reference(high, low, close, 1))
+        assert_matches(apply_atr(high, low, close, 1), [2.0, 3.0, 1.5, 3.0])
 
     def test_interior_null_in_high_is_absorbed(self) -> None:
         """
@@ -227,16 +247,6 @@ class TestAtrEdge:
         assert_matches(apply_atr(high, low, close, 2), atr_reference(high, low, close, 2))
         assert_matches(apply_atr(high, low, close, 2), [None, None, None, 2.25, 2.625])
 
-    def test_all_null_is_all_null(self) -> None:
-        """
-        Verifies that an all-null OHLC frame yields an all-null result (every true range is null, the rma never seeds).
-        """
-        high = [None, None, None]
-        low = [None, None, None]
-        close = [None, None, None]
-        assert_matches(apply_atr(high, low, close, 2), atr_reference(high, low, close, 2))
-        assert_matches(apply_atr(high, low, close, 2), [None, None, None])
-
     def test_all_nan(self) -> None:
         """
         Verifies that an all-NaN OHLC frame poisons every true range, so the result is NaN past the warm-up.
@@ -246,16 +256,6 @@ class TestAtrEdge:
         close = [math.nan, math.nan, math.nan, math.nan]
         assert_matches(apply_atr(high, low, close, 2), atr_reference(high, low, close, 2))
         assert_matches(apply_atr(high, low, close, 2), [None, math.nan, math.nan, math.nan])
-
-    def test_nan_latches(self) -> None:
-        """
-        Verifies that a ``NaN`` input poisons the true range and latches for every subsequent value.
-        """
-        high = [10.0, 12.0, 11.0, 13.0, 15.0]
-        low = [8.0, 9.0, 9.5, 10.0, 12.0]
-        close = [9.0, math.nan, 10.0, 12.0, 14.0]
-        assert_matches(apply_atr(high, low, close, 2), atr_reference(high, low, close, 2))
-        assert_matches(apply_atr(high, low, close, 2), [None, 2.5, math.nan, math.nan, math.nan])
 
     def test_constant_bars_have_zero_atr(self) -> None:
         """
@@ -374,6 +374,29 @@ class TestAtrProperties:
         result_scaled = apply_atr(scaled_high, [value * k for value in low], [value * k for value in close], window)
         assert_scale_homogeneous(result_scaled, result_base, k=k, degree=1)
 
+    @given(
+        case=_cases(coherent_hlc()),
+        scale=st.sampled_from([1e-6, 1e6, 1e9]),
+    )
+    def test_matches_reference_at_large_magnitude(
+        self,
+        case: tuple[list[tuple[float, float, float]], int],
+        scale: float,
+    ) -> None:
+        """
+        Verifies that at extreme positive magnitudes the implementation stays finite where the reference is and agrees.
+        """
+        rows, window = case
+        high = [row[0] * scale for row in rows]
+        low = [row[1] * scale for row in rows]
+        close = [row[2] * scale for row in rows]
+        assert_matches(
+            apply_atr(high, low, close, window),
+            atr_reference(high, low, close, window),
+            rel_tol=RELATIVE_TOLERANCE_SCALE,
+            abs_tol=input_scale(high) * EXACT_TOLERANCE_FACTOR,
+        )
+
     @given(case=_cases(coherent_hlc()))
     def test_non_negative(
         self,
@@ -404,26 +427,3 @@ class TestAtrProperties:
         # NOTE: ``_cases`` couples length >= window, so ``min`` always resolves to ``window - 1``; the form is kept
         # to state the exact warm-up rule (the leading-null run is never clamped by a too-short series here).
         assert leading_nulls == min(window - 1, len(rows))
-
-    @given(
-        case=_cases(coherent_hlc()),
-        scale=st.sampled_from([1e-6, 1e6, 1e9]),
-    )
-    def test_matches_reference_at_large_magnitude(
-        self,
-        case: tuple[list[tuple[float, float, float]], int],
-        scale: float,
-    ) -> None:
-        """
-        Verifies that at extreme positive magnitudes the implementation stays finite where the reference is and agrees.
-        """
-        rows, window = case
-        high = [row[0] * scale for row in rows]
-        low = [row[1] * scale for row in rows]
-        close = [row[2] * scale for row in rows]
-        assert_matches(
-            apply_atr(high, low, close, window),
-            atr_reference(high, low, close, window),
-            rel_tol=RELATIVE_TOLERANCE_SCALE,
-            abs_tol=input_scale(high) * EXACT_TOLERANCE_FACTOR,
-        )

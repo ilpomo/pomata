@@ -58,17 +58,12 @@ class TestKellyCriterionEdge:
     Boundaries and null / NaN handling.
     """
 
-    def test_no_losses_is_null(self) -> None:
+    def test_single_row(self) -> None:
         """
-        Verifies that an all-positive series has an undefined payoff ratio, so the fraction is ``null``.
+        Verifies that a one-element series is one-sided (a win or a loss, never both), so the payoff ratio is
+        undefined and the fraction is ``null``.
         """
-        assert_matches(apply_expr([0.01, 0.02, 0.03], kelly_criterion(pl.col(COLUMN_X))), [None])
-
-    def test_no_wins_is_null(self) -> None:
-        """
-        Verifies that an all-negative series has an undefined payoff ratio, so the fraction is ``null``.
-        """
-        assert_matches(apply_expr([-0.01, -0.02, -0.03], kelly_criterion(pl.col(COLUMN_X))), [None])
+        assert_matches(apply_expr([0.02], kelly_criterion(pl.col(COLUMN_X))), [None])
 
     def test_null_skipped(self) -> None:
         """
@@ -86,6 +81,18 @@ class TestKellyCriterionEdge:
         Verifies that a NaN return poisons the result to NaN.
         """
         assert_matches(apply_expr([0.01, math.nan, -0.02, 0.03], kelly_criterion(pl.col(COLUMN_X))), [math.nan])
+
+    def test_no_losses_is_null(self) -> None:
+        """
+        Verifies that an all-positive series has an undefined payoff ratio, so the fraction is ``null``.
+        """
+        assert_matches(apply_expr([0.01, 0.02, 0.03], kelly_criterion(pl.col(COLUMN_X))), [None])
+
+    def test_no_wins_is_null(self) -> None:
+        """
+        Verifies that an all-negative series has an undefined payoff ratio, so the fraction is ``null``.
+        """
+        assert_matches(apply_expr([-0.01, -0.02, -0.03], kelly_criterion(pl.col(COLUMN_X))), [None])
 
 
 class TestKellyCriterionCorrectness:

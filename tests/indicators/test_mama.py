@@ -97,16 +97,6 @@ class TestMamaContract:
     Type, struct schema, shape, and lazy/eager guarantees.
     """
 
-    def test_output_is_struct_with_named_fields(self) -> None:
-        """
-        Verifies that the output is a ``Float64`` struct with exactly the fields ``mama`` / ``fama``.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, _SAMPLE)})
-        dtype = frame.select(mama(pl.col(COLUMN_X)).alias("a")).schema["a"]
-        assert isinstance(dtype, pl.Struct)
-        assert [field.name for field in dtype.fields] == ["mama", "fama"]
-        assert all(field.dtype == pl.Float64 for field in dtype.fields)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` the recurrence resets per group and never spans group boundaries.
@@ -117,6 +107,16 @@ class TestMamaContract:
         result = frame.select(line.alias("y"))["y"].to_list()
         expected = apply_mama(_SAMPLE)["mama"] + apply_mama(group_b_input)["mama"]
         assert_matches(result, expected)
+
+    def test_output_is_struct_with_named_fields(self) -> None:
+        """
+        Verifies that the output is a ``Float64`` struct with exactly the fields ``mama`` / ``fama``.
+        """
+        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, _SAMPLE)})
+        dtype = frame.select(mama(pl.col(COLUMN_X)).alias("a")).schema["a"]
+        assert isinstance(dtype, pl.Struct)
+        assert [field.name for field in dtype.fields] == ["mama", "fama"]
+        assert all(field.dtype == pl.Float64 for field in dtype.fields)
 
 
 class TestMamaEdge:
@@ -163,6 +163,14 @@ class TestMamaEdge:
         with pytest.raises(ValueError, match="limit_fast must be >= limit_slow"):
             mama(pl.col(COLUMN_X), limit_fast=0.05, limit_slow=0.5)
 
+    def test_single_row(self) -> None:
+        """
+        Verifies behavior on a one-element series: the warm-up is never cleared, so every field is all warm-up.
+        """
+        bands = apply_mama([100.0])
+        for field in FIELDS:
+            assert_matches(bands[field], [None])
+
     def test_all_null(self) -> None:
         """
         Verifies that an all-null series yields an all-null output on both fields.
@@ -170,16 +178,6 @@ class TestMamaEdge:
         bands = apply_mama([None, None, None, None, None])
         for field in FIELDS:
             assert_matches(bands[field], [None, None, None, None, None])
-
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies that, on each line, the leading-null run is exactly ``32`` and every later row is defined.
-        """
-        bands = apply_mama(_SAMPLE)
-        for field in FIELDS:
-            leading_nulls = count_leading_nulls(bands[field])
-            assert leading_nulls == _WARMUP
-            assert all(value is not None for value in bands[field][_WARMUP:])
 
     def test_null_latches(self) -> None:
         """
@@ -203,6 +201,16 @@ class TestMamaEdge:
         for field in FIELDS:
             assert all(value is None for value in bands[field][35:])
             assert_matches(bands[field], reference[field])
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that, on each line, the leading-null run is exactly ``32`` and every later row is defined.
+        """
+        bands = apply_mama(_SAMPLE)
+        for field in FIELDS:
+            leading_nulls = count_leading_nulls(bands[field])
+            assert leading_nulls == _WARMUP
+            assert all(value is not None for value in bands[field][_WARMUP:])
 
     def test_inf_latches(self) -> None:
         """

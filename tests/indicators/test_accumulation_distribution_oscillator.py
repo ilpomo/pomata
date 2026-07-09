@@ -167,46 +167,11 @@ class TestAccumulationDistributionOscillatorEdge:
                 pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), pl.col(VOLUME), window_fast=11, window_slow=10
             )
 
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies that the line is null for the first ``window_slow - 1`` rows (the slow EMA warm-up).
-        """
-        result = apply_accumulation_distribution_oscillator(
-            [10.2, 10.5, 10.7, 10.3], [9.8, 10.0, 10.2, 9.9], [10.0, 10.3, 10.5, 10.1], [100.0, 150.0, 120.0, 200.0]
-        )
-        assert result[:2] == [None, None]
-        assert result[2] is not None
-
     def test_single_row(self) -> None:
         """
         Verifies behavior on a one-element series: the slow EMA warm-up never completes, so the result is null.
         """
         assert_matches(apply_accumulation_distribution_oscillator([10.0], [8.0], [9.0], [100.0]), [None])
-
-    def test_window_equals_length(self) -> None:
-        """
-        Verifies the single defined value when the slow window equals the series length.
-        """
-        high = [10.2, 10.5, 10.7]
-        low = [9.8, 10.0, 10.2]
-        close = [10.0, 10.3, 10.5]
-        volume = [100.0, 150.0, 120.0]
-        assert_matches(
-            apply_accumulation_distribution_oscillator(high, low, close, volume),
-            accumulation_distribution_oscillator_reference(high, low, close, volume, 2, 3),
-        )
-
-    def test_window_exceeds_length(self) -> None:
-        """
-        Verifies that when the longer (slow) window exceeds the series length the result is all-null (the slow EMA
-        warm-up never completes).
-        """
-        assert_matches(
-            apply_accumulation_distribution_oscillator(
-                [10.2, 10.5, 10.7], [9.8, 10.0, 10.2], [10.0, 10.3, 10.5], [100.0, 150.0, 120.0], 2, 5
-            ),
-            [None, None, None],
-        )
 
     def test_all_null(self) -> None:
         """
@@ -238,6 +203,41 @@ class TestAccumulationDistributionOscillatorEdge:
         low = [9.8, 10.0, 10.2, 9.9, 10.3]
         close = [10.0, 10.3, 10.5, 10.1, 10.6]
         volume = [100.0, 150.0, 150.0, 200.0, math.nan]
+        assert_matches(
+            apply_accumulation_distribution_oscillator(high, low, close, volume),
+            accumulation_distribution_oscillator_reference(high, low, close, volume, 2, 3),
+        )
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that the line is null for the first ``window_slow - 1`` rows (the slow EMA warm-up).
+        """
+        result = apply_accumulation_distribution_oscillator(
+            [10.2, 10.5, 10.7, 10.3], [9.8, 10.0, 10.2, 9.9], [10.0, 10.3, 10.5, 10.1], [100.0, 150.0, 120.0, 200.0]
+        )
+        assert result[:2] == [None, None]
+        assert result[2] is not None
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that when the longer (slow) window exceeds the series length the result is all-null (the slow EMA
+        warm-up never completes).
+        """
+        assert_matches(
+            apply_accumulation_distribution_oscillator(
+                [10.2, 10.5, 10.7], [9.8, 10.0, 10.2], [10.0, 10.3, 10.5], [100.0, 150.0, 120.0], 2, 5
+            ),
+            [None, None, None],
+        )
+
+    def test_window_equals_length(self) -> None:
+        """
+        Verifies the single defined value when the slow window equals the series length.
+        """
+        high = [10.2, 10.5, 10.7]
+        low = [9.8, 10.0, 10.2]
+        close = [10.0, 10.3, 10.5]
+        volume = [100.0, 150.0, 120.0]
         assert_matches(
             apply_accumulation_distribution_oscillator(high, low, close, volume),
             accumulation_distribution_oscillator_reference(high, low, close, volume, 2, 3),
@@ -349,22 +349,6 @@ class TestAccumulationDistributionOscillatorProperties:
         )
         assert_scale_homogeneous(scaled, base, k=k, degree=1)
 
-    @given(case=_cases(coherent_hlcv()))
-    def test_warmup_null_count_property(
-        self,
-        case: list[tuple[float, float, float, float]],
-    ) -> None:
-        """
-        Verifies that the leading-null run is exactly ``min(WARMUP, len(values))``.
-        """
-        rows = case
-        high, low, close, volume = split_quads(rows)
-        result = apply_accumulation_distribution_oscillator(high, low, close, volume)
-        leading_nulls = count_leading_nulls(result)
-        # NOTE: ``_cases`` floors the length at ``WARMUP + 1``, so ``min`` always resolves to ``WARMUP``; the form is
-        # kept to state the exact warm-up rule (the leading-null run is never clamped by a too-short series here).
-        assert leading_nulls == min(WARMUP, len(rows))
-
     @given(
         case=_cases(coherent_hlcv()),
         # The bar prices reach 1e3, so the scale tops out at 1e6 (price * scale <= 1e9): the oscillator is a difference
@@ -392,3 +376,19 @@ class TestAccumulationDistributionOscillatorProperties:
             rel_tol=RELATIVE_TOLERANCE_SCALE,
             abs_tol=ABSOLUTE_TOLERANCE_STREAMING,
         )
+
+    @given(case=_cases(coherent_hlcv()))
+    def test_warmup_null_count_property(
+        self,
+        case: list[tuple[float, float, float, float]],
+    ) -> None:
+        """
+        Verifies that the leading-null run is exactly ``min(WARMUP, len(values))``.
+        """
+        rows = case
+        high, low, close, volume = split_quads(rows)
+        result = apply_accumulation_distribution_oscillator(high, low, close, volume)
+        leading_nulls = count_leading_nulls(result)
+        # NOTE: ``_cases`` floors the length at ``WARMUP + 1``, so ``min`` always resolves to ``WARMUP``; the form is
+        # kept to state the exact warm-up rule (the leading-null run is never clamped by a too-short series here).
+        assert leading_nulls == min(WARMUP, len(rows))

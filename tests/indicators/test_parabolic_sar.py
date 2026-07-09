@@ -160,13 +160,11 @@ class TestParabolicSarEdge:
         with pytest.raises(ValueError, match="acceleration must be <= maximum"):
             parabolic_sar(pl.col(HIGH), pl.col(LOW), acceleration=0.10, maximum=0.02)
 
-    def test_warmup_and_seed(self) -> None:
+    def test_single_row(self) -> None:
         """
-        Verifies that row 0 is null (the trend seeds from the first two bars) and row 1 is the seed stop.
+        Verifies that a one-bar series is all warm-up: the stop-and-reverse recurrence needs two bars to seed the trend.
         """
-        result = apply_parabolic_sar([10.0, 11.0, 12.0, 13.0], [9.0, 10.0, 11.0, 12.0])
-        assert result[0] is None
-        assert result[1] == 9.0
+        assert_matches(apply_parabolic_sar([10.0], [9.0]), [None])
 
     def test_all_null(self) -> None:
         """
@@ -175,26 +173,6 @@ class TestParabolicSarEdge:
         assert_matches(
             apply_parabolic_sar([None, None, None, None], [None, None, None, None]), [None, None, None, None]
         )
-
-    def test_single_row(self) -> None:
-        """
-        Verifies that a one-bar series is all warm-up: the stop-and-reverse recurrence needs two bars to seed the trend.
-        """
-        assert_matches(apply_parabolic_sar([10.0], [9.0]), [None])
-
-    def test_reversal_flips_side(self) -> None:
-        """
-        Verifies that the stop trails below price in an up-trend and jumps above it on a reversal.
-        """
-        high = [10.0, 11.0, 12.0, 13.0, 14.0, 13.0, 12.0, 11.0, 10.0, 11.0]
-        low = [9.0, 10.0, 11.0, 12.0, 13.0, 12.0, 11.0, 10.0, 9.0, 10.0]
-        result = apply_parabolic_sar(high, low)
-        # up-trend: the stop sits at or below the bar's low ...
-        assert result[6] is not None
-        assert result[6] <= low[6]
-        # ... then a reversal lifts it above the bar's high.
-        assert result[7] is not None
-        assert result[7] >= high[7]
 
     def test_null_propagates(self) -> None:
         """
@@ -211,6 +189,28 @@ class TestParabolicSarEdge:
         high = [10.0, 11.0, 12.0, 12.0, 14.0, math.nan, 12.0, 11.0]
         low = [9.0, 10.0, 11.0, 12.0, 13.0, 12.0, 11.0, 10.0]
         assert_matches(apply_parabolic_sar(high, low), parabolic_sar_reference(high, low))
+
+    def test_warmup_and_seed(self) -> None:
+        """
+        Verifies that row 0 is null (the trend seeds from the first two bars) and row 1 is the seed stop.
+        """
+        result = apply_parabolic_sar([10.0, 11.0, 12.0, 13.0], [9.0, 10.0, 11.0, 12.0])
+        assert result[0] is None
+        assert result[1] == 9.0
+
+    def test_reversal_flips_side(self) -> None:
+        """
+        Verifies that the stop trails below price in an up-trend and jumps above it on a reversal.
+        """
+        high = [10.0, 11.0, 12.0, 13.0, 14.0, 13.0, 12.0, 11.0, 10.0, 11.0]
+        low = [9.0, 10.0, 11.0, 12.0, 13.0, 12.0, 11.0, 10.0, 9.0, 10.0]
+        result = apply_parabolic_sar(high, low)
+        # up-trend: the stop sits at or below the bar's low ...
+        assert result[6] is not None
+        assert result[6] <= low[6]
+        # ... then a reversal lifts it above the bar's high.
+        assert result[7] is not None
+        assert result[7] >= high[7]
 
 
 class TestParabolicSarCorrectness:

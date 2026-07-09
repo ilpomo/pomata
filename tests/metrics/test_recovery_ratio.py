@@ -59,25 +59,11 @@ class TestRecoveryRatioEdge:
     Boundaries and null / NaN handling.
     """
 
-    def test_single_row_is_nan(self) -> None:
+    def test_single_row(self) -> None:
         """
         Verifies that a one-element series has zero growth and zero drawdown, so the ratio is ``0 / 0``, i.e. ``NaN``.
         """
         assert_matches(apply_expr([1.0], recovery_ratio(pl.col(COLUMN_X))), [math.nan])
-
-    def test_no_drawdown_is_inf(self) -> None:
-        """
-        Verifies that a monotonically rising curve has zero maximum drawdown with positive growth, so the ratio is
-        ``+inf``.
-        """
-        assert_matches(apply_expr([1.0, 1.1, 1.21], recovery_ratio(pl.col(COLUMN_X))), [math.inf])
-
-    def test_losing_curve_is_negative(self) -> None:
-        """
-        Verifies that a curve ending below its start reports a negative recovery factor: the total-return numerator
-        keeps its sign (here ``-0.3``) over the magnitude of the drawdown (``0.3``), giving ``-1.0``.
-        """
-        assert_matches(apply_expr([1.0, 0.9, 0.95, 0.7], recovery_ratio(pl.col(COLUMN_X))), [-1.0])
 
     def test_null_skipped(self) -> None:
         """
@@ -96,6 +82,20 @@ class TestRecoveryRatioEdge:
         Verifies that a NaN equity poisons the result to NaN.
         """
         assert_matches(apply_expr([1.1, math.nan, 1.2], recovery_ratio(pl.col(COLUMN_X))), [math.nan])
+
+    def test_no_drawdown_is_inf(self) -> None:
+        """
+        Verifies that a monotonically rising curve has zero maximum drawdown with positive growth, so the ratio is
+        ``+inf``.
+        """
+        assert_matches(apply_expr([1.0, 1.1, 1.21], recovery_ratio(pl.col(COLUMN_X))), [math.inf])
+
+    def test_losing_curve_is_negative(self) -> None:
+        """
+        Verifies that a curve ending below its start reports a negative recovery factor: the total-return numerator
+        keeps its sign (here ``-0.3``) over the magnitude of the drawdown (``0.3``), giving ``-1.0``.
+        """
+        assert_matches(apply_expr([1.0, 0.9, 0.95, 0.7], recovery_ratio(pl.col(COLUMN_X))), [-1.0])
 
 
 class TestRecoveryRatioCorrectness:

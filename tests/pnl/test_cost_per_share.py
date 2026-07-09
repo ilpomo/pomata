@@ -7,9 +7,9 @@ over a one-column ``Float64`` frame; ``assert_matches`` and the naive ``cost_per
 The cost is degree-1 homogeneous in the quantity, so it carries the scale-homogeneity and large-magnitude tiers.
 
 The ladder is the canonical one: contract (type / shape / lazy-eager / ``.over`` per-group independence), edge
-(flat-start / single-row / null / NaN / negative-fee guard), correctness (vs the closed-form reference and a frozen
-golden master), and properties (reference agreement incl. missing data, scale-homogeneity, large-magnitude). Categories
-are split into classes; cross-cutting categories use markers (see ``tests/README.md``).
+(negative-fee guard / single-row / null / NaN / flat-start / consecutive-infinities), correctness (vs the closed-form
+reference and a frozen golden master), and properties (reference agreement incl. missing data, scale-homogeneity,
+large-magnitude). Categories are split into classes; cross-cutting categories use markers (see ``tests/README.md``).
 """
 
 import math
@@ -88,12 +88,6 @@ class TestCostPerShareEdge:
             with pytest.raises(ValueError, match="fee must be a finite number >= 0"):
                 cost_per_share(pl.col(COLUMN_X), fee=invalid)
 
-    def test_flat_start_first_row(self) -> None:
-        """
-        Verifies the first row is ``|quantity_0| * fee`` (the cost of the entry trade from a flat start).
-        """
-        assert_matches(apply_expr([10.0, 10.0, -5.0], cost_per_share(pl.col(COLUMN_X), fee=FEE)), [0.1, 0.0, 0.15])
-
     def test_single_row(self) -> None:
         """
         Verifies that a one-element series resolves to ``|quantity_0| * fee`` (the entry trade), not null.
@@ -117,6 +111,12 @@ class TestCostPerShareEdge:
         assert_matches(
             apply_expr(values, cost_per_share(pl.col(COLUMN_X), fee=FEE)), cost_per_share_reference(values, FEE)
         )
+
+    def test_flat_start_first_row(self) -> None:
+        """
+        Verifies the first row is ``|quantity_0| * fee`` (the cost of the entry trade from a flat start).
+        """
+        assert_matches(apply_expr([10.0, 10.0, -5.0], cost_per_share(pl.col(COLUMN_X), fee=FEE)), [0.1, 0.0, 0.15])
 
     def test_consecutive_infinities_make_nan(self) -> None:
         """

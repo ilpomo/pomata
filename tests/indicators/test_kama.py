@@ -148,13 +148,11 @@ class TestKamaEdge:
             kama(pl.col(COLUMN_X), window=10, window_fast=30, window_slow=2)
         assert isinstance(kama(pl.col(COLUMN_X), window=10, window_fast=5, window_slow=5), pl.Expr)
 
-    def test_warmup_and_seed(self) -> None:
+    def test_single_row(self) -> None:
         """
-        Verifies that the first ``window - 1`` rows are null and row ``window - 1`` seeds at ``close`` itself.
+        Verifies that a one-element series is all warm-up for any window above one.
         """
-        result = apply_kama([10.0, 11.0, 12.0, 11.0, 13.0], 3)
-        assert result[:2] == [None, None]
-        assert result[2] == 12.0
+        assert_matches(apply_kama([42.0], 3), [None])
 
     def test_all_null(self) -> None:
         """
@@ -162,11 +160,27 @@ class TestKamaEdge:
         """
         assert_matches(apply_kama([None, None, None, None], 3), [None, None, None, None])
 
-    def test_single_row(self) -> None:
+    def test_null_bridged(self) -> None:
         """
-        Verifies that a one-element series is all warm-up for any window above one.
+        Verifies that an interior ``null`` is bridged: the recursion carries its state across the gap.
         """
-        assert_matches(apply_kama([42.0], 3), [None])
+        values = [10.0, 11.0, 12.0, None, 13.0, 14.0, 15.0, 16.0]
+        assert_matches(apply_kama(values, 2), kama_reference(values, 2))
+
+    def test_nan_latches(self) -> None:
+        """
+        Verifies that a NaN propagates (matching the naive reference).
+        """
+        values = [10.0, 11.0, 12.0, 12.5, 13.0, math.nan, 15.0, 16.0]
+        assert_matches(apply_kama(values, 2), kama_reference(values, 2))
+
+    def test_warmup_and_seed(self) -> None:
+        """
+        Verifies that the first ``window - 1`` rows are null and row ``window - 1`` seeds at ``close`` itself.
+        """
+        result = apply_kama([10.0, 11.0, 12.0, 11.0, 13.0], 3)
+        assert result[:2] == [None, None]
+        assert result[2] == 12.0
 
     def test_window_exceeds_length(self) -> None:
         """
@@ -181,13 +195,6 @@ class TestKamaEdge:
         result = apply_kama([5.0, 5.0, 5.0, 5.0], 2)
         assert_matches(result, [None, 5.0, 5.0, 5.0])
 
-    def test_null_bridged(self) -> None:
-        """
-        Verifies that an interior ``null`` is bridged: the recursion carries its state across the gap.
-        """
-        values = [10.0, 11.0, 12.0, None, 13.0, 14.0, 15.0, 16.0]
-        assert_matches(apply_kama(values, 2), kama_reference(values, 2))
-
     def test_interior_null_bridged(self) -> None:
         """
         Verifies the warm-up gate and gap-bridging for an interior ``null`` (``[2, 4, None, 8, 10, 12]``, window 2).
@@ -196,13 +203,6 @@ class TestKamaEdge:
             apply_kama([2.0, 4.0, None, 8.0, 10.0, 12.0], 2),
             [None, 4.0, None, None, None, 7.555555555555554],
         )
-
-    def test_nan_latches(self) -> None:
-        """
-        Verifies that a NaN propagates (matching the naive reference).
-        """
-        values = [10.0, 11.0, 12.0, 12.5, 13.0, math.nan, 15.0, 16.0]
-        assert_matches(apply_kama(values, 2), kama_reference(values, 2))
 
 
 class TestKamaCorrectness:

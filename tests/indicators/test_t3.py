@@ -114,13 +114,12 @@ class TestT3Edge:
             with pytest.raises(ValueError, match="volume_factor must be a finite number"):
                 t3(pl.col(COLUMN_X), 3, volume_factor=invalid)
 
-    def test_warmup_null_count(self) -> None:
+    def test_single_row(self) -> None:
         """
-        Verifies that the first ``6 * (window - 1)`` rows are null and the next is defined.
+        Verifies behavior on a one-element series.
         """
-        result = apply_expr([float(i) for i in range(15)], t3(pl.col(COLUMN_X), 3))
-        assert result[:12] == [None] * 12
-        assert result[12] is not None
+        assert_matches(apply_expr([42.0], t3(pl.col(COLUMN_X), 1)), [42.0])
+        assert_matches(apply_expr([42.0], t3(pl.col(COLUMN_X), 2)), [None])
 
     def test_all_null(self) -> None:
         """
@@ -129,32 +128,6 @@ class TestT3Edge:
         assert_matches(
             apply_expr([None, None, None, None, None], t3(pl.col(COLUMN_X), 3)), [None, None, None, None, None]
         )
-
-    def test_all_zero_series_is_zero(self) -> None:
-        """
-        Verifies the degenerate all-zero window: the recursion stays at zero. This is the case the subnormal-floor note
-        pins here, kept out of the property fuzz by ``subnormal_safe_floats``.
-        """
-        assert_matches(apply_expr([0.0] * 8, t3(pl.col(COLUMN_X), 2)), [None, None, None, None, None, None, 0.0, 0.0])
-
-    def test_window_one_is_identity(self) -> None:
-        """
-        Verifies that ``window == 1`` reproduces the input (every EMA is the identity and the coefficients sum to 1).
-        """
-        assert_matches(apply_expr([1.0, 2.0, 3.0], t3(pl.col(COLUMN_X), 1)), [1.0, 2.0, 3.0])
-
-    def test_window_fills_entire_series_with_warmup(self) -> None:
-        """
-        Verifies that when the ``6 * (window - 1)`` warm-up meets or exceeds the series length the whole output is null.
-        """
-        assert_matches(apply_expr([1.0, 2.0], t3(pl.col(COLUMN_X), 2)), [None, None])
-
-    def test_single_row(self) -> None:
-        """
-        Verifies behavior on a one-element series.
-        """
-        assert_matches(apply_expr([42.0], t3(pl.col(COLUMN_X), 1)), [42.0])
-        assert_matches(apply_expr([42.0], t3(pl.col(COLUMN_X), 2)), [None])
 
     def test_null_bridged(self) -> None:
         """
@@ -168,6 +141,42 @@ class TestT3Edge:
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
+    def test_nan_latches(self) -> None:
+        """
+        Verifies that a ``NaN`` poisons the recursion and latches for every subsequent value.
+        """
+        assert_matches(
+            apply_expr([1.0, math.nan, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0], t3(pl.col(COLUMN_X), 2)),
+            [None, None, None, None, None, None, math.nan, math.nan, math.nan, math.nan],
+        )
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that the first ``6 * (window - 1)`` rows are null and the next is defined.
+        """
+        result = apply_expr([float(i) for i in range(15)], t3(pl.col(COLUMN_X), 3))
+        assert result[:12] == [None] * 12
+        assert result[12] is not None
+
+    def test_window_one_is_identity(self) -> None:
+        """
+        Verifies that ``window == 1`` reproduces the input (every EMA is the identity and the coefficients sum to 1).
+        """
+        assert_matches(apply_expr([1.0, 2.0, 3.0], t3(pl.col(COLUMN_X), 1)), [1.0, 2.0, 3.0])
+
+    def test_all_zero_series_is_zero(self) -> None:
+        """
+        Verifies the degenerate all-zero window: the recursion stays at zero. This is the case the subnormal-floor note
+        pins here, kept out of the property fuzz by ``subnormal_safe_floats``.
+        """
+        assert_matches(apply_expr([0.0] * 8, t3(pl.col(COLUMN_X), 2)), [None, None, None, None, None, None, 0.0, 0.0])
+
+    def test_window_fills_entire_series_with_warmup(self) -> None:
+        """
+        Verifies that when the ``6 * (window - 1)`` warm-up meets or exceeds the series length the whole output is null.
+        """
+        assert_matches(apply_expr([1.0, 2.0], t3(pl.col(COLUMN_X), 2)), [None, None])
+
     def test_interior_null_bridged(self) -> None:
         """
         Verifies that an interior ``null`` yields ``null`` at its position while the recursion bridges the gap.
@@ -177,15 +186,6 @@ class TestT3Edge:
             [None, None, None, None, None, None, None, 15.14916985651142, 17.11616757027457, 19.104042047403723],
             rel_tol=RELATIVE_TOLERANCE_REFERENCE,
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
-        )
-
-    def test_nan_latches(self) -> None:
-        """
-        Verifies that a ``NaN`` poisons the recursion and latches for every subsequent value.
-        """
-        assert_matches(
-            apply_expr([1.0, math.nan, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0], t3(pl.col(COLUMN_X), 2)),
-            [None, None, None, None, None, None, math.nan, math.nan, math.nan, math.nan],
         )
 
 
@@ -231,7 +231,7 @@ class TestT3Correctness:
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
-    def test_golden_master_adjust(self) -> None:
+    def test_golden_master_adjusted(self) -> None:
         """
         Verifies the frozen adjusted reference: T3(window=2, adjust=True) over [2, 4, ..., 20].
         """
@@ -242,7 +242,7 @@ class TestT3Correctness:
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
-    def test_constant_series_is_constant(self) -> None:
+    def test_constant_series(self) -> None:
         """
         Verifies that T3 of a constant series equals that constant once warmed up.
         """
@@ -318,19 +318,6 @@ class TestT3Properties:
         result_scaled = apply_expr(scaled_values, t3(pl.col(COLUMN_X), window))
         assert_scale_homogeneous(result_scaled, result_base, k=k, degree=1)
 
-    @given(case=_cases(subnormal_safe_floats(1e6)))
-    def test_warmup_null_count_property(
-        self,
-        case: tuple[list[float], int],
-    ) -> None:
-        """
-        Verifies that the leading-null run is exactly ``min(6 * (window - 1), len(values))``.
-        """
-        values, window = case
-        result = apply_expr(values, t3(pl.col(COLUMN_X), window))
-        leading_nulls = count_leading_nulls(result)
-        assert leading_nulls == min(6 * (window - 1), len(values))
-
     @given(
         case=_cases(st.floats(min_value=1e-3, max_value=1.0, allow_nan=False, allow_infinity=False)),
         scale=st.sampled_from([1e-6, 1e6, 1e9]),
@@ -351,3 +338,16 @@ class TestT3Properties:
             rel_tol=RELATIVE_TOLERANCE_SCALE,
             abs_tol=input_scale(scaled_values) * EXACT_TOLERANCE_FACTOR,
         )
+
+    @given(case=_cases(subnormal_safe_floats(1e6)))
+    def test_warmup_null_count_property(
+        self,
+        case: tuple[list[float], int],
+    ) -> None:
+        """
+        Verifies that the leading-null run is exactly ``min(6 * (window - 1), len(values))``.
+        """
+        values, window = case
+        result = apply_expr(values, t3(pl.col(COLUMN_X), window))
+        leading_nulls = count_leading_nulls(result)
+        assert leading_nulls == min(6 * (window - 1), len(values))

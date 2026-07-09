@@ -8,10 +8,10 @@ rate``, so it inherits the flat start and turnover's null / NaN rule and adds th
 so it carries the scale-homogeneity and large-magnitude tiers.
 
 The ladder is the canonical one: contract (type / shape / lazy-eager / ``.over`` per-group independence), edge
-(flat-start / single-row / null / NaN / consecutive-infinities / negative-rate guard), correctness (vs the
-closed-form reference and a frozen golden master), and properties (reference agreement incl. missing data,
-scale-homogeneity, large-magnitude). Categories
-are split into classes; cross-cutting categories use markers (see ``tests/README.md``).
+(negative-rate guard / single-row / null / null-precedence / NaN / flat-start / consecutive-infinities), correctness
+(vs the closed-form reference and a frozen golden master), and properties (reference agreement incl. missing data,
+scale-homogeneity, large-magnitude). Categories are split into classes; cross-cutting categories use markers (see
+``tests/README.md``).
 """
 
 import math
@@ -117,12 +117,6 @@ class TestCostNotionalEdge:
             with pytest.raises(ValueError, match="rate must be a finite number >= 0"):
                 cost_notional(pl.col(QUANTITY), pl.col(PRICE), rate=invalid)
 
-    def test_flat_start_first_row(self) -> None:
-        """
-        Verifies the first row charges on ``|quantity_0| * price_0`` (the entry trade from a flat start).
-        """
-        assert_matches(apply_cost_notional([10.0, 10.0, -5.0], [100.0, 102.0, 101.0]), [1.0, 0.0, 1.515])
-
     def test_single_row(self) -> None:
         """
         Verifies that a one-row series charges on the entry trade (not null).
@@ -137,6 +131,12 @@ class TestCostNotionalEdge:
         price = [100.0, 102.0, 101.0, 104.0]
         assert_matches(apply_cost_notional(quantity, price), cost_notional_reference(quantity, price, RATE))
 
+    def test_null_takes_precedence_over_nan(self) -> None:
+        """
+        Verifies that a row with a ``null`` in one input and a ``NaN`` in the other yields ``null``.
+        """
+        assert_matches(apply_cost_notional([10.0, None], [100.0, math.nan]), [1.0, None])
+
     def test_nan_propagates(self) -> None:
         """
         Verifies that a ``NaN`` propagates to the rows that reference it (matching the reference).
@@ -144,6 +144,12 @@ class TestCostNotionalEdge:
         quantity = [10.0, 10.0, -5.0, 20.0]
         price = [100.0, 102.0, math.nan, 104.0]
         assert_matches(apply_cost_notional(quantity, price), cost_notional_reference(quantity, price, RATE))
+
+    def test_flat_start_first_row(self) -> None:
+        """
+        Verifies the first row charges on ``|quantity_0| * price_0`` (the entry trade from a flat start).
+        """
+        assert_matches(apply_cost_notional([10.0, 10.0, -5.0], [100.0, 102.0, 101.0]), [1.0, 0.0, 1.515])
 
     def test_consecutive_infinities_make_nan(self) -> None:
         """

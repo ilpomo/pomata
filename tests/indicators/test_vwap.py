@@ -105,11 +105,31 @@ class TestVwapEdge:
     Zero / negative volume, single-row, null and NaN handling.
     """
 
+    def test_single_row(self) -> None:
+        """
+        Verifies a one-element series: VWAP is the bar's typical price (positive volume) or ``NaN`` (zero volume).
+        """
+        assert_matches(apply_vwap([2.0], [0.0], [1.0], [10.0]), [1.0])
+        zero = apply_vwap([2.0], [0.0], [1.0], [0.0])[0]
+        assert zero is not None
+        assert math.isnan(zero)
+
     def test_all_null(self) -> None:
         """
         Verifies that an all-null input yields an all-null output (every contribution and the cumulative volume null).
         """
         assert_matches(apply_vwap([None, None], [None, None], [None, None], [None, None]), [None, None])
+
+    def test_null_and_nan_follow_the_cumulative_sums(self) -> None:
+        """
+        Verifies that a ``null`` (carried across) and a ``NaN`` (poisoning the rest) flow through exactly as the
+        reference cumulative sums say.
+        """
+        high = [2.0, None, 6.0, 8.0, math.nan, 12.0]
+        low = [0.0, 2.0, 4.0, 6.0, 8.0, 10.0]
+        close = [1.0, 3.0, 5.0, 7.0, 9.0, 11.0]
+        volume = [10.0, 20.0, 30.0, 40.0, 50.0, 60.0]
+        assert_matches(apply_vwap(high, low, close, volume), vwap_reference(high, low, close, volume))
 
     def test_zero_volume_head_is_nan(self) -> None:
         """
@@ -141,26 +161,6 @@ class TestVwapEdge:
         low = [0.0, 2.0, 4.0]
         close = [1.0, 3.0, 5.0]
         volume = [10.0, -20.0, 30.0]
-        assert_matches(apply_vwap(high, low, close, volume), vwap_reference(high, low, close, volume))
-
-    def test_single_row(self) -> None:
-        """
-        Verifies a one-element series: VWAP is the bar's typical price (positive volume) or ``NaN`` (zero volume).
-        """
-        assert_matches(apply_vwap([2.0], [0.0], [1.0], [10.0]), [1.0])
-        zero = apply_vwap([2.0], [0.0], [1.0], [0.0])[0]
-        assert zero is not None
-        assert math.isnan(zero)
-
-    def test_null_and_nan_follow_the_cumulative_sums(self) -> None:
-        """
-        Verifies that a ``null`` (carried across) and a ``NaN`` (poisoning the rest) flow through exactly as the
-        reference cumulative sums say.
-        """
-        high = [2.0, None, 6.0, 8.0, math.nan, 12.0]
-        low = [0.0, 2.0, 4.0, 6.0, 8.0, 10.0]
-        close = [1.0, 3.0, 5.0, 7.0, 9.0, 11.0]
-        volume = [10.0, 20.0, 30.0, 40.0, 50.0, 60.0]
         assert_matches(apply_vwap(high, low, close, volume), vwap_reference(high, low, close, volume))
 
 
@@ -207,48 +207,6 @@ class TestVwapProperties:
             rel_tol=RELATIVE_TOLERANCE_PROPERTY,
             abs_tol=input_scale(close) * EXACT_TOLERANCE_FACTOR,
         )
-
-    @given(rows=_cases(coherent_hlcv()))
-    def test_within_typical_range(
-        self,
-        rows: list[tuple[float, float, float, float]],
-    ) -> None:
-        """
-        Verifies the convex-combination bound: with positive volume the VWAP lies between the minimum and maximum
-        typical price seen so far (a true invariant -- it is a weighted average of those typicals).
-        """
-        high, low, close, volume = split_quads(rows)
-        result = apply_vwap(high, low, close, volume)
-        typical = [(h + low_value + c) / 3.0 for h, low_value, c in zip(high, low, close, strict=True)]
-        for index, value in enumerate(result):
-            assert value is not None
-            prefix = typical[: index + 1]
-            assert min(prefix) - 1e-9 <= value <= max(prefix) + 1e-9
-
-    @given(rows=_cases(coherent_hlcv()))
-    def test_per_session_independence(
-        self,
-        rows: list[tuple[float, float, float, float]],
-    ) -> None:
-        """
-        Verifies the anchoring semantics: two sessions concatenated and run under ``.over`` reproduce each session
-        computed alone, concatenated.
-        """
-        high, low, close, volume = split_quads(rows)
-        alone = apply_vwap(high, low, close, volume)
-        frame = pl.DataFrame(
-            {
-                "session": ["a"] * len(rows) + ["b"] * len(rows),
-                HIGH: pl.Series(high + high, dtype=pl.Float64),
-                LOW: pl.Series(low + low, dtype=pl.Float64),
-                CLOSE: pl.Series(close + close, dtype=pl.Float64),
-                VOLUME: pl.Series(volume + volume, dtype=pl.Float64),
-            }
-        )
-        over = frame.select(vwap(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), pl.col(VOLUME)).over("session").alias("y"))[
-            "y"
-        ].to_list()
-        assert_matches(over, alone + alone)
 
     @given(rows=_cases(coherent_hlcv_with_missing()))
     def test_matches_reference_under_missing_data(
@@ -329,3 +287,45 @@ class TestVwapProperties:
             rel_tol=RELATIVE_TOLERANCE_SCALE,
             abs_tol=input_scale(close) * EXACT_TOLERANCE_FACTOR,
         )
+
+    @given(rows=_cases(coherent_hlcv()))
+    def test_within_typical_range(
+        self,
+        rows: list[tuple[float, float, float, float]],
+    ) -> None:
+        """
+        Verifies the convex-combination bound: with positive volume the VWAP lies between the minimum and maximum
+        typical price seen so far (a true invariant -- it is a weighted average of those typicals).
+        """
+        high, low, close, volume = split_quads(rows)
+        result = apply_vwap(high, low, close, volume)
+        typical = [(h + low_value + c) / 3.0 for h, low_value, c in zip(high, low, close, strict=True)]
+        for index, value in enumerate(result):
+            assert value is not None
+            prefix = typical[: index + 1]
+            assert min(prefix) - 1e-9 <= value <= max(prefix) + 1e-9
+
+    @given(rows=_cases(coherent_hlcv()))
+    def test_per_session_independence(
+        self,
+        rows: list[tuple[float, float, float, float]],
+    ) -> None:
+        """
+        Verifies the anchoring semantics: two sessions concatenated and run under ``.over`` reproduce each session
+        computed alone, concatenated.
+        """
+        high, low, close, volume = split_quads(rows)
+        alone = apply_vwap(high, low, close, volume)
+        frame = pl.DataFrame(
+            {
+                "session": ["a"] * len(rows) + ["b"] * len(rows),
+                HIGH: pl.Series(high + high, dtype=pl.Float64),
+                LOW: pl.Series(low + low, dtype=pl.Float64),
+                CLOSE: pl.Series(close + close, dtype=pl.Float64),
+                VOLUME: pl.Series(volume + volume, dtype=pl.Float64),
+            }
+        )
+        over = frame.select(vwap(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), pl.col(VOLUME)).over("session").alias("y"))[
+            "y"
+        ].to_list()
+        assert_matches(over, alone + alone)

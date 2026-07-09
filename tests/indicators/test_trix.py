@@ -97,20 +97,6 @@ class TestTrixEdge:
         with pytest.raises(ValueError, match="window must be >= 1"):
             trix(pl.col(COLUMN_X), 0)
 
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies the warm-up is ``3 * (window - 1) + 1`` rows (three chained EMAs plus the one-period rate of change).
-        """
-        result = apply_expr([10.0, 11.0, 12.0, 13.0, 14.0, 15.0], trix(pl.col(COLUMN_X), 2))
-        assert result[:4] == [None, None, None, None]
-        assert result[4] is not None
-
-    def test_window_exceeds_length(self) -> None:
-        """
-        Verifies that when ``window`` exceeds the series length the whole output is null (the chain never warms up).
-        """
-        assert_matches(apply_expr([1.0, 2.0, 3.0], trix(pl.col(COLUMN_X), 5)), [None, None, None])
-
     def test_single_row(self) -> None:
         """
         Verifies behavior on a one-element series: the lone value is always warm-up.
@@ -136,6 +122,20 @@ class TestTrixEdge:
         """
         values = [10.0, 11.0, 12.0, 12.0, 14.0, math.nan, 16.0, 17.0]
         assert_matches(apply_expr(values, trix(pl.col(COLUMN_X), 2)), trix_reference(values, 2))
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies the warm-up is ``3 * (window - 1) + 1`` rows (three chained EMAs plus the one-period rate of change).
+        """
+        result = apply_expr([10.0, 11.0, 12.0, 13.0, 14.0, 15.0], trix(pl.col(COLUMN_X), 2))
+        assert result[:4] == [None, None, None, None]
+        assert result[4] is not None
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that when ``window`` exceeds the series length the whole output is null (the chain never warms up).
+        """
+        assert_matches(apply_expr([1.0, 2.0, 3.0], trix(pl.col(COLUMN_X), 5)), [None, None, None])
 
 
 class TestTrixCorrectness:

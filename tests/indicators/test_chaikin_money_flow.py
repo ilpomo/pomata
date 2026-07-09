@@ -164,6 +164,74 @@ class TestChaikinMoneyFlowEdge:
         with pytest.raises(ValueError, match="window must be >= 1"):
             chaikin_money_flow(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), pl.col(VOLUME), 0)
 
+    def test_single_row(self) -> None:
+        """
+        Verifies behavior on a one-element series.
+        """
+        assert_matches(apply_chaikin_money_flow([10.0], [8.0], [10.0], [100.0], 1), [1.0])
+        assert_matches(apply_chaikin_money_flow([10.0], [8.0], [10.0], [100.0], 3), [None])
+
+    def test_all_null(self) -> None:
+        """
+        Verifies that an all-null input yields all ``null``.
+        """
+        assert_matches(
+            apply_chaikin_money_flow([None, None, None], [None, None, None], [None, None, None], [None, None, None], 2),
+            [None, None, None],
+        )
+
+    def test_null_in_high_propagates(self) -> None:
+        """
+        Verifies that a ``null`` in a ``high`` bar yields ``null`` for every window that contains it.
+        """
+        high_values = [10.0, None, 11.0, 13.0]
+        low_values = [8.0, 9.0, 9.0, 10.0]
+        close_values = [9.0, 11.0, 10.0, 12.0]
+        volume_values = [100.0, 200.0, 150.0, 300.0]
+        assert_matches(
+            apply_chaikin_money_flow(high_values, low_values, close_values, volume_values, 2),
+            chaikin_money_flow_reference(high_values, low_values, close_values, volume_values, 2),
+        )
+
+    def test_null_in_volume_propagates(self) -> None:
+        """
+        Verifies that a ``null`` in a ``volume`` bar yields ``null`` for every window that contains it.
+        """
+        high_values = [10.0, 12.0, 11.0, 13.0]
+        low_values = [8.0, 9.0, 9.0, 10.0]
+        close_values = [9.0, 11.0, 10.0, 12.0]
+        volume_values = [100.0, None, 150.0, 300.0]
+        assert_matches(
+            apply_chaikin_money_flow(high_values, low_values, close_values, volume_values, 2),
+            chaikin_money_flow_reference(high_values, low_values, close_values, volume_values, 2),
+        )
+
+    def test_null_takes_precedence_over_nan(self) -> None:
+        """
+        Verifies that a window containing both a ``null`` and a ``NaN`` yields ``null`` (``null`` precedence).
+        """
+        high_values = [10.0, 12.0, 11.0]
+        low_values = [8.0, 9.0, 9.0]
+        close_values = [math.nan, 11.0, 10.0]
+        volume_values = [100.0, None, 150.0]
+        assert_matches(
+            apply_chaikin_money_flow(high_values, low_values, close_values, volume_values, 3),
+            chaikin_money_flow_reference(high_values, low_values, close_values, volume_values, 3),
+        )
+
+    def test_nan_in_close_propagates(self) -> None:
+        """
+        Verifies that a ``NaN`` in a ``close`` bar yields ``NaN`` for every window that contains it (no ``null``).
+        """
+        high_values = [10.0, 12.0, 11.0, 13.0]
+        low_values = [8.0, 9.0, 9.0, 10.0]
+        close_values = [9.0, math.nan, 10.0, 12.0]
+        volume_values = [100.0, 200.0, 150.0, 300.0]
+        assert_matches(
+            apply_chaikin_money_flow(high_values, low_values, close_values, volume_values, 2),
+            chaikin_money_flow_reference(high_values, low_values, close_values, volume_values, 2),
+        )
+
     def test_warmup_null_count(self) -> None:
         """
         Verifies that the first ``window - 1`` rows are null and the first full window is defined.
@@ -178,12 +246,14 @@ class TestChaikinMoneyFlowEdge:
         assert result[:2] == [None, None]
         assert result[2] is not None
 
-    def test_single_row(self) -> None:
+    def test_window_exceeds_length(self) -> None:
         """
-        Verifies behavior on a one-element series.
+        Verifies that a window longer than the series yields an all-null result (the warm-up never completes).
         """
-        assert_matches(apply_chaikin_money_flow([10.0], [8.0], [10.0], [100.0], 1), [1.0])
-        assert_matches(apply_chaikin_money_flow([10.0], [8.0], [10.0], [100.0], 3), [None])
+        assert_matches(
+            apply_chaikin_money_flow([10.0, 12.0, 11.0], [8.0, 9.0, 9.0], [9.0, 11.0, 10.0], [100.0, 200.0, 150.0], 5),
+            [None, None, None],
+        )
 
     def test_window_equals_length(self) -> None:
         """
@@ -196,24 +266,6 @@ class TestChaikinMoneyFlowEdge:
         assert_matches(
             apply_chaikin_money_flow(high_values, low_values, close_values, volume_values, 3),
             chaikin_money_flow_reference(high_values, low_values, close_values, volume_values, 3),
-        )
-
-    def test_window_exceeds_length(self) -> None:
-        """
-        Verifies that a window longer than the series yields an all-null result (the warm-up never completes).
-        """
-        assert_matches(
-            apply_chaikin_money_flow([10.0, 12.0, 11.0], [8.0, 9.0, 9.0], [9.0, 11.0, 10.0], [100.0, 200.0, 150.0], 5),
-            [None, None, None],
-        )
-
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null input yields all ``null``.
-        """
-        assert_matches(
-            apply_chaikin_money_flow([None, None, None], [None, None, None], [None, None, None], [None, None, None], 2),
-            [None, None, None],
         )
 
     def test_all_nan(self) -> None:
@@ -306,58 +358,6 @@ class TestChaikinMoneyFlowEdge:
             [None, None, math.nan],
         )
 
-    def test_null_in_high_propagates(self) -> None:
-        """
-        Verifies that a ``null`` in a ``high`` bar yields ``null`` for every window that contains it.
-        """
-        high_values = [10.0, None, 11.0, 13.0]
-        low_values = [8.0, 9.0, 9.0, 10.0]
-        close_values = [9.0, 11.0, 10.0, 12.0]
-        volume_values = [100.0, 200.0, 150.0, 300.0]
-        assert_matches(
-            apply_chaikin_money_flow(high_values, low_values, close_values, volume_values, 2),
-            chaikin_money_flow_reference(high_values, low_values, close_values, volume_values, 2),
-        )
-
-    def test_null_in_volume_propagates(self) -> None:
-        """
-        Verifies that a ``null`` in a ``volume`` bar yields ``null`` for every window that contains it.
-        """
-        high_values = [10.0, 12.0, 11.0, 13.0]
-        low_values = [8.0, 9.0, 9.0, 10.0]
-        close_values = [9.0, 11.0, 10.0, 12.0]
-        volume_values = [100.0, None, 150.0, 300.0]
-        assert_matches(
-            apply_chaikin_money_flow(high_values, low_values, close_values, volume_values, 2),
-            chaikin_money_flow_reference(high_values, low_values, close_values, volume_values, 2),
-        )
-
-    def test_nan_in_close_propagates(self) -> None:
-        """
-        Verifies that a ``NaN`` in a ``close`` bar yields ``NaN`` for every window that contains it (no ``null``).
-        """
-        high_values = [10.0, 12.0, 11.0, 13.0]
-        low_values = [8.0, 9.0, 9.0, 10.0]
-        close_values = [9.0, math.nan, 10.0, 12.0]
-        volume_values = [100.0, 200.0, 150.0, 300.0]
-        assert_matches(
-            apply_chaikin_money_flow(high_values, low_values, close_values, volume_values, 2),
-            chaikin_money_flow_reference(high_values, low_values, close_values, volume_values, 2),
-        )
-
-    def test_null_takes_precedence_over_nan(self) -> None:
-        """
-        Verifies that a window containing both a ``null`` and a ``NaN`` yields ``null`` (``null`` precedence).
-        """
-        high_values = [10.0, 12.0, 11.0]
-        low_values = [8.0, 9.0, 9.0]
-        close_values = [math.nan, 11.0, 10.0]
-        volume_values = [100.0, None, 150.0]
-        assert_matches(
-            apply_chaikin_money_flow(high_values, low_values, close_values, volume_values, 3),
-            chaikin_money_flow_reference(high_values, low_values, close_values, volume_values, 3),
-        )
-
 
 class TestChaikinMoneyFlowCorrectness:
     """
@@ -420,23 +420,6 @@ class TestChaikinMoneyFlowProperties:
             rel_tol=RELATIVE_TOLERANCE_PROPERTY,
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
-
-    @given(case=_cases(well_formed_bar()))
-    def test_bounded_in_unit_interval(
-        self,
-        case: tuple[list[tuple[float, float, float, float]], int],
-    ) -> None:
-        """
-        Verifies that with well-formed bars (``low <= close <= high``) and positive volume the CMF lies in
-        ``[-1, +1]``, since it is a volume-weighted average of multipliers that are each in ``[-1, +1]``.
-        """
-        rows, window = case
-        high_values, low_values, close_values, volume_values = split_quads(rows)
-        result = apply_chaikin_money_flow(high_values, low_values, close_values, volume_values, window)
-        for value in result:
-            if value is None:
-                continue
-            assert -1.0 - BOUND_MARGIN <= value <= 1.0 + BOUND_MARGIN
 
     @given(case=_cases(coherent_hlcv_with_missing()))
     def test_matches_reference_under_missing_data(
@@ -507,6 +490,23 @@ class TestChaikinMoneyFlowProperties:
             high_values, low_values, close_values, [value * c for value in volume_values], window
         )
         assert_scale_homogeneous(result_scaled, result_base, k=c, degree=0)
+
+    @given(case=_cases(well_formed_bar()))
+    def test_bounded(
+        self,
+        case: tuple[list[tuple[float, float, float, float]], int],
+    ) -> None:
+        """
+        Verifies that with well-formed bars (``low <= close <= high``) and positive volume the CMF lies in
+        ``[-1, +1]``, since it is a volume-weighted average of multipliers that are each in ``[-1, +1]``.
+        """
+        rows, window = case
+        high_values, low_values, close_values, volume_values = split_quads(rows)
+        result = apply_chaikin_money_flow(high_values, low_values, close_values, volume_values, window)
+        for value in result:
+            if value is None:
+                continue
+            assert -1.0 - BOUND_MARGIN <= value <= 1.0 + BOUND_MARGIN
 
     @given(case=_cases(well_formed_bar()))
     def test_warmup_null_count_property(

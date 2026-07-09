@@ -58,11 +58,12 @@ class TestCommonSenseRatioEdge:
     Boundaries and null / NaN handling.
     """
 
-    def test_no_losses_is_inf(self) -> None:
+    def test_single_row(self) -> None:
         """
-        Verifies that an all-positive series has no loss, so the profit factor diverges and the ratio is ``+inf``.
+        Verifies that a one-element negative series has no gain, so the profit factor is ``0`` and (with a tail ratio
+        of ``1``) the ratio is ``0``.
         """
-        assert_matches(apply_expr([0.01, 0.02, 0.03], common_sense_ratio(pl.col(COLUMN_X))), [math.inf])
+        assert_matches(apply_expr([-0.02], common_sense_ratio(pl.col(COLUMN_X))), [0.0])
 
     def test_null_skipped(self) -> None:
         """
@@ -80,6 +81,12 @@ class TestCommonSenseRatioEdge:
         Verifies that a NaN return poisons the result to NaN.
         """
         assert_matches(apply_expr([0.01, math.nan, -0.02, 0.03], common_sense_ratio(pl.col(COLUMN_X))), [math.nan])
+
+    def test_no_losses_is_inf(self) -> None:
+        """
+        Verifies that an all-positive series has no loss, so the profit factor diverges and the ratio is ``+inf``.
+        """
+        assert_matches(apply_expr([0.01, 0.02, 0.03], common_sense_ratio(pl.col(COLUMN_X))), [math.inf])
 
 
 class TestCommonSenseRatioCorrectness:

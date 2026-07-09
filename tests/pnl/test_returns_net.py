@@ -8,7 +8,7 @@ degree-1 homogeneous when both inputs are scaled together, so it carries the sca
 tiers.
 
 The ladder, adapted to an elementwise two-input difference: contract (type / shape / lazy-eager / ``.over`` identity),
-edge (empty / single-row / null / NaN / null-precedence), correctness (closed-form reference + frozen golden master),
+edge (empty / single-row / null / null-precedence / NaN), correctness (closed-form reference + frozen golden master),
 and properties (reference agreement incl. missing data, scale-homogeneity, large-magnitude). Categories are split into
 classes; cross-cutting categories use markers (see ``tests/README.md``).
 """
@@ -121,6 +121,13 @@ class TestReturnsNetEdge:
         cost = [0.0005, 0.0015, 0.0005, 0.0]
         assert_matches(apply_returns_net(returns_gross, cost), returns_net_reference(returns_gross, cost))
 
+    def test_null_takes_precedence_over_nan(self) -> None:
+        """
+        Verifies that a row with a ``null`` in one input and a ``NaN`` in the other yields ``null`` — ``null`` takes
+        precedence over ``NaN``.
+        """
+        assert_matches(apply_returns_net([None, 0.05], [math.nan, 0.0005]), [None, 0.0495])
+
     def test_nan_propagates(self) -> None:
         """
         Verifies that a ``NaN`` in either input makes that row ``NaN`` (matching the naive reference).
@@ -128,13 +135,6 @@ class TestReturnsNetEdge:
         returns_gross = [0.05, 0.02, math.nan, 0.01]
         cost = [0.0005, 0.0015, 0.0005, 0.0]
         assert_matches(apply_returns_net(returns_gross, cost), returns_net_reference(returns_gross, cost))
-
-    def test_null_takes_precedence_over_nan(self) -> None:
-        """
-        Verifies that a row with a ``null`` in one input and a ``NaN`` in the other yields ``null`` — ``null`` takes
-        precedence over ``NaN``.
-        """
-        assert_matches(apply_returns_net([None, 0.05], [math.nan, 0.0005]), [None, 0.0495])
 
 
 class TestReturnsNetCorrectness:

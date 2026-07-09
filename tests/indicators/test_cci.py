@@ -122,6 +122,60 @@ class TestCciEdge:
         with pytest.raises(ValueError, match="window must be >= 1"):
             cci(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), 0)
 
+    def test_single_row(self) -> None:
+        """
+        Verifies behavior on a one-element series.
+        """
+        assert_matches(apply_cci([10.0], [8.0], [9.0], 1), [math.nan])
+        assert_matches(apply_cci([10.0], [8.0], [9.0], 3), [None])
+
+    def test_all_null(self) -> None:
+        """
+        Verifies that an all-null series yields all ``null``.
+        """
+        assert_matches(apply_cci([None, None, None], [None, None, None], [None, None, None], 2), [None, None, None])
+
+    def test_null_in_window_is_null(self) -> None:
+        """
+        Verifies that a ``null`` in any leg taints exactly the windows (and shifts) that reach it.
+        """
+        high_values = [10.0, 12.0, 11.0, 13.0]
+        low_values = [8.0, 9.0, 9.0, 10.0]
+        close_values = [9.0, None, 10.0, 12.0]
+        assert_matches(
+            apply_cci(high_values, low_values, close_values, 2),
+            cci_reference(high_values, low_values, close_values, 2),
+        )
+        assert_matches(apply_cci(high_values, low_values, close_values, 2), [None, None, None, 66.66666666666674])
+
+    def test_null_takes_precedence_over_nan(self) -> None:
+        """
+        Verifies that a window reaching both a ``null`` and a ``NaN`` yields ``null`` (``null`` takes precedence).
+        """
+        high_values = [10.0, 12.0, math.nan, 13.0]
+        low_values = [8.0, None, 9.0, 10.0]
+        close_values = [9.0, 11.0, 10.0, 12.0]
+        assert_matches(
+            apply_cci(high_values, low_values, close_values, 3),
+            cci_reference(high_values, low_values, close_values, 3),
+        )
+
+    def test_nan_propagates(self) -> None:
+        """
+        Verifies that a ``NaN`` in any leg yields ``NaN`` for exactly the windows it reaches (no ``null`` present).
+        """
+        high_values = [10.0, 12.0, math.nan, 13.0, 15.0]
+        low_values = [8.0, 9.0, 9.0, 10.0, 12.0]
+        close_values = [9.0, 11.0, 10.0, 12.0, 14.0]
+        assert_matches(
+            apply_cci(high_values, low_values, close_values, 2),
+            cci_reference(high_values, low_values, close_values, 2),
+        )
+        assert_matches(
+            apply_cci(high_values, low_values, close_values, 2),
+            [None, 66.66666666666674, math.nan, math.nan, 66.66666666666667],
+        )
+
     def test_warmup_null_count(self) -> None:
         """
         Verifies that the first ``window - 1`` rows are ``null`` (warm-up) and the first full window is defined.
@@ -132,15 +186,11 @@ class TestCciEdge:
         assert result[:2] == [None, None]
         assert result[2] is not None
 
-    def test_window_one_is_nan(self) -> None:
+    def test_window_exceeds_length(self) -> None:
         """
-        Verifies that ``window == 1`` yields ``NaN`` everywhere: the typical price equals its own one-point mean, so the
-        numerator and the mean deviation are both zero (the ``0 / 0`` denominator boundary).
+        Verifies that a window longer than the series leaves every position in warm-up (all ``null``).
         """
-        assert_matches(
-            apply_cci([10.0, 12.0, 11.0], [8.0, 9.0, 9.0], [9.0, 11.0, 10.0], 1),
-            [math.nan, math.nan, math.nan],
-        )
+        assert_matches(apply_cci([10.0, 12.0], [8.0, 9.0], [9.0, 11.0], 5), [None, None])
 
     def test_window_equals_length(self) -> None:
         """
@@ -154,18 +204,15 @@ class TestCciEdge:
             cci_reference(high_values, low_values, close_values, 3),
         )
 
-    def test_window_exceeds_length(self) -> None:
+    def test_window_one_is_nan(self) -> None:
         """
-        Verifies that a window longer than the series leaves every position in warm-up (all ``null``).
+        Verifies that ``window == 1`` yields ``NaN`` everywhere: the typical price equals its own one-point mean, so the
+        numerator and the mean deviation are both zero (the ``0 / 0`` denominator boundary).
         """
-        assert_matches(apply_cci([10.0, 12.0], [8.0, 9.0], [9.0, 11.0], 5), [None, None])
-
-    def test_single_row(self) -> None:
-        """
-        Verifies behavior on a one-element series.
-        """
-        assert_matches(apply_cci([10.0], [8.0], [9.0], 1), [math.nan])
-        assert_matches(apply_cci([10.0], [8.0], [9.0], 3), [None])
+        assert_matches(
+            apply_cci([10.0, 12.0, 11.0], [8.0, 9.0, 9.0], [9.0, 11.0, 10.0], 1),
+            [math.nan, math.nan, math.nan],
+        )
 
     def test_constant_series_is_nan(self) -> None:
         """
@@ -187,12 +234,6 @@ class TestCciEdge:
             [None, None, math.nan, math.nan, math.nan],
         )
 
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null series yields all ``null``.
-        """
-        assert_matches(apply_cci([None, None, None], [None, None, None], [None, None, None], 2), [None, None, None])
-
     def test_all_nan(self) -> None:
         """
         Verifies that an all-NaN series yields ``null`` during warm-up then ``NaN``.
@@ -201,19 +242,6 @@ class TestCciEdge:
             apply_cci([math.nan] * 3, [math.nan] * 3, [math.nan] * 3, 2),
             [None, math.nan, math.nan],
         )
-
-    def test_null_in_window_is_null(self) -> None:
-        """
-        Verifies that a ``null`` in any leg taints exactly the windows (and shifts) that reach it.
-        """
-        high_values = [10.0, 12.0, 11.0, 13.0]
-        low_values = [8.0, 9.0, 9.0, 10.0]
-        close_values = [9.0, None, 10.0, 12.0]
-        assert_matches(
-            apply_cci(high_values, low_values, close_values, 2),
-            cci_reference(high_values, low_values, close_values, 2),
-        )
-        assert_matches(apply_cci(high_values, low_values, close_values, 2), [None, None, None, 66.66666666666674])
 
     def test_interior_null_propagates(self) -> None:
         """
@@ -225,34 +253,6 @@ class TestCciEdge:
         assert_matches(
             apply_cci(high_values, low_values, close_values, 2),
             cci_reference(high_values, low_values, close_values, 2),
-        )
-
-    def test_nan_propagates(self) -> None:
-        """
-        Verifies that a ``NaN`` in any leg yields ``NaN`` for exactly the windows it reaches (no ``null`` present).
-        """
-        high_values = [10.0, 12.0, math.nan, 13.0, 15.0]
-        low_values = [8.0, 9.0, 9.0, 10.0, 12.0]
-        close_values = [9.0, 11.0, 10.0, 12.0, 14.0]
-        assert_matches(
-            apply_cci(high_values, low_values, close_values, 2),
-            cci_reference(high_values, low_values, close_values, 2),
-        )
-        assert_matches(
-            apply_cci(high_values, low_values, close_values, 2),
-            [None, 66.66666666666674, math.nan, math.nan, 66.66666666666667],
-        )
-
-    def test_null_takes_precedence_over_nan(self) -> None:
-        """
-        Verifies that a window reaching both a ``null`` and a ``NaN`` yields ``null`` (``null`` takes precedence).
-        """
-        high_values = [10.0, 12.0, math.nan, 13.0]
-        low_values = [8.0, None, 9.0, 10.0]
-        close_values = [9.0, 11.0, 10.0, 12.0]
-        assert_matches(
-            apply_cci(high_values, low_values, close_values, 3),
-            cci_reference(high_values, low_values, close_values, 3),
         )
 
 

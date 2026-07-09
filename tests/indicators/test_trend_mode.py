@@ -101,20 +101,17 @@ class TestTrendModeEdge:
     Warm-up and null / NaN latching.
     """
 
+    def test_single_row(self) -> None:
+        """
+        Verifies that a one-element series is all warm-up: the output is null on the single row.
+        """
+        assert_matches(apply_trend_mode([42.0]), [None])
+
     def test_all_null(self) -> None:
         """
         Verifies that an all-null series yields an all-null output.
         """
         assert_matches(apply_trend_mode([None, None, None, None, None]), [None, None, None, None, None])
-
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies that the leading-null run is exactly ``63`` and every later row is defined.
-        """
-        result = apply_trend_mode(_SAMPLE)
-        leading_nulls = count_leading_nulls(result)
-        assert leading_nulls == _WARMUP
-        assert all(value is not None for value in result[_WARMUP:])
 
     def test_null_latches(self) -> None:
         """
@@ -134,6 +131,15 @@ class TestTrendModeEdge:
         result = apply_trend_mode(values)
         assert all(value is None for value in result[70:])
         assert_matches(result, trend_mode_reference(values))
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that the leading-null run is exactly ``63`` and every later row is defined.
+        """
+        result = apply_trend_mode(_SAMPLE)
+        leading_nulls = count_leading_nulls(result)
+        assert leading_nulls == _WARMUP
+        assert all(value is not None for value in result[_WARMUP:])
 
 
 class TestTrendModeCorrectness:

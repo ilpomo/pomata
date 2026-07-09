@@ -86,18 +86,6 @@ class TestCaptureDownsideRatioEdge:
         with pytest.raises(ValueError, match="periods_per_year must be >= 1"):
             capture_downside_ratio(pl.col(RETURNS), pl.col(BENCHMARK), periods_per_year=0)
 
-    def test_no_down_market_is_null(self) -> None:
-        """
-        Verifies that with no negative-benchmark period the ratio is undefined, so the result is ``null``.
-        """
-        assert_matches(
-            materialize(
-                {RETURNS: [0.01, 0.02, 0.03], BENCHMARK: [0.01, 0.02, 0.03]},
-                capture_downside_ratio(pl.col(RETURNS), pl.col(BENCHMARK), periods_per_year=PERIODS),
-            ),
-            [None],
-        )
-
     def test_null_misalignment_drops_pair(self) -> None:
         """
         Verifies that an observation with a ``null`` in either leg is dropped, matching the reference over the retained
@@ -126,6 +114,18 @@ class TestCaptureDownsideRatioEdge:
                 capture_downside_ratio(pl.col(RETURNS), pl.col(BENCHMARK), periods_per_year=PERIODS),
             ),
             [math.nan],
+        )
+
+    def test_no_down_market_is_null(self) -> None:
+        """
+        Verifies that with no negative-benchmark period the ratio is undefined, so the result is ``null``.
+        """
+        assert_matches(
+            materialize(
+                {RETURNS: [0.01, 0.02, 0.03], BENCHMARK: [0.01, 0.02, 0.03]},
+                capture_downside_ratio(pl.col(RETURNS), pl.col(BENCHMARK), periods_per_year=PERIODS),
+            ),
+            [None],
         )
 
     def test_return_below_negative_one_is_nan(self) -> None:

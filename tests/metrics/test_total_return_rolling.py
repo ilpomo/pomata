@@ -81,6 +81,24 @@ class TestTotalReturnRollingEdge:
             rel_tol=RELATIVE_TOLERANCE_REFERENCE,
         )
 
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that a window exceeding the series length yields an all-null output.
+        """
+        values = [1.0, 1.1, 1.05, 1.2, 1.15]
+        assert_matches(apply_expr(values, total_return_rolling(pl.col(COLUMN_X), 7)), [None, None, None, None, None])
+
+    def test_window_equals_length(self) -> None:
+        """
+        Verifies that when ``window`` equals the series length only the last row is defined, matching the reference.
+        """
+        values = [1.0, 1.1, 1.05, 1.2, 1.15]
+        assert_matches(
+            apply_expr(values, total_return_rolling(pl.col(COLUMN_X), 5)),
+            total_return_rolling_reference(values, 5),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+        )
+
     def test_endpoint_null_is_null(self) -> None:
         """
         Verifies that a ``null`` at a window endpoint yields ``null`` (the result depends on both endpoints).

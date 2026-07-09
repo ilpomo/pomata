@@ -99,13 +99,17 @@ class TestLinearRegressionAngleEdge:
         with pytest.raises(ValueError, match="window must be >= 2"):
             linear_regression_angle(pl.col(COLUMN_X), 1)
 
-    def test_warmup_null_count(self) -> None:
+    def test_single_row(self) -> None:
         """
-        Verifies the warm-up is ``window - 1`` rows.
+        Verifies that a one-element series is all warm-up: a window of more than one observation yields null.
         """
-        result = apply_expr([10.0, 11.0, 13.0, 12.0, 14.0], linear_regression_angle(pl.col(COLUMN_X), 3))
-        assert result[:2] == [None, None]
-        assert result[2] is not None
+        assert_matches(apply_expr([42.0], linear_regression_angle(pl.col(COLUMN_X), 2)), [None])
+
+    def test_all_null(self) -> None:
+        """
+        Verifies that an all-null series stays null (no window ever holds the required non-null values).
+        """
+        assert_matches(apply_expr([None, None, None], linear_regression_angle(pl.col(COLUMN_X), 2)), [None, None, None])
 
     def test_null_in_window_is_null(self) -> None:
         """
@@ -127,23 +131,19 @@ class TestLinearRegressionAngleEdge:
             linear_regression_angle_reference(values, 3),
         )
 
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies the warm-up is ``window - 1`` rows.
+        """
+        result = apply_expr([10.0, 11.0, 13.0, 12.0, 14.0], linear_regression_angle(pl.col(COLUMN_X), 3))
+        assert result[:2] == [None, None]
+        assert result[2] is not None
+
     def test_window_exceeds_length(self) -> None:
         """
         Verifies the whole output is null when ``window`` exceeds the series length (no full window ever forms).
         """
         assert_matches(apply_expr([1.0, 2.0, 3.0], linear_regression_angle(pl.col(COLUMN_X), 5)), [None, None, None])
-
-    def test_single_row(self) -> None:
-        """
-        Verifies that a one-element series is all warm-up: a window of more than one observation yields null.
-        """
-        assert_matches(apply_expr([42.0], linear_regression_angle(pl.col(COLUMN_X), 2)), [None])
-
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null series stays null (no window ever holds the required non-null values).
-        """
-        assert_matches(apply_expr([None, None, None], linear_regression_angle(pl.col(COLUMN_X), 2)), [None, None, None])
 
     def test_flat_series_is_zero_angle(self) -> None:
         """
@@ -206,19 +206,6 @@ class TestLinearRegressionAngleProperties:
             abs_tol=input_scale(values) * EXACT_TOLERANCE_FACTOR,
         )
 
-    @given(case=_cases(st.floats(min_value=-1e6, max_value=1e6, allow_nan=False, allow_infinity=False)))
-    def test_bounded(
-        self,
-        case: tuple[list[float], int],
-    ) -> None:
-        """
-        Verifies that every defined angle lies strictly within ``(-90, 90)`` degrees.
-        """
-        values, window = case
-        for value in apply_expr(values, linear_regression_angle(pl.col(COLUMN_X), window)):
-            if value is not None and not math.isnan(value):
-                assert -90.0 < value < 90.0
-
     @given(case=_cases(missing_data_floats()))
     def test_matches_reference_under_missing_data(
         self,
@@ -237,3 +224,16 @@ class TestLinearRegressionAngleProperties:
             rel_tol=RELATIVE_TOLERANCE_SCALE,
             abs_tol=input_scale(values) * EXACT_TOLERANCE_FACTOR,
         )
+
+    @given(case=_cases(st.floats(min_value=-1e6, max_value=1e6, allow_nan=False, allow_infinity=False)))
+    def test_bounded(
+        self,
+        case: tuple[list[float], int],
+    ) -> None:
+        """
+        Verifies that every defined angle lies strictly within ``(-90, 90)`` degrees.
+        """
+        values, window = case
+        for value in apply_expr(values, linear_regression_angle(pl.col(COLUMN_X), window)):
+            if value is not None and not math.isnan(value):
+                assert -90.0 < value < 90.0

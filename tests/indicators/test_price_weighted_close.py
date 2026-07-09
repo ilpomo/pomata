@@ -108,6 +108,12 @@ class TestPriceWeightedCloseEdge:
     Boundaries and null / NaN handling.
     """
 
+    def test_single_row(self) -> None:
+        """
+        Verifies that a one-row series resolves to the single representative price (no window, no warm-up).
+        """
+        assert_matches(apply_price_weighted_close([11.0], [9.0], [10.0]), [10.0])
+
     def test_all_null(self) -> None:
         """
         Verifies that an all-null input yields an all-null output (the sum propagates ``null`` on every row).
@@ -116,18 +122,6 @@ class TestPriceWeightedCloseEdge:
             apply_price_weighted_close([None, None, None], [None, None, None], [None, None, None]), [None, None, None]
         )
 
-    def test_single_row(self) -> None:
-        """
-        Verifies that a one-row series resolves to the single representative price (no window, no warm-up).
-        """
-        assert_matches(apply_price_weighted_close([11.0], [9.0], [10.0]), [10.0])
-
-    def test_constant_series(self) -> None:
-        """
-        Verifies that when every input price equals the same constant the result is that constant on every row.
-        """
-        assert_matches(apply_price_weighted_close([5.0, 5.0, 5.0], [5.0, 5.0, 5.0], [5.0, 5.0, 5.0]), [5.0, 5.0, 5.0])
-
     def test_null_propagates(self) -> None:
         """
         Verifies that a ``null`` in any input makes that row ``null`` (the sum propagates ``null``).
@@ -135,6 +129,13 @@ class TestPriceWeightedCloseEdge:
         assert_matches(
             apply_price_weighted_close([11.0, None, 13.0], [9.0, 10.0, 11.0], [10.0, 11.5, 12.5]), [10.0, None, 12.25]
         )
+
+    def test_null_takes_precedence_over_nan(self) -> None:
+        """
+        Verifies that a row carrying both a ``null`` (in ``high``) and a ``NaN`` (in ``low``) yields
+        ``null`` — ``null`` takes precedence over ``NaN``.
+        """
+        assert_matches(apply_price_weighted_close([11.0, None], [9.0, float("nan")], [10.0, 11.5]), [10.0, None])
 
     def test_nan_propagates(self) -> None:
         """
@@ -145,12 +146,11 @@ class TestPriceWeightedCloseEdge:
             [10.0, math.nan, 12.25],
         )
 
-    def test_null_takes_precedence_over_nan(self) -> None:
+    def test_constant_series(self) -> None:
         """
-        Verifies that a row carrying both a ``null`` (in ``high``) and a ``NaN`` (in ``low``) yields
-        ``null`` — ``null`` takes precedence over ``NaN``.
+        Verifies that when every input price equals the same constant the result is that constant on every row.
         """
-        assert_matches(apply_price_weighted_close([11.0, None], [9.0, float("nan")], [10.0, 11.5]), [10.0, None])
+        assert_matches(apply_price_weighted_close([5.0, 5.0, 5.0], [5.0, 5.0, 5.0], [5.0, 5.0, 5.0]), [5.0, 5.0, 5.0])
 
 
 class TestPriceWeightedCloseCorrectness:

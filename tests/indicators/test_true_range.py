@@ -104,17 +104,59 @@ class TestTrueRangeEdge:
     Boundaries and null / NaN handling.
     """
 
-    def test_first_row_is_high_minus_low(self) -> None:
-        """
-        Verifies the StockCharts/Wilder convention: with no previous close the first row is ``high - low``.
-        """
-        assert_matches(apply_true_range([10.0, 12.0], [9.0, 10.5], [9.5, 11.0]), [1.0, 2.5])
-
     def test_single_row(self) -> None:
         """
         Verifies that a one-row series resolves to ``high - low`` (no previous close exists).
         """
         assert_matches(apply_true_range([10.0], [9.0], [9.5]), [1.0])
+
+    def test_all_null_columns(self) -> None:
+        """
+        Verifies that with all-``null`` ``high`` and ``low`` every row is ``null`` regardless of ``close``.
+        """
+        assert_matches(apply_true_range([None, None, None], [None, None, None], [9.5, 10.0, 10.5]), [None, None, None])
+
+    def test_null_high_drops_candidate(self) -> None:
+        """
+        Verifies that a ``null`` ``high`` drops the candidates it appears in and the row resolves from the survivors.
+        """
+        assert_matches(
+            apply_true_range([10.0, None, 11.0], [9.0, 10.5, 10.0], [9.5, 11.0, 10.5]),
+            [1.0, 1.0, 1.0],
+        )
+
+    def test_null_takes_precedence_over_nan_when_alone(self) -> None:
+        """
+        Verifies the null-vs-NaN distinction: a dropped (``null``) candidate is skipped, a ``NaN`` candidate is not.
+        """
+        result_null = apply_true_range([10.0, None], [9.0, None], [9.5, None])
+        result_nan = apply_true_range([10.0, math.nan], [9.0, math.nan], [9.5, math.nan])
+        assert_matches(result_null, [1.0, None])
+        assert_matches(result_nan, [1.0, math.nan])
+
+    def test_nan_in_high_dominates_its_row(self) -> None:
+        """
+        Verifies that a ``NaN`` ``high`` makes its row ``NaN`` (``NaN`` dominates the max) but does not latch.
+        """
+        assert_matches(
+            apply_true_range([10.0, math.nan, 11.0, 13.0], [9.0, 10.5, 10.0, 11.0], [9.5, 11.0, 10.5, 12.0]),
+            [1.0, math.nan, 1.0, 2.5],
+        )
+
+    def test_nan_in_close_contaminates_next_row_only(self) -> None:
+        """
+        Verifies that a ``NaN`` ``close`` is finite at its own row but poisons the next row's gap terms (``NaN``).
+        """
+        assert_matches(
+            apply_true_range([10.0, 12.0, 11.0, 13.0], [9.0, 10.5, 10.0, 11.0], [9.5, math.nan, 10.5, 12.0]),
+            [1.0, 2.5, math.nan, 2.5],
+        )
+
+    def test_first_row_is_high_minus_low(self) -> None:
+        """
+        Verifies the StockCharts/Wilder convention: with no previous close the first row is ``high - low``.
+        """
+        assert_matches(apply_true_range([10.0, 12.0], [9.0, 10.5], [9.5, 11.0]), [1.0, 2.5])
 
     def test_constant_series_is_zero(self) -> None:
         """
@@ -145,15 +187,6 @@ class TestTrueRangeEdge:
             [1.0, 2.5, 1.0, 2.5],
         )
 
-    def test_null_high_drops_candidate(self) -> None:
-        """
-        Verifies that a ``null`` ``high`` drops the candidates it appears in and the row resolves from the survivors.
-        """
-        assert_matches(
-            apply_true_range([10.0, None, 11.0], [9.0, 10.5, 10.0], [9.5, 11.0, 10.5]),
-            [1.0, 1.0, 1.0],
-        )
-
     def test_all_inputs_null_at_row_yields_null(self) -> None:
         """
         Verifies that a row is ``null`` only when every candidate drops (``high``, ``low``, and previous close null).
@@ -162,39 +195,6 @@ class TestTrueRangeEdge:
             apply_true_range([10.0, None, 11.0], [9.0, None, 10.0], [9.5, None, 10.5]),
             [1.0, None, 1.0],
         )
-
-    def test_all_null_columns(self) -> None:
-        """
-        Verifies that with all-``null`` ``high`` and ``low`` every row is ``null`` regardless of ``close``.
-        """
-        assert_matches(apply_true_range([None, None, None], [None, None, None], [9.5, 10.0, 10.5]), [None, None, None])
-
-    def test_nan_in_high_dominates_its_row(self) -> None:
-        """
-        Verifies that a ``NaN`` ``high`` makes its row ``NaN`` (``NaN`` dominates the max) but does not latch.
-        """
-        assert_matches(
-            apply_true_range([10.0, math.nan, 11.0, 13.0], [9.0, 10.5, 10.0, 11.0], [9.5, 11.0, 10.5, 12.0]),
-            [1.0, math.nan, 1.0, 2.5],
-        )
-
-    def test_nan_in_close_contaminates_next_row_only(self) -> None:
-        """
-        Verifies that a ``NaN`` ``close`` is finite at its own row but poisons the next row's gap terms (``NaN``).
-        """
-        assert_matches(
-            apply_true_range([10.0, 12.0, 11.0, 13.0], [9.0, 10.5, 10.0, 11.0], [9.5, math.nan, 10.5, 12.0]),
-            [1.0, 2.5, math.nan, 2.5],
-        )
-
-    def test_null_takes_precedence_over_nan_when_alone(self) -> None:
-        """
-        Verifies the null-vs-NaN distinction: a dropped (``null``) candidate is skipped, a ``NaN`` candidate is not.
-        """
-        result_null = apply_true_range([10.0, None], [9.0, None], [9.5, None])
-        result_nan = apply_true_range([10.0, math.nan], [9.0, math.nan], [9.5, math.nan])
-        assert_matches(result_null, [1.0, None])
-        assert_matches(result_nan, [1.0, math.nan])
 
 
 class TestTrueRangeCorrectness:
@@ -254,21 +254,6 @@ class TestTrueRangeProperties:
             rel_tol=RELATIVE_TOLERANCE_PROPERTY,
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
-
-    @given(case=_cases(coherent_hlc()))
-    def test_non_negative_on_valid_ohlc(
-        self,
-        case: list[tuple[float, float, float]],
-    ) -> None:
-        """
-        Verifies that True Range is non-negative on every bar of a coherent OHLC series (the valid-OHLC regime).
-        """
-        rows = case
-        high, low, close = split_triples(rows)
-        result = apply_true_range(high, low, close)
-        for value in result:
-            assert value is not None
-            assert value >= 0.0
 
     @given(case=_cases(coherent_hlc_with_missing()))
     def test_matches_reference_under_missing_data(
@@ -336,3 +321,18 @@ class TestTrueRangeProperties:
             rel_tol=RELATIVE_TOLERANCE_REFERENCE,
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
+
+    @given(case=_cases(coherent_hlc()))
+    def test_non_negative_on_valid_ohlc(
+        self,
+        case: list[tuple[float, float, float]],
+    ) -> None:
+        """
+        Verifies that True Range is non-negative on every bar of a coherent OHLC series (the valid-OHLC regime).
+        """
+        rows = case
+        high, low, close = split_triples(rows)
+        result = apply_true_range(high, low, close)
+        for value in result:
+            assert value is not None
+            assert value >= 0.0

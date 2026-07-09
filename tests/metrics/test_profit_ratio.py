@@ -58,23 +58,12 @@ class TestProfitRatioEdge:
     Boundaries and null / NaN handling.
     """
 
-    def test_no_losses_is_inf(self) -> None:
+    def test_single_row(self) -> None:
         """
-        Verifies that an all-positive series has no losses, so the ratio is ``+inf``.
+        Verifies that a one-element series has one empty side: a single gain has zero gross loss, so the factor is
+        ``+inf``.
         """
-        assert_matches(apply_expr([0.01, 0.02, 0.03], profit_ratio(pl.col(COLUMN_X))), [math.inf])
-
-    def test_no_gains_is_zero(self) -> None:
-        """
-        Verifies that an all-negative series has no gains, so the ratio is ``0``.
-        """
-        assert_matches(apply_expr([-0.01, -0.02, -0.03], profit_ratio(pl.col(COLUMN_X))), [0.0])
-
-    def test_all_zero_is_nan(self) -> None:
-        """
-        Verifies that an all-zero series has zero gains and zero losses, so the ratio is ``0 / 0``, i.e. ``NaN``.
-        """
-        assert_matches(apply_expr([0.0, 0.0, 0.0], profit_ratio(pl.col(COLUMN_X))), [math.nan])
+        assert_matches(apply_expr([0.05], profit_ratio(pl.col(COLUMN_X))), [math.inf])
 
     def test_null_skipped(self) -> None:
         """
@@ -92,6 +81,24 @@ class TestProfitRatioEdge:
         Verifies that a NaN return poisons the result to NaN.
         """
         assert_matches(apply_expr([0.01, math.nan, -0.02, 0.03], profit_ratio(pl.col(COLUMN_X))), [math.nan])
+
+    def test_no_losses_is_inf(self) -> None:
+        """
+        Verifies that an all-positive series has no losses, so the ratio is ``+inf``.
+        """
+        assert_matches(apply_expr([0.01, 0.02, 0.03], profit_ratio(pl.col(COLUMN_X))), [math.inf])
+
+    def test_no_gains_is_zero(self) -> None:
+        """
+        Verifies that an all-negative series has no gains, so the ratio is ``0``.
+        """
+        assert_matches(apply_expr([-0.01, -0.02, -0.03], profit_ratio(pl.col(COLUMN_X))), [0.0])
+
+    def test_all_zero_is_nan(self) -> None:
+        """
+        Verifies that an all-zero series has zero gains and zero losses, so the ratio is ``0 / 0``, i.e. ``NaN``.
+        """
+        assert_matches(apply_expr([0.0, 0.0, 0.0], profit_ratio(pl.col(COLUMN_X))), [math.nan])
 
 
 class TestProfitRatioCorrectness:

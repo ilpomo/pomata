@@ -92,6 +92,25 @@ class TestCagrRollingEdge:
             rel_tol=RELATIVE_TOLERANCE_REFERENCE,
         )
 
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that when ``window`` exceeds the series length the whole output is null (no window ever fills).
+        """
+        assert_matches(
+            apply_expr([1.0, 1.1, 1.05], cagr_rolling(pl.col(COLUMN_X), 5, periods_per_year=PERIODS)),
+            [None, None, None],
+        )
+
+    def test_window_equals_length(self) -> None:
+        """
+        Verifies that when ``window`` equals the series length only the last row is defined, matching the reference.
+        """
+        values = [1.0, 1.1, 1.05, 1.2]
+        result = apply_expr(values, cagr_rolling(pl.col(COLUMN_X), 4, periods_per_year=PERIODS))
+        assert result[:-1] == [None, None, None]
+        assert result[-1] is not None
+        assert_matches(result, cagr_rolling_reference(values, 4, PERIODS), rel_tol=RELATIVE_TOLERANCE_REFERENCE)
+
     def test_endpoint_null_is_null(self) -> None:
         """
         Verifies that a ``null`` at either window endpoint yields ``null`` for the windows that touch it.

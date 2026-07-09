@@ -7,7 +7,7 @@ materialize the factory over a one-column ``Float64`` frame; ``assert_matches`` 
 carries the scale-homogeneity and large-magnitude tiers, plus a running-difference metamorphic.
 
 The ladder is the canonical one: contract (type / shape / lazy-eager / ``.over`` per-group independence), edge
-(warm-up / single-row / null / NaN / interior-null continuity), correctness (vs the closed-form reference and a frozen
+(single-row / interior-null continuity / NaN / warm-up), correctness (vs the closed-form reference and a frozen
 golden master), and properties (reference agreement incl. missing data, scale-homogeneity, large-magnitude, the
 running-difference identity). Categories are split into classes; cross-cutting categories use markers (see
 ``tests/README.md``).
@@ -80,15 +80,6 @@ class TestCumulativePnlEdge:
     Boundaries, warm-up, and null / NaN handling.
     """
 
-    def test_warmup_leading_null(self) -> None:
-        """
-        Verifies a leading warm-up null (as produced by returns_simple) stays null and the sum begins at the first
-        defined return.
-        """
-        result = apply_expr([None, 0.1, 0.2, -0.05], cumulative_pnl(pl.col(COLUMN_X)))
-        assert result[0] is None
-        assert result[1] is not None
-
     def test_single_row(self) -> None:
         """
         Verifies that a one-element series resolves to that single return (no warm-up of its own).
@@ -109,6 +100,15 @@ class TestCumulativePnlEdge:
         """
         values = [0.1, math.nan, 0.2, -0.05]
         assert_matches(apply_expr(values, cumulative_pnl(pl.col(COLUMN_X))), cumulative_pnl_reference(values))
+
+    def test_warmup_leading_null(self) -> None:
+        """
+        Verifies a leading warm-up null (as produced by returns_simple) stays null and the sum begins at the first
+        defined return.
+        """
+        result = apply_expr([None, 0.1, 0.2, -0.05], cumulative_pnl(pl.col(COLUMN_X)))
+        assert result[0] is None
+        assert result[1] is not None
 
 
 class TestCumulativePnlCorrectness:

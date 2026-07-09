@@ -81,27 +81,6 @@ class TestBetaEdge:
     Boundaries and null / NaN handling.
     """
 
-    def test_single_pair(self) -> None:
-        """
-        Verifies that a single complete pair yields ``null`` (the slope needs two observations).
-        """
-        assert_matches(
-            materialize({RETURNS: [0.05], BENCHMARK: [0.04]}, beta(pl.col(RETURNS), pl.col(BENCHMARK))), [None]
-        )
-
-    def test_constant_benchmark_is_nan(self) -> None:
-        """
-        Verifies that a constant (zero-variance) benchmark is reported as ``NaN`` regardless of the constant's
-        magnitude: the guard detects ``max == min`` rather than relying on the ``cov / var`` cancellation, which is
-        exact only for some constants (``0.5``) and leaves a finite residual for others (``0.1``).
-        """
-        for constant in (0.1, 1.0 / 3.0, 0.123456789):
-            result = materialize(
-                {RETURNS: [0.01, -0.02, 0.03], BENCHMARK: [constant, constant, constant]},
-                beta(pl.col(RETURNS), pl.col(BENCHMARK)),
-            )
-            assert_matches(result, [math.nan])
-
     def test_null_misalignment_drops_pair(self) -> None:
         """
         Verifies that an observation with a ``null`` in either leg is dropped, matching the reference over the retained
@@ -124,6 +103,27 @@ class TestBetaEdge:
         assert_matches(
             materialize({RETURNS: returns, BENCHMARK: benchmark}, beta(pl.col(RETURNS), pl.col(BENCHMARK))), [math.nan]
         )
+
+    def test_single_pair(self) -> None:
+        """
+        Verifies that a single complete pair yields ``null`` (the slope needs two observations).
+        """
+        assert_matches(
+            materialize({RETURNS: [0.05], BENCHMARK: [0.04]}, beta(pl.col(RETURNS), pl.col(BENCHMARK))), [None]
+        )
+
+    def test_constant_benchmark_is_nan(self) -> None:
+        """
+        Verifies that a constant (zero-variance) benchmark is reported as ``NaN`` regardless of the constant's
+        magnitude: the guard detects ``max == min`` rather than relying on the ``cov / var`` cancellation, which is
+        exact only for some constants (``0.5``) and leaves a finite residual for others (``0.1``).
+        """
+        for constant in (0.1, 1.0 / 3.0, 0.123456789):
+            result = materialize(
+                {RETURNS: [0.01, -0.02, 0.03], BENCHMARK: [constant, constant, constant]},
+                beta(pl.col(RETURNS), pl.col(BENCHMARK)),
+            )
+            assert_matches(result, [math.nan])
 
 
 class TestBetaCorrectness:

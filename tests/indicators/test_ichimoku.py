@@ -100,19 +100,6 @@ class TestIchimokuContract:
     Type, struct schema, shape, lazy/eager guarantees, and the no-lookahead property.
     """
 
-    def test_output_is_struct_with_named_fields(self) -> None:
-        """
-        Verifies that the output is a ``Float64`` struct with exactly the fields ``tenkan`` / ``kijun`` / ``senkou_a`` /
-        ``senkou_b``.
-        """
-        frame = pl.DataFrame({HIGH: [3.0, 4.0, 5.0], LOW: [1.0, 2.0, 3.0]})
-        dtype = frame.select(
-            ichimoku(pl.col(HIGH), pl.col(LOW), window_tenkan=1, window_kijun=2, window_senkou=3).alias("ic")
-        ).schema["ic"]
-        assert isinstance(dtype, pl.Struct)
-        assert [field.name for field in dtype.fields] == ["tenkan", "kijun", "senkou_a", "senkou_b"]
-        assert all(field.dtype == pl.Float64 for field in dtype.fields)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` no window spans group boundaries.
@@ -135,6 +122,19 @@ class TestIchimokuContract:
         assert result[3] is None
         assert result[4] is not None
         assert result[4] > 10.0
+
+    def test_output_is_struct_with_named_fields(self) -> None:
+        """
+        Verifies that the output is a ``Float64`` struct with exactly the fields ``tenkan`` / ``kijun`` / ``senkou_a`` /
+        ``senkou_b``.
+        """
+        frame = pl.DataFrame({HIGH: [3.0, 4.0, 5.0], LOW: [1.0, 2.0, 3.0]})
+        dtype = frame.select(
+            ichimoku(pl.col(HIGH), pl.col(LOW), window_tenkan=1, window_kijun=2, window_senkou=3).alias("ic")
+        ).schema["ic"]
+        assert isinstance(dtype, pl.Struct)
+        assert [field.name for field in dtype.fields] == ["tenkan", "kijun", "senkou_a", "senkou_b"]
+        assert all(field.dtype == pl.Float64 for field in dtype.fields)
 
     @given(case=_cases(coherent_hl()), data=st.data())
     def test_no_lookahead_prefix_matches_full(
@@ -182,7 +182,7 @@ class TestIchimokuEdge:
         with pytest.raises(ValueError, match="window_senkou must be >= 1"):
             ichimoku(pl.col(HIGH), pl.col(LOW), window_tenkan=1, window_kijun=1, window_senkou=0)
 
-    def test_unordered_windows_raise(self) -> None:
+    def test_misordered_windows_raise(self) -> None:
         """
         Verifies that windows out of non-decreasing order raise ``ValueError`` (both adjacent inversions).
         """
@@ -191,11 +191,52 @@ class TestIchimokuEdge:
         with pytest.raises(ValueError, match="windows must be ordered window_tenkan <= window_kijun <= window_senkou"):
             ichimoku(pl.col(HIGH), pl.col(LOW), window_tenkan=2, window_kijun=9, window_senkou=7)
 
+    def test_single_row(self) -> None:
+        """
+        Verifies a one-element series: all windows ``== 1`` give the bar's midprice on every line, a larger window is
+        all warm-up.
+        """
+        for field in FIELDS:
+            assert_matches(apply_ichimoku([11.0], [9.0], 1, 1, 1)[field], [10.0])
+            assert_matches(apply_ichimoku([11.0], [9.0], 2, 3, 4)[field], [None])
+
     def test_all_null(self) -> None:
         """
         Verifies that an all-null input yields an all-null output on every line.
         """
         lines = apply_ichimoku([None, None, None], [None, None, None], 1, 2, 3)
+        for field in FIELDS:
+            assert_matches(lines[field], [None, None, None])
+
+    def test_null_in_high_vs_low(self) -> None:
+        """
+        Verifies that a ``null`` / ``NaN`` in ``high`` only, and in ``low`` only, both flow through the rolling extremes
+        exactly as the reference (the inputs enter different legs of each midpoint).
+        """
+        high = [10.0, None, 12.0, 13.0, math.nan, 15.0, 16.0]
+        low = [9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0]
+        lines = apply_ichimoku(high, low, 2, 3, 4)
+        reference = ichimoku_reference(high, low, 2, 3, 4)
+        for field in FIELDS:
+            assert_matches(lines[field], reference[field])
+
+    def test_nan_propagates(self) -> None:
+        """
+        Verifies that a ``NaN`` in ``high`` or ``low`` flows through the rolling extremes exactly as the reference,
+        nanning the windows it reaches, then recovering.
+        """
+        high = [10.0, math.nan, 12.0, 13.0, 14.0, 15.0, 16.0]
+        low = [9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0]
+        lines = apply_ichimoku(high, low, 2, 3, 4)
+        reference = ichimoku_reference(high, low, 2, 3, 4)
+        for field in FIELDS:
+            assert_matches(lines[field], reference[field])
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that windows longer than the series yield an all-null result on every line.
+        """
+        lines = apply_ichimoku([10.0, 11.0, 12.0], [9.0, 10.0, 11.0], 4, 5, 6)
         for field in FIELDS:
             assert_matches(lines[field], [None, None, None])
 
@@ -227,23 +268,6 @@ class TestIchimokuEdge:
         assert_matches(lines["kijun"], lines["tenkan"])
         assert_matches(lines["senkou_a"], lines["tenkan"])
 
-    def test_single_row(self) -> None:
-        """
-        Verifies a one-element series: all windows ``== 1`` give the bar's midprice on every line, a larger window is
-        all warm-up.
-        """
-        for field in FIELDS:
-            assert_matches(apply_ichimoku([11.0], [9.0], 1, 1, 1)[field], [10.0])
-            assert_matches(apply_ichimoku([11.0], [9.0], 2, 3, 4)[field], [None])
-
-    def test_window_exceeds_length(self) -> None:
-        """
-        Verifies that windows longer than the series yield an all-null result on every line.
-        """
-        lines = apply_ichimoku([10.0, 11.0, 12.0], [9.0, 10.0, 11.0], 4, 5, 6)
-        for field in FIELDS:
-            assert_matches(lines[field], [None, None, None])
-
     def test_flat_window_equals_price(self) -> None:
         """
         Verifies the flat window: over a constant series the high and low extremes coincide, so every line equals the
@@ -253,30 +277,6 @@ class TestIchimokuEdge:
         lines = apply_ichimoku(flat, flat, 2, 3, 4)
         assert_matches(lines["tenkan"], [None, 7.0, 7.0, 7.0, 7.0, 7.0])
         assert_matches(lines["senkou_b"], [None, None, None, 7.0, 7.0, 7.0])
-
-    def test_null_in_high_vs_low(self) -> None:
-        """
-        Verifies that a ``null`` / ``NaN`` in ``high`` only, and in ``low`` only, both flow through the rolling extremes
-        exactly as the reference (the inputs enter different legs of each midpoint).
-        """
-        high = [10.0, None, 12.0, 13.0, math.nan, 15.0, 16.0]
-        low = [9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0]
-        lines = apply_ichimoku(high, low, 2, 3, 4)
-        reference = ichimoku_reference(high, low, 2, 3, 4)
-        for field in FIELDS:
-            assert_matches(lines[field], reference[field])
-
-    def test_nan_propagates(self) -> None:
-        """
-        Verifies that a ``NaN`` in ``high`` or ``low`` flows through the rolling extremes exactly as the reference,
-        nanning the windows it reaches, then recovering.
-        """
-        high = [10.0, math.nan, 12.0, 13.0, 14.0, 15.0, 16.0]
-        low = [9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0]
-        lines = apply_ichimoku(high, low, 2, 3, 4)
-        reference = ichimoku_reference(high, low, 2, 3, 4)
-        for field in FIELDS:
-            assert_matches(lines[field], reference[field])
 
 
 class TestIchimokuCorrectness:
@@ -335,34 +335,6 @@ class TestIchimokuProperties:
                 rel_tol=RELATIVE_TOLERANCE_PROPERTY,
                 abs_tol=input_scale(high) * EXACT_TOLERANCE_FACTOR,
             )
-
-    @given(case=_cases(coherent_hl()))
-    def test_lines_lie_within_their_window_range(
-        self,
-        case: tuple[list[tuple[float, float]], int, int, int],
-    ) -> None:
-        """
-        Verifies the containment invariant: each line lies within ``[rolling_min(low, w), rolling_max(high, w)]`` of its
-        own window (a midpoint cannot leave the range it averages); ``senkou_a`` uses the wider ``kijun`` range.
-        """
-        rows, window_tenkan, window_kijun, window_senkou = case
-        high, low = split_pairs(rows)
-        lines = apply_ichimoku(high, low, window_tenkan, window_kijun, window_senkou)
-        frame = pl.DataFrame({HIGH: pl.Series(high, dtype=pl.Float64), LOW: pl.Series(low, dtype=pl.Float64)})
-        windows = {"tenkan": window_tenkan, "kijun": window_kijun, "senkou_a": window_kijun, "senkou_b": window_senkou}
-        for field, window in windows.items():
-            bounds = frame.select(
-                pl.col(LOW).rolling_min(window).alias("floor"),
-                pl.col(HIGH).rolling_max(window).alias("ceiling"),
-            )
-            floor = bounds["floor"].to_list()
-            ceiling = bounds["ceiling"].to_list()
-            for value, low_bound, high_bound in zip(lines[field], floor, ceiling, strict=True):
-                if value is None or math.isnan(value):
-                    continue
-                assert low_bound is not None
-                assert high_bound is not None
-                assert low_bound - 1e-9 <= value <= high_bound + 1e-9
 
     @given(case=_cases(coherent_hl_with_missing()))
     def test_matches_reference_under_missing_data(
@@ -430,3 +402,31 @@ class TestIchimokuProperties:
                 rel_tol=RELATIVE_TOLERANCE_SCALE,
                 abs_tol=input_scale(high) * EXACT_TOLERANCE_FACTOR,
             )
+
+    @given(case=_cases(coherent_hl()))
+    def test_lines_lie_within_their_window_range(
+        self,
+        case: tuple[list[tuple[float, float]], int, int, int],
+    ) -> None:
+        """
+        Verifies the containment invariant: each line lies within ``[rolling_min(low, w), rolling_max(high, w)]`` of its
+        own window (a midpoint cannot leave the range it averages); ``senkou_a`` uses the wider ``kijun`` range.
+        """
+        rows, window_tenkan, window_kijun, window_senkou = case
+        high, low = split_pairs(rows)
+        lines = apply_ichimoku(high, low, window_tenkan, window_kijun, window_senkou)
+        frame = pl.DataFrame({HIGH: pl.Series(high, dtype=pl.Float64), LOW: pl.Series(low, dtype=pl.Float64)})
+        windows = {"tenkan": window_tenkan, "kijun": window_kijun, "senkou_a": window_kijun, "senkou_b": window_senkou}
+        for field, window in windows.items():
+            bounds = frame.select(
+                pl.col(LOW).rolling_min(window).alias("floor"),
+                pl.col(HIGH).rolling_max(window).alias("ceiling"),
+            )
+            floor = bounds["floor"].to_list()
+            ceiling = bounds["ceiling"].to_list()
+            for value, low_bound, high_bound in zip(lines[field], floor, ceiling, strict=True):
+                if value is None or math.isnan(value):
+                    continue
+                assert low_bound is not None
+                assert high_bound is not None
+                assert low_bound - 1e-9 <= value <= high_bound + 1e-9

@@ -108,16 +108,11 @@ class TestHmaEdge:
         with pytest.raises(ValueError, match="window must be >= 2"):
             hma(pl.col(COLUMN_X), 0)
 
-    def test_warmup_null_count(self) -> None:
+    def test_single_row(self) -> None:
         """
-        Verifies that the first ``window + round_half_up(sqrt(window)) - 2`` rows are null and the next is defined.
+        Verifies behavior on a one-element series (entirely warm-up null).
         """
-        values = [float(value) for value in range(1, 13)]
-        smoothing_window = math.floor(math.sqrt(4) + 0.5)
-        warmup = 4 + smoothing_window - 2
-        result = apply_expr(values, hma(pl.col(COLUMN_X), 4))
-        assert result[:warmup] == [None] * warmup
-        assert result[warmup] is not None
+        assert_matches(apply_expr([42.0], hma(pl.col(COLUMN_X), 2)), [None])
 
     def test_all_null(self) -> None:
         """
@@ -126,26 +121,6 @@ class TestHmaEdge:
         assert_matches(
             apply_expr([None, None, None, None, None], hma(pl.col(COLUMN_X), 4)), [None, None, None, None, None]
         )
-
-    def test_minimum_window(self) -> None:
-        """
-        Verifies the smallest meaningful window (``window == 2``) computes against the reference.
-        """
-        values = [1.0, 2.0, 3.0, 4.0, 5.0]
-        assert_matches(apply_expr(values, hma(pl.col(COLUMN_X), 2)), hma_reference(values, 2))
-
-    def test_window_equals_length_all_null(self) -> None:
-        """
-        Verifies that when ``window`` equals the series length the whole result is warm-up ``null`` (the inner
-        ``WMA(x, window)`` never sees a full window, so no value is ever emitted).
-        """
-        assert_matches(apply_expr([1.0, 2.0, 3.0, 4.0], hma(pl.col(COLUMN_X), 4)), [None, None, None, None])
-
-    def test_single_row(self) -> None:
-        """
-        Verifies behavior on a one-element series (entirely warm-up null).
-        """
-        assert_matches(apply_expr([42.0], hma(pl.col(COLUMN_X), 2)), [None])
 
     def test_null_in_window_is_null(self) -> None:
         """
@@ -160,6 +135,31 @@ class TestHmaEdge:
         """
         values = [2.0, 4.0, math.nan, 8.0, 10.0, 12.0]
         assert_matches(apply_expr(values, hma(pl.col(COLUMN_X), 4)), hma_reference(values, 4))
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that the first ``window + round_half_up(sqrt(window)) - 2`` rows are null and the next is defined.
+        """
+        values = [float(value) for value in range(1, 13)]
+        smoothing_window = math.floor(math.sqrt(4) + 0.5)
+        warmup = 4 + smoothing_window - 2
+        result = apply_expr(values, hma(pl.col(COLUMN_X), 4))
+        assert result[:warmup] == [None] * warmup
+        assert result[warmup] is not None
+
+    def test_window_equals_length_all_null(self) -> None:
+        """
+        Verifies that when ``window`` equals the series length the whole result is warm-up ``null`` (the inner
+        ``WMA(x, window)`` never sees a full window, so no value is ever emitted).
+        """
+        assert_matches(apply_expr([1.0, 2.0, 3.0, 4.0], hma(pl.col(COLUMN_X), 4)), [None, None, None, None])
+
+    def test_minimum_window(self) -> None:
+        """
+        Verifies the smallest meaningful window (``window == 2``) computes against the reference.
+        """
+        values = [1.0, 2.0, 3.0, 4.0, 5.0]
+        assert_matches(apply_expr(values, hma(pl.col(COLUMN_X), 2)), hma_reference(values, 2))
 
 
 class TestHmaCorrectness:
@@ -283,21 +283,6 @@ class TestHmaProperties:
         result_scaled = apply_expr(scaled_values, hma(pl.col(COLUMN_X), window))
         assert_scale_homogeneous(result_scaled, result_base, k=k, degree=1)
 
-    @given(case=_cases(st.floats(min_value=-1e3, max_value=1e3, allow_nan=False, allow_infinity=False)))
-    def test_warmup_null_count_property(
-        self,
-        case: tuple[list[float], int],
-    ) -> None:
-        """
-        Verifies the warm-up null run is exactly ``window + round_half_up(sqrt(window)) - 2`` long on clean input.
-        """
-        values, window = case
-        warmup = _warmup(window)
-        result = apply_expr(values, hma(pl.col(COLUMN_X), window))
-        assert all(value is None for value in result[:warmup])
-        if len(values) > warmup:
-            assert result[warmup] is not None
-
     @given(
         case=_cases(st.floats(min_value=1e-3, max_value=1.0, allow_nan=False, allow_infinity=False)),
         scale=st.sampled_from([1e-6, 1e6, 1e9]),
@@ -318,3 +303,18 @@ class TestHmaProperties:
             rel_tol=RELATIVE_TOLERANCE_SCALE,
             abs_tol=input_scale(scaled_values) * EXACT_TOLERANCE_FACTOR,
         )
+
+    @given(case=_cases(st.floats(min_value=-1e3, max_value=1e3, allow_nan=False, allow_infinity=False)))
+    def test_warmup_null_count_property(
+        self,
+        case: tuple[list[float], int],
+    ) -> None:
+        """
+        Verifies the warm-up null run is exactly ``window + round_half_up(sqrt(window)) - 2`` long on clean input.
+        """
+        values, window = case
+        warmup = _warmup(window)
+        result = apply_expr(values, hma(pl.col(COLUMN_X), window))
+        assert all(value is None for value in result[:warmup])
+        if len(values) > warmup:
+            assert result[warmup] is not None

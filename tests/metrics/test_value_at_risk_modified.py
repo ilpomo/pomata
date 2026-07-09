@@ -84,15 +84,6 @@ class TestValueAtRiskModifiedEdge:
         """
         assert_matches(apply_expr([0.05], value_at_risk_modified(pl.col(COLUMN_X), confidence=CONFIDENCE)), [None])
 
-    def test_zero_volatility_is_nan(self) -> None:
-        """
-        Verifies that a constant series has undefined skewness and kurtosis, so the result is ``NaN``.
-        """
-        assert_matches(
-            apply_expr([0.01, 0.01, 0.01, 0.01], value_at_risk_modified(pl.col(COLUMN_X), confidence=CONFIDENCE)),
-            [math.nan],
-        )
-
     def test_null_skipped(self) -> None:
         """
         Verifies that ``null`` returns are skipped (excluded from the value-at-risk), matching the reference.
@@ -110,6 +101,15 @@ class TestValueAtRiskModifiedEdge:
         """
         values = [0.01, math.nan, -0.02, 0.03]
         assert_matches(apply_expr(values, value_at_risk_modified(pl.col(COLUMN_X), confidence=CONFIDENCE)), [math.nan])
+
+    def test_zero_volatility_is_nan(self) -> None:
+        """
+        Verifies that a constant series has undefined skewness and kurtosis, so the result is ``NaN``.
+        """
+        assert_matches(
+            apply_expr([0.01, 0.01, 0.01, 0.01], value_at_risk_modified(pl.col(COLUMN_X), confidence=CONFIDENCE)),
+            [math.nan],
+        )
 
     def test_out_of_domain_is_nan(self) -> None:
         """

@@ -65,18 +65,18 @@ class TestTotalReturnEdge:
         """
         assert_matches(apply_expr([1.21], total_return(pl.col(COLUMN_X)).round(4)), [0.21])
 
+    def test_nan_poisons(self) -> None:
+        """
+        Verifies that a NaN equity poisons the result to NaN.
+        """
+        assert_matches(apply_expr([1.1, math.nan, 1.2], total_return(pl.col(COLUMN_X))), [math.nan])
+
     def test_leading_null_uses_last_defined(self) -> None:
         """
         Verifies that leading warm-up nulls are skipped; the result uses the last defined equity.
         """
         values = [None, 1.1, 1.21]
         assert_matches(apply_expr(values, total_return(pl.col(COLUMN_X))), [total_return_reference(values)])
-
-    def test_nan_poisons(self) -> None:
-        """
-        Verifies that a NaN equity poisons the result to NaN.
-        """
-        assert_matches(apply_expr([1.1, math.nan, 1.2], total_return(pl.col(COLUMN_X))), [math.nan])
 
 
 class TestTotalReturnCorrectness:

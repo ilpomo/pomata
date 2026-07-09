@@ -10,7 +10,8 @@ coin PnL by ``1 / k`` — which stands in as the distinctive nonlinear metamorph
 prices; the IEEE-754 reciprocal boundaries are pinned deterministically in the edge tier.
 
 The ladder is the canonical one: contract (type / shape / lazy-eager / ``.over`` per-group independence), edge
-(warm-up / single-row / null / NaN / multiplier guard / multiplier scaling / domain boundaries), correctness (vs the
+(multiplier guard / single-row / null / null-precedence / NaN / warm-up / multiplier scaling / domain boundaries),
+correctness (vs the
 closed-form reference and a frozen golden master), and properties (reference agreement incl. missing data,
 scale-homogeneity in quantity, inverse price scaling, large-magnitude). Categories are split into classes; cross-cutting
 categories use markers (see ``tests/README.md``).
@@ -122,13 +123,15 @@ class TestPnlGrossInverseEdge:
     Boundaries, warm-up, null / NaN handling, the multiplier guard, and the positive-price domain.
     """
 
-    def test_warmup_null_count(self) -> None:
+    def test_invalid_multiplier_raises(self) -> None:
         """
-        Verifies the warm-up is exactly one row: the first PnL is null (no previous price), the second is defined.
+        Verifies that a multiplier that is not a finite number ``> 0`` (zero, negative, ``NaN``, or ``±inf``) raises
+        ``ValueError`` -- a contract notional is a finite positive number, so a non-finite value fails fast at the call
+        site rather than silently poisoning the output with ``NaN`` / ``inf``.
         """
-        result = apply_pnl_gross_inverse([1.0, 1.0, -2.0], [100.0, 110.0, 105.0])
-        assert result[0] is None
-        assert result[1] is not None
+        for invalid in (0.0, -5.0, math.nan, math.inf, -math.inf):
+            with pytest.raises(ValueError, match="multiplier must be a finite number > 0"):
+                pnl_gross_inverse(pl.col(QUANTITY), pl.col(PRICE), multiplier=invalid)
 
     def test_single_row(self) -> None:
         """
@@ -142,14 +145,6 @@ class TestPnlGrossInverseEdge:
         """
         quantity = [1.0, None, -2.0, 3.0]
         price = [100.0, 110.0, 105.0, 120.0]
-        assert_matches(apply_pnl_gross_inverse(quantity, price), pnl_gross_inverse_reference(quantity, price))
-
-    def test_nan_propagates(self) -> None:
-        """
-        Verifies that a ``NaN`` propagates to the rows that reference it (matching the reference).
-        """
-        quantity = [1.0, 1.0, -2.0, 3.0]
-        price = [100.0, 110.0, math.nan, 120.0]
         assert_matches(apply_pnl_gross_inverse(quantity, price), pnl_gross_inverse_reference(quantity, price))
 
     def test_null_takes_precedence_over_nan(self) -> None:
@@ -169,6 +164,22 @@ class TestPnlGrossInverseEdge:
         result_reverse = apply_pnl_gross_inverse(nan_quantity, null_price)
         assert result_reverse[1] is None
         assert_matches(result_reverse, pnl_gross_inverse_reference(nan_quantity, null_price))
+
+    def test_nan_propagates(self) -> None:
+        """
+        Verifies that a ``NaN`` propagates to the rows that reference it (matching the reference).
+        """
+        quantity = [1.0, 1.0, -2.0, 3.0]
+        price = [100.0, 110.0, math.nan, 120.0]
+        assert_matches(apply_pnl_gross_inverse(quantity, price), pnl_gross_inverse_reference(quantity, price))
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies the warm-up is exactly one row: the first PnL is null (no previous price), the second is defined.
+        """
+        result = apply_pnl_gross_inverse([1.0, 1.0, -2.0], [100.0, 110.0, 105.0])
+        assert result[0] is None
+        assert result[1] is not None
 
     def test_short_on_flat_price_is_negative_zero(self) -> None:
         """
@@ -199,16 +210,6 @@ class TestPnlGrossInverseEdge:
             else:
                 assert value_scaled is not None
                 assert math.isclose(value_scaled, value_unit * MULTIPLIER, rel_tol=RELATIVE_TOLERANCE_REFERENCE)
-
-    def test_invalid_multiplier_raises(self) -> None:
-        """
-        Verifies that a multiplier that is not a finite number ``> 0`` (zero, negative, ``NaN``, or ``±inf``) raises
-        ``ValueError`` -- a contract notional is a finite positive number, so a non-finite value fails fast at the call
-        site rather than silently poisoning the output with ``NaN`` / ``inf``.
-        """
-        for invalid in (0.0, -5.0, math.nan, math.inf, -math.inf):
-            with pytest.raises(ValueError, match="multiplier must be a finite number > 0"):
-                pnl_gross_inverse(pl.col(QUANTITY), pl.col(PRICE), multiplier=invalid)
 
     def test_domain_boundaries(self) -> None:
         """
@@ -321,6 +322,25 @@ class TestPnlGrossInverseProperties:
         result_scaled = apply_pnl_gross_inverse([value * k for value in quantity], price)
         assert_scale_homogeneous(result_scaled, result_base, k=k, degree=1)
 
+    @given(case=_cases(finite_floats(), _POSITIVE_PRICES), scale=st.sampled_from([1e-6, 1e6, 1e9]))
+    def test_matches_reference_at_large_magnitude(
+        self,
+        case: tuple[list[float], list[float]],
+        scale: float,
+    ) -> None:
+        """
+        Verifies that at extreme quantities the implementation stays finite where the reference is and agrees (the price
+        held in its positive range, the magnitude carried by the quantity).
+        """
+        quantity_base, price = case
+        quantity = [value * scale for value in quantity_base]
+        assert_matches(
+            apply_pnl_gross_inverse(quantity, price),
+            pnl_gross_inverse_reference(quantity, price),
+            rel_tol=RELATIVE_TOLERANCE_SCALE,
+            abs_tol=ABSOLUTE_TOLERANCE_STREAMING,
+        )
+
     @given(
         case=_cases(finite_floats(), _POSITIVE_PRICES),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
@@ -347,22 +367,3 @@ class TestPnlGrossInverseProperties:
                 assert math.isclose(
                     value_scaled, value_base / k, rel_tol=RELATIVE_TOLERANCE_SCALE, abs_tol=ABSOLUTE_TOLERANCE_SCALE
                 )
-
-    @given(case=_cases(finite_floats(), _POSITIVE_PRICES), scale=st.sampled_from([1e-6, 1e6, 1e9]))
-    def test_matches_reference_at_large_magnitude(
-        self,
-        case: tuple[list[float], list[float]],
-        scale: float,
-    ) -> None:
-        """
-        Verifies that at extreme quantities the implementation stays finite where the reference is and agrees (the price
-        held in its positive range, the magnitude carried by the quantity).
-        """
-        quantity_base, price = case
-        quantity = [value * scale for value in quantity_base]
-        assert_matches(
-            apply_pnl_gross_inverse(quantity, price),
-            pnl_gross_inverse_reference(quantity, price),
-            rel_tol=RELATIVE_TOLERANCE_SCALE,
-            abs_tol=ABSOLUTE_TOLERANCE_STREAMING,
-        )

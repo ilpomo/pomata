@@ -93,16 +93,6 @@ class TestBollingerBandsContract:
     Type, struct schema, shape, and lazy/eager guarantees.
     """
 
-    def test_output_is_struct_with_named_fields(self) -> None:
-        """
-        Verifies that the output is a ``Float64`` struct with exactly the fields ``lower`` / ``middle`` / ``upper``.
-        """
-        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 2.0, 3.0, 4.0, 5.0])})
-        dtype = frame.select(bollinger_bands(pl.col(COLUMN_X), 3).alias("bb")).schema["bb"]
-        assert isinstance(dtype, pl.Struct)
-        assert [field.name for field in dtype.fields] == ["lower", "middle", "upper"]
-        assert all(field.dtype == pl.Float64 for field in dtype.fields)
-
     def test_over_partitions_independently(self) -> None:
         """
         Verifies that under ``.over`` the window resets per group and never spans group boundaries.
@@ -113,6 +103,16 @@ class TestBollingerBandsContract:
         middle = bollinger_bands(pl.col(COLUMN_X), 2).over(GROUP_KEY).struct.field("middle")
         result = frame.select(middle.alias("y"))["y"].to_list()
         assert_matches(result, [None, 10.5, 11.5, None, 21.0, 21.5])
+
+    def test_output_is_struct_with_named_fields(self) -> None:
+        """
+        Verifies that the output is a ``Float64`` struct with exactly the fields ``lower`` / ``middle`` / ``upper``.
+        """
+        frame = pl.DataFrame({COLUMN_X: pl.Series(COLUMN_X, [1.0, 2.0, 3.0, 4.0, 5.0])})
+        dtype = frame.select(bollinger_bands(pl.col(COLUMN_X), 3).alias("bb")).schema["bb"]
+        assert isinstance(dtype, pl.Struct)
+        assert [field.name for field in dtype.fields] == ["lower", "middle", "upper"]
+        assert all(field.dtype == pl.Float64 for field in dtype.fields)
 
 
 class TestBollingerBandsEdge:
@@ -136,23 +136,6 @@ class TestBollingerBandsEdge:
             with pytest.raises(ValueError, match="multiplier must be a finite number > 0"):
                 bollinger_bands(pl.col(COLUMN_X), 3, multiplier=invalid)
 
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies that every band is null for the first ``window - 1`` rows and defined from the first full window.
-        """
-        bands = apply_bollinger_bands([1.0, 2.0, 3.0, 4.0, 5.0], 3)
-        for field in FIELDS:
-            assert bands[field][:2] == [None, None]
-            assert bands[field][2] is not None
-
-    def test_window_one_collapses_to_close(self) -> None:
-        """
-        Verifies that ``window == 1`` has zero deviation, so all three bands collapse onto ``close`` itself.
-        """
-        bands = apply_bollinger_bands([5.0, 6.0, 7.0], 1)
-        for field in FIELDS:
-            assert_matches(bands[field], [5.0, 6.0, 7.0])
-
     def test_single_row(self) -> None:
         """
         Verifies a one-element series: ``window == 1`` collapses onto the value, a larger window is all warm-up.
@@ -160,14 +143,6 @@ class TestBollingerBandsEdge:
         for field in FIELDS:
             assert_matches(apply_bollinger_bands([42.0], 1)[field], [42.0])
             assert_matches(apply_bollinger_bands([42.0], 3)[field], [None])
-
-    def test_window_exceeds_length(self) -> None:
-        """
-        Verifies that a window longer than the series yields an all-null result on every band (warm-up never completes).
-        """
-        bands = apply_bollinger_bands([1.0, 2.0, 3.0], 5)
-        for field in FIELDS:
-            assert_matches(bands[field], [None, None, None])
 
     def test_all_null(self) -> None:
         """
@@ -197,6 +172,31 @@ class TestBollingerBandsEdge:
         reference = bollinger_bands_reference(values, 2)
         for field in ("lower", "upper"):
             assert_matches(bands[field], reference[field])
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that every band is null for the first ``window - 1`` rows and defined from the first full window.
+        """
+        bands = apply_bollinger_bands([1.0, 2.0, 3.0, 4.0, 5.0], 3)
+        for field in FIELDS:
+            assert bands[field][:2] == [None, None]
+            assert bands[field][2] is not None
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that a window longer than the series yields an all-null result on every band (warm-up never completes).
+        """
+        bands = apply_bollinger_bands([1.0, 2.0, 3.0], 5)
+        for field in FIELDS:
+            assert_matches(bands[field], [None, None, None])
+
+    def test_window_one_collapses_to_close(self) -> None:
+        """
+        Verifies that ``window == 1`` has zero deviation, so all three bands collapse onto ``close`` itself.
+        """
+        bands = apply_bollinger_bands([5.0, 6.0, 7.0], 1)
+        for field in FIELDS:
+            assert_matches(bands[field], [5.0, 6.0, 7.0])
 
 
 class TestBollingerBandsCorrectness:

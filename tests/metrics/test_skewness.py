@@ -59,24 +59,11 @@ class TestSkewnessEdge:
     Boundaries and null / NaN handling.
     """
 
-    def test_single_row_is_nan(self) -> None:
+    def test_single_row(self) -> None:
         """
         Verifies that a one-element series has zero variance, so the standardized moment is NaN.
         """
         assert_matches(apply_expr([0.05], skewness(pl.col(COLUMN_X))), [math.nan])
-
-    def test_constant_is_nan(self) -> None:
-        """
-        Verifies that a constant series has zero variance, so the skewness is NaN.
-        """
-        assert_matches(apply_expr([0.01, 0.01, 0.01], skewness(pl.col(COLUMN_X))), [math.nan])
-
-    def test_subnormal_magnitude_is_nan(self) -> None:
-        """
-        Verifies that a subnormal-magnitude series, whose ``m2 ** 1.5`` underflows to zero, yields NaN -- the degenerate
-        the property tier floors away from, pinned deterministically here.
-        """
-        assert_matches(apply_expr([0.0, 1e-160, 2e-160], skewness(pl.col(COLUMN_X))), [math.nan])
 
     def test_null_skipped(self) -> None:
         """
@@ -94,6 +81,19 @@ class TestSkewnessEdge:
         Verifies that a NaN return poisons the result to NaN.
         """
         assert_matches(apply_expr([0.01, math.nan, 0.02, 0.03], skewness(pl.col(COLUMN_X))), [math.nan])
+
+    def test_constant_is_nan(self) -> None:
+        """
+        Verifies that a constant series has zero variance, so the skewness is NaN.
+        """
+        assert_matches(apply_expr([0.01, 0.01, 0.01], skewness(pl.col(COLUMN_X))), [math.nan])
+
+    def test_subnormal_magnitude_is_nan(self) -> None:
+        """
+        Verifies that a subnormal-magnitude series, whose ``m2 ** 1.5`` underflows to zero, yields NaN -- the degenerate
+        the property tier floors away from, pinned deterministically here.
+        """
+        assert_matches(apply_expr([0.0, 1e-160, 2e-160], skewness(pl.col(COLUMN_X))), [math.nan])
 
 
 class TestSkewnessCorrectness:

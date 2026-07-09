@@ -141,6 +141,92 @@ class TestMoneyFlowIndexEdge:
         with pytest.raises(ValueError, match="window must be >= 1"):
             money_flow_index(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), pl.col(VOLUME), 0)
 
+    def test_single_row(self) -> None:
+        """
+        Verifies behavior on a one-element series: with no predecessor every window is unfilled.
+        """
+        assert_matches(apply_money_flow_index([10.0], [8.0], [9.0], [100.0], 1), [None])
+
+    def test_all_null_is_all_null(self) -> None:
+        """
+        Verifies that an all-null input yields an all-null output.
+        """
+        assert_matches(
+            apply_money_flow_index([None] * 4, [None] * 4, [None] * 4, [None] * 4, 2),
+            [None, None, None, None],
+        )
+
+    def test_null_in_price_propagates(self) -> None:
+        """
+        Verifies that an interior ``null`` in a price column voids the typical price at that row and the next change.
+        """
+        high_values = [10.0, 11.0, 12.0, 11.0, 13.0]
+        low_values = [8.0, 9.0, 10.0, 9.0, 11.0]
+        close_values = [9.0, 10.0, None, 10.0, 12.0]
+        volume_values = [100.0, 150.0, 120.0, 130.0, 110.0]
+        assert_matches(
+            apply_money_flow_index(high_values, low_values, close_values, volume_values, 2),
+            money_flow_index_reference(high_values, low_values, close_values, volume_values, 2),
+        )
+
+    def test_null_in_volume_voids_only_its_row(self) -> None:
+        """
+        Verifies that a ``null`` volume voids only that row's money flow while the typical-price difference survives.
+        """
+        high_values = [10.0, 11.0, 12.0, 11.0, 13.0]
+        low_values = [8.0, 9.0, 10.0, 9.0, 11.0]
+        close_values = [9.0, 10.0, 11.0, 10.0, 12.0]
+        volume_values = [100.0, 150.0, None, 130.0, 110.0]
+        assert_matches(
+            apply_money_flow_index(high_values, low_values, close_values, volume_values, 2),
+            money_flow_index_reference(high_values, low_values, close_values, volume_values, 2),
+        )
+
+    def test_nan_in_price_propagates(self) -> None:
+        """
+        Verifies that a ``NaN`` in a price column contaminates the affected money flow and yields ``NaN``.
+        """
+        high_values = [10.0, 11.0, math.nan, 11.0, 13.0]
+        low_values = [8.0, 9.0, 10.0, 9.0, 11.0]
+        close_values = [9.0, 10.0, 11.0, 10.0, 12.0]
+        volume_values = [100.0, 150.0, 120.0, 130.0, 110.0]
+        assert_matches(
+            apply_money_flow_index(high_values, low_values, close_values, volume_values, 2),
+            money_flow_index_reference(high_values, low_values, close_values, volume_values, 2),
+        )
+
+    def test_nan_in_volume_propagates(self) -> None:
+        """
+        Verifies that a ``NaN`` volume contaminates that row's money flow and yields ``NaN`` for windows reaching it.
+        """
+        high_values = [10.0, 11.0, 12.0, 11.0, 13.0]
+        low_values = [8.0, 9.0, 10.0, 9.0, 11.0]
+        close_values = [9.0, 10.0, 11.0, 10.0, 12.0]
+        volume_values = [100.0, 150.0, math.nan, 130.0, 110.0]
+        assert_matches(
+            apply_money_flow_index(high_values, low_values, close_values, volume_values, 2),
+            money_flow_index_reference(high_values, low_values, close_values, volume_values, 2),
+        )
+
+    def test_nan_typical_price_poisons_successor_change(self) -> None:
+        """
+        Verifies that a ``NaN`` typical price poisons both its own change and the next one into ``NaN``.
+
+        The bar after a ``NaN`` typical price has a ``NaN`` typical change, undefined in sign; it is routed to ``NaN``
+        in both the positive and the negative flow rather than classified as a fully-positive bar at its finite money
+        flow, so every window reaching either change yields ``NaN``. The series falls 19 -> (NaN bar) -> 11 -> 10, so
+        with ``window == 1`` the own change (index 1) and the successor change (index 2) are both ``NaN`` while the
+        final clean down-change (index 3) gives ``0``.
+        """
+        high_values = [20.0, math.nan, 12.0, 11.0]
+        low_values = [18.0, 9.0, 10.0, 9.0]
+        close_values = [19.0, 10.0, 11.0, 10.0]
+        volume_values = [100.0, 100.0, 100.0, 100.0]
+        assert_matches(
+            apply_money_flow_index(high_values, low_values, close_values, volume_values, 1),
+            [None, math.nan, math.nan, 0.0],
+        )
+
     def test_warmup_null_count(self) -> None:
         """
         Verifies that the first ``window`` rows are null (a full window of changes is needed) and the next is defined.
@@ -155,7 +241,25 @@ class TestMoneyFlowIndexEdge:
         assert result[:3] == [None, None, None]
         assert result[3] is not None
 
-    def test_window_one(self) -> None:
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that a window longer than the series yields an all-null result (no full window of changes accrues).
+        """
+        assert_matches(
+            apply_money_flow_index([10.0, 11.0, 12.0], [8.0, 9.0, 10.0], [9.0, 10.0, 11.0], [100.0, 150.0, 120.0], 5),
+            [None, None, None],
+        )
+
+    def test_window_equals_length(self) -> None:
+        """
+        Verifies that when ``window`` equals the series length the whole output is null (no full window of changes).
+        """
+        assert_matches(
+            apply_money_flow_index([10.0, 11.0, 12.0], [8.0, 9.0, 10.0], [9.0, 10.0, 11.0], [100.0, 150.0, 120.0], 3),
+            [None, None, None],
+        )
+
+    def test_window_one_is_up_or_down(self) -> None:
         """
         Verifies that with ``window == 1`` the warm-up is a single row and each bar is either fully up or fully down.
         """
@@ -168,30 +272,6 @@ class TestMoneyFlowIndexEdge:
                 1,
             ),
             [None, 100.0, 100.0, 0.0, 100.0],
-        )
-
-    def test_single_row(self) -> None:
-        """
-        Verifies behavior on a one-element series: with no predecessor every window is unfilled.
-        """
-        assert_matches(apply_money_flow_index([10.0], [8.0], [9.0], [100.0], 1), [None])
-
-    def test_window_equals_length(self) -> None:
-        """
-        Verifies that when ``window`` equals the series length the whole output is null (no full window of changes).
-        """
-        assert_matches(
-            apply_money_flow_index([10.0, 11.0, 12.0], [8.0, 9.0, 10.0], [9.0, 10.0, 11.0], [100.0, 150.0, 120.0], 3),
-            [None, None, None],
-        )
-
-    def test_window_exceeds_length(self) -> None:
-        """
-        Verifies that a window longer than the series yields an all-null result (no full window of changes accrues).
-        """
-        assert_matches(
-            apply_money_flow_index([10.0, 11.0, 12.0], [8.0, 9.0, 10.0], [9.0, 10.0, 11.0], [100.0, 150.0, 120.0], 5),
-            [None, None, None],
         )
 
     def test_all_up_saturates_at_one_hundred(self) -> None:
@@ -307,86 +387,6 @@ class TestMoneyFlowIndexEdge:
         assert_matches(result, money_flow_index_reference(flat, flat, flat, volume, 12))
         assert all(value is not None and math.isnan(value) for value in result[16:])
 
-    def test_null_in_price_propagates(self) -> None:
-        """
-        Verifies that an interior ``null`` in a price column voids the typical price at that row and the next change.
-        """
-        high_values = [10.0, 11.0, 12.0, 11.0, 13.0]
-        low_values = [8.0, 9.0, 10.0, 9.0, 11.0]
-        close_values = [9.0, 10.0, None, 10.0, 12.0]
-        volume_values = [100.0, 150.0, 120.0, 130.0, 110.0]
-        assert_matches(
-            apply_money_flow_index(high_values, low_values, close_values, volume_values, 2),
-            money_flow_index_reference(high_values, low_values, close_values, volume_values, 2),
-        )
-
-    def test_null_in_volume_voids_only_its_row(self) -> None:
-        """
-        Verifies that a ``null`` volume voids only that row's money flow while the typical-price difference survives.
-        """
-        high_values = [10.0, 11.0, 12.0, 11.0, 13.0]
-        low_values = [8.0, 9.0, 10.0, 9.0, 11.0]
-        close_values = [9.0, 10.0, 11.0, 10.0, 12.0]
-        volume_values = [100.0, 150.0, None, 130.0, 110.0]
-        assert_matches(
-            apply_money_flow_index(high_values, low_values, close_values, volume_values, 2),
-            money_flow_index_reference(high_values, low_values, close_values, volume_values, 2),
-        )
-
-    def test_nan_in_price_propagates(self) -> None:
-        """
-        Verifies that a ``NaN`` in a price column contaminates the affected money flow and yields ``NaN``.
-        """
-        high_values = [10.0, 11.0, math.nan, 11.0, 13.0]
-        low_values = [8.0, 9.0, 10.0, 9.0, 11.0]
-        close_values = [9.0, 10.0, 11.0, 10.0, 12.0]
-        volume_values = [100.0, 150.0, 120.0, 130.0, 110.0]
-        assert_matches(
-            apply_money_flow_index(high_values, low_values, close_values, volume_values, 2),
-            money_flow_index_reference(high_values, low_values, close_values, volume_values, 2),
-        )
-
-    def test_nan_in_volume_propagates(self) -> None:
-        """
-        Verifies that a ``NaN`` volume contaminates that row's money flow and yields ``NaN`` for windows reaching it.
-        """
-        high_values = [10.0, 11.0, 12.0, 11.0, 13.0]
-        low_values = [8.0, 9.0, 10.0, 9.0, 11.0]
-        close_values = [9.0, 10.0, 11.0, 10.0, 12.0]
-        volume_values = [100.0, 150.0, math.nan, 130.0, 110.0]
-        assert_matches(
-            apply_money_flow_index(high_values, low_values, close_values, volume_values, 2),
-            money_flow_index_reference(high_values, low_values, close_values, volume_values, 2),
-        )
-
-    def test_nan_typical_price_poisons_successor_change(self) -> None:
-        """
-        Verifies that a ``NaN`` typical price poisons both its own change and the next one into ``NaN``.
-
-        The bar after a ``NaN`` typical price has a ``NaN`` typical change, undefined in sign; it is routed to ``NaN``
-        in both the positive and the negative flow rather than classified as a fully-positive bar at its finite money
-        flow, so every window reaching either change yields ``NaN``. The series falls 19 -> (NaN bar) -> 11 -> 10, so
-        with ``window == 1`` the own change (index 1) and the successor change (index 2) are both ``NaN`` while the
-        final clean down-change (index 3) gives ``0``.
-        """
-        high_values = [20.0, math.nan, 12.0, 11.0]
-        low_values = [18.0, 9.0, 10.0, 9.0]
-        close_values = [19.0, 10.0, 11.0, 10.0]
-        volume_values = [100.0, 100.0, 100.0, 100.0]
-        assert_matches(
-            apply_money_flow_index(high_values, low_values, close_values, volume_values, 1),
-            [None, math.nan, math.nan, 0.0],
-        )
-
-    def test_all_null_is_all_null(self) -> None:
-        """
-        Verifies that an all-null input yields an all-null output.
-        """
-        assert_matches(
-            apply_money_flow_index([None] * 4, [None] * 4, [None] * 4, [None] * 4, 2),
-            [None, None, None, None],
-        )
-
     def test_all_nan(self) -> None:
         """
         Verifies the all-NaN input: the warm-up row stays null and the remaining defined rows are ``NaN``.
@@ -481,22 +481,6 @@ class TestMoneyFlowIndexProperties:
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
 
-    @given(case=_cases(coherent_hlcv()))
-    def test_bounded_in_zero_one_hundred(
-        self,
-        case: tuple[list[tuple[float, float, float, float]], int],
-    ) -> None:
-        """
-        Verifies that on clean, in-spec data every defined MFI value lies within ``[0, 100]``.
-        """
-        rows, window = case
-        high_values, low_values, close_values, volume_values = split_quads(rows)
-        result = apply_money_flow_index(high_values, low_values, close_values, volume_values, window)
-        for value in result:
-            if value is None or math.isnan(value):
-                continue
-            assert -BOUND_MARGIN <= value <= 100.0 + BOUND_MARGIN
-
     @given(case=_cases(coherent_hlcv_with_missing()))
     def test_matches_reference_under_missing_data(
         self,
@@ -566,6 +550,22 @@ class TestMoneyFlowIndexProperties:
             high_values, low_values, close_values, [value * c for value in volume_values], window
         )
         assert_scale_homogeneous(result_scaled, result_base, k=c, degree=0)
+
+    @given(case=_cases(coherent_hlcv()))
+    def test_bounded(
+        self,
+        case: tuple[list[tuple[float, float, float, float]], int],
+    ) -> None:
+        """
+        Verifies that on clean, in-spec data every defined MFI value lies within ``[0, 100]``.
+        """
+        rows, window = case
+        high_values, low_values, close_values, volume_values = split_quads(rows)
+        result = apply_money_flow_index(high_values, low_values, close_values, volume_values, window)
+        for value in result:
+            if value is None or math.isnan(value):
+                continue
+            assert -BOUND_MARGIN <= value <= 100.0 + BOUND_MARGIN
 
     @given(case=_cases(coherent_hlcv()))
     def test_warmup_null_count_property(

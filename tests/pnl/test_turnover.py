@@ -8,9 +8,9 @@ first row is ``|weight_0|``. Turnover is degree-1 homogeneous, so it carries the
 tiers.
 
 The ladder is the canonical one: contract (type / shape / lazy-eager / ``.over`` per-group independence), edge
-(flat-start / single-row / null / NaN), correctness (vs the closed-form reference and a frozen golden master), and
-properties (reference agreement incl. missing data, scale-homogeneity, large-magnitude). Categories are split into
-classes; cross-cutting categories use markers (see ``tests/README.md``).
+(single-row / null / NaN / flat-start / consecutive-infinities), correctness (vs the closed-form reference and a frozen
+golden master), and properties (reference agreement incl. missing data, scale-homogeneity, large-magnitude). Categories
+are split into classes; cross-cutting categories use markers (see ``tests/README.md``).
 """
 
 import math
@@ -79,12 +79,6 @@ class TestTurnoverEdge:
     Boundaries, the flat start, and null / NaN handling.
     """
 
-    def test_flat_start_first_row(self) -> None:
-        """
-        Verifies the first row is ``|weight_0|`` (the entry trade from a flat start), not null.
-        """
-        assert_matches(apply_expr([0.5, 1.0, -0.5], turnover(pl.col(COLUMN_X))), [0.5, 0.5, 1.5])
-
     def test_single_row(self) -> None:
         """
         Verifies that a one-element series resolves to ``|weight_0|`` (the entry trade), not null.
@@ -106,7 +100,13 @@ class TestTurnoverEdge:
         values = [0.5, math.nan, 1.0, -0.5]
         assert_matches(apply_expr(values, turnover(pl.col(COLUMN_X))), turnover_reference(values))
 
-    def test_infinity_propagates(self) -> None:
+    def test_flat_start_first_row(self) -> None:
+        """
+        Verifies the first row is ``|weight_0|`` (the entry trade from a flat start), not null.
+        """
+        assert_matches(apply_expr([0.5, 1.0, -0.5], turnover(pl.col(COLUMN_X))), [0.5, 0.5, 1.5])
+
+    def test_consecutive_infinities_make_nan(self) -> None:
         """
         Verifies IEEE infinity handling against the reference: a single ``inf`` yields ``|inf|`` and carries ``inf``
         into the next bar, while two consecutive equal-sign infinities make the second bar ``inf - inf = NaN``. The

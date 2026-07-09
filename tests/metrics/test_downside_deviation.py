@@ -97,13 +97,6 @@ class TestDownsideDeviationEdge:
             abs_tol=_abs_tol(values),
         )
 
-    def test_no_downside_is_zero(self) -> None:
-        """
-        Verifies that returns all at or above the threshold have zero downside, so the deviation is ``0``.
-        """
-        result = apply_expr([0.01, 0.02, 0.0, 0.03], downside_deviation(pl.col(COLUMN_X), periods_per_year=PERIODS))
-        assert_matches(result, [0.0])
-
     def test_null_skipped(self) -> None:
         """
         Verifies that ``null`` returns are skipped (excluded from the downside deviation), matching the reference.
@@ -121,6 +114,13 @@ class TestDownsideDeviationEdge:
         """
         values = [0.01, math.nan, -0.02]
         assert_matches(apply_expr(values, downside_deviation(pl.col(COLUMN_X), periods_per_year=PERIODS)), [math.nan])
+
+    def test_no_downside_is_zero(self) -> None:
+        """
+        Verifies that returns all at or above the threshold have zero downside, so the deviation is ``0``.
+        """
+        result = apply_expr([0.01, 0.02, 0.0, 0.03], downside_deviation(pl.col(COLUMN_X), periods_per_year=PERIODS))
+        assert_matches(result, [0.0])
 
 
 class TestDownsideDeviationCorrectness:

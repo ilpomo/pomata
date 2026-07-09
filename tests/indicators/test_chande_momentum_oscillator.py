@@ -103,20 +103,6 @@ class TestChandeMomentumOscillatorEdge:
         with pytest.raises(ValueError, match="window must be >= 1"):
             chande_momentum_oscillator(pl.col(COLUMN_X), 0)
 
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies the warm-up is ``window`` rows (row 0 has no change; the rolling sums need ``window`` changes).
-        """
-        result = apply_expr([10.0, 11.0, 12.0, 11.0, 13.0], chande_momentum_oscillator(pl.col(COLUMN_X), 3))
-        assert result[:3] == [None, None, None]
-        assert result[3] is not None
-
-    def test_window_exceeds_length(self) -> None:
-        """
-        Verifies that when ``window`` exceeds the series length the whole output is null (no full window of changes).
-        """
-        assert_matches(apply_expr([1.0, 2.0, 3.0], chande_momentum_oscillator(pl.col(COLUMN_X), 5)), [None, None, None])
-
     def test_single_row(self) -> None:
         """
         Verifies behavior on a one-element series: the lone value is always warm-up.
@@ -131,6 +117,40 @@ class TestChandeMomentumOscillatorEdge:
             apply_expr([None, None, None, None], chande_momentum_oscillator(pl.col(COLUMN_X), 3)),
             [None, None, None, None],
         )
+
+    def test_null_in_window_is_null(self) -> None:
+        """
+        Verifies that an interior ``null`` nulls every window that overlaps it, then the output recovers.
+        """
+        values = [10.0, 11.0, 12.0, None, 14.0, 15.0, 16.0, 17.0]
+        assert_matches(
+            apply_expr(values, chande_momentum_oscillator(pl.col(COLUMN_X), 3)),
+            chande_momentum_oscillator_reference(values, 3),
+        )
+
+    def test_nan_propagates(self) -> None:
+        """
+        Verifies that a NaN propagates (matching the naive reference).
+        """
+        values = [10.0, 11.0, 12.0, 13.0, 14.0, math.nan, 16.0, 17.0]
+        assert_matches(
+            apply_expr(values, chande_momentum_oscillator(pl.col(COLUMN_X), 3)),
+            chande_momentum_oscillator_reference(values, 3),
+        )
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies the warm-up is ``window`` rows (row 0 has no change; the rolling sums need ``window`` changes).
+        """
+        result = apply_expr([10.0, 11.0, 12.0, 11.0, 13.0], chande_momentum_oscillator(pl.col(COLUMN_X), 3))
+        assert result[:3] == [None, None, None]
+        assert result[3] is not None
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that when ``window`` exceeds the series length the whole output is null (no full window of changes).
+        """
+        assert_matches(apply_expr([1.0, 2.0, 3.0], chande_momentum_oscillator(pl.col(COLUMN_X), 5)), [None, None, None])
 
     def test_flat_window_is_nan(self) -> None:
         """
@@ -205,26 +225,6 @@ class TestChandeMomentumOscillatorEdge:
         assert_matches(
             apply_expr([14.0, 13.0, 12.0, 11.0, 10.0], chande_momentum_oscillator(pl.col(COLUMN_X), 3)),
             [None, None, None, -100.0, -100.0],
-        )
-
-    def test_null_in_window_is_null(self) -> None:
-        """
-        Verifies that an interior ``null`` nulls every window that overlaps it, then the output recovers.
-        """
-        values = [10.0, 11.0, 12.0, None, 14.0, 15.0, 16.0, 17.0]
-        assert_matches(
-            apply_expr(values, chande_momentum_oscillator(pl.col(COLUMN_X), 3)),
-            chande_momentum_oscillator_reference(values, 3),
-        )
-
-    def test_nan_propagates(self) -> None:
-        """
-        Verifies that a NaN propagates (matching the naive reference).
-        """
-        values = [10.0, 11.0, 12.0, 13.0, 14.0, math.nan, 16.0, 17.0]
-        assert_matches(
-            apply_expr(values, chande_momentum_oscillator(pl.col(COLUMN_X), 3)),
-            chande_momentum_oscillator_reference(values, 3),
         )
 
 

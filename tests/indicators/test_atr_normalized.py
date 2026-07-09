@@ -121,14 +121,6 @@ class TestAtrNormalizedEdge:
         with pytest.raises(ValueError, match="window must be >= 1"):
             atr_normalized(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), 0)
 
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies that the line is null for the first ``window - 1`` rows (inherited from the ATR).
-        """
-        result = apply_atr_normalized([10.2, 10.5, 10.7, 10.3], [9.8, 10.0, 10.2, 9.9], [10.0, 10.3, 10.5, 10.1], 2)
-        assert result[0] is None
-        assert result[1] is not None
-
     def test_single_row(self) -> None:
         """
         Verifies behavior on a one-element series: ``window == 1`` is defined, a larger window is all warm-up.
@@ -136,14 +128,6 @@ class TestAtrNormalizedEdge:
         result_window_one = apply_atr_normalized([10.0], [8.0], [9.0], 1)
         assert result_window_one[0] is not None
         assert_matches(apply_atr_normalized([10.0], [8.0], [9.0], 3), [None])
-
-    def test_window_exceeds_length(self) -> None:
-        """
-        Verifies that a window longer than the series yields an all-null result (the warm-up never completes).
-        """
-        assert_matches(
-            apply_atr_normalized([10.2, 10.5, 10.7], [9.8, 10.0, 10.2], [10.0, 10.3, 10.5], 5), [None, None, None]
-        )
 
     def test_all_null(self) -> None:
         """
@@ -175,6 +159,22 @@ class TestAtrNormalizedEdge:
         assert_matches(
             apply_atr_normalized(high, low, close, 2),
             atr_normalized_reference(high, low, close, 2),
+        )
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that the line is null for the first ``window - 1`` rows (inherited from the ATR).
+        """
+        result = apply_atr_normalized([10.2, 10.5, 10.7, 10.3], [9.8, 10.0, 10.2, 9.9], [10.0, 10.3, 10.5, 10.1], 2)
+        assert result[0] is None
+        assert result[1] is not None
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that a window longer than the series yields an all-null result (the warm-up never completes).
+        """
+        assert_matches(
+            apply_atr_normalized([10.2, 10.5, 10.7], [9.8, 10.0, 10.2], [10.0, 10.3, 10.5], 5), [None, None, None]
         )
 
     def test_zero_close_is_non_finite(self) -> None:

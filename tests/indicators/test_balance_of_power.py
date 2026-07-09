@@ -109,12 +109,6 @@ class TestBalanceOfPowerEdge:
     Flat bar, single-row, and null / NaN handling.
     """
 
-    def test_flat_bar_is_zero(self) -> None:
-        """
-        Verifies that a flat bar (``high == low``) yields ``0`` (zero range, no directional power).
-        """
-        assert_matches(apply_balance_of_power([10.0, 12.0], [11.0, 12.0], [9.0, 12.0], [10.5, 11.0]), [0.25, 0.0])
-
     def test_single_row(self) -> None:
         """
         Verifies behavior on a one-element series: the per-bar value is defined from row 0.
@@ -143,6 +137,12 @@ class TestBalanceOfPowerEdge:
         assert_matches(
             apply_balance_of_power([10.0, 10.0], [12.0, math.nan], [8.0, 8.0], [11.0, 11.0]), [0.25, math.nan]
         )
+
+    def test_flat_bar_is_zero(self) -> None:
+        """
+        Verifies that a flat bar (``high == low``) yields ``0`` (zero range, no directional power).
+        """
+        assert_matches(apply_balance_of_power([10.0, 12.0], [11.0, 12.0], [9.0, 12.0], [10.5, 11.0]), [0.25, 0.0])
 
 
 class TestBalanceOfPowerCorrectness:

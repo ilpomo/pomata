@@ -113,28 +113,6 @@ class TestModiglianiRiskAdjustedPerformanceEdge:
                     pl.col(RETURNS), pl.col(BENCHMARK), periods_per_year=PERIODS, risk_free_rate=invalid
                 )
 
-    def test_single_pair(self) -> None:
-        """
-        Verifies that a single complete pair yields ``null`` (the Sharpe ratio and volatility need two observations).
-        """
-        assert_matches(
-            materialize(
-                {RETURNS: [0.05], BENCHMARK: [0.04]},
-                modigliani_risk_adjusted_performance(pl.col(RETURNS), pl.col(BENCHMARK), periods_per_year=PERIODS),
-            ),
-            [None],
-        )
-
-    def test_constant_portfolio_is_inf(self) -> None:
-        """
-        Verifies that a constant portfolio has an infinite Sharpe ratio, which propagates to ``+inf``.
-        """
-        result = materialize(
-            {RETURNS: [0.01, 0.01, 0.01], BENCHMARK: [0.02, -0.01, 0.03]},
-            modigliani_risk_adjusted_performance(pl.col(RETURNS), pl.col(BENCHMARK), periods_per_year=PERIODS),
-        )
-        assert_matches(result, [math.inf])
-
     def test_null_misalignment_drops_pair(self) -> None:
         """
         Verifies that an observation with a ``null`` in either leg is dropped, matching the reference over the retained
@@ -164,6 +142,28 @@ class TestModiglianiRiskAdjustedPerformanceEdge:
             ),
             [math.nan],
         )
+
+    def test_single_pair(self) -> None:
+        """
+        Verifies that a single complete pair yields ``null`` (the Sharpe ratio and volatility need two observations).
+        """
+        assert_matches(
+            materialize(
+                {RETURNS: [0.05], BENCHMARK: [0.04]},
+                modigliani_risk_adjusted_performance(pl.col(RETURNS), pl.col(BENCHMARK), periods_per_year=PERIODS),
+            ),
+            [None],
+        )
+
+    def test_constant_portfolio_is_inf(self) -> None:
+        """
+        Verifies that a constant portfolio has an infinite Sharpe ratio, which propagates to ``+inf``.
+        """
+        result = materialize(
+            {RETURNS: [0.01, 0.01, 0.01], BENCHMARK: [0.02, -0.01, 0.03]},
+            modigliani_risk_adjusted_performance(pl.col(RETURNS), pl.col(BENCHMARK), periods_per_year=PERIODS),
+        )
+        assert_matches(result, [math.inf])
 
 
 class TestModiglianiRiskAdjustedPerformanceCorrectness:

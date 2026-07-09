@@ -93,13 +93,12 @@ class TestWmaEdge:
         with pytest.raises(ValueError, match="window must be >= 1"):
             wma(pl.col(COLUMN_X), 0)
 
-    def test_warmup_null_count(self) -> None:
+    def test_single_row(self) -> None:
         """
-        Verifies that the first ``window - 1`` rows are null (warm-up) and the first full window is defined.
+        Verifies behavior on a one-element series: ``window == 1`` returns the value, a larger window is all warm-up.
         """
-        result = apply_expr([1.0, 2.0, 3.0, 4.0, 5.0], wma(pl.col(COLUMN_X), 3))
-        assert result[:2] == [None, None]
-        assert result[2] is not None
+        assert_matches(apply_expr([42.0], wma(pl.col(COLUMN_X), 1)), [42.0])
+        assert_matches(apply_expr([42.0], wma(pl.col(COLUMN_X), 3)), [None])
 
     def test_all_null(self) -> None:
         """
@@ -108,37 +107,6 @@ class TestWmaEdge:
         assert_matches(
             apply_expr([None, None, None, None, None], wma(pl.col(COLUMN_X), 3)), [None, None, None, None, None]
         )
-
-    def test_window_one_is_identity(self) -> None:
-        """
-        Verifies that ``window == 1`` reproduces the input (the single weight normalizes to one).
-        """
-        assert_matches(apply_expr([1.0, 2.0, 3.0], wma(pl.col(COLUMN_X), 1)), [1.0, 2.0, 3.0])
-
-    def test_window_equals_length(self) -> None:
-        """
-        Verifies the single defined value when ``window`` equals the series length.
-        """
-        assert_matches(apply_expr([1.0, 2.0, 3.0], wma(pl.col(COLUMN_X), 3)), [None, None, 14.0 / 6.0])
-
-    def test_window_exceeds_length(self) -> None:
-        """
-        Verifies that a window exceeding the series length yields an all-null output.
-        """
-        assert_matches(apply_expr([1.0, 2.0, 3.0], wma(pl.col(COLUMN_X), 5)), [None, None, None])
-
-    def test_single_row(self) -> None:
-        """
-        Verifies behavior on a one-element series: ``window == 1`` returns the value, a larger window is all warm-up.
-        """
-        assert_matches(apply_expr([42.0], wma(pl.col(COLUMN_X), 1)), [42.0])
-        assert_matches(apply_expr([42.0], wma(pl.col(COLUMN_X), 3)), [None])
-
-    def test_recency_weighting(self) -> None:
-        """
-        Verifies that the most recent observation carries the highest weight (WMA leans toward it).
-        """
-        assert_matches(apply_expr([1.0, 1.0, 4.0], wma(pl.col(COLUMN_X), 3)), [None, None, 15.0 / 6.0])
 
     def test_null_in_window_is_null(self) -> None:
         """
@@ -154,6 +122,38 @@ class TestWmaEdge:
             apply_expr([1.0, math.nan, 3.0, 4.0], wma(pl.col(COLUMN_X), 2)),
             [None, math.nan, math.nan, 11.0 / 3.0],
         )
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that the first ``window - 1`` rows are null (warm-up) and the first full window is defined.
+        """
+        result = apply_expr([1.0, 2.0, 3.0, 4.0, 5.0], wma(pl.col(COLUMN_X), 3))
+        assert result[:2] == [None, None]
+        assert result[2] is not None
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that a window exceeding the series length yields an all-null output.
+        """
+        assert_matches(apply_expr([1.0, 2.0, 3.0], wma(pl.col(COLUMN_X), 5)), [None, None, None])
+
+    def test_window_equals_length(self) -> None:
+        """
+        Verifies the single defined value when ``window`` equals the series length.
+        """
+        assert_matches(apply_expr([1.0, 2.0, 3.0], wma(pl.col(COLUMN_X), 3)), [None, None, 14.0 / 6.0])
+
+    def test_window_one_is_identity(self) -> None:
+        """
+        Verifies that ``window == 1`` reproduces the input (the single weight normalizes to one).
+        """
+        assert_matches(apply_expr([1.0, 2.0, 3.0], wma(pl.col(COLUMN_X), 1)), [1.0, 2.0, 3.0])
+
+    def test_recency_weighting(self) -> None:
+        """
+        Verifies that the most recent observation carries the highest weight (WMA leans toward it).
+        """
+        assert_matches(apply_expr([1.0, 1.0, 4.0], wma(pl.col(COLUMN_X), 3)), [None, None, 15.0 / 6.0])
 
     def test_interior_null_propagates(self) -> None:
         """
@@ -246,26 +246,6 @@ class TestWmaProperties:
         result_scaled = apply_expr(scaled_values, wma(pl.col(COLUMN_X), window))
         assert_scale_homogeneous(result_scaled, result_base, k=k, degree=1)
 
-    @given(case=_cases(st.floats(min_value=-1e6, max_value=1e6, allow_nan=False, allow_infinity=False)))
-    def test_constant_series_is_constant(
-        self,
-        case: tuple[list[float], int],
-    ) -> None:
-        """
-        Verifies that the WMA of a constant series equals that constant on every defined row (weights sum to one).
-        """
-        values, window = case
-        constant = values[0]
-        result = apply_expr([constant] * len(values), wma(pl.col(COLUMN_X), window))
-        for index, value in enumerate(result):
-            if index + 1 < window:
-                assert value is None
-            else:
-                assert value is not None
-                assert math.isclose(
-                    value, constant, rel_tol=RELATIVE_TOLERANCE_REFERENCE, abs_tol=ABSOLUTE_TOLERANCE_REFERENCE
-                )
-
     @given(
         case=_cases(st.floats(min_value=1e-3, max_value=1.0, allow_nan=False, allow_infinity=False)),
         scale=st.sampled_from([1e-6, 1e6, 1e9]),
@@ -286,3 +266,23 @@ class TestWmaProperties:
             rel_tol=RELATIVE_TOLERANCE_SCALE,
             abs_tol=input_scale(scaled_values) * EXACT_TOLERANCE_FACTOR,
         )
+
+    @given(case=_cases(st.floats(min_value=-1e6, max_value=1e6, allow_nan=False, allow_infinity=False)))
+    def test_constant_series(
+        self,
+        case: tuple[list[float], int],
+    ) -> None:
+        """
+        Verifies that the WMA of a constant series equals that constant on every defined row (weights sum to one).
+        """
+        values, window = case
+        constant = values[0]
+        result = apply_expr([constant] * len(values), wma(pl.col(COLUMN_X), window))
+        for index, value in enumerate(result):
+            if index + 1 < window:
+                assert value is None
+            else:
+                assert value is not None
+                assert math.isclose(
+                    value, constant, rel_tol=RELATIVE_TOLERANCE_REFERENCE, abs_tol=ABSOLUTE_TOLERANCE_REFERENCE
+                )

@@ -111,32 +111,18 @@ class TestDmPlusEdge:
         with pytest.raises(ValueError, match="window must be >= 1"):
             dm_plus(pl.col(HIGH), pl.col(LOW), 0)
 
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null series yields a warm-up null then zeros: a ``null`` high or low makes the raw
-        directional movement ``0`` (the ``when`` comparison is not satisfied), which the ``rma`` then smooths to ``0``.
-        """
-        assert_matches(apply_dm_plus([None] * 4, [None] * 4, 2), [None, 0.0, 0.0, 0.0])
-
     def test_single_row(self) -> None:
         """
         Verifies that a one-row series with ``window > 1`` is all warm-up (one null).
         """
         assert_matches(apply_dm_plus([10.0], [9.0], 2), [None])
 
-    def test_window_exceeds_length(self) -> None:
+    def test_all_null(self) -> None:
         """
-        Verifies that a window exceeding the series length yields an all-null output.
+        Verifies that an all-null series yields a warm-up null then zeros: a ``null`` high or low makes the raw
+        directional movement ``0`` (the ``when`` comparison is not satisfied), which the ``rma`` then smooths to ``0``.
         """
-        assert_matches(apply_dm_plus([10.0, 11.0, 12.0], [9.0, 10.0, 11.0], 5), [None, None, None])
-
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies that the first ``window - 1`` rows are null (warm-up, inherited from the rma).
-        """
-        result = apply_dm_plus([10.0, 11.0, 12.0, 11.5], [9.0, 10.0, 11.0, 10.5], 2)
-        assert result[0] is None
-        assert result[1] is not None
+        assert_matches(apply_dm_plus([None] * 4, [None] * 4, 2), [None, 0.0, 0.0, 0.0])
 
     def test_null_bridged(self) -> None:
         """
@@ -153,6 +139,20 @@ class TestDmPlusEdge:
         high = [10.0, 11.0, 12.0, 12.5, 13.0, math.nan, 14.0, 13.5]
         low = [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5]
         assert_matches(apply_dm_plus(high, low, 2), dm_plus_reference(high, low, 2))
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that the first ``window - 1`` rows are null (warm-up, inherited from the rma).
+        """
+        result = apply_dm_plus([10.0, 11.0, 12.0, 11.5], [9.0, 10.0, 11.0, 10.5], 2)
+        assert result[0] is None
+        assert result[1] is not None
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that a window exceeding the series length yields an all-null output.
+        """
+        assert_matches(apply_dm_plus([10.0, 11.0, 12.0], [9.0, 10.0, 11.0], 5), [None, None, None])
 
 
 class TestDmPlusCorrectness:

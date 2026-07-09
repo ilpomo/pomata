@@ -128,7 +128,8 @@ only where the axes say they apply.
 
 - **Contract** — `returns_expr` → `reduces_to_scalar` | `preserves_length` | `emits_struct` → `lazy_eager_parity`
   → `over_partitions_independently`.
-- **Edge** — `<param>_out_of_range_raises` (per validated parameter, in signature order) → `empty` → `single_row`
+- **Edge** — the `*_raises` validation rungs (named for the violated constraint: `window_below_one_raises`,
+  `fast_above_slow_raises`, `invalid_rate_raises`, …; one per validated parameter, in signature order) → `empty` → `single_row`
   → `all_null` → `null_<policy>` → `nan_<policy>` → *(windowed:)* `warmup_null_count` → `window_exceeds_length`
   → `window_equals_length` → `window_one_*` → `constant_window_is_nan` → *(singularity guards)*.
 - **Correctness** — `matches_reference` → `golden_master`.
@@ -154,8 +155,11 @@ build (§6). Test-local variables follow **`{WHO}_{QUALIFIER}`** — `group_prim
 Each rung is placed by how much of it is genuinely shared:
 
 - **Universal** — identical for every member (`returns_expr`, `shape`, `lazy_eager_parity`, `empty`, `all_null`,
-  `over_partitions`): one parametrized module per family over `__all__`, with shape observed from a probe; there is no
-  per-file copy to drift, and a new function is swept in automatically.
+  `over_partitions`): a parametrized contracts module per family over `__all__`, with shape observed from a probe, so
+  a new function is swept in automatically. The metrics family shares all six this way; the indicators and pnl
+  families deliberately keep per-file `all_null` / `over_partitions` copies where the expected values are
+  function-specific (a struct's field-wise nulls, an anchored cumulation's grouped restart), so those rungs read next
+  to the behavior they pin.
 - **Per-file, presence-guarded** — the rungs whose value or degeneracy is genuinely function-specific (`single_row`,
   the `null` / `NaN` value anchors, the scale rungs, singularity guards): they live in each function's own file. The
   grammar guard mandates that the `null` / `NaN` / reference anchors *exist* and that any canonical name matches the

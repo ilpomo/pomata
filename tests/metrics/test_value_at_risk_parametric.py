@@ -83,14 +83,6 @@ class TestValueAtRiskParametricEdge:
         """
         assert_matches(apply_expr([0.05], value_at_risk_parametric(pl.col(COLUMN_X), confidence=CONFIDENCE)), [None])
 
-    def test_constant_is_mean(self) -> None:
-        """
-        Verifies that a constant series has zero dispersion, so the value-at-risk is the mean itself.
-        """
-        assert_matches(
-            apply_expr([0.01, 0.01, 0.01], value_at_risk_parametric(pl.col(COLUMN_X), confidence=CONFIDENCE)), [0.01]
-        )
-
     def test_null_skipped(self) -> None:
         """
         Verifies that ``null`` returns are skipped (excluded from the value-at-risk), matching the reference.
@@ -109,6 +101,14 @@ class TestValueAtRiskParametricEdge:
         values = [0.01, math.nan, -0.02, 0.03]
         assert_matches(
             apply_expr(values, value_at_risk_parametric(pl.col(COLUMN_X), confidence=CONFIDENCE)), [math.nan]
+        )
+
+    def test_constant_is_mean(self) -> None:
+        """
+        Verifies that a constant series has zero dispersion, so the value-at-risk is the mean itself.
+        """
+        assert_matches(
+            apply_expr([0.01, 0.01, 0.01], value_at_risk_parametric(pl.col(COLUMN_X), confidence=CONFIDENCE)), [0.01]
         )
 
 

@@ -105,47 +105,6 @@ class TestVarianceRollingEdge:
         with pytest.raises(ValueError, match="window must be >= 1"):
             variance_rolling(pl.col(COLUMN_X), 0)
 
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies that the first ``window - 1`` rows are null (warm-up) and the first full window is defined.
-        """
-        result = apply_expr([1.0, 2.0, 3.0, 4.0, 5.0], variance_rolling(pl.col(COLUMN_X), 3))
-        assert result[:2] == [None, None]
-        assert result[2] is not None
-
-    def test_window_one_is_zero(self) -> None:
-        """
-        Verifies that ``window == 1`` has no spread: the variance is ``0`` at every row, with no warm-up.
-        """
-        assert_matches(apply_expr([1.0, 2.0, 3.0], variance_rolling(pl.col(COLUMN_X), 1)), [0.0, 0.0, 0.0])
-
-    def test_window_equals_length(self) -> None:
-        """
-        Verifies the single defined value (the variance of the whole series) when ``window`` equals the series length.
-        """
-        assert_matches(apply_expr([1.0, 3.0], variance_rolling(pl.col(COLUMN_X), 2)), [None, 1.0])
-
-    def test_single_row(self) -> None:
-        """
-        Verifies behavior on a one-element series: ``window == 1`` is ``0`` (no spread), a larger window is warm-up.
-        """
-        assert_matches(apply_expr([42.0], variance_rolling(pl.col(COLUMN_X), 1)), [0.0])
-        assert_matches(apply_expr([42.0], variance_rolling(pl.col(COLUMN_X), 3)), [None])
-
-    def test_null_in_window_is_null(self) -> None:
-        """
-        Verifies that a ``null`` inside the window yields ``null`` there, and the value returns once the window clears.
-        """
-        result = apply_expr([1.0, None, 3.0, 4.0], variance_rolling(pl.col(COLUMN_X), 2))
-        assert_matches(result, [None, None, None, 0.25])
-
-    def test_nan_propagates(self) -> None:
-        """
-        Verifies that a ``NaN`` inside the window yields ``NaN`` there (``null`` still takes precedence over ``NaN``).
-        """
-        result = apply_expr([1.0, math.nan, 3.0, 4.0], variance_rolling(pl.col(COLUMN_X), 2))
-        assert_matches(result, [None, math.nan, math.nan, 0.25])
-
     def test_ddof_at_or_above_window_raises(self) -> None:
         """
         Verifies that a non-positive divisor (``ddof >= window``) raises ``ValueError`` rather than returning a silent
@@ -166,17 +125,58 @@ class TestVarianceRollingEdge:
         with pytest.raises(ValueError, match="ddof must be >= 0"):
             variance_rolling(pl.col(COLUMN_X), 3, ddof=-1)
 
-    def test_window_exceeds_length(self) -> None:
+    def test_single_row(self) -> None:
         """
-        Verifies the whole output is null when ``window`` exceeds the series length (no full window ever forms).
+        Verifies behavior on a one-element series: ``window == 1`` is ``0`` (no spread), a larger window is warm-up.
         """
-        assert_matches(apply_expr([1.0, 2.0, 3.0], variance_rolling(pl.col(COLUMN_X), 5)), [None, None, None])
+        assert_matches(apply_expr([42.0], variance_rolling(pl.col(COLUMN_X), 1)), [0.0])
+        assert_matches(apply_expr([42.0], variance_rolling(pl.col(COLUMN_X), 3)), [None])
 
     def test_all_null(self) -> None:
         """
         Verifies that an all-null series stays null (no window ever holds the required non-null values).
         """
         assert_matches(apply_expr([None, None, None], variance_rolling(pl.col(COLUMN_X), 2)), [None, None, None])
+
+    def test_null_in_window_is_null(self) -> None:
+        """
+        Verifies that a ``null`` inside the window yields ``null`` there, and the value returns once the window clears.
+        """
+        result = apply_expr([1.0, None, 3.0, 4.0], variance_rolling(pl.col(COLUMN_X), 2))
+        assert_matches(result, [None, None, None, 0.25])
+
+    def test_nan_propagates(self) -> None:
+        """
+        Verifies that a ``NaN`` inside the window yields ``NaN`` there (``null`` still takes precedence over ``NaN``).
+        """
+        result = apply_expr([1.0, math.nan, 3.0, 4.0], variance_rolling(pl.col(COLUMN_X), 2))
+        assert_matches(result, [None, math.nan, math.nan, 0.25])
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that the first ``window - 1`` rows are null (warm-up) and the first full window is defined.
+        """
+        result = apply_expr([1.0, 2.0, 3.0, 4.0, 5.0], variance_rolling(pl.col(COLUMN_X), 3))
+        assert result[:2] == [None, None]
+        assert result[2] is not None
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies the whole output is null when ``window`` exceeds the series length (no full window ever forms).
+        """
+        assert_matches(apply_expr([1.0, 2.0, 3.0], variance_rolling(pl.col(COLUMN_X), 5)), [None, None, None])
+
+    def test_window_equals_length(self) -> None:
+        """
+        Verifies the single defined value (the variance of the whole series) when ``window`` equals the series length.
+        """
+        assert_matches(apply_expr([1.0, 3.0], variance_rolling(pl.col(COLUMN_X), 2)), [None, 1.0])
+
+    def test_window_one_is_zero(self) -> None:
+        """
+        Verifies that ``window == 1`` has no spread: the variance is ``0`` at every row, with no warm-up.
+        """
+        assert_matches(apply_expr([1.0, 2.0, 3.0], variance_rolling(pl.col(COLUMN_X), 1)), [0.0, 0.0, 0.0])
 
 
 class TestVarianceRollingCorrectness:

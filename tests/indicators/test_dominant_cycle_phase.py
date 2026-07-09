@@ -99,20 +99,17 @@ class TestDominantCyclePhaseEdge:
     Warm-up and null / NaN latching.
     """
 
+    def test_single_row(self) -> None:
+        """
+        Verifies that a one-row series is all warm-up (one null): far inside the 63-bar warm-up.
+        """
+        assert_matches(apply_dominant_cycle_phase([100.0]), [None])
+
     def test_all_null(self) -> None:
         """
         Verifies that an all-null series yields an all-null output.
         """
         assert_matches(apply_dominant_cycle_phase([None, None, None, None, None]), [None, None, None, None, None])
-
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies that the leading-null run is exactly ``63`` and every later row is defined.
-        """
-        result = apply_dominant_cycle_phase(_SAMPLE)
-        leading_nulls = count_leading_nulls(result)
-        assert leading_nulls == _WARMUP
-        assert all(value is not None for value in result[_WARMUP:])
 
     def test_null_latches(self) -> None:
         """
@@ -132,6 +129,15 @@ class TestDominantCyclePhaseEdge:
         result = apply_dominant_cycle_phase(values)
         assert all(value is None for value in result[66:])
         assert_matches(result, dominant_cycle_phase_reference(values))
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies that the leading-null run is exactly ``63`` and every later row is defined.
+        """
+        result = apply_dominant_cycle_phase(_SAMPLE)
+        leading_nulls = count_leading_nulls(result)
+        assert leading_nulls == _WARMUP
+        assert all(value is not None for value in result[_WARMUP:])
 
 
 class TestDominantCyclePhaseCorrectness:

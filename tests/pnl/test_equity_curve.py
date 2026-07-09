@@ -8,7 +8,7 @@ Tests for ``pomata.pnl.equity_curve`` — the compounded growth of one unit of c
 large-magnitude tiers.
 
 The ladder is the canonical one: contract (type / shape / lazy-eager / ``.over`` per-group independence), edge
-(warm-up / single-row / null / NaN / interior-null continuity), correctness (vs the closed-form reference and a frozen
+(single-row / interior-null continuity / NaN / warm-up), correctness (vs the closed-form reference and a frozen
 golden master), and properties (reference agreement incl. missing data, the compounding identity). Categories are split
 into classes; cross-cutting categories use markers (see ``tests/README.md``).
 """
@@ -75,15 +75,6 @@ class TestEquityCurveEdge:
     Boundaries, warm-up, and null / NaN handling.
     """
 
-    def test_warmup_leading_null(self) -> None:
-        """
-        Verifies a leading warm-up null (as produced by returns_simple) stays null and the curve begins at the first
-        defined return.
-        """
-        result = apply_expr([None, 0.1, 0.2, -0.05], equity_curve(pl.col(COLUMN_X)))
-        assert result[0] is None
-        assert result[1] is not None
-
     def test_single_row(self) -> None:
         """
         Verifies that a one-element series resolves to ``1 + return`` (no warm-up of its own).
@@ -104,6 +95,15 @@ class TestEquityCurveEdge:
         """
         values = [0.1, math.nan, 0.2, -0.05]
         assert_matches(apply_expr(values, equity_curve(pl.col(COLUMN_X))), equity_curve_reference(values))
+
+    def test_warmup_leading_null(self) -> None:
+        """
+        Verifies a leading warm-up null (as produced by returns_simple) stays null and the curve begins at the first
+        defined return.
+        """
+        result = apply_expr([None, 0.1, 0.2, -0.05], equity_curve(pl.col(COLUMN_X)))
+        assert result[0] is None
+        assert result[1] is not None
 
 
 class TestEquityCurveCorrectness:

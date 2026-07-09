@@ -129,35 +129,17 @@ class TestAdxrEdge:
         with pytest.raises(ValueError, match="window must be >= 1"):
             adxr(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), 0)
 
-    def test_all_null(self) -> None:
-        """
-        Verifies that an all-null series yields an all-null output.
-        """
-        assert_matches(apply_adxr([None] * 4, [None] * 4, [None] * 4, 2), [None, None, None, None])
-
     def test_single_row(self) -> None:
         """
         Verifies that a one-row series with ``window > 1`` is all warm-up (one null).
         """
         assert_matches(apply_adxr([10.0], [9.0], [9.5], 2), [None])
 
-    def test_window_exceeds_length(self) -> None:
+    def test_all_null(self) -> None:
         """
-        Verifies that a window exceeding the series length yields an all-null output.
+        Verifies that an all-null series yields an all-null output.
         """
-        assert_matches(apply_adxr([10.0, 11.0, 12.0], [9.0, 10.0, 11.0], [9.5, 10.5, 11.5], 5), [None, None, None])
-
-    def test_warmup_null_count(self) -> None:
-        """
-        Verifies the deep warm-up: the ADX warm-up plus the averaging look-back leaves the first four rows null at
-        window 2.
-        """
-        high = [10.0, 11.0, 12.0, 11.5, 13.0, 12.5]
-        low = [9.0, 10.0, 11.0, 10.5, 12.0, 11.5]
-        close = [9.5, 10.5, 11.5, 11.0, 12.5, 12.0]
-        result = apply_adxr(high, low, close, 2)
-        assert result[:4] == [None, None, None, None]
-        assert result[4] is not None
+        assert_matches(apply_adxr([None] * 4, [None] * 4, [None] * 4, 2), [None, None, None, None])
 
     def test_null_bridged(self) -> None:
         """
@@ -176,6 +158,24 @@ class TestAdxrEdge:
         low = [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5, 14.0, 13.5]
         close = [9.5, 10.5, 11.5, 11.0, 12.5, 12.0, 13.5, 13.0, 14.5, 14.0]
         assert_matches(apply_adxr(high, low, close, 2), adxr_reference(high, low, close, 2))
+
+    def test_warmup_null_count(self) -> None:
+        """
+        Verifies the deep warm-up: the ADX warm-up plus the averaging look-back leaves the first four rows null at
+        window 2.
+        """
+        high = [10.0, 11.0, 12.0, 11.5, 13.0, 12.5]
+        low = [9.0, 10.0, 11.0, 10.5, 12.0, 11.5]
+        close = [9.5, 10.5, 11.5, 11.0, 12.5, 12.0]
+        result = apply_adxr(high, low, close, 2)
+        assert result[:4] == [None, None, None, None]
+        assert result[4] is not None
+
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that a window exceeding the series length yields an all-null output.
+        """
+        assert_matches(apply_adxr([10.0, 11.0, 12.0], [9.0, 10.0, 11.0], [9.5, 10.5, 11.5], 5), [None, None, None])
 
     def test_flat_window_is_nan(self) -> None:
         """

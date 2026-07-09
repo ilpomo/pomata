@@ -80,13 +80,6 @@ class TestSterlingRatioEdge:
             with pytest.raises(ValueError, match="excess must be a finite number"):
                 sterling_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS, excess=invalid)
 
-    def test_no_drawdown_is_zero(self) -> None:
-        """
-        Verifies that a flat single-period growth has zero drawdown and zero growth, so the ratio is ``0`` (the cushion
-        keeps the denominator finite).
-        """
-        assert_matches(apply_expr([1.0], sterling_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS)), [0.0])
-
     def test_null_skipped(self) -> None:
         """
         Verifies that a ``null`` observation is skipped (excluded from the reduction), matching the reference.
@@ -106,6 +99,13 @@ class TestSterlingRatioEdge:
         assert_matches(
             apply_expr([1.1, math.nan, 1.2], sterling_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS)), [math.nan]
         )
+
+    def test_no_drawdown_is_zero(self) -> None:
+        """
+        Verifies that a flat single-period growth has zero drawdown and zero growth, so the ratio is ``0`` (the cushion
+        keeps the denominator finite).
+        """
+        assert_matches(apply_expr([1.0], sterling_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS)), [0.0])
 
 
 class TestSterlingRatioCorrectness:

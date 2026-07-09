@@ -8,7 +8,7 @@ degree-1 homogeneous in each input, so it carries the scale-homogeneity and larg
 signed, so the sign of the cost follows ``sign(quantity) * sign(rate)``.
 
 The ladder, adapted to an elementwise three-input product: contract (type / shape / lazy-eager / ``.over`` identity),
-edge (empty / single-row / null / NaN / null-precedence / sign / zero-rate), correctness (closed-form reference + frozen
+edge (empty / single-row / null / null-precedence / NaN / sign / zero-rate), correctness (closed-form reference + frozen
 golden master), and properties (reference agreement incl. missing data, scale-homogeneity, large-magnitude). Categories
 are split into classes; cross-cutting categories use markers (see ``tests/README.md``).
 """
@@ -115,6 +115,30 @@ class TestCostFundingEdge:
         """
         assert_matches(apply_cost_funding([10.0], [100.0], [0.0001]), [0.1])
 
+    def test_null_propagates(self) -> None:
+        """
+        Verifies that a ``null`` in any input makes that row ``null`` (matching the naive reference).
+        """
+        quantity = [10.0, None, -5.0, 20.0]
+        price = [100.0, 102.0, 101.0, 104.0]
+        rate = [0.0001, 0.0001, 0.0001, 0.0001]
+        assert_matches(apply_cost_funding(quantity, price, rate), cost_funding_reference(quantity, price, rate))
+
+    def test_null_takes_precedence_over_nan(self) -> None:
+        """
+        Verifies that a row with a ``null`` in one input and a ``NaN`` in another yields ``null``.
+        """
+        assert_matches(apply_cost_funding([None, 10.0], [math.nan, 100.0], [0.0001, 0.0001]), [None, 0.1])
+
+    def test_nan_propagates(self) -> None:
+        """
+        Verifies that a ``NaN`` in any input makes that row ``NaN`` (matching the naive reference).
+        """
+        quantity = [10.0, 10.0, math.nan, 20.0]
+        price = [100.0, 102.0, 101.0, 104.0]
+        rate = [0.0001, 0.0001, 0.0001, 0.0001]
+        assert_matches(apply_cost_funding(quantity, price, rate), cost_funding_reference(quantity, price, rate))
+
     def test_sign_follows_quantity_and_rate(self) -> None:
         """
         Verifies the funding-sign convention over the 2x2 sign matrix: a long pays a positive rate and is rebated by a
@@ -130,30 +154,6 @@ class TestCostFundingEdge:
         Verifies that an off-funding bar (``rate = 0``) costs nothing, whatever the position and price.
         """
         assert_matches(apply_cost_funding([10.0, -5.0, 20.0], [100.0, 101.0, 102.0], [0.0, 0.0, 0.0]), [0.0, 0.0, 0.0])
-
-    def test_null_propagates(self) -> None:
-        """
-        Verifies that a ``null`` in any input makes that row ``null`` (matching the naive reference).
-        """
-        quantity = [10.0, None, -5.0, 20.0]
-        price = [100.0, 102.0, 101.0, 104.0]
-        rate = [0.0001, 0.0001, 0.0001, 0.0001]
-        assert_matches(apply_cost_funding(quantity, price, rate), cost_funding_reference(quantity, price, rate))
-
-    def test_nan_propagates(self) -> None:
-        """
-        Verifies that a ``NaN`` in any input makes that row ``NaN`` (matching the naive reference).
-        """
-        quantity = [10.0, 10.0, math.nan, 20.0]
-        price = [100.0, 102.0, 101.0, 104.0]
-        rate = [0.0001, 0.0001, 0.0001, 0.0001]
-        assert_matches(apply_cost_funding(quantity, price, rate), cost_funding_reference(quantity, price, rate))
-
-    def test_null_takes_precedence_over_nan(self) -> None:
-        """
-        Verifies that a row with a ``null`` in one input and a ``NaN`` in another yields ``null``.
-        """
-        assert_matches(apply_cost_funding([None, 10.0], [math.nan, 100.0], [0.0001, 0.0001]), [None, 0.1])
 
 
 class TestCostFundingCorrectness:

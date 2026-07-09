@@ -163,6 +163,94 @@ class TestWilliamsREdge:
         with pytest.raises(ValueError, match="window must be >= 1"):
             williams_r(pl.col(HIGH), pl.col(LOW), pl.col(CLOSE), 0)
 
+    def test_single_row(self) -> None:
+        """
+        Verifies behavior on a one-element series.
+        """
+        assert_matches(apply_williams_r([10.0], [8.0], [9.0], 1), [-50.0])
+        assert_matches(apply_williams_r([10.0], [8.0], [9.0], 2), [None])
+
+    def test_all_null_series(self) -> None:
+        """
+        Verifies that an all-null input yields an all-null output.
+        """
+        assert_matches(
+            apply_williams_r([None, None, None], [None, None, None], [None, None, None], 2),
+            [None, None, None],
+        )
+
+    def test_null_in_high_propagates(self) -> None:
+        """
+        Verifies that a ``null`` in the high window yields ``null``.
+        """
+        high_values = [10.0, None, 11.0, 13.0]
+        low_values = [8.0, 9.0, 10.0, 11.0]
+        close_values = [9.0, 11.0, 10.5, 12.0]
+        assert_matches(
+            apply_williams_r(high_values, low_values, close_values, 2),
+            williams_r_reference(high_values, low_values, close_values, 2),
+        )
+
+    def test_null_in_low_propagates(self) -> None:
+        """
+        Verifies that a ``null`` in the low window yields ``null``.
+        """
+        high_values = [10.0, 12.0, 11.0, 13.0]
+        low_values = [8.0, None, 10.0, 11.0]
+        close_values = [9.0, 11.0, 10.5, 12.0]
+        assert_matches(
+            apply_williams_r(high_values, low_values, close_values, 2),
+            williams_r_reference(high_values, low_values, close_values, 2),
+        )
+
+    def test_null_in_close_propagates(self) -> None:
+        """
+        Verifies that a ``null`` in the current ``close`` yields ``null`` at that row.
+        """
+        high_values = [10.0, 12.0, 11.0, 13.0]
+        low_values = [8.0, 9.0, 10.0, 11.0]
+        close_values = [9.0, None, 10.5, 12.0]
+        assert_matches(
+            apply_williams_r(high_values, low_values, close_values, 2),
+            williams_r_reference(high_values, low_values, close_values, 2),
+        )
+
+    def test_null_takes_precedence_over_nan(self) -> None:
+        """
+        Verifies that a window containing both a ``null`` and a ``NaN`` yields ``null`` (``null`` precedence).
+        """
+        high_values = [10.0, None, 11.0, 13.0]
+        low_values = [8.0, math.nan, 10.0, 11.0]
+        close_values = [9.0, 11.0, 10.5, 12.0]
+        assert_matches(
+            apply_williams_r(high_values, low_values, close_values, 2),
+            williams_r_reference(high_values, low_values, close_values, 2),
+        )
+
+    def test_nan_in_high_propagates(self) -> None:
+        """
+        Verifies that a ``NaN`` in the high window yields ``NaN`` (no ``null`` present).
+        """
+        high_values = [10.0, math.nan, 11.0, 13.0]
+        low_values = [8.0, 9.0, 10.0, 11.0]
+        close_values = [9.0, 11.0, 10.5, 12.0]
+        assert_matches(
+            apply_williams_r(high_values, low_values, close_values, 2),
+            williams_r_reference(high_values, low_values, close_values, 2),
+        )
+
+    def test_nan_in_close_propagates(self) -> None:
+        """
+        Verifies that a ``NaN`` in the current ``close`` yields ``NaN`` at that row (no ``null`` present).
+        """
+        high_values = [10.0, 12.0, 11.0, 13.0]
+        low_values = [8.0, 9.0, 10.0, 11.0]
+        close_values = [9.0, math.nan, 10.5, 12.0]
+        assert_matches(
+            apply_williams_r(high_values, low_values, close_values, 2),
+            williams_r_reference(high_values, low_values, close_values, 2),
+        )
+
     def test_warmup_null_count(self) -> None:
         """
         Verifies that the first ``window - 1`` rows are null and the first full window is defined.
@@ -176,14 +264,11 @@ class TestWilliamsREdge:
         assert result[:2] == [None, None]
         assert result[2] is not None
 
-    def test_window_one(self) -> None:
+    def test_window_exceeds_length(self) -> None:
         """
-        Verifies that ``window == 1`` collapses to the single bar: ``-100 * (high - close) / (high - low)``.
+        Verifies that a ``window`` larger than the series length yields an all-null output.
         """
-        assert_matches(
-            apply_williams_r([10.0, 12.0], [8.0, 9.0], [9.0, 11.0], 1),
-            williams_r_reference([10.0, 12.0], [8.0, 9.0], [9.0, 11.0], 1),
-        )
+        assert_matches(apply_williams_r([10.0, 12.0], [8.0, 9.0], [9.0, 11.0], 5), [None, None])
 
     def test_window_equals_length(self) -> None:
         """
@@ -194,18 +279,14 @@ class TestWilliamsREdge:
             williams_r_reference([10.0, 12.0, 11.0], [8.0, 9.0, 10.0], [9.0, 11.0, 10.5], 3),
         )
 
-    def test_window_exceeds_length(self) -> None:
+    def test_window_one_is_single_bar(self) -> None:
         """
-        Verifies that a ``window`` larger than the series length yields an all-null output.
+        Verifies that ``window == 1`` collapses to the single bar: ``-100 * (high - close) / (high - low)``.
         """
-        assert_matches(apply_williams_r([10.0, 12.0], [8.0, 9.0], [9.0, 11.0], 5), [None, None])
-
-    def test_single_row(self) -> None:
-        """
-        Verifies behavior on a one-element series.
-        """
-        assert_matches(apply_williams_r([10.0], [8.0], [9.0], 1), [-50.0])
-        assert_matches(apply_williams_r([10.0], [8.0], [9.0], 2), [None])
+        assert_matches(
+            apply_williams_r([10.0, 12.0], [8.0, 9.0], [9.0, 11.0], 1),
+            williams_r_reference([10.0, 12.0], [8.0, 9.0], [9.0, 11.0], 1),
+        )
 
     def test_close_at_high_is_zero(self) -> None:
         """
@@ -255,42 +336,6 @@ class TestWilliamsREdge:
             [None, math.nan, math.nan],
         )
 
-    def test_null_in_high_propagates(self) -> None:
-        """
-        Verifies that a ``null`` in the high window yields ``null``.
-        """
-        high_values = [10.0, None, 11.0, 13.0]
-        low_values = [8.0, 9.0, 10.0, 11.0]
-        close_values = [9.0, 11.0, 10.5, 12.0]
-        assert_matches(
-            apply_williams_r(high_values, low_values, close_values, 2),
-            williams_r_reference(high_values, low_values, close_values, 2),
-        )
-
-    def test_null_in_low_propagates(self) -> None:
-        """
-        Verifies that a ``null`` in the low window yields ``null``.
-        """
-        high_values = [10.0, 12.0, 11.0, 13.0]
-        low_values = [8.0, None, 10.0, 11.0]
-        close_values = [9.0, 11.0, 10.5, 12.0]
-        assert_matches(
-            apply_williams_r(high_values, low_values, close_values, 2),
-            williams_r_reference(high_values, low_values, close_values, 2),
-        )
-
-    def test_null_in_close_propagates(self) -> None:
-        """
-        Verifies that a ``null`` in the current ``close`` yields ``null`` at that row.
-        """
-        high_values = [10.0, 12.0, 11.0, 13.0]
-        low_values = [8.0, 9.0, 10.0, 11.0]
-        close_values = [9.0, None, 10.5, 12.0]
-        assert_matches(
-            apply_williams_r(high_values, low_values, close_values, 2),
-            williams_r_reference(high_values, low_values, close_values, 2),
-        )
-
     def test_interior_null_propagates(self) -> None:
         """
         Verifies the interior-null case: a ``null`` taints exactly the windows that contain it.
@@ -315,39 +360,6 @@ class TestWilliamsREdge:
             williams_r_reference(high_values, low_values, close_values, 2),
         )
 
-    def test_all_null_series(self) -> None:
-        """
-        Verifies that an all-null input yields an all-null output.
-        """
-        assert_matches(
-            apply_williams_r([None, None, None], [None, None, None], [None, None, None], 2),
-            [None, None, None],
-        )
-
-    def test_nan_in_high_propagates(self) -> None:
-        """
-        Verifies that a ``NaN`` in the high window yields ``NaN`` (no ``null`` present).
-        """
-        high_values = [10.0, math.nan, 11.0, 13.0]
-        low_values = [8.0, 9.0, 10.0, 11.0]
-        close_values = [9.0, 11.0, 10.5, 12.0]
-        assert_matches(
-            apply_williams_r(high_values, low_values, close_values, 2),
-            williams_r_reference(high_values, low_values, close_values, 2),
-        )
-
-    def test_nan_in_close_propagates(self) -> None:
-        """
-        Verifies that a ``NaN`` in the current ``close`` yields ``NaN`` at that row (no ``null`` present).
-        """
-        high_values = [10.0, 12.0, 11.0, 13.0]
-        low_values = [8.0, 9.0, 10.0, 11.0]
-        close_values = [9.0, math.nan, 10.5, 12.0]
-        assert_matches(
-            apply_williams_r(high_values, low_values, close_values, 2),
-            williams_r_reference(high_values, low_values, close_values, 2),
-        )
-
     def test_all_nan(self) -> None:
         """
         Verifies that an all-NaN input yields ``NaN`` after the warm-up.
@@ -355,18 +367,6 @@ class TestWilliamsREdge:
         assert_matches(
             apply_williams_r([math.nan] * 3, [math.nan] * 3, [math.nan] * 3, 2),
             [None, math.nan, math.nan],
-        )
-
-    def test_null_takes_precedence_over_nan(self) -> None:
-        """
-        Verifies that a window containing both a ``null`` and a ``NaN`` yields ``null`` (``null`` precedence).
-        """
-        high_values = [10.0, None, 11.0, 13.0]
-        low_values = [8.0, math.nan, 10.0, 11.0]
-        close_values = [9.0, 11.0, 10.5, 12.0]
-        assert_matches(
-            apply_williams_r(high_values, low_values, close_values, 2),
-            williams_r_reference(high_values, low_values, close_values, 2),
         )
 
 
@@ -425,19 +425,6 @@ class TestWilliamsRProperties:
             rel_tol=RELATIVE_TOLERANCE_PROPERTY,
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
-
-    @given(case=_cases(well_formed_bar()))
-    def test_bounded_in_minus_hundred_to_zero(self, case: tuple[list[tuple[float, float, float]], int]) -> None:
-        """
-        Verifies that for well-formed bars (``low <= close <= high``) every defined %R lies within ``[-100, 0]``.
-        """
-        rows, window = case
-        high_values, low_values, close_values = split_triples(rows)
-        result = apply_williams_r(high_values, low_values, close_values, window)
-        for value in result:
-            if value is None:
-                continue
-            assert -100.0 - BOUND_MARGIN <= value <= BOUND_MARGIN
 
     @given(case=_cases(coherent_hlc_with_missing()))
     def test_matches_reference_under_missing_data(
@@ -505,6 +492,19 @@ class TestWilliamsRProperties:
             window,
         )
         assert_matches(result_shifted, result_base, rel_tol=RELATIVE_TOLERANCE_SCALE, abs_tol=ABSOLUTE_TOLERANCE_SCALE)
+
+    @given(case=_cases(well_formed_bar()))
+    def test_bounded(self, case: tuple[list[tuple[float, float, float]], int]) -> None:
+        """
+        Verifies that for well-formed bars (``low <= close <= high``) every defined %R lies within ``[-100, 0]``.
+        """
+        rows, window = case
+        high_values, low_values, close_values = split_triples(rows)
+        result = apply_williams_r(high_values, low_values, close_values, window)
+        for value in result:
+            if value is None:
+                continue
+            assert -100.0 - BOUND_MARGIN <= value <= BOUND_MARGIN
 
     @given(case=_cases(well_formed_bar()))
     def test_warmup_null_count_property(

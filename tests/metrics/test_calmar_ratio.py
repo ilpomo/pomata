@@ -69,18 +69,11 @@ class TestCalmarRatioEdge:
         with pytest.raises(ValueError, match="periods_per_year must be >= 1"):
             calmar_ratio(pl.col(COLUMN_X), periods_per_year=0)
 
-    def test_single_row_is_nan(self) -> None:
+    def test_single_row(self) -> None:
         """
         Verifies that a one-element series has zero growth and zero drawdown, so the ratio is ``0 / 0``, i.e. ``NaN``.
         """
         assert_matches(apply_expr([1.0], calmar_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS)), [math.nan])
-
-    def test_no_drawdown_is_inf(self) -> None:
-        """
-        Verifies that a monotonically rising curve has zero maximum drawdown with positive growth, so the ratio is
-        ``+inf``.
-        """
-        assert_matches(apply_expr([1.0, 1.1, 1.21], calmar_ratio(pl.col(COLUMN_X), periods_per_year=1)), [math.inf])
 
     def test_null_skipped(self) -> None:
         """
@@ -101,6 +94,13 @@ class TestCalmarRatioEdge:
         assert_matches(
             apply_expr([1.1, math.nan, 1.2], calmar_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS)), [math.nan]
         )
+
+    def test_no_drawdown_is_inf(self) -> None:
+        """
+        Verifies that a monotonically rising curve has zero maximum drawdown with positive growth, so the ratio is
+        ``+inf``.
+        """
+        assert_matches(apply_expr([1.0, 1.1, 1.21], calmar_ratio(pl.col(COLUMN_X), periods_per_year=1)), [math.inf])
 
 
 class TestCalmarRatioCorrectness:
