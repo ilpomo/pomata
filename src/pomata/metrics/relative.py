@@ -1448,4 +1448,4 @@ def treynor_ratio_rolling(
     validate_finite(risk_free_rate, "risk_free_rate")
     rf_period = per_period_rate(risk_free_rate, periods_per_year, name="risk_free_rate")
     annualized_excess = (returns - rf_period).rolling_mean(window, min_samples=window) * periods_per_year
-    return annualized_excess / _rolling_raw_beta(returns, benchmark, window)
+    return (annualized_excess / _rolling_raw_beta(returns, benchmark, window)).name.keep()

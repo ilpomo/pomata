@@ -121,7 +121,7 @@ def price_average(
     low = float64_expr(low)
     close = float64_expr(close)
     # Pure elementwise arithmetic: null propagates through `+` (it is NOT skipped as in max_horizontal), NaN propagates.
-    return (open + high + low + close) / 4.0
+    return ((open + high + low + close) / 4.0).name.keep()
 
 
 def price_median(
@@ -224,7 +224,7 @@ def price_median(
     high = float64_expr(high)
     low = float64_expr(low)
     # Pure elementwise arithmetic: null propagates through `+` (it is NOT skipped as in max_horizontal), NaN propagates.
-    return (high + low) / 2.0
+    return ((high + low) / 2.0).name.keep()
 
 
 def price_typical(
@@ -335,7 +335,7 @@ def price_typical(
     low = float64_expr(low)
     close = float64_expr(close)
     # Pure elementwise arithmetic: null propagates through `+` (it is NOT skipped as in max_horizontal), NaN propagates.
-    return (high + low + close) / 3.0
+    return ((high + low + close) / 3.0).name.keep()
 
 
 def price_weighted_close(
@@ -446,4 +446,4 @@ def price_weighted_close(
     low = float64_expr(low)
     close = float64_expr(close)
     # Pure elementwise arithmetic: null propagates through `+` (it is NOT skipped as in max_horizontal), NaN propagates.
-    return (high + low + 2.0 * close) / 4.0
+    return ((high + low + 2.0 * close) / 4.0).name.keep()

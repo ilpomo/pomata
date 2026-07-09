@@ -89,7 +89,7 @@ bet-sizing statistics — point these at a return series.
 {py:func}`~pomata.metrics.tail_ratio` ·
 {py:func}`~pomata.metrics.win_rate` ·
 {py:func}`~pomata.metrics.payoff_ratio` ·
-{py:func}`~pomata.metrics.profit_ratio` ·
+{py:func}`~pomata.metrics.profit_factor` ·
 {py:func}`~pomata.metrics.kelly_criterion` ·
 {py:func}`~pomata.metrics.risk_of_ruin` ·
 {py:func}`~pomata.metrics.volatility_rolling` ·

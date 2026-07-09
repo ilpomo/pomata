@@ -154,7 +154,7 @@ def stochastic_fast(
     validate_window(window_k, name="window_k")
     validate_window(window_d, name="window_d")
     percent_k = _raw_percent_k(high, low, close, window_k)
-    return pl.struct(k=percent_k, d=sma(percent_k, window_d))
+    return (pl.struct(k=percent_k, d=sma(percent_k, window_d))).name.keep()
 
 
 def stochastic_slow(
@@ -295,4 +295,4 @@ def stochastic_slow(
     validate_window(window_d, name="window_d")
     raw_k = _raw_percent_k(high, low, close, window_k)
     slow_k = sma(raw_k, window_slowing)
-    return pl.struct(k=slow_k, d=sma(slow_k, window_d))
+    return (pl.struct(k=slow_k, d=sma(slow_k, window_d))).name.keep()

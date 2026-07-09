@@ -1,8 +1,8 @@
 """
-Tests for ``pomata.metrics.profit_ratio`` — the total gain over the total loss of a return series.
+Tests for ``pomata.metrics.profit_factor`` — the total gain over the total loss of a return series.
 
-``profit_ratio`` is single-input and REDUCING (a return series → one scalar), so tests read the single output row of
-``apply_expr``; ``assert_matches`` and the naive ``profit_ratio_reference`` oracle (sum of gains over sum of losses)
+``profit_factor`` is single-input and REDUCING (a return series → one scalar), so tests read the single output row of
+``apply_expr``; ``assert_matches`` and the naive ``profit_factor_reference`` oracle (sum of gains over sum of losses)
 are shared across the suite. It is scale-invariant (a ratio of sums), so it carries a scale-invariance tier.
 
 The ladder is the canonical one: contract (type / reduces-to-scalar / lazy-eager / ``.over`` per-group independence),
@@ -16,7 +16,7 @@ import math
 import polars as pl
 from hypothesis import given
 from hypothesis import strategies as st
-from tests.metrics.oracles import profit_ratio_reference
+from tests.metrics.oracles import profit_factor_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
     COLUMN_X,
@@ -29,10 +29,10 @@ from tests.support import (
     subnormal_safe_floats,
 )
 
-from pomata.metrics import profit_ratio
+from pomata.metrics import profit_factor
 
 # ----------------------------------------------------------------------------------------------------------------------
-# Test sizing -- profit_ratio is windowless and REDUCING (M = 0); a case is just a return series. Facts:
+# Test sizing -- profit_factor is windowless and REDUCING (M = 0); a case is just a return series. Facts:
 #   1. shape   reducing: the output is one scalar (one row in ``select``; one per group under ``.over``)
 #   2. domain  subnormal_safe_floats(bound): finite returns floored off subnormal; the missing variant mixes null / NaN
 #   3. scale   invariant (a ratio of sums) -> scale-invariance tier
@@ -63,7 +63,7 @@ class TestProfitRatioEdge:
         Verifies that a one-element series has one empty side: a single gain has zero gross loss, so the factor is
         ``+inf``.
         """
-        assert_matches(apply_expr([0.05], profit_ratio(pl.col(COLUMN_X))), [math.inf])
+        assert_matches(apply_expr([0.05], profit_factor(pl.col(COLUMN_X))), [math.inf])
 
     def test_null_skipped(self) -> None:
         """
@@ -71,8 +71,8 @@ class TestProfitRatioEdge:
         """
         values = [0.01, None, 0.02, -0.03, 0.04, None, -0.01]
         assert_matches(
-            apply_expr(values, profit_ratio(pl.col(COLUMN_X))),
-            [profit_ratio_reference(values)],
+            apply_expr(values, profit_factor(pl.col(COLUMN_X))),
+            [profit_factor_reference(values)],
             rel_tol=RELATIVE_TOLERANCE_REFERENCE,
         )
 
@@ -80,25 +80,25 @@ class TestProfitRatioEdge:
         """
         Verifies that a NaN return poisons the result to NaN.
         """
-        assert_matches(apply_expr([0.01, math.nan, -0.02, 0.03], profit_ratio(pl.col(COLUMN_X))), [math.nan])
+        assert_matches(apply_expr([0.01, math.nan, -0.02, 0.03], profit_factor(pl.col(COLUMN_X))), [math.nan])
 
     def test_no_losses_is_inf(self) -> None:
         """
         Verifies that an all-positive series has no losses, so the ratio is ``+inf``.
         """
-        assert_matches(apply_expr([0.01, 0.02, 0.03], profit_ratio(pl.col(COLUMN_X))), [math.inf])
+        assert_matches(apply_expr([0.01, 0.02, 0.03], profit_factor(pl.col(COLUMN_X))), [math.inf])
 
     def test_no_gains_is_zero(self) -> None:
         """
         Verifies that an all-negative series has no gains, so the ratio is ``0``.
         """
-        assert_matches(apply_expr([-0.01, -0.02, -0.03], profit_ratio(pl.col(COLUMN_X))), [0.0])
+        assert_matches(apply_expr([-0.01, -0.02, -0.03], profit_factor(pl.col(COLUMN_X))), [0.0])
 
     def test_all_zero_is_nan(self) -> None:
         """
         Verifies that an all-zero series has zero gains and zero losses, so the ratio is ``0 / 0``, i.e. ``NaN``.
         """
-        assert_matches(apply_expr([0.0, 0.0, 0.0], profit_ratio(pl.col(COLUMN_X))), [math.nan])
+        assert_matches(apply_expr([0.0, 0.0, 0.0], profit_factor(pl.col(COLUMN_X))), [math.nan])
 
 
 class TestProfitRatioCorrectness:
@@ -112,8 +112,8 @@ class TestProfitRatioCorrectness:
         """
         values = [0.012, -0.008, 0.02, -0.015, 0.005, -0.02, 0.018]
         assert_matches(
-            apply_expr(values, profit_ratio(pl.col(COLUMN_X))),
-            [profit_ratio_reference(values)],
+            apply_expr(values, profit_factor(pl.col(COLUMN_X))),
+            [profit_factor_reference(values)],
             rel_tol=RELATIVE_TOLERANCE_REFERENCE,
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
@@ -123,7 +123,7 @@ class TestProfitRatioCorrectness:
         Verifies the frozen reference: gross gain (0.065) over gross loss (0.045) is 1.4444.
         """
         values = [0.03, -0.01, 0.02, -0.015, 0.01, 0.005, -0.02]
-        assert_matches(apply_expr(values, profit_ratio(pl.col(COLUMN_X)).round(4)), [1.4444])
+        assert_matches(apply_expr(values, profit_factor(pl.col(COLUMN_X)).round(4)), [1.4444])
 
 
 class TestProfitRatioProperties:
@@ -137,8 +137,8 @@ class TestProfitRatioProperties:
         Verifies that, for any return series, the implementation matches the naive reference.
         """
         assert_matches(
-            apply_expr(case, profit_ratio(pl.col(COLUMN_X))),
-            [profit_ratio_reference(case)],
+            apply_expr(case, profit_factor(pl.col(COLUMN_X))),
+            [profit_factor_reference(case)],
             rel_tol=RELATIVE_TOLERANCE_PROPERTY,
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
@@ -149,8 +149,8 @@ class TestProfitRatioProperties:
         Verifies that, for inputs freely mixing null / NaN / finite, the implementation matches the naive reference.
         """
         assert_matches(
-            apply_expr(case, profit_ratio(pl.col(COLUMN_X))),
-            [profit_ratio_reference(case)],
+            apply_expr(case, profit_factor(pl.col(COLUMN_X))),
+            [profit_factor_reference(case)],
             rel_tol=RELATIVE_TOLERANCE_PROPERTY,
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
@@ -161,11 +161,11 @@ class TestProfitRatioProperties:
     )
     def test_scale_invariance(self, case: list[float], exponent: int) -> None:
         """
-        Verifies that ``profit_ratio`` is scale-invariant: scaling every input value by a constant ``k`` leaves the
-        output unchanged -- ``profit_ratio(k * x) == profit_ratio(x)``. ``k`` is a power of two, so the rescale is
+        Verifies that ``profit_factor`` is scale-invariant: scaling every input value by a constant ``k`` leaves the
+        output unchanged -- ``profit_factor(k * x) == profit_factor(x)``. ``k`` is a power of two, so the rescale is
         exact and adds no floating-point error.
         """
         k = 2.0**exponent
-        base = apply_expr(case, profit_ratio(pl.col(COLUMN_X)))
-        scaled = apply_expr([value * k for value in case], profit_ratio(pl.col(COLUMN_X)))
+        base = apply_expr(case, profit_factor(pl.col(COLUMN_X)))
+        scaled = apply_expr([value * k for value in case], profit_factor(pl.col(COLUMN_X)))
         assert_matches(scaled, base, rel_tol=RELATIVE_TOLERANCE_SCALE, abs_tol=ABSOLUTE_TOLERANCE_REFERENCE)

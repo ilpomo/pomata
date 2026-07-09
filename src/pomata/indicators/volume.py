@@ -738,7 +738,7 @@ def obv(
     volume = float64_expr(volume)
     # Bar-local direction + one cumulative sum — no path-dependent recursion, so no Rust kernel is needed.
     direction = expr.diff().sign().fill_null(0)
-    return (direction * volume).cum_sum()
+    return (direction * volume).cum_sum().name.keep()
 
 
 def vwap(
@@ -863,4 +863,4 @@ def vwap(
     typical = price_typical(high, low, close)
     weighted = typical * volume
     volume_masked = pl.when(weighted.is_null()).then(None).otherwise(volume)
-    return weighted.cum_sum() / volume_masked.cum_sum()
+    return (weighted.cum_sum() / volume_masked.cum_sum()).name.keep()

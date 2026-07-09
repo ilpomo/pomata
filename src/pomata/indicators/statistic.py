@@ -96,7 +96,7 @@ def linear_regression(
     """
     expr = float64_expr(expr)
     validate_window(window, minimum=2)
-    return expr.rolling_mean(window) + linear_regression_slope(expr, window) * (window - 1) / 2.0
+    return (expr.rolling_mean(window) + linear_regression_slope(expr, window) * (window - 1) / 2.0).name.keep()
 
 
 def linear_regression_angle(
@@ -255,7 +255,7 @@ def linear_regression_intercept(
     """
     expr = float64_expr(expr)
     validate_window(window, minimum=2)
-    return expr.rolling_mean(window) - linear_regression_slope(expr, window) * (window - 1) / 2.0
+    return (expr.rolling_mean(window) - linear_regression_slope(expr, window) * (window - 1) / 2.0).name.keep()
 
 
 def linear_regression_slope(
@@ -433,7 +433,7 @@ def standard_deviation_ewma(
     """
     expr = float64_expr(expr)
     validate_window(window, minimum=2)
-    return expr.ewm_std(span=window, adjust=adjust, bias=bias, min_samples=window)
+    return (expr.ewm_std(span=window, adjust=adjust, bias=bias, min_samples=window)).name.keep()
 
 
 def standard_deviation_rolling(
@@ -524,7 +524,7 @@ def standard_deviation_rolling(
     validate_window(window)
     validate_ddof(ddof, window)
     # Native Polars rolling std; ddof=0 (population) is the charting default, not Polars' own sample ddof=1.
-    return expr.rolling_std(window, ddof=ddof)
+    return (expr.rolling_std(window, ddof=ddof)).name.keep()
 
 
 def time_series_forecast(
@@ -605,7 +605,7 @@ def time_series_forecast(
     """
     expr = float64_expr(expr)
     validate_window(window, minimum=2)
-    return expr.rolling_mean(window) + linear_regression_slope(expr, window) * (window + 1) / 2.0
+    return (expr.rolling_mean(window) + linear_regression_slope(expr, window) * (window + 1) / 2.0).name.keep()
 
 
 def variance_ewma(
@@ -700,7 +700,7 @@ def variance_ewma(
     """
     expr = float64_expr(expr)
     validate_window(window, minimum=2)
-    return expr.ewm_var(span=window, adjust=adjust, bias=bias, min_samples=window)
+    return (expr.ewm_var(span=window, adjust=adjust, bias=bias, min_samples=window)).name.keep()
 
 
 def variance_rolling(
@@ -794,4 +794,4 @@ def variance_rolling(
     validate_window(window)
     validate_ddof(ddof, window)
     # Native Polars rolling var; ddof=0 (population) is the charting default, not Polars' own sample ddof=1.
-    return expr.rolling_var(window, ddof=ddof)
+    return (expr.rolling_var(window, ddof=ddof)).name.keep()

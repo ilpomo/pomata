@@ -39,7 +39,7 @@ from tests.metrics.oracles.pain_index import pain_index_reference
 from tests.metrics.oracles.pain_ratio import pain_ratio_reference
 from tests.metrics.oracles.payoff_ratio import payoff_ratio_reference
 from tests.metrics.oracles.probabilistic_sharpe_ratio import probabilistic_sharpe_ratio_reference
-from tests.metrics.oracles.profit_ratio import profit_ratio_reference
+from tests.metrics.oracles.profit_factor import profit_factor_reference
 from tests.metrics.oracles.recovery_ratio import recovery_ratio_reference
 from tests.metrics.oracles.risk_of_ruin import risk_of_ruin_reference
 from tests.metrics.oracles.sharpe_ratio import sharpe_ratio_reference
@@ -101,7 +101,7 @@ __all__ = (
     "pain_ratio_reference",
     "payoff_ratio_reference",
     "probabilistic_sharpe_ratio_reference",
-    "profit_ratio_reference",
+    "profit_factor_reference",
     "recovery_ratio_reference",
     "risk_of_ruin_reference",
     "sharpe_ratio_reference",
