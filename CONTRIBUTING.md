@@ -35,6 +35,8 @@ uv run pyright --verifytypes pomata --ignoreexternal         # public type compl
 uv run pyrefly check src/pomata                              # types (pyrefly)
 uv run pytest --doctest-modules src/pomata -q                # doctests
 uv run pytest --cov=pomata --cov-report=term-missing -n auto # tests + 100% branch coverage
+uv run sphinx-build -W -b html docs docs/_build/html         # docs build (warnings are errors; gates every PR)
+uv run sphinx-build -b doctest docs docs/_build/doctest      # docs-page doctests (gates every PR)
 ```
 
 CI additionally runs `uv run ty check` as an advisory (non-gating) type check.
@@ -55,7 +57,9 @@ Every public function is a pure `pl.Expr` factory, and ships with:
 - a test module covering the contract (schema, lazy/eager parity, `.over` independence), edge cases
   (null/NaN/warm-up/single row), correctness (versus the oracle and frozen golden-master numbers), and
   properties (bounds, scale-homogeneity, behavior under missing data);
-- 100% branch coverage.
+- 100% branch coverage;
+- a line in the family catalog (`README.md`'s collapsible list and the `docs/families/*.md` page — both are
+  parity-checked against `__all__` by `tests/test_docs_surface.py`).
 
 ## Commits and pull requests
 

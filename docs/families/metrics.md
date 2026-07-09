@@ -73,6 +73,37 @@ Performance measured against a benchmark — what the strategy added, and how mu
 {py:func}`~pomata.metrics.treynor_ratio_rolling` ·
 {py:func}`~pomata.metrics.information_ratio_rolling`
 
+The family in one query — the strategy tracks its benchmark closely (`beta` just above one), adds a genuinely
+positive residual (`alpha`, annualized), earns it consistently (`information_ratio`), and compounds more than twice
+the benchmark's growth (`capture_ratio`):
+
+```{doctest}
+>>> import polars as pl
+>>> from pomata.metrics import alpha, beta, capture_ratio, information_ratio
+>>>
+>>> frame = pl.DataFrame(
+...     {
+...         "returns": [0.012, -0.006, 0.009, -0.014, 0.011, 0.004, -0.002, 0.008],
+...         "benchmark": [0.010, -0.008, 0.006, -0.012, 0.009, 0.002, -0.004, 0.005],
+...     }
+... )
+>>> r, b = pl.col("returns"), pl.col("benchmark")
+>>> frame.select(
+...     beta=beta(r, b).round(4),
+...     alpha=alpha(r, b, periods_per_year=252).round(4),
+...     ir=information_ratio(r, b, periods_per_year=252).round(4),
+...     capture=capture_ratio(r, b, periods_per_year=252).round(4),
+... )
+shape: (1, 4)
+┌───────┬────────┬─────────┬─────────┐
+│ beta  ┆ alpha  ┆ ir      ┆ capture │
+│ ---   ┆ ---    ┆ ---     ┆ ---     │
+│ f64   ┆ f64    ┆ f64     ┆ f64     │
+╞═══════╪════════╪═════════╪═════════╡
+│ 1.132 ┆ 0.5029 ┆ 17.5699 ┆ 2.0869  │
+└───────┴────────┴─────────┴─────────┘
+```
+
 ### Risk
 
 Dispersion and its one-sided and higher-moment cousins, the value-at-risk trio, and the win / payoff / Kelly
