@@ -889,8 +889,10 @@ def probabilistic_sharpe_ratio(
     sharpe = excess.mean() / volatility(excess, periods_per_year=1)
     raw_kurtosis = returns.kurtosis() + 3.0
     observations = returns.drop_nulls().len().cast(pl.Int64)
-    standard_error = (1.0 - returns.skew() * sharpe + (raw_kurtosis - 1.0) / 4.0 * sharpe**2).sqrt()
-    argument = (sharpe - benchmark_sharpe) * (observations - 1).sqrt() / standard_error
+    # sqrt of the inner variance only; the Bailey & Lopez de Prado standard error is this over sqrt(n - 1), which
+    # the argument's (n - 1) factor supplies.
+    inner_deviation = (1.0 - returns.skew() * sharpe + (raw_kurtosis - 1.0) / 4.0 * sharpe**2).sqrt()
+    argument = (sharpe - benchmark_sharpe) * (observations - 1).sqrt() / inner_deviation
     return (argument.map_batches(_normal_cdf, return_dtype=pl.Float64, returns_scalar=True)).name.keep()
 
 

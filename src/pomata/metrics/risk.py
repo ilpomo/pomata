@@ -4,7 +4,7 @@ Risk and dispersion metrics — volatility, downside deviation, distribution sha
 
 import math
 from statistics import NormalDist
-from typing import Literal
+from typing import Final, Literal
 
 import polars as pl
 
@@ -40,7 +40,7 @@ __all__ = (
 )
 
 # The smallest number of observations a sample (ddof = 1) standard deviation is defined over.
-_MINIMUM_SAMPLE_OBSERVATIONS = 2
+_MINIMUM_SAMPLE_OBSERVATIONS: Final = 2
 
 
 def _rolling_moment(

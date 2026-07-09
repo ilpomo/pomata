@@ -32,15 +32,12 @@ def _seeded_recursive_mean_kernel(
     weight = 1.0  # weight of the running mean since its last update, decaying across null gaps
     seed_total = 0.0  # sum of the first ``window`` non-null observations
     observed = 0  # non-null observations counted so far
-    contaminated = False  # a NaN latches and propagates to every later value
     for value in series.to_list():
         if average is not None:
             weight *= decay
         if value is None:
             result.append(None)
             continue
-        if math.isnan(value):  # NaN
-            contaminated = True
         if average is None:
             observed += 1
             seed_total += value
@@ -49,11 +46,11 @@ def _seeded_recursive_mean_kernel(
             else:
                 average = seed_total / window
                 weight = 1.0
-                result.append(math.nan if contaminated else average)
+                result.append(average)
             continue
         average = (weight * average + alpha * value) / (weight + alpha)
         weight = 1.0
-        result.append(math.nan if contaminated else average)
+        result.append(average)
     return pl.Series(series.name, result, dtype=pl.Float64)
 
 

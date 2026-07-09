@@ -3,6 +3,7 @@ Momentum indicators.
 """
 
 import math
+from typing import Final
 
 import polars as pl
 
@@ -30,7 +31,7 @@ __all__ = (
     "williams_r",
 )
 
-_FISHER_CLAMP = 0.999
+_FISHER_CLAMP: Final = 0.999
 
 
 def absolute_price_oscillator(

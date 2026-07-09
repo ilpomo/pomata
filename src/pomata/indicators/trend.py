@@ -4,6 +4,7 @@ Trend indicators — the Parabolic SAR (stop and reverse) and the SuperTrend (AT
 
 import math
 from functools import partial
+from typing import Final
 
 import polars as pl
 
@@ -13,9 +14,9 @@ from pomata.indicators.volatility import atr
 
 __all__ = ("parabolic_sar", "supertrend")
 
-_MINIMUM_SEED_BARS = 2
+_MINIMUM_SEED_BARS: Final = 2
 
-_SUPERTREND_DTYPE = pl.Struct({"line": pl.Float64, "direction": pl.Float64})
+_SUPERTREND_DTYPE: Final = pl.Struct({"line": pl.Float64, "direction": pl.Float64})
 
 
 def _sar_kernel(
@@ -55,7 +56,6 @@ def _sar_kernel(
             if len(recent_high) < _MINIMUM_SEED_BARS:
                 continue
             is_long = (recent_high[1] - recent_high[0]) >= (recent_low[0] - recent_low[1])
-            factor = acceleration
             sar = recent_low[0] if is_long else recent_high[0]
             extreme = recent_high[1] if is_long else recent_low[1]
             result[index] = sar

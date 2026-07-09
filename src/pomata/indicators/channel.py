@@ -231,8 +231,8 @@ def ichimoku(
         ...         "low": [8.0, 9.0, 10.0, 11.0, 12.0, 18.0, 19.0, 20.0, 21.0, 22.0],
         ...     }
         ... )
-        >>> kijun = ichimoku(pl.col("high"), pl.col("low"), window_tenkan=2, window_kijun=3, window_senkou=4)
-        >>> frame.with_columns(kijun.over("ticker").struct.field("kijun").round(4).alias("k"))["k"].to_list()
+        >>> cloud = ichimoku(pl.col("high"), pl.col("low"), window_tenkan=2, window_kijun=3, window_senkou=4)
+        >>> frame.with_columns(cloud.over("ticker").struct.field("kijun").round(4).alias("k"))["k"].to_list()
         [None, None, 10.0, 11.0, 12.0, None, None, 20.0, 21.0, 22.0]
 
         A ``null`` (any line whose window touches it is ``null``) and a ``NaN`` (which propagates) make it visible:
@@ -243,8 +243,8 @@ def ichimoku(
         ...         "low": [8.0, 9.0, 10.0, 11.0, 12.0, 10.0, 12.0],
         ...     }
         ... )
-        >>> tenkan = ichimoku(pl.col("high"), pl.col("low"), window_tenkan=2, window_kijun=3, window_senkou=4)
-        >>> frame.select(tenkan.struct.field("tenkan").round(4).alias("t"))["t"].to_list()
+        >>> cloud = ichimoku(pl.col("high"), pl.col("low"), window_tenkan=2, window_kijun=3, window_senkou=4)
+        >>> frame.select(cloud.struct.field("tenkan").round(4).alias("t"))["t"].to_list()
         [None, 10.0, None, None, nan, nan, 12.5]
     """
     high = float64_expr(high)

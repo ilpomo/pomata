@@ -13,6 +13,7 @@ a gap.
 import math
 from dataclasses import dataclass
 from functools import partial
+from typing import Final
 
 import polars as pl
 
@@ -31,13 +32,13 @@ __all__ = (
 # Per-indicator warm-up: the structural minima (TA-Lib's lookbacks) — the recursive smoothers settle in ~32 bars; the
 # phase-derived outputs need a further
 # dominant-cycle look-back of ~31 bars (the running transform / trendline cycle average), hence 63.
-_DIRECT_WARMUP = 32
-_PHASE_WARMUP = 63
-_PHASE_WRAP_DEGREES = 315.0
-_TREND_MODE_THRESHOLD = 0.015
+_DIRECT_WARMUP: Final = 32
+_PHASE_WARMUP: Final = 63
+_PHASE_WRAP_DEGREES: Final = 315.0
+_TREND_MODE_THRESHOLD: Final = 0.015
 
-_MAMA_FAST_LIMIT = 0.5
-_MAMA_SLOW_LIMIT = 0.05
+_MAMA_FAST_LIMIT: Final = 0.5
+_MAMA_SLOW_LIMIT: Final = 0.05
 
 
 @dataclass(frozen=True)
@@ -193,6 +194,9 @@ def _ehlers_pipeline(
         if days_in_trend < 0.5 * smooth_period[index]:
             flag = 0.0
         phase_rate = phase[index] - phase[index - 1]
+        # The != 0.0 sub-condition is a verbatim transcription of Ehlers' EasyLanguage guard, kept for structural
+        # fidelity with the book and the mirror oracle: the [6, 50] clamp above makes smooth_period >= 0.396 for
+        # every computed bar, so the branch can never actually be False here.
         if (
             smooth_period[index] != 0.0
             and 0.67 * 360.0 / smooth_period[index] < phase_rate < 1.5 * 360.0 / smooth_period[index]
@@ -543,8 +547,8 @@ def hilbert_trendline(
 def mama(
     expr: pl.Expr,
     *,
-    limit_fast: float = 0.5,
-    limit_slow: float = 0.05,
+    limit_fast: float = _MAMA_FAST_LIMIT,
+    limit_slow: float = _MAMA_SLOW_LIMIT,
 ) -> pl.Expr:
     r"""
     MESA Adaptive Moving Average (MAMA), with its companion FAMA.

@@ -3,6 +3,8 @@ Return metrics — the total and annualized (CAGR) compounded return of an equit
 return series.
 """
 
+from typing import Final
+
 import polars as pl
 
 from pomata._expr import float64_expr, validate_periods_per_year, validate_window
@@ -10,7 +12,7 @@ from pomata._expr import float64_expr, validate_periods_per_year, validate_windo
 __all__ = ("cagr", "cagr_rolling", "stability", "total_return", "total_return_rolling")
 
 # The smallest number of observations a two-point regression (the stability fit) can be computed over.
-_MINIMUM_REGRESSION_POINTS = 2
+_MINIMUM_REGRESSION_POINTS: Final = 2
 
 
 def cagr(
@@ -101,7 +103,7 @@ def cagr(
     equity_curve = float64_expr(equity_curve)
     validate_periods_per_year(periods_per_year)
     defined = equity_curve.drop_nulls()
-    growth = defined.last() ** (periods_per_year / defined.count()) - 1
+    growth = defined.last() ** (periods_per_year / defined.len()) - 1
     # Domain: the fractional power is defined only on a positive terminal equity. A wiped-out (or sign-flipped)
     # curve has no geometric growth rate — the raw power would be parity-dependent garbage (a plausible finite for
     # integer-valued exponents, NaN otherwise) — so out of domain is a loud NaN, never a plausible wrong number.
