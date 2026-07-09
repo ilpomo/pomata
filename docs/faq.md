@@ -38,7 +38,7 @@ function's docstring **Note** spells out its own exact null/NaN contract.
 
 ## Which Python and Polars versions are supported?
 
-Python 3.12 and newer, and Polars 1.40 or newer — one runtime dependency, nothing else. The Polars floor only moves
+Python 3.12 and newer, and Polars 1.39 or newer — one runtime dependency, nothing else. The Polars floor only moves
 when something genuinely needs it, and a CI job proves the floor still builds on every run.
 
 ## How do I install it?

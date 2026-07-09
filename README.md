@@ -43,7 +43,7 @@ cd pomata && uv sync
 
 ## Dependencies
 
-- **Runtime** — `polars` only (`>= 1.40`). Nothing else is pulled into your environment.
+- **Runtime** — `polars` only (`>= 1.39`). Nothing else is pulled into your environment.
 - **Python** — 3.12, 3.13, 3.14.
 - **Optional** — the `differential` group (TA-Lib) powers the cross-reference parity tier; the other groups are the
   contributor gate. See [CONTRIBUTING.md](https://github.com/ilpomo/pomata/blob/main/CONTRIBUTING.md).

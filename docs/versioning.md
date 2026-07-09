@@ -40,7 +40,7 @@ next major.
 Python **3.12 and newer**. New Python releases are adopted as the ecosystem (Polars included) supports them; the
 oldest line is dropped only once it reaches end of life.
 
-Polars **1.40 and newer**. The floor is the oldest release the full suite passes on — bisected, not guessed — and a CI
+Polars **1.39 and newer**. The floor is the oldest release the full suite passes on — bisected, not guessed — and a CI
 job re-proves it on every push to `main` and nightly (non-gating: a break surfaces as a maintenance signal rather
 than blocking a merge) by installing the lowest allowed version and running the whole suite against it. It
 moves up only when a feature or a fix genuinely requires it, never for fashion.
