@@ -405,4 +405,4 @@ def supertrend(
     half_width = multiplier * atr(high, low, close, window)
     middle = price_median(high, low)
     bands = pl.struct(basic_upper=middle + half_width, basic_lower=middle - half_width, close=close)
-    return (bands.map_batches(_supertrend_kernel, return_dtype=_SUPERTREND_DTYPE).alias("line")).name.keep()
+    return bands.map_batches(_supertrend_kernel, return_dtype=_SUPERTREND_DTYPE).name.keep()

@@ -433,7 +433,7 @@ def standard_deviation_ewma(
     """
     expr = float64_expr(expr)
     validate_window(window, minimum=2)
-    return (expr.ewm_std(span=window, adjust=adjust, bias=bias, min_samples=window)).name.keep()
+    return (expr.ewm_std(span=window, adjust=adjust, bias=bias, min_samples=window, ignore_nulls=False)).name.keep()
 
 
 def standard_deviation_rolling(
@@ -700,7 +700,7 @@ def variance_ewma(
     """
     expr = float64_expr(expr)
     validate_window(window, minimum=2)
-    return (expr.ewm_var(span=window, adjust=adjust, bias=bias, min_samples=window)).name.keep()
+    return (expr.ewm_var(span=window, adjust=adjust, bias=bias, min_samples=window, ignore_nulls=False)).name.keep()
 
 
 def variance_rolling(

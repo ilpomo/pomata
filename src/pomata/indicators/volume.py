@@ -18,6 +18,26 @@ __all__ = (
 )
 
 
+def _money_flow_volume(
+    high: pl.Expr,
+    low: pl.Expr,
+    close: pl.Expr,
+    volume: pl.Expr,
+) -> pl.Expr:
+    """
+    The money-flow-volume core shared by :func:`accumulation_distribution` and :func:`chaikin_money_flow`: the
+    close-location multiplier times ``volume``, doji-guarded.
+
+    Doji guard: ``high - low == 0`` pins the multiplier to 0 (avoids 0/0). A null/NaN input makes the range null/NaN
+    (not ``== 0``), so missing data propagates to a null/NaN money-flow volume rather than being silently zeroed.
+    """
+    high_low_range = high - low
+    money_flow_multiplier = (
+        pl.when(high_low_range == 0).then(pl.lit(0.0)).otherwise(((close - low) - (high - close)) / high_low_range)
+    )
+    return money_flow_multiplier * volume
+
+
 def accumulation_distribution(
     high: pl.Expr,
     low: pl.Expr,
@@ -149,14 +169,7 @@ def accumulation_distribution(
     low = float64_expr(low)
     close = float64_expr(close)
     volume = float64_expr(volume)
-    # Doji guard: high - low == 0 pins MFM to 0 (avoids 0/0). A null/NaN input makes the range null/NaN (not == 0), so
-    # missing data propagates to a null/NaN money-flow volume rather than being silently zeroed.
-    high_low_range = high - low
-    money_flow_multiplier = (
-        pl.when(high_low_range == 0).then(pl.lit(0.0)).otherwise(((close - low) - (high - close)) / high_low_range)
-    )
-    money_flow_volume = money_flow_multiplier * volume
-    return money_flow_volume.cum_sum().name.keep()
+    return _money_flow_volume(high, low, close, volume).cum_sum().name.keep()
 
 
 def accumulation_distribution_oscillator(
@@ -427,14 +440,7 @@ def chaikin_money_flow(
     close = float64_expr(close)
     volume = float64_expr(volume)
     validate_window(window)
-    # Doji guard: high - low == 0 pins MFM to 0 (avoids 0/0). A null/NaN input makes the range null/NaN (not == 0),
-    # so missing data propagates to a null/NaN money-flow volume rather than being silently zeroed.
-    high_low_range = high - low
-    money_flow_multiplier = (
-        pl.when(high_low_range == 0).then(pl.lit(0.0)).otherwise(((close - low) - (high - close)) / high_low_range)
-    )
-    money_flow_volume = money_flow_multiplier * volume
-    weighted_sum = money_flow_volume.rolling_sum(window_size=window)
+    weighted_sum = _money_flow_volume(high, low, close, volume).rolling_sum(window_size=window)
     raw = weighted_sum / volume.rolling_sum(window_size=window)
     # A window whose volume is all zero is the 0/0 degenerate: detect it exactly via the rolling maximum of the absolute
     # volume (which is exactly 0 only when every volume in the window is 0), so a sub-ULP residual left in the rolling

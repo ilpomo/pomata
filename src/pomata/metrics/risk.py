@@ -3,6 +3,7 @@ Risk and dispersion metrics — volatility, downside deviation, distribution sha
 """
 
 import math
+from collections import deque
 from statistics import NormalDist
 from typing import Final, Literal
 
@@ -99,13 +100,13 @@ def _rolling_moment(
         # largest magnitude the incremental sums have ever absorbed. A window whose own scale sits two-plus orders
         # below that prefix is at residue risk (the onset measured against the reducing oracle is ~200x) and is
         # recomputed exactly; everything else keeps the native result untouched.
-        deque_indices: list[int] = []
+        deque_indices: deque[int] = deque()
         prefix_scale = 0.0
         for index, value in enumerate(values):
             magnitude = abs(value) if value is not None and math.isfinite(value) else 0.0
             prefix_scale = max(prefix_scale, magnitude)
             while deque_indices and deque_indices[0] <= index - window:
-                deque_indices.pop(0)
+                deque_indices.popleft()
             while deque_indices:
                 tail = values[deque_indices[-1]]
                 tail_magnitude = abs(tail) if tail is not None and math.isfinite(tail) else 0.0
