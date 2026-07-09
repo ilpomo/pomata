@@ -36,7 +36,7 @@ def donchian_channels(
             ``>= 1``.
 
     Returns:
-        A struct column (one struct per row, the same length as the inputs) with three ``Float64`` fields:
+        A struct ``pl.Expr`` with three ``Float64`` fields, one struct per row, the same length as the inputs:
 
         - ``lower`` — the lowest ``low`` over the window.
         - ``middle`` — the channel midline, ``(upper + lower) / 2`` (identical to :func:`midprice`).
@@ -107,7 +107,8 @@ def donchian_channels(
         ... )["mid"].to_list()
         [None, 10.5, 11.5, None, 20.5, 21.5]
 
-        A ``null`` (a window touching it yields ``null`` on every band) and a ``NaN`` (which propagates) make the
+        A ``null`` (nulling every band whose window reads it — here ``upper`` and ``middle``, while ``lower`` stays
+        defined) and a ``NaN`` (which propagates) make the
         handling visible:
 
         >>> frame = pl.DataFrame({"high": [11.0, None, 13.0, float("nan"), 15.0], "low": [9.0, 10.0, 11.0, 12.0, 13.0]})
@@ -303,7 +304,7 @@ def keltner_channels(
         multiplier: Band half-width as a multiple of the ATR (canonically ``2.0``). Must be a finite number ``> 0``.
 
     Returns:
-        A struct column (one struct per row, the same length as the inputs) with three ``Float64`` fields:
+        A struct ``pl.Expr`` with three ``Float64`` fields, one struct per row, the same length as the inputs:
 
         - ``lower`` — the lower band, ``middle - multiplier * atr``.
         - ``middle`` — the center band, the :func:`ema` of ``close``.

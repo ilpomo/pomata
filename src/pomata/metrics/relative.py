@@ -2,7 +2,8 @@ r"""
 Benchmark-relative metrics — performance and risk measured against a second, benchmark return series.
 
 Every metric here is two-input: it reads a portfolio (or strategy) return series and an aligned benchmark return series,
-both as fractions, and reduces the pair to a single value. The two series are treated as **pairwise-complete**: an
+both as fractions, and reduces the pair to a single value — except the four ``*_rolling`` twins, which emit a value
+per row over a trailing window. The two series are treated as **pairwise-complete**: an
 observation contributes only where BOTH legs are present, so a ``null`` in either leg drops that pair; among the
 retained pairs a ``NaN`` in either leg poisons the result to ``NaN``. This is the composing layer for cross-sectional
 analytics: ``beta`` is the shared regression slope reused by ``alpha`` and ``treynor_ratio``, and
@@ -501,6 +502,11 @@ def beta_rolling(
     Note:
         **Correctness** -- each window matches an independent reference oracle (the reducing :func:`beta` over the
         window).
+
+        **Conditioning** — a near-flat (non-bit-identical) benchmark window sits at the float-conditioning limit
+        ``CORRECTNESS.md`` documents: the one-pass rolling covariance and an exact two-pass recomputation can round a
+        vanishing denominator apart without bound there. The bit-flat window is guarded exactly (``NaN``); real
+        market windows are far from the regime.
 
         **Edge-case behavior:**
 

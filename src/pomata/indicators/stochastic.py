@@ -90,7 +90,8 @@ def stochastic_fast(
         - **NaN** — a ``NaN`` in the window propagates, yielding ``NaN``.
         - **Flat range** — when the highest ``high`` equals the lowest ``low`` (no range over the look-back) the
           denominator is zero, so ``k`` follows IEEE-754: ``0 / 0`` is ``NaN`` when the close sits on that flat level,
-          and ``+/-inf`` when it lies outside it (a gap or malformed bar).
+          and ``+/-inf`` when it lies outside it (a malformed bar whose close sits outside its own high-low range;
+          a gap on well-formed bars cannot produce it).
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so no window spans series
           boundaries, e.g. ``stochastic_fast(pl.col("high"), pl.col("low"), pl.col("close")).over("ticker")``.
 

@@ -114,7 +114,8 @@ def parabolic_sar(
     Args:
         high: High-price series (e.g. ``pl.col("high")``).
         low: Low-price series (e.g. ``pl.col("low")``).
-        acceleration: Starting acceleration factor, and its per-extreme increment. A fraction in ``(0, 1]``, and never
+        acceleration: Starting acceleration factor, and its per-extreme increment (canonical default ``0.02``,
+            Wilder's step). A fraction in ``(0, 1]``, and never
             above ``maximum`` (so the factor is capped from the seed onward, not only on the increment path).
         maximum: Cap on the acceleration factor. A fraction in ``(0, 1]``, and at least ``acceleration``.
 

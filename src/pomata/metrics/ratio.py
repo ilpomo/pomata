@@ -260,7 +260,8 @@ def calmar_ratio(
     Calmar Ratio, the compound annual growth rate per unit of maximum drawdown.
 
     The annualized return divided by the magnitude of the worst peak-to-trough decline -- a return-to-pain ratio that
-    rewards growth and penalizes the deepest loss an investor would have lived through:
+    rewards growth and penalizes the curve's deepest decline from its own running peak (measured from the first
+    observation; see :func:`~pomata.metrics.drawdown`'s inception note):
 
     .. math::
 
@@ -515,7 +516,8 @@ def omega_ratio(
 
     Args:
         returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
-        threshold: The return level separating gains from losses / the minimum acceptable return (default ``0.0``).
+        threshold: The **per-period** return level separating gains from losses / the minimum acceptable return
+            (default ``0.0``); an annual target must be de-annualized by the caller before it is passed.
             Must be finite.
 
     Returns:
@@ -831,7 +833,8 @@ def probabilistic_sharpe_ratio(
         - **NaN** — a ``NaN`` return propagates, yielding ``NaN``.
         - **Fewer than two returns** — the sample Sharpe ratio is undefined, so the result is ``null``.
         - **Zero volatility** — a constant series has an undefined Sharpe ratio and undefined moments, yielding ``NaN``.
-        - **Degenerate** — a negative variance under the inner square root (extreme skewness or kurtosis) yields
+        - **Degenerate** — a negative variance under the inner square root (mathematically impossible by Pearson's
+          inequality; only a floating-point residue on a near-degenerate series can produce it) yields
           ``NaN``; an exactly-zero inner variance (a measure-zero boundary) yields the limiting ``0`` or ``1``,
           reported rather than forced into range.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel, e.g.

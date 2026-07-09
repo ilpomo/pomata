@@ -166,6 +166,10 @@ def adxr(
 
         The warm-up inherits the recursive Wilder seeding of :func:`rma` used throughout the cluster.
 
+        **Documented TA-Lib divergence** — TA-Lib averages the current ADX with the ADX from ``window - 1`` bars
+        back; pomata uses ``window`` bars back, Wilder's book convention, so the two never agree even at steady
+        state and the differential tier holds ADXR out as a documented divergence.
+
         **Edge-case behavior:**
 
         - **Null / NaN** — inherited from :func:`adx`: a ``null`` yields ``null`` and a ``NaN`` propagates; a row whose
@@ -285,7 +289,8 @@ def di_minus(
           coherent bars; a ``null`` prior close drops the close-based true-range terms and shrinks the ATR, so on a gap
           the ratio can exceed ``100``.
         - **Null** — a ``null`` in the smoothed movement or the ATR at a row yields ``null`` there.
-        - **NaN** — a ``NaN`` propagates, yielding ``NaN``.
+        - **NaN** — a ``NaN`` poisons the Wilder recursion and latches ``NaN`` for every later defined row (the
+          recursion cannot flush it).
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursions never span
           series boundaries, e.g. ``di_minus(pl.col("high"), pl.col("low"), pl.col("close"), 14).over("ticker")``.
 
@@ -400,7 +405,8 @@ def di_plus(
           coherent bars; a ``null`` prior close drops the close-based true-range terms and shrinks the ATR, so on a gap
           the ratio can exceed ``100``.
         - **Null** — a ``null`` in the smoothed movement or the ATR at a row yields ``null`` there.
-        - **NaN** — a ``NaN`` propagates, yielding ``NaN``.
+        - **NaN** — a ``NaN`` poisons the Wilder recursion and latches ``NaN`` for every later defined row (the
+          recursion cannot flush it).
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursions never span
           series boundaries, e.g. ``di_plus(pl.col("high"), pl.col("low"), pl.col("close"), 14).over("ticker")``.
 
@@ -757,7 +763,8 @@ def dx(
         - **Flat directional movement** — when ``+DI`` and ``-DI`` are both zero (no movement either way) the
           denominator is zero, so the result follows IEEE-754: the numerator is also zero, hence ``0 / 0`` is ``NaN``.
         - **Null** — a ``null`` in either indicator at a row yields ``null`` there.
-        - **NaN** — a ``NaN`` propagates, yielding ``NaN``.
+        - **NaN** — a ``NaN`` poisons the Wilder recursion and latches ``NaN`` for every later defined row (the
+          recursion cannot flush it).
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursions never span
           series boundaries, e.g. ``dx(pl.col("high"), pl.col("low"), pl.col("close"), 14).over("ticker")``.
 

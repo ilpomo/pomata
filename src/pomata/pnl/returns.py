@@ -52,7 +52,10 @@ def returns_log(
           price relative (``P_t = 0`` over a positive ``P_{t-1}``) yields ``-inf``, a negative relative (the prices
           straddle zero) yields ``NaN``, and a zero previous price yields ``+inf`` only for a positive current price,
           while ``0/0`` and a negative current price over zero yield ``NaN``; these are the documented and intended
-          boundary values rather than an error. A negative-zero ``-0.0`` previous price flips these signs, but does not
+          boundary values rather than an error. Two more corners complete the enumeration: with **both** prices
+          negative the ratio is positive and the log silently finite — an economically meaningless number the caller
+          must screen for, exactly like the single-negative case. A negative-zero ``-0.0`` previous price swaps which
+          of the two zero cases applies (no output changes sign), and does not
           arise from real price data.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the lag never reaches across
           series boundaries, e.g. ``returns_log(pl.col("close")).over("ticker")``.
