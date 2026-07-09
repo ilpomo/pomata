@@ -191,7 +191,7 @@ def drawdown(
         [0.0, 0.0, None, 0.0, nan, -0.1667]
     """
     equity_curve = float64_expr(equity_curve)
-    return equity_curve / equity_curve.cum_max() - 1
+    return (equity_curve / equity_curve.cum_max() - 1).name.keep()
 
 
 def drawdown_rolling(
@@ -272,7 +272,7 @@ def drawdown_rolling(
     """
     equity_curve = float64_expr(equity_curve)
     validate_window(window)
-    return equity_curve / equity_curve.rolling_max(window, min_samples=window) - 1.0
+    return (equity_curve / equity_curve.rolling_max(window, min_samples=window) - 1.0).name.keep()
 
 
 def max_drawdown(
@@ -498,7 +498,7 @@ def pain_index(
         >>> frame.select(pain_index(pl.col("equity_curve")).round(4)).item()
         nan
     """
-    return drawdown(equity_curve).abs().mean()
+    return (drawdown(equity_curve).abs().mean()).name.keep()
 
 
 def ulcer_index(
@@ -575,4 +575,4 @@ def ulcer_index(
         nan
     """
     declines = drawdown(equity_curve)
-    return (declines**2).mean().sqrt()
+    return (declines**2).mean().sqrt().name.keep()

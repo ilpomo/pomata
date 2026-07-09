@@ -122,7 +122,7 @@ def cost_borrow(
     validate_positive(rate, "rate", allow_zero=True)
     # Charge only the short part of the position: clip the negated quantity at zero (longs / flat -> 0), times the price
     # and the per-bar rate. Elementwise; null / NaN propagate through the arithmetic.
-    return (-quantity).clip(lower_bound=0.0) * price * rate
+    return ((-quantity).clip(lower_bound=0.0) * price * rate).name.keep()
 
 
 def cost_fixed(
@@ -211,7 +211,9 @@ def cost_fixed(
     # Charge the flat fee where the quantity changes, 0 where it is held; mask null / NaN through (a bare ``when`` would
     # mis-handle them, since Polars orders NaN as greater than every number and treats a null condition as false).
     traded = turnover(quantity)
-    return pl.when(traded.is_null() | traded.is_nan()).then(traded).when(traded > 0.0).then(fee).otherwise(0.0)
+    return (
+        pl.when(traded.is_null() | traded.is_nan()).then(traded).when(traded > 0.0).then(fee).otherwise(0.0)
+    ).name.keep()
 
 
 def cost_funding(
@@ -322,7 +324,7 @@ def cost_funding(
     funding_rate = float64_expr(funding_rate)
     # The funding payment on the held notional: position times price times the signed per-bar rate. Elementwise; null /
     # NaN propagate through the arithmetic. The rate carries its own sign, so there is no parameter to validate here.
-    return quantity * price * funding_rate
+    return (quantity * price * funding_rate).name.keep()
 
 
 def cost_notional(
@@ -425,7 +427,7 @@ def cost_notional(
     quantity = float64_expr(quantity)
     price = float64_expr(price)
     validate_positive(rate, "rate", allow_zero=True)
-    return turnover(quantity) * price * rate
+    return (turnover(quantity) * price * rate).name.keep()
 
 
 def cost_per_share(
@@ -510,7 +512,7 @@ def cost_per_share(
     """
     quantity = float64_expr(quantity)
     validate_positive(fee, "fee", allow_zero=True)
-    return turnover(quantity) * fee
+    return (turnover(quantity) * fee).name.keep()
 
 
 def cost_proportional(
@@ -602,7 +604,7 @@ def cost_proportional(
     """
     weight = float64_expr(weight)
     validate_positive(rate, "rate", allow_zero=True)
-    return turnover(weight) * rate
+    return (turnover(weight) * rate).name.keep()
 
 
 def cost_slippage(
@@ -693,4 +695,4 @@ def cost_slippage(
     """
     weight = float64_expr(weight)
     validate_positive(half_spread, "half_spread", allow_zero=True)
-    return turnover(weight) * half_spread
+    return (turnover(weight) * half_spread).name.keep()

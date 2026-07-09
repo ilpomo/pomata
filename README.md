@@ -226,7 +226,7 @@ shape: (3, 4)
 - **performance** — `cagr`, `cagr_rolling`, `stability`, `total_return`, `total_return_rolling`
 - **ratio** — `adjusted_sharpe_ratio`, `burke_ratio`, `calmar_ratio`, `common_sense_ratio`, `gain_to_pain_ratio`, `omega_ratio`, `omega_ratio_rolling`, `pain_ratio`, `probabilistic_sharpe_ratio`, `recovery_ratio`, `sharpe_ratio`, `sharpe_ratio_rolling`, `sortino_ratio`, `sortino_ratio_rolling`, `sterling_ratio`, `ulcer_performance_ratio`
 - **relative** — `alpha`, `alpha_rolling`, `beta`, `beta_rolling`, `capture_downside_ratio`, `capture_ratio`, `capture_upside_ratio`, `information_ratio`, `information_ratio_rolling`, `modigliani_risk_adjusted_performance`, `treynor_ratio`, `treynor_ratio_rolling`
-- **risk** — `conditional_value_at_risk`, `downside_deviation`, `downside_deviation_rolling`, `kelly_criterion`, `kurtosis`, `kurtosis_rolling`, `payoff_ratio`, `profit_ratio`, `risk_of_ruin`, `skewness`, `skewness_rolling`, `tail_ratio`, `tail_ratio_rolling`, `value_at_risk`, `value_at_risk_modified`, `value_at_risk_parametric`, `value_at_risk_rolling`, `volatility`, `volatility_rolling`, `win_rate`
+- **risk** — `conditional_value_at_risk`, `downside_deviation`, `downside_deviation_rolling`, `kelly_criterion`, `kurtosis`, `kurtosis_rolling`, `payoff_ratio`, `profit_factor`, `risk_of_ruin`, `skewness`, `skewness_rolling`, `tail_ratio`, `tail_ratio_rolling`, `value_at_risk`, `value_at_risk_modified`, `value_at_risk_parametric`, `value_at_risk_rolling`, `volatility`, `volatility_rolling`, `win_rate`
 
 </details>
 

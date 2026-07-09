@@ -473,4 +473,4 @@ def total_return_rolling(
     """
     equity_curve = float64_expr(equity_curve)
     validate_window(window, minimum=2)
-    return equity_curve / equity_curve.shift(window - 1) - 1.0
+    return (equity_curve / equity_curve.shift(window - 1) - 1.0).name.keep()

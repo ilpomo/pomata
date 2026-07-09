@@ -283,8 +283,8 @@ def ema(
         return expr
     if adjust:
         # The bias-corrected finite-window weighting is exact from the first row; it has no seed to choose.
-        return expr.ewm_mean(span=window, adjust=True, min_samples=window, ignore_nulls=False)
-    return _seeded_recursive_mean(expr, 2.0 / (window + 1), window)
+        return (expr.ewm_mean(span=window, adjust=True, min_samples=window, ignore_nulls=False)).name.keep()
+    return (_seeded_recursive_mean(expr, 2.0 / (window + 1), window)).name.keep()
 
 
 def hma(
@@ -633,8 +633,8 @@ def rma(
     if window == 1:
         # alpha=1 => identity; avoids ewm catastrophic cancellation on tiny values (``expr`` is already ``Float64``
         # from ``float64_expr`` above).
-        return expr
-    return _seeded_recursive_mean(expr, 1.0 / window, window)
+        return (expr).name.keep()
+    return (_seeded_recursive_mean(expr, 1.0 / window, window)).name.keep()
 
 
 def sma(
@@ -711,7 +711,7 @@ def sma(
     """
     expr = float64_expr(expr)
     validate_window(window)
-    return expr.rolling_mean(window_size=window)
+    return (expr.rolling_mean(window_size=window)).name.keep()
 
 
 def t3(
@@ -1053,8 +1053,8 @@ def trima(
     # Triangular weights = an SMA of an SMA; the two spans sum to window + 1 (commutative, so order is irrelevant).
     if window % 2:
         half = (window + 1) // 2
-        return sma(sma(expr, half), half)
-    return sma(sma(expr, window // 2), window // 2 + 1)
+        return (sma(sma(expr, half), half)).name.keep()
+    return (sma(sma(expr, window // 2), window // 2 + 1)).name.keep()
 
 
 def vwma(
@@ -1252,4 +1252,4 @@ def wma(
     weighted_terms = expr * window
     for offset in range(1, window):
         weighted_terms = weighted_terms + expr.shift(offset) * (window - offset)
-    return weighted_terms / weight_total
+    return (weighted_terms / weight_total).name.keep()

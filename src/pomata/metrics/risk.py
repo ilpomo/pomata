@@ -24,7 +24,7 @@ __all__ = (
     "kurtosis",
     "kurtosis_rolling",
     "payoff_ratio",
-    "profit_ratio",
+    "profit_factor",
     "risk_of_ruin",
     "skewness",
     "skewness_rolling",
@@ -416,7 +416,7 @@ def downside_deviation(
     validate_periods_per_year(periods_per_year)
     validate_finite(threshold, "threshold")
     shortfall = (returns - threshold).clip(upper_bound=0.0)
-    return (shortfall**2).mean().sqrt() * math.sqrt(periods_per_year)
+    return ((shortfall**2).mean().sqrt() * math.sqrt(periods_per_year)).name.keep()
 
 
 def downside_deviation_rolling(
@@ -721,7 +721,7 @@ def kurtosis(
         nan
     """
     returns = float64_expr(returns)
-    return returns.kurtosis()
+    return (returns.kurtosis()).name.keep()
 
 
 def kurtosis_rolling(
@@ -821,7 +821,7 @@ def kurtosis_rolling(
     """
     returns = float64_expr(returns)
     validate_window(window, minimum=2)
-    return _rolling_moment(returns, window, kind="kurtosis")
+    return (_rolling_moment(returns, window, kind="kurtosis")).name.keep()
 
 
 def payoff_ratio(
@@ -868,7 +868,7 @@ def payoff_ratio(
 
     See Also:
         - :func:`win_rate`: The companion frequency (how often returns win).
-        - :func:`profit_ratio`: The aggregate (total-gain to total-loss) counterpart.
+        - :func:`profit_factor`: The aggregate (total-gain to total-loss) counterpart.
         - :func:`kelly_criterion`: The growth-optimal fraction built from this and the win rate.
 
     References:
@@ -922,7 +922,7 @@ def payoff_ratio(
     return pl.when(returns.is_nan().any()).then(pl.lit(float("nan"))).otherwise(ratio).name.keep()
 
 
-def profit_ratio(
+def profit_factor(
     returns: pl.Expr,
 ) -> pl.Expr:
     r"""
@@ -961,7 +961,7 @@ def profit_ratio(
         - **No losses** — with no negative returns the total loss is zero, so the ratio is ``+inf`` (or ``NaN`` when
           there are also no gains), reported rather than clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel, e.g.
-          ``profit_ratio(pl.col("returns")).over("ticker")``.
+          ``profit_factor(pl.col("returns")).over("ticker")``.
 
     See Also:
         - :func:`payoff_ratio`: The average-win to average-loss counterpart.
@@ -973,10 +973,10 @@ def profit_ratio(
 
     Examples:
         >>> import polars as pl
-        >>> from pomata.metrics import profit_ratio
+        >>> from pomata.metrics import profit_factor
         >>>
         >>> frame = pl.DataFrame({"returns": [0.03, -0.01, 0.02, -0.015, 0.01, 0.005, -0.02]})
-        >>> frame.select(profit_ratio(pl.col("returns")).round(4)).item()
+        >>> frame.select(profit_factor(pl.col("returns")).round(4)).item()
         1.4444
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:
@@ -1002,14 +1002,14 @@ def profit_ratio(
         ...         ],
         ...     }
         ... )
-        >>> reduced = profit_ratio(pl.col("returns")).over("ticker").round(4)
+        >>> reduced = profit_factor(pl.col("returns")).over("ticker").round(4)
         >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
         [1.4444, 1.6667]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
 
         >>> frame = pl.DataFrame({"returns": [0.03, None, -0.01, 0.02, float("nan"), -0.015, 0.01]})
-        >>> frame.select(profit_ratio(pl.col("returns")).round(4)).item()
+        >>> frame.select(profit_factor(pl.col("returns")).round(4)).item()
         nan
     """
     returns = float64_expr(returns)
@@ -1018,7 +1018,7 @@ def profit_ratio(
     # yields ``null`` rather than the ``0 / 0`` ``NaN`` a sum would give -- the documented "no returns" behavior.
     mean_gain = returns.clip(lower_bound=0.0).mean()
     mean_loss = (-returns).clip(lower_bound=0.0).mean()
-    return mean_gain / mean_loss
+    return (mean_gain / mean_loss).name.keep()
 
 
 def risk_of_ruin(
@@ -1204,7 +1204,7 @@ def skewness(
         nan
     """
     returns = float64_expr(returns)
-    return returns.skew()
+    return (returns.skew()).name.keep()
 
 
 def skewness_rolling(
@@ -1303,7 +1303,7 @@ def skewness_rolling(
     """
     returns = float64_expr(returns)
     validate_window(window, minimum=2)
-    return _rolling_moment(returns, window, kind="skew")
+    return (_rolling_moment(returns, window, kind="skew")).name.keep()
 
 
 def tail_ratio(
@@ -1793,7 +1793,7 @@ def value_at_risk_parametric(
     returns = float64_expr(returns)
     validate_confidence(confidence)
     z = NormalDist().inv_cdf(1.0 - confidence)
-    return returns.mean() + z * returns.std(ddof=1)
+    return (returns.mean() + z * returns.std(ddof=1)).name.keep()
 
 
 def value_at_risk_rolling(
@@ -2130,7 +2130,7 @@ def win_rate(
 
     See Also:
         - :func:`payoff_ratio`: The average size of a win versus a loss.
-        - :func:`profit_ratio`: The aggregate gain-to-loss ratio.
+        - :func:`profit_factor`: The aggregate gain-to-loss ratio.
         - :func:`kelly_criterion`: The growth-optimal bet fraction built on this rate.
 
     References:

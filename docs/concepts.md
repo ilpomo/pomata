@@ -15,6 +15,11 @@ macd_line = ema(pl.col("close"), 12) - ema(pl.col("close"), 26)   # just an expr
 frame.with_columns(macd=macd_line)                                # run it wherever you like
 ```
 
+One naming rule follows from this: **the output column keeps the root name of its leading input** (`rsi(pl.col("close"), 14)`
+lands on `close` — in a `with_columns` it *replaces* that column unless you name it). To name an output, alias the
+**returned expression**, never the input: `rsi(pl.col("close"), 14).alias("rsi_14")` — an alias on the input is
+deliberately ignored (`name.keep` restores the root), so it can never silently land the result on an unexpected column.
+
 ## 2. `.over` for multi-asset panels
 
 A panel of many tickers is one DataFrame and one query: wrap the call in `.over(...)` and each group is reduced

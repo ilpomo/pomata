@@ -96,7 +96,7 @@ def returns_log(
     expr = float64_expr(expr)
     # The natural log of the one-bar price relative; the first row is null (no prior) and the IEEE-754 log carries the
     # boundary values (zero relative -> -inf, negative relative -> NaN) documented in the Note.
-    return (expr / expr.shift(1)).log()
+    return (expr / expr.shift(1)).log().name.keep()
 
 
 def returns_simple(
@@ -183,4 +183,4 @@ def returns_simple(
     expr = float64_expr(expr)
     # The one-bar price relative minus one; the first row is null (no prior) and a zero previous price divides by zero
     # following IEEE-754 (0/0 -> NaN, non-zero/0 -> +/-inf), as documented in the Note.
-    return expr / expr.shift(1) - 1
+    return (expr / expr.shift(1) - 1).name.keep()

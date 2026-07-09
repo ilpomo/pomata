@@ -17,7 +17,7 @@ from pomata.metrics.performance import cagr, total_return
 from pomata.metrics.risk import (
     downside_deviation,
     downside_deviation_rolling,
-    profit_ratio,
+    profit_factor,
     tail_ratio,
     volatility,
     volatility_rolling,
@@ -343,7 +343,7 @@ def common_sense_ratio(
     r"""
     Common Sense Ratio, the profit factor scaled by the tail ratio.
 
-    The product of the :func:`profit_ratio` (aggregate gain over loss) and the :func:`tail_ratio` (right-tail over
+    The product of the :func:`profit_factor` (aggregate gain over loss) and the :func:`tail_ratio` (right-tail over
     left-tail magnitude) -- a single number that rewards both a profitable edge and a favorable tail profile:
 
     .. math::
@@ -379,7 +379,7 @@ def common_sense_ratio(
           ``common_sense_ratio(pl.col("returns")).over("ticker")``.
 
     See Also:
-        - :func:`profit_ratio`: The aggregate gain-to-loss factor.
+        - :func:`profit_factor`: The aggregate gain-to-loss factor.
         - :func:`tail_ratio`: The right-tail to left-tail factor.
         - :func:`omega_ratio`: The whole-distribution gain-to-loss ratio about a threshold.
 
@@ -414,7 +414,7 @@ def common_sense_ratio(
         nan
     """
     returns = float64_expr(returns)
-    return profit_ratio(returns) * tail_ratio(returns)
+    return (profit_factor(returns) * tail_ratio(returns)).name.keep()
 
 
 def gain_to_pain_ratio(
@@ -457,7 +457,7 @@ def gain_to_pain_ratio(
           ``gain_to_pain_ratio(pl.col("returns")).over("ticker")``.
 
     See Also:
-        - :func:`profit_ratio`: The gross-gain to gross-loss counterpart.
+        - :func:`profit_factor`: The gross-gain to gross-loss counterpart.
         - :func:`omega_ratio`: The probability-weighted gain-to-loss ratio about a threshold.
         - :func:`ulcer_performance_ratio`: A drawdown-based return-to-pain ratio.
 
@@ -492,7 +492,7 @@ def gain_to_pain_ratio(
         nan
     """
     returns = float64_expr(returns)
-    return returns.mean() / (-returns).clip(lower_bound=0.0).mean()
+    return (returns.mean() / (-returns).clip(lower_bound=0.0).mean()).name.keep()
 
 
 def omega_ratio(
@@ -581,7 +581,7 @@ def omega_ratio(
     excess = returns - threshold
     mean_gain = excess.clip(lower_bound=0.0).mean()
     mean_loss = (-excess).clip(lower_bound=0.0).mean()
-    return mean_gain / mean_loss
+    return (mean_gain / mean_loss).name.keep()
 
 
 def omega_ratio_rolling(
@@ -888,7 +888,7 @@ def probabilistic_sharpe_ratio(
     observations = returns.drop_nulls().len().cast(pl.Int64)
     standard_error = (1.0 - returns.skew() * sharpe + (raw_kurtosis - 1.0) / 4.0 * sharpe**2).sqrt()
     argument = (sharpe - benchmark_sharpe) * (observations - 1).sqrt() / standard_error
-    return argument.map_batches(_normal_cdf, return_dtype=pl.Float64, returns_scalar=True)
+    return (argument.map_batches(_normal_cdf, return_dtype=pl.Float64, returns_scalar=True)).name.keep()
 
 
 def recovery_ratio(
@@ -1064,7 +1064,7 @@ def sharpe_ratio(
     validate_finite(risk_free_rate, "risk_free_rate")
     rf_period = per_period_rate(risk_free_rate, periods_per_year, name="risk_free_rate")
     excess = returns - rf_period
-    return excess.mean() * periods_per_year / volatility(excess, periods_per_year=periods_per_year)
+    return (excess.mean() * periods_per_year / volatility(excess, periods_per_year=periods_per_year)).name.keep()
 
 
 def sharpe_ratio_rolling(
@@ -1162,7 +1162,7 @@ def sharpe_ratio_rolling(
         excess.rolling_mean(window, min_samples=window)
         * periods_per_year
         / volatility_rolling(excess, window, periods_per_year=periods_per_year)
-    )
+    ).name.keep()
 
 
 def sortino_ratio(
@@ -1260,7 +1260,7 @@ def sortino_ratio(
         excess.mean()
         * periods_per_year
         / downside_deviation(returns, periods_per_year=periods_per_year, threshold=rf_period)
-    )
+    ).name.keep()
 
 
 def sortino_ratio_rolling(
@@ -1363,7 +1363,7 @@ def sortino_ratio_rolling(
         excess.rolling_mean(window, min_samples=window)
         * periods_per_year
         / downside_deviation_rolling(returns, window, periods_per_year=periods_per_year, threshold=rf_period)
-    )
+    ).name.keep()
 
 
 def sterling_ratio(

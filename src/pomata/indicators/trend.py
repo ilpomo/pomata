@@ -205,9 +205,11 @@ def parabolic_sar(
     validate_unit_fraction(maximum, "maximum")
     if acceleration > maximum:
         raise ValueError(f"acceleration must be <= maximum, got acceleration={acceleration}, maximum={maximum}")
-    return pl.struct(high=high, low=low).map_batches(
-        partial(_sar_kernel, acceleration=acceleration, maximum=maximum), return_dtype=pl.Float64
-    )
+    return (
+        pl.struct(high=high, low=low).map_batches(
+            partial(_sar_kernel, acceleration=acceleration, maximum=maximum), return_dtype=pl.Float64
+        )
+    ).name.keep()
 
 
 def _supertrend_kernel(
@@ -402,4 +404,4 @@ def supertrend(
     half_width = multiplier * atr(high, low, close, window)
     middle = price_median(high, low)
     bands = pl.struct(basic_upper=middle + half_width, basic_lower=middle - half_width, close=close)
-    return bands.map_batches(_supertrend_kernel, return_dtype=_SUPERTREND_DTYPE).alias("line")
+    return (bands.map_batches(_supertrend_kernel, return_dtype=_SUPERTREND_DTYPE).alias("line")).name.keep()

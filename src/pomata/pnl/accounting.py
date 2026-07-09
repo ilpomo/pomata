@@ -99,7 +99,7 @@ def cumulative_pnl(
     returns = float64_expr(returns)
     # Plain cumulative sum: a null is skipped (emits null, the total carries across it), a NaN propagates -- the Polars
     # cum_sum semantics documented in the Note.
-    return returns.cum_sum()
+    return (returns.cum_sum()).name.keep()
 
 
 def dividend(
@@ -196,7 +196,7 @@ def dividend(
     dividend_per_share = float64_expr(dividend_per_share)
     # Pure elementwise product: the held quantity times the per-share dividend; null propagates (taking precedence over
     # NaN), NaN propagates.
-    return quantity * dividend_per_share
+    return (quantity * dividend_per_share).name.keep()
 
 
 def equity_curve(
@@ -394,7 +394,7 @@ def pnl_gross(
     validate_positive(multiplier, "multiplier")
     # Per-bar mark-to-market: quantity held over the one-bar price change, times the contract multiplier. Row 0 is null
     # (no prior price); null propagates (taking precedence over NaN), NaN propagates; no lag is applied (see the Note).
-    return quantity * (price - price.shift(1)) * multiplier
+    return (quantity * (price - price.shift(1)) * multiplier).name.keep()
 
 
 def pnl_gross_inverse(
@@ -524,7 +524,7 @@ def pnl_gross_inverse(
     # Per-bar mark-to-market in the base coin: the contract value is the reciprocal of the price, so the PnL is the
     # quantity times the notional times the one-bar change in 1/price. Row 0 is null (no prior price); null propagates
     # (taking precedence over NaN), NaN propagates; no lag is applied (see the Note).
-    return quantity * multiplier * (1.0 / price.shift(1) - 1.0 / price)
+    return (quantity * multiplier * (1.0 / price.shift(1) - 1.0 / price)).name.keep()
 
 
 def pnl_net(
@@ -621,7 +621,7 @@ def pnl_net(
     cost = float64_expr(cost)
     # Pure elementwise subtraction: null propagates (taking precedence over NaN), NaN propagates; no cost model is baked
     # in, so the caller composes and sums the cost components (see the Note).
-    return pnl_gross - cost
+    return (pnl_gross - cost).name.keep()
 
 
 def returns_gross(
@@ -732,7 +732,7 @@ def returns_gross(
     asset_returns = float64_expr(asset_returns)
     # Pure elementwise product: null propagates (taking precedence over NaN), NaN propagates; no lag is applied, so the
     # caller owns alignment (see the Note).
-    return weight * asset_returns
+    return (weight * asset_returns).name.keep()
 
 
 def returns_net(
@@ -832,7 +832,7 @@ def returns_net(
     cost = float64_expr(cost)
     # Pure elementwise subtraction: null propagates (taking precedence over NaN), NaN propagates; no cost model is
     # baked in, so the caller composes and sums the cost components (see the Note).
-    return returns_gross - cost
+    return (returns_gross - cost).name.keep()
 
 
 def turnover(
@@ -919,4 +919,4 @@ def turnover(
     weight = float64_expr(weight)
     # Absolute one-bar change with the pre-series weight taken as flat (fill_value 0.0), so the first row is the
     # |weight_0| entry trade; null propagates to its own row and the next, NaN likewise (see the Note).
-    return (weight - weight.shift(1, fill_value=0.0)).abs()
+    return (weight - weight.shift(1, fill_value=0.0)).abs().name.keep()

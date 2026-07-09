@@ -585,7 +585,7 @@ def dm_minus(
     up = high - high.shift(1)
     down = low.shift(1) - low
     raw = pl.when((down > up) & (down > 0)).then(down).otherwise(0.0)
-    return rma(raw, window)
+    return (rma(raw, window)).name.keep()
 
 
 def dm_plus(
@@ -707,7 +707,7 @@ def dm_plus(
     up = high - high.shift(1)
     down = low.shift(1) - low
     raw = pl.when((up > down) & (up > 0)).then(up).otherwise(0.0)
-    return rma(raw, window)
+    return (rma(raw, window)).name.keep()
 
 
 def dx(
@@ -967,4 +967,4 @@ def vortex(
     minus_flat = range_flat & (minus_per_bar.rolling_max(window) == 0)
     plus = pl.when(plus_flat).then(float("nan")).otherwise(plus_quotient)
     minus = pl.when(minus_flat).then(float("nan")).otherwise(minus_quotient)
-    return pl.struct(plus=plus, minus=minus)
+    return (pl.struct(plus=plus, minus=minus)).name.keep()

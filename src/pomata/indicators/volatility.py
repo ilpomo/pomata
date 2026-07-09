@@ -153,7 +153,7 @@ def atr(
     low = float64_expr(low)
     close = float64_expr(close)
     validate_window(window)
-    return rma(true_range(high, low, close), window)
+    return (rma(true_range(high, low, close), window)).name.keep()
 
 
 def atr_normalized(
@@ -371,7 +371,7 @@ def bollinger_bands(
     # Center = SMA; bands = ± multiplier * population rolling std (composed, so the warm-up/null/NaN behavior matches).
     middle = sma(expr, window)
     half_width = multiplier * standard_deviation_rolling(expr, window)
-    return pl.struct(lower=middle - half_width, middle=middle, upper=middle + half_width)
+    return (pl.struct(lower=middle - half_width, middle=middle, upper=middle + half_width)).name.keep()
 
 
 def true_range(
@@ -498,8 +498,10 @@ def true_range(
     # Pure native Polars expressions (shift / abs / max_horizontal): lazy/eager-uniform, no Rust kernel needed.
     # max_horizontal skips null candidates and propagates NaN; row 0 has no previous close, so TR0 = high - low.
     previous_close = close.shift(1)
-    return pl.max_horizontal(
-        high - low,
-        (high - previous_close).abs(),
-        (low - previous_close).abs(),
-    )
+    return (
+        pl.max_horizontal(
+            high - low,
+            (high - previous_close).abs(),
+            (low - previous_close).abs(),
+        )
+    ).name.keep()

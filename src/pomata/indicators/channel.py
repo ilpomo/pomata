@@ -121,7 +121,7 @@ def donchian_channels(
     # Window extremes and their midline; rolling_max/min share min_samples=window, so null/NaN propagate per window.
     upper = high.rolling_max(window)
     lower = low.rolling_min(window)
-    return pl.struct(lower=lower, middle=(upper + lower) / 2.0, upper=upper)
+    return (pl.struct(lower=lower, middle=(upper + lower) / 2.0, upper=upper)).name.keep()
 
 
 def ichimoku(
@@ -259,12 +259,14 @@ def ichimoku(
         )
     tenkan = midprice(high, low, window_tenkan)
     kijun = midprice(high, low, window_kijun)
-    return pl.struct(
-        tenkan=tenkan,
-        kijun=kijun,
-        senkou_a=(tenkan + kijun) / 2.0,
-        senkou_b=midprice(high, low, window_senkou),
-    )
+    return (
+        pl.struct(
+            tenkan=tenkan,
+            kijun=kijun,
+            senkou_a=(tenkan + kijun) / 2.0,
+            senkou_b=midprice(high, low, window_senkou),
+        )
+    ).name.keep()
 
 
 def keltner_channels(
@@ -390,7 +392,7 @@ def keltner_channels(
     # Compose the EMA midline and ATR half-width; null/NaN propagate per band through each leg.
     middle = ema(close, window)
     half_width = multiplier * atr(high, low, close, window_atr)
-    return pl.struct(lower=middle - half_width, middle=middle, upper=middle + half_width)
+    return (pl.struct(lower=middle - half_width, middle=middle, upper=middle + half_width)).name.keep()
 
 
 def midpoint(
@@ -465,7 +467,7 @@ def midpoint(
     expr = float64_expr(expr)
     validate_window(window)
     # Center of the rolling range; rolling_max/min share min_samples=window, so null/NaN propagate per window.
-    return (expr.rolling_max(window) + expr.rolling_min(window)) / 2.0
+    return ((expr.rolling_max(window) + expr.rolling_min(window)) / 2.0).name.keep()
 
 
 def midprice(
@@ -558,4 +560,4 @@ def midprice(
     low = float64_expr(low)
     validate_window(window)
     # Center of the rolling high-low range; rolling_max/min share min_samples=window, so null/NaN propagate per window.
-    return (high.rolling_max(window) + low.rolling_min(window)) / 2.0
+    return ((high.rolling_max(window) + low.rolling_min(window)) / 2.0).name.keep()

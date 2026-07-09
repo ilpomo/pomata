@@ -120,7 +120,7 @@ def absolute_price_oscillator(
     validate_window(window_slow, name="window_slow")
     validate_window_order(window_fast, window_slow)
     # The MACD line in price units: fast EMA minus slow EMA (both exponential, not simple).
-    return ema(expr, window_fast) - ema(expr, window_slow)
+    return (ema(expr, window_fast) - ema(expr, window_slow)).name.keep()
 
 
 def aroon(
@@ -255,7 +255,7 @@ def aroon(
     down_value = 100.0 * (window - periods_since_low) / window
     up = pl.when(rolling_high.is_nan()).then(pl.lit(float("nan"))).otherwise(up_value)
     down = pl.when(rolling_low.is_nan()).then(pl.lit(float("nan"))).otherwise(down_value)
-    return pl.struct(up=up, down=down)
+    return (pl.struct(up=up, down=down)).name.keep()
 
 
 def aroon_oscillator(
@@ -356,7 +356,7 @@ def aroon_oscillator(
     low = float64_expr(low)
     validate_window(window)
     bands = aroon(high, low, window)
-    return bands.struct.field("up") - bands.struct.field("down")
+    return (bands.struct.field("up") - bands.struct.field("down")).name.keep()
 
 
 def awesome_oscillator(
@@ -464,7 +464,7 @@ def awesome_oscillator(
     validate_window_order(window_fast, window_slow)
     # Fast minus slow simple average of the bar's median price; CSE shares the single median sub-expression.
     median = price_median(high, low)
-    return sma(median, window_fast) - sma(median, window_slow)
+    return (sma(median, window_fast) - sma(median, window_slow)).name.keep()
 
 
 def balance_of_power(
@@ -1112,7 +1112,7 @@ def macd(
     macd_line = ema(expr, window_fast) - ema(expr, window_slow)
     signal = ema(macd_line, window_signal)
     histogram = macd_line - signal
-    return pl.struct(macd=macd_line, signal=signal, histogram=histogram)
+    return (pl.struct(macd=macd_line, signal=signal, histogram=histogram)).name.keep()
 
 
 def mom(
@@ -1200,7 +1200,7 @@ def mom(
     """
     expr = float64_expr(expr)
     validate_window(window)
-    return expr - expr.shift(window)
+    return (expr - expr.shift(window)).name.keep()
 
 
 def percentage_price_oscillator(
@@ -1294,7 +1294,7 @@ def percentage_price_oscillator(
     validate_window_order(window_fast, window_slow)
     slow = ema(expr, window_slow)
     # APO normalized by the slow EMA and put on a percentage scale, so it is invariant to the price's unit.
-    return (ema(expr, window_fast) - slow) / slow * 100.0
+    return ((ema(expr, window_fast) - slow) / slow * 100.0).name.keep()
 
 
 def roc(
@@ -1615,7 +1615,7 @@ def rsi_stochastic(
     lowest = strength.rolling_min(window_k)
     highest = strength.rolling_max(window_k)
     percent_k = 100.0 * (strength - lowest) / (highest - lowest)
-    return pl.struct(k=percent_k, d=sma(percent_k, window_d))
+    return (pl.struct(k=percent_k, d=sma(percent_k, window_d))).name.keep()
 
 
 def trix(

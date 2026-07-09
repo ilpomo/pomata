@@ -162,7 +162,7 @@ POLICIES: dict[str, tuple[NullPolicy, NanPolicy]] = {
     "pain_ratio": (NullPolicy.SKIPPED, NanPolicy.POISONS),
     "payoff_ratio": (NullPolicy.SKIPPED, NanPolicy.POISONS),
     "probabilistic_sharpe_ratio": (NullPolicy.SKIPPED, NanPolicy.POISONS),
-    "profit_ratio": (NullPolicy.SKIPPED, NanPolicy.POISONS),
+    "profit_factor": (NullPolicy.SKIPPED, NanPolicy.POISONS),
     "recovery_ratio": (NullPolicy.SKIPPED, NanPolicy.POISONS),
     "risk_of_ruin": (NullPolicy.SKIPPED, NanPolicy.POISONS),
     "sharpe_ratio": (NullPolicy.SKIPPED, NanPolicy.POISONS),

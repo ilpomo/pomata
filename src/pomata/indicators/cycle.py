@@ -332,7 +332,9 @@ def dominant_cycle_period(
         20.03
     """
     expr = float64_expr(expr)
-    return expr.map_batches(partial(_line_kernel, field="period", warmup=_DIRECT_WARMUP), return_dtype=pl.Float64)
+    return (
+        expr.map_batches(partial(_line_kernel, field="period", warmup=_DIRECT_WARMUP), return_dtype=pl.Float64)
+    ).name.keep()
 
 
 def dominant_cycle_phase(
@@ -399,7 +401,9 @@ def dominant_cycle_phase(
         -17.84
     """
     expr = float64_expr(expr)
-    return expr.map_batches(partial(_line_kernel, field="phase", warmup=_PHASE_WARMUP), return_dtype=pl.Float64)
+    return (
+        expr.map_batches(partial(_line_kernel, field="phase", warmup=_PHASE_WARMUP), return_dtype=pl.Float64)
+    ).name.keep()
 
 
 def hilbert_phasor(
@@ -459,10 +463,12 @@ def hilbert_phasor(
         (-0.8, 0.61)
     """
     expr = float64_expr(expr)
-    return expr.map_batches(
-        partial(_struct_kernel, fields=("in_phase", "quadrature"), warmup=_DIRECT_WARMUP),
-        return_dtype=pl.Struct({"in_phase": pl.Float64, "quadrature": pl.Float64}),
-    )
+    return (
+        expr.map_batches(
+            partial(_struct_kernel, fields=("in_phase", "quadrature"), warmup=_DIRECT_WARMUP),
+            return_dtype=pl.Struct({"in_phase": pl.Float64, "quadrature": pl.Float64}),
+        )
+    ).name.keep()
 
 
 def hilbert_trendline(
@@ -520,7 +526,9 @@ def hilbert_trendline(
         100.0
     """
     expr = float64_expr(expr)
-    return expr.map_batches(partial(_line_kernel, field="trendline", warmup=_PHASE_WARMUP), return_dtype=pl.Float64)
+    return (
+        expr.map_batches(partial(_line_kernel, field="trendline", warmup=_PHASE_WARMUP), return_dtype=pl.Float64)
+    ).name.keep()
 
 
 def mama(
@@ -610,16 +618,18 @@ def mama(
     validate_unit_fraction(limit_slow, "limit_slow")
     if limit_fast < limit_slow:
         raise ValueError(f"limit_fast must be >= limit_slow, got limit_fast={limit_fast}, limit_slow={limit_slow}")
-    return expr.map_batches(
-        partial(
-            _struct_kernel,
-            fields=("mama", "fama"),
-            warmup=_DIRECT_WARMUP,
-            limit_fast=limit_fast,
-            limit_slow=limit_slow,
-        ),
-        return_dtype=pl.Struct({"mama": pl.Float64, "fama": pl.Float64}),
-    )
+    return (
+        expr.map_batches(
+            partial(
+                _struct_kernel,
+                fields=("mama", "fama"),
+                warmup=_DIRECT_WARMUP,
+                limit_fast=limit_fast,
+                limit_slow=limit_slow,
+            ),
+            return_dtype=pl.Struct({"mama": pl.Float64, "fama": pl.Float64}),
+        )
+    ).name.keep()
 
 
 def sine_wave(
@@ -684,10 +694,12 @@ def sine_wave(
         (-0.31, 0.46)
     """
     expr = float64_expr(expr)
-    return expr.map_batches(
-        partial(_struct_kernel, fields=("sine", "lead_sine"), warmup=_PHASE_WARMUP),
-        return_dtype=pl.Struct({"sine": pl.Float64, "lead_sine": pl.Float64}),
-    )
+    return (
+        expr.map_batches(
+            partial(_struct_kernel, fields=("sine", "lead_sine"), warmup=_PHASE_WARMUP),
+            return_dtype=pl.Struct({"sine": pl.Float64, "lead_sine": pl.Float64}),
+        )
+    ).name.keep()
 
 
 def trend_mode(
@@ -752,4 +764,6 @@ def trend_mode(
         [0.0]
     """
     expr = float64_expr(expr)
-    return expr.map_batches(partial(_line_kernel, field="trend_mode", warmup=_PHASE_WARMUP), return_dtype=pl.Float64)
+    return (
+        expr.map_batches(partial(_line_kernel, field="trend_mode", warmup=_PHASE_WARMUP), return_dtype=pl.Float64)
+    ).name.keep()
