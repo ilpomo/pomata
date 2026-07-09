@@ -349,8 +349,9 @@ def max_drawdown(
         >>> frame.select(max_drawdown(pl.col("equity_curve")).round(4)).item()
         nan
     """
+    equity_curve = float64_expr(equity_curve)
     declines = drawdown(equity_curve)
-    return pl.when(declines.is_nan().any()).then(pl.lit(float("nan"))).otherwise(declines.min()).name.keep()
+    return pl.when(equity_curve.is_nan().any()).then(pl.lit(float("nan"))).otherwise(declines.min()).name.keep()
 
 
 def max_drawdown_duration(

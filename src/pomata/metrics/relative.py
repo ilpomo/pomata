@@ -13,6 +13,7 @@ acyclic.
 """
 
 import math
+from typing import Final
 
 import polars as pl
 
@@ -37,7 +38,7 @@ __all__ = (
 
 # The smallest number of complete (both-legs-present) pairs for a covariance, variance, or sample standard deviation to
 # be defined; with fewer the metric is reported as ``null`` (insufficient data), taking precedence over NaN poisoning.
-_MINIMUM_PAIRED_OBSERVATIONS = 2
+_MINIMUM_PAIRED_OBSERVATIONS: Final = 2
 
 
 def _paired(
@@ -132,9 +133,7 @@ def _capture(
     # plausible wrong number.
     out_of_domain = ((1.0 + returns_leg) <= 0.0).any() | ((1.0 + benchmark_leg) <= 0.0).any()
     return (
-        pl.when(returns.len() < 1)
-        .then(None)
-        .when(poisoned)
+        pl.when(poisoned)
         .then(float("nan"))
         .when(out_of_domain)
         .then(float("nan"))
