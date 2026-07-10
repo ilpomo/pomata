@@ -1,0 +1,108 @@
+name: Nightly
+
+# The non-gating tiers, consolidated: performance / complexity-scaling benchmarks, the TA-Lib differential, the
+# dependency-floor proof, and the zizmor workflow audit. They block nothing but show red so a real regression or
+# divergence is visible. Deliberately off the PR *and* merge critical paths: the nightly baseline flags a problem
+# within a day (bisecting a day of merges is cheap at this repo's pace), and the Actions "Run workflow" button covers
+# on-demand runs. GitHub disables the schedule after 60 days with no repo activity -- acceptable: an idle repo's code
+# cannot regress, and the disable notification doubles as the reminder for the one check that tracks the outside
+# world (dependency-floor).
+on:
+  schedule:
+    - cron: "0 3 * * *" # 03:00 UTC daily
+  workflow_dispatch:
+
+# Least-privilege token: these jobs only read the repo (checkout).
+permissions:
+  contents: read
+
+# Don't pile up overlapping runs (nightly schedule + manual dispatch); never cancel an in-flight run, since killing
+# a benchmark mid-timing would waste the measurement.
+concurrency:
+  group: nightly-${{ github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+# Skip uv's implicit per-run sync: each job's explicit `uv sync` installs exactly the lean group set.
+env:
+  UV_NO_SYNC: "1"
+
+jobs:
+  # Performance benchmarks and complexity-scaling checks. A failure here means a real super-linear regression landed
+  # on main (or a noisy timing) -- it blocks nothing, but it shows red so the regression is visible. The job stays
+  # serial (no -n): parallelism would corrupt the timings.
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: "Setup: checkout"
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: "Setup: install uv"
+        uses: ./.github/actions/setup
+      - name: "Setup: sync dependencies (test)"
+        run: uv sync --locked --no-default-groups --group test
+      - name: "Benchmark: performance & complexity-scaling"
+        env:
+          POMATA_BENCHMARKS: "1"
+        run: uv run pytest -m benchmark
+
+  # Differential parity against TA-Lib (the C reference). A mismatch flags either a real bug or an undocumented
+  # convention difference to investigate -- it shows red here rather than blocking a merge.
+  differential:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: "Setup: checkout"
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: "Setup: install uv"
+        uses: ./.github/actions/setup
+      - name: "Setup: sync dependencies (test + differential)"
+        run: uv sync --locked --no-default-groups --group test --group differential
+      - name: "Differential: parity vs TA-Lib"
+        run: uv run pytest -m differential
+
+  # Prove the declared dependency floor: resolve the LOWEST versions the constraints allow (ignoring the lockfile) and
+  # run the suite, so the declared `polars` floor stays a tested promise. Pinned to Python 3.12 -- the floor release
+  # predates the 3.14 wheels. An un-pinned transitive release could break the lowest-direct resolution; it shows red
+  # here to investigate rather than blocking a merge.
+  dependency-floor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: "Setup: checkout"
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: "Setup: install uv"
+        uses: ./.github/actions/setup
+        with:
+          python-version: "3.12" # the polars floor predates the 3.14 wheels; pin to a Python the floor supports
+      - name: "Setup: sync lowest-direct dependencies"
+        run: uv sync --no-default-groups --group test --resolution lowest-direct
+      - name: "Tests: full suite at the dependency floor"
+        env:
+          HYPOTHESIS_PROFILE: ci
+        run: uv run --no-sync pytest -n auto
+
+  # Workflow security audit: the repo's "clean under zizmor" bar, enforced in CI rather than left to a manual local
+  # run, so a workflow change that introduces a finding shows red within a day. Pinned like twine in release.yml: a
+  # version in a `run:` string is outside Dependabot's reach, so the bump is manual.
+  zizmor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: "Setup: checkout"
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: "Setup: install uv"
+        uses: ./.github/actions/setup
+      - name: "Audit: zizmor over the workflows"
+        run: uvx zizmor@1.26.1 .
