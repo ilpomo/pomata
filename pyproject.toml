@@ -31,7 +31,7 @@ classifiers = [
 ]
 # Runtime dependencies are kept to the absolute minimum. The polars floor is the oldest release the full suite passes
 # on -- bisected, not guessed: 1.39.0 is green, 1.38.1 fails (a rolling-window value drifts past the suite's bands),
-# and the `dependency-floor` job re-proves the floor on every push to main and nightly
+# and the `dependency-floor` job (nightly.yml) re-proves the floor nightly
 # (`uv sync --resolution lowest-direct`). uv.lock pins the current release for everyday installs.
 dependencies = [
     "polars>=1.39.0",
