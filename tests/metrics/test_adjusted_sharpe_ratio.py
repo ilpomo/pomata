@@ -33,7 +33,7 @@ from tests.support import (
     well_spread,
 )
 
-from pomata.metrics import adjusted_sharpe_ratio
+from pomata.metrics import adjusted_sharpe_ratio, sharpe_ratio
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Test sizing -- adjusted_sharpe_ratio is windowless and REDUCING (M = 0); a case is just a return series. Facts:
@@ -217,3 +217,19 @@ class TestAdjustedSharpeRatioProperties:
             [value * k for value in case], adjusted_sharpe_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS)
         )
         assert_matches(scaled, base, rel_tol=RELATIVE_TOLERANCE_SCALE, abs_tol=ABSOLUTE_TOLERANCE_REFERENCE)
+
+    @given(case=_cases(standardized_moment_floats(bound=1e3), min_size=2), periods=_PERIODS, risk_free=_RISK_FREE)
+    def test_matches_component_definition(self, case: list[float], periods: int, risk_free: float) -> None:
+        """
+        Verifies the metamorphic identity: ``adjusted_sharpe_ratio`` equals the per-period :func:`sharpe_ratio`
+        re-adjusted by the skewness / kurtosis correction, composed from the separate public metric.
+        """
+        assume(well_spread(case) and _bounded_excess_sharpe(case, risk_free, periods))
+        direct = apply_expr(
+            case, adjusted_sharpe_ratio(pl.col(COLUMN_X), periods_per_year=periods, risk_free_rate=risk_free)
+        )
+        annualization = math.sqrt(periods)
+        sharpe = sharpe_ratio(pl.col(COLUMN_X), periods_per_year=periods, risk_free_rate=risk_free) / annualization
+        correction = 1.0 + pl.col(COLUMN_X).skew() / 6.0 * sharpe - pl.col(COLUMN_X).kurtosis() / 24.0 * sharpe**2
+        composed = apply_expr(case, annualization * sharpe * correction)
+        assert_matches(direct, composed, rel_tol=RELATIVE_TOLERANCE_REFERENCE, abs_tol=ABSOLUTE_TOLERANCE_REFERENCE)
