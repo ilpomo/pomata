@@ -546,7 +546,8 @@ def pnl_net(
 
     A pure elementwise subtraction with no built-in cost model: the caller composes the cost from the cost components
     (summing several with ``+``) and passes it, e.g.
-    ``pnl_net(pnl_gross(quantity, price), cost_per_share(quantity, fee) + cost_notional(quantity, price, rate))``.
+    ``cost_per_share(quantity, fee=fee) + cost_notional(quantity, price, rate=rate)`` inside
+    ``pnl_net(pnl_gross(quantity, price), ...)``.
 
     Args:
         pnl_gross: Gross per-bar position PnL, typically from :func:`pnl_gross`.
@@ -754,7 +755,7 @@ def returns_net(
 
     It is a pure elementwise subtraction with no built-in cost model: the caller composes the cost from the cost
     components (summing several with ``+``) and passes it, e.g.
-    ``returns_net(returns_gross(weight, asset_returns), cost_proportional(weight, rate))``.
+    ``returns_net(returns_gross(weight, asset_returns), cost_proportional(weight, rate=rate))``.
 
     Args:
         returns_gross: Gross per-bar strategy returns, typically from :func:`returns_gross`.

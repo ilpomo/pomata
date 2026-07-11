@@ -174,8 +174,8 @@ def adxr(
 
         **Edge-case behavior:**
 
-        - **Null / NaN** — inherited from :func:`adx`: a ``null`` yields ``null`` and a ``NaN`` propagates; a row whose
-          ADX or whose ``window``-ago ADX is missing is itself missing.
+        - **Null / NaN** — inherited from :func:`adx`: a ``null`` yields ``null``, and a ``NaN`` poisons the underlying
+          ADX recursion and latches; a row whose ADX or whose ``window``-ago ADX is missing is itself missing.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so neither the recursion nor the
           look-back spans series boundaries, e.g. by wrapping the whole call in ``.over("ticker")``.
 
@@ -219,7 +219,7 @@ def adxr(
         >>> frame.with_columns(expr.alias("adxr"))["adxr"].to_list()
         [None, None, None, None, 84.1176, 52.0588, 63.2977, None, None, None, None, 59.375, 53.7946, 38.4358]
 
-        A leading ``null`` ``close`` (absorbed by the true-range maximum) and a later ``NaN`` (which propagates)
+        A leading ``null`` ``close`` (absorbed by the true-range maximum) and a later ``NaN`` (which latches)
         make the handling visible:
 
         >>> frame = pl.DataFrame(
@@ -339,7 +339,7 @@ def di_minus(
         >>> frame.with_columns(expr.alias("di_minus"))["di_minus"].to_list()
         [None, 0.0, 0.0, 21.0526, 7.8431, None, 0.0, 46.1538, 18.1818, 46.1538]
 
-        A leading ``null`` ``close`` (absorbed by the ATR's true-range maximum) and a later ``NaN`` (which propagates)
+        A leading ``null`` ``close`` (absorbed by the ATR's true-range maximum) and a later ``NaN`` (which latches)
         make the handling visible:
 
         >>> frame = pl.DataFrame(
@@ -458,7 +458,7 @@ def di_plus(
         >>> frame.with_columns(expr.alias("di_plus"))["di_plus"].to_list()
         [None, 40.0, 54.5455, 31.5789, 58.8235, None, 40.0, 15.3846, 54.5455, 27.6923]
 
-        A leading ``null`` ``close`` (absorbed by the ATR's true-range maximum) and a later ``NaN`` (which propagates)
+        A leading ``null`` ``close`` (absorbed by the ATR's true-range maximum) and a later ``NaN`` (which latches)
         make the handling visible:
 
         >>> frame = pl.DataFrame(
