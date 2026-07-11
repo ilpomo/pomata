@@ -153,6 +153,8 @@ class TestLinearRegressionAngleEdge:
         defined = [value for value in angles if value is not None]
         assert defined
         for value in defined:
+            # Absolute-only band: rel_tol is deliberately 0.0 because the expected value IS zero, where any relative
+            # band is vacuous; the named EXACT absolute floor does the whole job.
             assert math.isclose(value, 0.0, rel_tol=0.0, abs_tol=ABSOLUTE_TOLERANCE_EXACT)
 
 

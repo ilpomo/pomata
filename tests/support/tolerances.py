@@ -26,6 +26,11 @@ Tiers (smallest band first):
 - **Property** — agreement against the oracle over arbitrary Hypothesis-fuzzed inputs, where the worst-case operand
   ordering is hit; held to the SAME ``1e-10`` band as the reference tier, so the ten-significant-figure promise holds on
   fuzzed inputs too, not only on the fixed reference series.
+- **Quotient-at-a-degenerate-edge** — a bounded quotient whose exact-but-tiny denominator amplifies the numerator's
+  reference-band rounding (the stochastic-of-RSI %K near a flat RSI window: the RSI legs agree to ``1e-10`` on values
+  ``O(100)``, an absolute ``~1e-8``, which a near-flat range ``O(0.1)`` amplifies past ``1e-7``); the well-conditioned
+  positions are still held to the property band by construction, this band only absorbs the amplification the
+  ill-conditioned skip-set boundary leaves behind.
 - **Scale** — homogeneity / invariance under a common rescaling, which amplifies rounding by the scale factor.
 - **Streaming-at-magnitude** — a streaming statistic vs a two-pass oracle at extreme magnitude (EWMA / MACD signal),
   where catastrophic cancellation forces a loose absolute term; use :func:`input_scale` to size it to the data when the
@@ -66,6 +71,8 @@ RELATIVE_TOLERANCE_REFERENCE = 1e-10
 ABSOLUTE_TOLERANCE_REFERENCE = 1e-9
 RELATIVE_TOLERANCE_PROPERTY = 1e-10
 ABSOLUTE_TOLERANCE_PROPERTY = 1e-9
+RELATIVE_TOLERANCE_QUOTIENT = 1e-7
+ABSOLUTE_TOLERANCE_QUOTIENT = 1e-7
 RELATIVE_TOLERANCE_SCALE = 1e-6
 ABSOLUTE_TOLERANCE_SCALE = 1e-6
 ABSOLUTE_TOLERANCE_STREAMING = 1e-3

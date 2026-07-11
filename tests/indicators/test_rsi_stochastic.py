@@ -22,11 +22,13 @@ from hypothesis import strategies as st
 from tests.indicators.oracles import rsi_reference, rsi_stochastic_reference
 from tests.support import (
     ABSOLUTE_TOLERANCE_PROPERTY,
+    ABSOLUTE_TOLERANCE_QUOTIENT,
     ABSOLUTE_TOLERANCE_SCALE,
     BOUND_MARGIN,
     COLUMN_X,
     GROUP_KEY,
     RELATIVE_TOLERANCE_PROPERTY,
+    RELATIVE_TOLERANCE_QUOTIENT,
     RELATIVE_TOLERANCE_SCALE,
     apply_expr,
     assert_matches,
@@ -132,8 +134,8 @@ def assert_lines_match(
     window_k: int,
     window_d: int,
     *,
-    rel_tol: float = 1e-7,
-    abs_tol: float = 1e-7,
+    rel_tol: float = RELATIVE_TOLERANCE_QUOTIENT,
+    abs_tol: float = ABSOLUTE_TOLERANCE_QUOTIENT,
 ) -> None:
     """
     Compare both lines against the reference, dropping only the positions where %K is ill-conditioned.
