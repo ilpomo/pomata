@@ -13,6 +13,9 @@ indicator's author (Wilder's first true range, the independent MACD/Chaikin EMAs
 warm-up (Ehlers' Hilbert pipeline, the Parabolic SAR cold start), never a steady-state disagreement.
 """
 
+# Bespoke pinned frames: this module names the OHLCV columns literally by design (the per-function suite routes
+# every column name through ``tests/support/columns.py``; here the frame IS the fixture being pinned).
+
 import math
 from collections.abc import Callable
 from typing import Any

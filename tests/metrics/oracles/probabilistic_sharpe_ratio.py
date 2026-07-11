@@ -42,6 +42,10 @@ def probabilistic_sharpe_ratio_reference(
     raw_kurtosis = fourth_moment / (second_moment * second_moment)
     inner = 1.0 - skewness * sharpe_ratio + (raw_kurtosis - 1.0) / 4.0 * sharpe_ratio * sharpe_ratio
     if inner <= 0.0:
-        return math.nan
+        # ``inner < 0`` is out of domain (NaN). ``inner == 0`` is the measure-zero boundary where the statistic
+        # diverges, so the CDF is the limiting 0 or 1 (the shipped factory's documented behavior) -- except on an
+        # exactly-equal Sharpe, where 0 / 0 stays NaN.
+        diverges = inner == 0.0 and sharpe_ratio != benchmark_sharpe
+        return (1.0 if sharpe_ratio > benchmark_sharpe else 0.0) if diverges else math.nan
     argument = (sharpe_ratio - benchmark_sharpe) * math.sqrt(count - 1) / math.sqrt(inner)
     return NormalDist().cdf(argument)

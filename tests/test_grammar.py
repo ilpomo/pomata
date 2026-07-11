@@ -245,8 +245,6 @@ def _edge_rank(method: str) -> int:
 def _contract_rank(method: str) -> int:
     if method == "test_returns_expr":
         return 0
-    if method in {"test_reduces_to_scalar", "test_preserves_length", "test_emits_struct"}:
-        return 1
     if method.startswith("test_lazy_eager"):
         return 2
     if method.startswith("test_over_"):

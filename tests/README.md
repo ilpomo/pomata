@@ -47,11 +47,13 @@ source of truth for "how close is close enough", and no test may assert closer t
 | `EXACT` | `1e-12` | a golden master on a fixed, deterministic series |
 | `REFERENCE` | `1e-10` | agreement with the independent oracle |
 | `PROPERTY` | `1e-10` | agreement under random (fuzzed) input |
+| `QUOTIENT` | `1e-7` | a bounded quotient at a degenerate edge, where an exact-but-tiny denominator amplifies the reference band |
 | `SCALE` | `1e-6` | a rescaling test, where the rescale itself amplifies rounding |
 | `STREAMING` | `1e-3` (abs) | a sequential recursion against a two-pass reference |
 
-plus the conditioning floors `CONDITIONING_FLOOR`, `STANDARDIZED_MOMENT_FLOOR`, and `SUBNORMAL_FLOOR` for outputs that
-cancel toward zero or approach the subnormal range.
+plus the Hypothesis input-magnitude floors `CONDITIONING_FLOOR`, `STANDARDIZED_MOMENT_FLOOR`, and `SUBNORMAL_FLOOR` —
+defined in [`tests/support/strategies.py`](support/strategies.py), not here — which keep the fuzz away from inputs
+whose outputs cancel toward zero or approach the subnormal range.
 
 **The rule.** A difference below the floor is hardware, not pomata, and we do not test it:
 
@@ -103,7 +105,7 @@ matching behaviour, and the self-check proves the declaration is true of the cod
   and never a window; the output recovers immediately after. A pointwise map. *e.g. `price_average`, `mom`,
   `returns_simple`.*
 - **`IN_WINDOW_IS_NULL`** *(elementwise)* — a single `null` nulls **every rolling window that overlaps it** — about
-  `window` rows — then the output recovers. *e.g. `sma`, `rsi_stochastic`, `value_at_risk_rolling`.*
+  `window` rows — then the output recovers. *e.g. `sma`, `cci`, `value_at_risk_rolling`.*
 - **`BRIDGED`** *(elementwise)* — a **recursion steps over** the `null`: its state carries across the gap, so later
   rows recover to the value they would have had. Identifiable because the same function **latches** a `NaN` (§ pairing
   below). *e.g. `ema`, `rma`, `atr`, `dema`.*
@@ -116,18 +118,19 @@ matching behaviour, and the self-check proves the declaration is true of the cod
 - **`PROPAGATES`** *(elementwise)* — the `NaN` nans the rows it reaches, then the output recovers.
 - **`LATCHES`** *(elementwise)* — a recursion carries the `NaN` forward forever; the output never recovers.
 
-**The recursion pairing.** A function that *bridges* a `null` is exactly one whose recurrence carries state — which
-means a `NaN` in that state corrupts every later step. So **`BRIDGED` null ⇔ `LATCHES` nan**; the self-check enforces
-the pair. This is why the two policies are declared together: they are two views of the same fact ("this is a
-recursion"), and stating both makes the recursion explicit at the row rather than buried in the kernel.
+**The recursion pairing.** A function that *bridges* a `null` is one whose recurrence carries state — which means a
+`NaN` in that state corrupts every later step. So **`BRIDGED` null ⇒ `LATCHES` nan**; the self-check enforces the
+implication. The converse does not hold: the Ehlers/Hilbert cluster declares `LATCHES` for both — `null` and `NaN`
+alike corrupt its pipeline — latching a `NaN` without bridging a `null`. The two policies are still declared
+together: stating both makes the recursion explicit at the row rather than buried in the kernel.
 
 ## 4. The canonical ladder: one name, one order, one docstring per rung
 
 Every test file lays its tests out in the same four tiers, in this order; within a tier the rungs are fixed and appear
 only where the axes say they apply.
 
-- **Contract** — `returns_expr` → `reduces_to_scalar` | `preserves_length` | `emits_struct` → `lazy_eager_parity`
-  → `over_partitions_independently`.
+- **Contract** — `returns_expr` → the centralized `shape` sweep (scalar | same-length series | struct, observed from
+  a probe in each family's `test_contracts.py`) → `lazy_eager_parity` → `over_partitions_independently`.
 - **Edge** — the `*_raises` validation rungs (named for the violated constraint: `window_below_one_raises`,
   `fast_above_slow_raises`, `invalid_rate_raises`, …; one per validated parameter, in signature order) → `empty` → `single_row`
   → `all_null` → `null_<policy>` → `nan_<policy>` → *(windowed:)* `warmup_null_count` → `window_exceeds_length`
@@ -142,13 +145,22 @@ only where the axes say they apply.
 
 **The naming law.** A rung has exactly **one** name across the whole suite. `single_row` is never also
 `single_row_is_nan`; `window_one` is never also `window_one_is_identity`. The null/NaN flow anchor is spelled from one
-**reserved** vocabulary — `null_skipped` · `null_propagates` · `null_in_window_is_null` · `null_bridged` ·
+**reserved** vocabulary — `null_skipped` · `null_propagates` · `null_in_window_is_null` · `null_absorbed` · `null_bridged` ·
 `null_latches`, and `nan_poisons` · `nan_propagates` · `nan_latches` — each usable **only** by a function that declares
 that policy (a multi-input factory may still test a per-input case under a descriptive name such as
 `null_in_volume_propagates`); `tests/test_grammar.py` makes a canonical name that lies about its policy a red
-build (§6). Test-local variables follow **`{WHO}_{QUALIFIER}`** — `group_primary` / `expected_primary`, not `values` /
-`case` — so two files read the same top to bottom. A contributor opening two families side by side never has to hold
+build (§6). Test-local variables use bare descriptive
+names (`values`, `case`, `result`, `frame`); a qualifier suffix appears only to disambiguate two related bindings
+(`result_base` / `result_scaled`, `group_a` / `group_b`) — so two files read the same top to bottom. A contributor opening two families side by side never has to hold
 "which edge is tested how, where" in their head. They read the rung.
+
+**Family axes.** Three presence rules the recent audits fixed suite-wide: every pnl function whose arithmetic
+differences or ratios two rows or two inputs carries `consecutive_infinities_make_nan` (the fuzz strategies set
+`allow_infinity=False`, so only the pin reaches `inf - inf`); every elementwise pnl function carries
+`null_takes_precedence_over_nan`, while for indicators that rung stays bespoke (optional — the fuzzed missing-data
+tier already mixes `null` and `NaN`); and every metrics composite built from two or more public factories carries
+`matches_component_definition`, re-composing it through the public API (indicator composites are exempt: their
+oracle is already the certified composition).
 
 ## 5. The architecture: shared where uniform, per-file where specific
 

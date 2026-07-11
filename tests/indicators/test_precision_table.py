@@ -9,6 +9,9 @@ for the series; ``scripts/precision_table.py`` imports it to regenerate the full
 (which needs the optional ``differential`` dependency and is verified separately by the differential checks).
 """
 
+# Bespoke pinned frames: this module names the OHLCV columns literally by design (the per-function suite routes
+# every column name through ``tests/support/columns.py``; here the frame IS the fixture being pinned).
+
 import math
 
 import polars as pl
@@ -52,7 +55,7 @@ _ORACLE: dict[str, float] = {
     "atr(14)": _last(atr_reference(HIGH, LOW, CLOSE, 14)),
     "macd(12,26,9)": _last(macd_reference(CLOSE, 12, 26, 9)["macd"]),
 }
-# The ``pomata`` column published in the README, frozen so a change to any indicator (or the table) fails the suite.
+# The ``pomata`` column published in ``docs/trust.md``, frozen so any indicator (or table) change fails the suite.
 _PUBLISHED: dict[str, float] = {
     "sma(20)": 105.15146076264764,
     "ema(20)": 107.7299930892346,
@@ -64,13 +67,13 @@ _PUBLISHED: dict[str, float] = {
 
 class TestPrecisionTable:
     """
-    The README precision figures, pinned and reproduced.
+    The ``docs/trust.md`` precision figures, pinned and reproduced.
     """
 
     @pytest.mark.parametrize("name", list(_PUBLISHED))
     def test_matches_published_figure(self, name: str) -> None:
         """
-        Verifies the indicator's final value still equals the figure published in the README precision table.
+        Verifies the indicator's final value still equals the figure published in the ``docs/trust.md`` precision table.
         """
         assert_matches([_POMATA[name]], [_PUBLISHED[name]], rel_tol=RELATIVE_TOLERANCE_REFERENCE)
 
