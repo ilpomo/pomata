@@ -130,6 +130,16 @@ class TestPnlNetEdge:
         cost = [2.0, 0.0, 3.0, 1.0]
         assert_matches(apply_pnl_net(gross, cost), pnl_net_reference(gross, cost))
 
+    def test_consecutive_infinities_make_nan(self) -> None:
+        """
+        Verifies IEEE infinity handling against the reference: a same-sign infinite gross and cost meeting at one row
+        cancel to ``inf - inf = NaN``. The property tiers cannot reach this (their strategies set
+        ``allow_infinity=False``), so it is pinned here.
+        """
+        gross = [math.inf, 5.0]
+        cost = [math.inf, 1.0]
+        assert_matches(apply_pnl_net(gross, cost), pnl_net_reference(gross, cost))
+
 
 class TestPnlNetCorrectness:
     """
