@@ -871,7 +871,7 @@ def vortex(
         window: Number of observations in the moving window. Must be ``>= 1``.
 
     Returns:
-        A struct column (one struct per row, the same length as the inputs) with two ``Float64`` fields:
+        A struct ``pl.Expr`` with two ``Float64`` fields, the same length as the inputs:
 
         - ``plus`` — the positive vortex line ``VI+``.
         - ``minus`` — the negative vortex line ``VI-``.

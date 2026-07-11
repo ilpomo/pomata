@@ -903,10 +903,13 @@ def fisher_transform(
         window: Number of observations in the moving window (canonically ``10``). Must be ``>= 1``.
 
     Returns:
-        A struct ``pl.Expr`` with ``Float64`` fields ``fisher`` (the transform) and ``signal`` (``fisher`` lagged one
-        bar), the same length as the inputs. The first ``window - 1`` rows are ``null`` (the channel's warm-up);
-        ``signal`` is ``null`` for one further row. Read a field with ``.struct.field("fisher")`` or split both with
-        ``.struct.unnest()``.
+        A struct ``pl.Expr`` with two ``Float64`` fields, the same length as the inputs:
+
+        - ``fisher`` — the Fisher Transform.
+        - ``signal`` — ``fisher`` lagged one bar (``null`` for one further row).
+
+        The first ``window - 1`` rows are ``null`` (the channel's warm-up). Read a field with
+        ``.struct.field("fisher")`` or split both with ``.struct.unnest()``.
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
@@ -1533,7 +1536,7 @@ def rsi_stochastic(
         window_d: Number of observations in the %D moving average of %K (canonically ``3``). Must be ``>= 1``.
 
     Returns:
-        A struct column (one struct per row, the same length as the input) with two ``Float64`` fields:
+        A struct ``pl.Expr`` with two ``Float64`` fields, the same length as ``expr``:
 
         - ``k`` — the raw %K line, ``100 * (rsi - RSImin) / (RSImax - RSImin)``.
         - ``d`` — the %D signal line, the :func:`sma` of %K over ``window_d``.
@@ -1921,9 +1924,9 @@ def williams_r(
         window: Number of observations in the moving window. Must be ``>= 1``.
 
     Returns:
-        Williams %R for each row, the same length as the inputs. The first ``window - 1`` values are ``null`` (warm-up),
-        matching the rolling moving-average family: the value is defined only once ``window`` observations have been
-        seen.
+        The Williams %R for each row, the same length as the inputs. The first ``window - 1`` values are ``null``
+        (warm-up), matching the rolling moving-average family: the value is defined only once ``window`` observations
+        have been seen.
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.

@@ -432,7 +432,7 @@ def pnl_gross_inverse(
             number ``> 0``.
 
     Returns:
-        The gross PnL for each row, in the base coin, the same length as the inputs. The first value is ``null``
+        The gross PnL for each row, the same length as the inputs, in the base coin. The first value is ``null``
         (warm-up): the previous price ``price.shift(1)`` is undefined for the first row, so no price change can be
         measured there.
 

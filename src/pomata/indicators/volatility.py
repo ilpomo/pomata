@@ -293,7 +293,7 @@ def bollinger_bands(
             symmetric; for asymmetric bands compose :func:`sma` and :func:`standard_deviation_rolling` directly.
 
     Returns:
-        A struct column (one struct per row, the same length as the input) with three ``Float64`` fields:
+        A struct ``pl.Expr`` with three ``Float64`` fields, the same length as ``expr``:
 
         - ``lower`` — the lower band, ``middle - multiplier * sigma``.
         - ``middle`` — the center band, the :func:`sma` of ``expr``.

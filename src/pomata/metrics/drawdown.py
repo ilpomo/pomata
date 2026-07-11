@@ -296,8 +296,8 @@ def max_drawdown(
         equity_curve: Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive.
 
     Returns:
-        A single ``Float64`` value: the maximum drawdown (``<= 0``; ``0`` for a never-declining curve), one value in
-        ``select`` and one per group under ``.over``. ``null`` when there are no observations.
+        A single ``Float64`` value: the maximum drawdown (one value in ``select``, one per group under ``.over``).
+        It is ``<= 0`` (``0`` for a never-declining curve); ``null`` when there are no observations.
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
@@ -526,8 +526,8 @@ def ulcer_index(
         equity_curve: Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive.
 
     Returns:
-        A single ``Float64`` value: the Ulcer Index (``>= 0``), one value in ``select`` and one per group under
-        ``.over``. ``null`` when there are no observations.
+        A single ``Float64`` value: the Ulcer Index (one value in ``select``, one per group under ``.over``). It is
+        ``>= 0``; ``null`` when there are no observations.
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
