@@ -156,10 +156,11 @@ Each rung is placed by how much of it is genuinely shared:
 
 - **Universal** — identical for every member (`returns_expr`, `shape`, `lazy_eager_parity`, `empty`, `all_null`,
   `over_partitions`): a parametrized contracts module per family over `__all__`, with shape observed from a probe, so
-  a new function is swept in automatically. The metrics family shares all six this way; the indicators and pnl
-  families deliberately keep per-file `all_null` / `over_partitions` copies where the expected values are
-  function-specific (a struct's field-wise nulls, an anchored cumulation's grouped restart), so those rungs read next
-  to the behavior they pin.
+  a new function is swept in automatically. The metrics family shares all six this way; the indicators family
+  deliberately keeps per-file `all_null` / `over_partitions` copies where the expected values are function-specific
+  (a struct's field-wise nulls), and the pnl family centralizes `all_null` like metrics while keeping only
+  `over_partitions` per-file (an anchored cumulation's grouped restart), so those rungs read next to the behavior
+  they pin.
 - **Per-file, presence-guarded** — the rungs whose value or degeneracy is genuinely function-specific (`single_row`,
   the `null` / `NaN` value anchors, the scale rungs, singularity guards): they live in each function's own file. The
   grammar guard mandates that the `null` / `NaN` / reference anchors *exist* and that any canonical name matches the

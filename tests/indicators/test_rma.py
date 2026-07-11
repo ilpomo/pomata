@@ -24,6 +24,7 @@ from tests.support import (
     apply_expr,
     assert_matches,
     assert_scale_homogeneous,
+    count_leading_nulls,
     input_scale,
     missing_data_floats,
     subnormal_safe_floats,
@@ -310,3 +311,18 @@ class TestRmaProperties:
             rel_tol=RELATIVE_TOLERANCE_PROPERTY,
             abs_tol=input_scale(values) * EXACT_TOLERANCE_FACTOR,
         )
+
+    @given(case=_cases(subnormal_safe_floats(1e6), window_min=2))
+    def test_warmup_null_count_property(
+        self,
+        case: tuple[list[float], int],
+    ) -> None:
+        """
+        Verifies that the leading-null run is exactly ``min(window - 1, len(values))``.
+        """
+        values, window = case
+        result = apply_expr(values, rma(pl.col(COLUMN_X), window))
+        leading_nulls = count_leading_nulls(result)
+        # NOTE: ``_cases`` couples length >= window, so ``min`` always resolves to ``window - 1``; the form is kept to
+        # state the exact warm-up rule (the leading-null run is never clamped by a too-short series here).
+        assert leading_nulls == min(window - 1, len(values))

@@ -110,6 +110,16 @@ class TestCostSlippageEdge:
             cost_slippage_reference(values, HALF_SPREAD),
         )
 
+    def test_null_takes_precedence_over_nan(self) -> None:
+        """
+        Verifies that the turnover row where a ``NaN`` weight meets the previous row's ``null`` yields ``null``
+        (``null`` takes precedence over ``NaN``), while the next turnover off the ``NaN`` is ``NaN``.
+        """
+        assert_matches(
+            apply_expr([0.5, None, math.nan, 1.0], cost_slippage(pl.col(COLUMN_X), half_spread=HALF_SPREAD)),
+            [0.001, None, None, math.nan],
+        )
+
     def test_nan_propagates(self) -> None:
         """
         Verifies that a NaN propagates to its own row and the next (matching the naive reference).
