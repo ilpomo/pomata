@@ -164,9 +164,12 @@ class TestEmaEdge:
 
     def test_window_one_is_identity(self) -> None:
         """
-        Verifies that ``window == 1`` (alpha == 1) reproduces the input with no warm-up.
+        Verifies that ``window == 1`` (alpha == 1) reproduces the input with no warm-up, and that the identity path
+        still restores the root name when the input carries an alias (the naming contract holds at ``window == 1``).
         """
         assert_matches(apply_expr([1.0, 2.0, 3.0], ema(pl.col(COLUMN_X), 1)), [1.0, 2.0, 3.0])
+        frame = pl.DataFrame({COLUMN_X: [1.0, 2.0, 3.0]})
+        assert frame.select(ema(pl.col(COLUMN_X).alias("user_alias"), 1)).columns == [COLUMN_X]
 
     def test_all_zero_series_is_zero(self) -> None:
         """

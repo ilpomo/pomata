@@ -280,7 +280,7 @@ def ema(
     if window == 1:
         # span=1 => alpha=1 => identity; avoids ewm catastrophic cancellation on tiny values (``expr`` is already
         # ``Float64`` from ``float64_expr`` above).
-        return expr
+        return (expr).name.keep()
     if adjust:
         # The bias-corrected finite-window weighting is exact from the first row; it has no seed to choose.
         return (expr.ewm_mean(span=window, adjust=True, min_samples=window, ignore_nulls=False)).name.keep()
@@ -1163,11 +1163,12 @@ def vwma(
     validate_window(window)
     weighted_sum = (expr * volume).rolling_sum(window_size=window)
     raw = weighted_sum / volume.rolling_sum(window_size=window)
-    # An all-zero-volume window is the 0/0 degenerate: detect it exactly via the rolling maximum (with non-negative
-    # volume a zero maximum means every weight is zero), so a sub-ULP residual in the rolling-sum numerator cannot fake
-    # a ±inf reading, and return NaN as documented. Gate on the weighted-sum being non-null so a null in expr (which
-    # voids that sum) keeps null precedence: a window holding a null still propagates null through the division.
-    is_zero_volume = (volume.rolling_max(window_size=window) == 0) & weighted_sum.is_not_null()
+    # An all-zero-volume window is the 0/0 degenerate: detect it exactly via the rolling maximum of the absolute
+    # volume (which is exactly 0 only when every volume in the window is 0), so a sub-ULP residual in the rolling-sum
+    # numerator cannot fake a ±inf reading, and return NaN as documented. Gate on the weighted-sum being non-null so a
+    # null in expr (which voids that sum) keeps null precedence: a window holding a null still propagates null through
+    # the division.
+    is_zero_volume = (volume.abs().rolling_max(window_size=window) == 0) & weighted_sum.is_not_null()
     return pl.when(is_zero_volume).then(float("nan")).otherwise(raw).name.keep()
 
 
