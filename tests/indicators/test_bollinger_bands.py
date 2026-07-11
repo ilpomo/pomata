@@ -7,10 +7,10 @@ Tests for ``pomata.indicators.bollinger_bands`` — volatility bands around a mo
 oracle (which returns the matching dict) compare band by band.
 
 The ladder is the canonical one: contract (type / struct schema / shape / lazy-eager / ``.over`` independence), edge
-(warm-up / window collapse / single-row / null / NaN), correctness (vs the closed-form reference, a frozen golden
-master, and ``multiplier`` scaling), and properties (reference agreement incl. missing data, degree-1 scale-homogeneity,
-and large-magnitude stability). Categories are split into classes; cross-cutting categories use markers (see
-``tests/README.md``).
+(warm-up / window collapse / single-row / null / NaN / constant), correctness (vs the closed-form reference, a frozen
+golden master, and ``multiplier`` scaling), and properties (reference agreement incl. missing data, degree-1
+scale-homogeneity, and large-magnitude stability). Categories are split into classes; cross-cutting categories use
+markers (see ``tests/README.md``).
 """
 
 import math
@@ -197,6 +197,17 @@ class TestBollingerBandsEdge:
         bands = apply_bollinger_bands([5.0, 6.0, 7.0], 1)
         for field in FIELDS:
             assert_matches(bands[field], [5.0, 6.0, 7.0])
+
+    def test_constant_window_collapses_bands(self) -> None:
+        """
+        Verifies that a constant window has zero (pinned) deviation, so all three bands collapse onto the middle --
+        even after a much larger value has left the window, where the rolling kernel would otherwise leave a residue.
+        """
+        bands = apply_bollinger_bands([1_000_000.0, 0.1, 0.1, 0.1, 0.1], 3)
+        for row in (-2, -1):
+            assert bands["middle"][row] is not None
+            assert bands["lower"][row] == bands["middle"][row]
+            assert bands["upper"][row] == bands["middle"][row]
 
 
 class TestBollingerBandsCorrectness:

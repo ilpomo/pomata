@@ -6,8 +6,8 @@ materialize the factory over a one-column ``Float64`` frame; ``assert_matches`` 
 ``standard_deviation_rolling_reference`` oracle are shared across the suite.
 
 The ladder is the canonical one: contract (type / shape / lazy-eager / ``.over`` independence), edge (warm-up / window
-boundaries / single-row / null / NaN), correctness (vs the closed-form reference incl. ``ddof`` and a frozen golden
-master), and properties (reference agreement incl. ``ddof`` and missing data, degree-1 scale-homogeneity, and
+boundaries / single-row / null / NaN / constant), correctness (vs the closed-form reference incl. ``ddof`` and a frozen
+golden master), and properties (reference agreement incl. ``ddof`` and missing data, degree-1 scale-homogeneity, and
 large-magnitude stability). Categories are split into classes; cross-cutting categories use markers (see
 ``tests/README.md``).
 """
@@ -179,6 +179,15 @@ class TestStandardDeviationRollingEdge:
         Verifies that ``window == 1`` has no spread: the standard deviation is ``0`` at every row, with no warm-up.
         """
         assert_matches(apply_expr([1.0, 2.0, 3.0], standard_deviation_rolling(pl.col(COLUMN_X), 1)), [0.0, 0.0, 0.0])
+
+    def test_constant_window_is_zero(self) -> None:
+        """
+        Verifies that a constant window has zero spread -- exactly ``0`` even after a much larger value has left the
+        window, where the incremental rolling standard deviation would otherwise leave a residue.
+        """
+        result = apply_expr([1_000_000.0, 0.1, 0.1, 0.1, 0.1], standard_deviation_rolling(pl.col(COLUMN_X), 3))
+        assert result[-1] == 0.0
+        assert result[-2] == 0.0
 
 
 class TestStandardDeviationRollingCorrectness:

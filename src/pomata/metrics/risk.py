@@ -11,6 +11,8 @@ import polars as pl
 
 from pomata._expr import (
     float64_expr,
+    rolling_has_nan,
+    rolling_is_constant,
     validate_confidence,
     validate_finite,
     validate_periods_per_year,
@@ -128,41 +130,13 @@ def _rolling_moment(
     # native incremental kernel can leave a residue (a spuriously huge finite) once a much larger value exits the
     # window -- a window constant only by sliding -- so guard both explicitly, mirroring volatility_rolling.
     return (
-        pl.when(_rolling_has_nan(expr, window))
+        pl.when(rolling_has_nan(expr, window))
         .then(pl.lit(float("nan")))
-        .when(_rolling_is_constant(expr, window))
+        .when(rolling_is_constant(expr, window))
         .then(pl.lit(float("nan")))
         .otherwise(moment)
         .name.keep()
     )
-
-
-def _rolling_is_constant(
-    expr: pl.Expr,
-    window: int,
-) -> pl.Expr:
-    """
-    Whether every value in the trailing ``window`` is identical -- a zero-variance (degenerate) window.
-
-    Compared as ``rolling_max == rolling_min`` (exact and scale-invariant, no epsilon), so it fires only on a
-    bit-identical window: exactly the case where the one-pass central moments or the incremental rolling standard
-    deviation leave a cancellation residue instead of an exact zero.
-    """
-    return expr.rolling_max(window, min_samples=window) == expr.rolling_min(window, min_samples=window)
-
-
-def _rolling_has_nan(
-    expr: pl.Expr,
-    window: int,
-) -> pl.Expr:
-    """
-    Whether the trailing ``window`` holds any ``NaN`` -- the rolling counterpart of the whole-series NaN-poison guard.
-
-    A single ``NaN`` anywhere in the window poisons that window's rolling statistic, so it is mapped to a ``NaN`` result
-    rather than a spuriously finite one; detected as the ``rolling_max`` of the ``NaN`` indicator (a Boolean that turns
-    ``True`` once any value in the window is ``NaN``).
-    """
-    return expr.is_nan().rolling_max(window, min_samples=window)
 
 
 def _rolling_downside_deviation(
@@ -1482,7 +1456,7 @@ def tail_ratio_rolling(
     right_tail = returns.rolling_quantile(0.95, interpolation="linear", window_size=window, min_samples=window)
     left_tail = returns.rolling_quantile(0.05, interpolation="linear", window_size=window, min_samples=window)
     ratio = (right_tail / left_tail).abs()
-    return pl.when(_rolling_has_nan(returns, window)).then(pl.lit(float("nan"))).otherwise(ratio).name.keep()
+    return pl.when(rolling_has_nan(returns, window)).then(pl.lit(float("nan"))).otherwise(ratio).name.keep()
 
 
 def value_at_risk(
@@ -1896,7 +1870,7 @@ def value_at_risk_rolling(
     quantile = returns.rolling_quantile(
         1.0 - confidence, interpolation="linear", window_size=window, min_samples=window
     )
-    return pl.when(_rolling_has_nan(returns, window)).then(pl.lit(float("nan"))).otherwise(quantile).name.keep()
+    return pl.when(rolling_has_nan(returns, window)).then(pl.lit(float("nan"))).otherwise(quantile).name.keep()
 
 
 def volatility(
@@ -2083,9 +2057,9 @@ def volatility_rolling(
     # A constant window has zero dispersion -> 0.0; the incremental rolling standard deviation can leave a residue after
     # a much larger value exits the window, so guard it explicitly. The NaN check comes first: a NaN window stays NaN.
     return (
-        pl.when(_rolling_has_nan(returns, window))
+        pl.when(rolling_has_nan(returns, window))
         .then(pl.lit(float("nan")))
-        .when(_rolling_is_constant(returns, window))
+        .when(rolling_is_constant(returns, window))
         .then(pl.lit(0.0))
         .otherwise(dispersion)
         .name.keep()
