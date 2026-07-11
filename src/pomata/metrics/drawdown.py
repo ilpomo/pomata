@@ -450,8 +450,8 @@ def pain_index(
         equity_curve: Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive.
 
     Returns:
-        A single ``Float64`` value (non-negative): the pain index (one value in ``select``, one per group under
-        ``.over``). ``null`` when there are no observations.
+        A single ``Float64`` value: the pain index (one value in ``select``, one per group under ``.over``). It is
+        ``>= 0``; ``null`` when there are no observations.
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
