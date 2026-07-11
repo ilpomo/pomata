@@ -104,7 +104,7 @@ class TestVolatilityEdge:
 
     def test_nan_poisons(self) -> None:
         """
-        Verifies that a ``NaN`` return propagates, yielding ``NaN``.
+        Verifies that a ``NaN`` return poisons the reduction, yielding ``NaN``.
         """
         values = [0.01, math.nan, 0.02, 0.03]
         assert_matches(apply_expr(values, volatility(pl.col(COLUMN_X), periods_per_year=PERIODS)), [math.nan])

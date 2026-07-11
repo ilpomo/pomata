@@ -142,7 +142,7 @@ class TestPercentagePriceOscillatorEdge:
 
     def test_nan_latches(self) -> None:
         """
-        Verifies that a ``NaN`` propagates through both EMAs, yielding ``NaN``.
+        Verifies that a ``NaN`` poisons both EMAs and latches, yielding ``NaN``.
         """
         result = apply_expr(
             [10.0, 11.0, 12.0, math.nan, 15.0],

@@ -177,7 +177,7 @@ class TestMacdEdge:
 
     def test_nan_latches(self) -> None:
         """
-        Verifies that a ``NaN`` propagates through the EMAs on every field.
+        Verifies that a ``NaN`` poisons the EMAs and latches on every field.
         """
         values = [10.0, 11.0, 12.0, math.nan, 14.0, 15.0, 16.0, 17.0]
         bands = apply_macd(values)

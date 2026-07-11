@@ -197,7 +197,7 @@ class TestAccumulationDistributionOscillatorEdge:
 
     def test_nan_latches(self) -> None:
         """
-        Verifies that a NaN propagates (matching the naive reference).
+        Verifies that a NaN latches (matching the naive reference).
         """
         high = [10.2, 10.5, 10.7, 10.3, 10.8]
         low = [9.8, 10.0, 10.2, 9.9, 10.3]

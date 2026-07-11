@@ -150,9 +150,21 @@ class TestVortexEdge:
 
     def test_null_propagates_through_lag(self) -> None:
         """
-        Verifies that a ``null`` / ``NaN`` flows through the one-bar lag and the rolling sums exactly as the reference.
+        Verifies that a ``null`` flows through the one-bar lag and the rolling sums exactly as the reference.
         """
-        high = [2.0, None, 6.0, 8.0, math.nan, 12.0, 13.0]
+        high = [2.0, None, 6.0, 8.0, 10.0, 12.0, 13.0]
+        low = [1.0, 3.0, 4.0, 6.0, 8.0, 10.0, 11.0]
+        close = [1.5, 2.5, 5.0, 7.0, 9.0, 11.0, 12.0]
+        bands = apply_vortex(high, low, close, 2)
+        reference = vortex_reference(high, low, close, 2)
+        for field in FIELDS:
+            assert_matches(bands[field], reference[field])
+
+    def test_nan_propagates_through_lag(self) -> None:
+        """
+        Verifies that a ``NaN`` flows through the one-bar lag and the rolling sums exactly as the reference.
+        """
+        high = [2.0, 4.0, 6.0, 8.0, math.nan, 12.0, 13.0]
         low = [1.0, 3.0, 4.0, 6.0, 8.0, 10.0, 11.0]
         close = [1.5, 2.5, 5.0, 7.0, 9.0, 11.0, 12.0]
         bands = apply_vortex(high, low, close, 2)

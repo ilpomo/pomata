@@ -255,7 +255,7 @@ class TestRsiStochasticEdge:
 
     def test_nan_latches(self) -> None:
         """
-        Verifies that a NaN propagates (matching the naive reference).
+        Verifies that a NaN latches (matching the naive reference).
         """
         values = [50.0, 51.0, 50.5, 51.0, 52.0, math.nan, 53.0, 52.0, 54.0]
         applied = apply_rsi_stochastic(values, window_rsi=2, window_k=2, window_d=2)

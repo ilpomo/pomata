@@ -83,7 +83,7 @@ class TestInformationRatioEdge:
         with pytest.raises(ValueError, match="periods_per_year must be >= 1"):
             information_ratio(pl.col(RETURNS), pl.col(BENCHMARK), periods_per_year=0)
 
-    def test_null_skipped(self) -> None:
+    def test_null_misalignment_drops_pair(self) -> None:
         """
         Verifies that a ``null`` in either leg drops that pair (excluded from the reduction), matching the reference.
         """

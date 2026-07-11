@@ -135,7 +135,7 @@ class TestDmMinusEdge:
 
     def test_nan_latches(self) -> None:
         """
-        Verifies that a NaN propagates (matching the naive reference).
+        Verifies that a NaN latches (matching the naive reference).
         """
         high = [10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 14.0, 13.5]
         low = [9.0, 10.0, 11.0, 11.5, 12.0, math.nan, 13.0, 12.5]
