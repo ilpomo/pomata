@@ -240,9 +240,9 @@ def cost_funding(
     Args:
         quantity: Signed position size in units / shares / contracts held over the bar (e.g. ``100``, ``-2``).
         price: Instrument price series (e.g. ``pl.col("close")``); must share a length and alignment with ``quantity``.
-        funding_rate: Per-bar funding rate as a signed fraction of notional, supplied as a series so it can be ``0`` on
-            the bars
-            between funding events (e.g. ``0.0001`` = 1 bp); a positive rate charges longs and rebates shorts.
+        funding_rate: Per-bar funding rate as a signed fraction of notional, supplied as a series so it can be ``0``
+            on the bars between funding events (e.g. ``0.0001`` = 1 bp); a positive rate charges longs and rebates
+            shorts.
 
     Returns:
         The per-bar funding cost for each row, the same length as the inputs -- positive where the holder pays and

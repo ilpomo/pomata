@@ -403,10 +403,14 @@ def standard_deviation_ewma(
     See Also:
         - :func:`variance_ewma`: The square of this, of which it is the root.
         - :func:`standard_deviation_rolling`: The equal-weighted (rolling-window) counterpart.
-        - :func:`ema`: The exponential mean these deviations are measured from.
+        - :func:`ema`: The related exponential mean — note the deviations here are measured from Polars' native
+          ``ewm`` mean (seeded on the first observation), not from pomata's SMA-seeded :func:`ema`, so the two only
+          converge past the warm-up.
 
     References:
-        - J.P. Morgan / Reuters (1996). *RiskMetrics — Technical Document* (4th ed.).
+        - J.P. Morgan / Reuters (1996). *RiskMetrics — Technical Document* (4th ed.). Cited for the concept of an
+          exponentially-weighted variance in finance; pomata computes the mean-centered, span-parameterized form
+          above, not RiskMetrics' zero-mean recursion with a ``lambda`` decay factor (``0.94`` daily).
 
     Examples:
         >>> import polars as pl
@@ -684,10 +688,14 @@ def variance_ewma(
     See Also:
         - :func:`standard_deviation_ewma`: Its square root, in the input's own units.
         - :func:`variance_rolling`: The equal-weighted (rolling-window) counterpart.
-        - :func:`ema`: The exponential mean these deviations are measured from.
+        - :func:`ema`: The related exponential mean — note the deviations here are measured from Polars' native
+          ``ewm`` mean (seeded on the first observation), not from pomata's SMA-seeded :func:`ema`, so the two only
+          converge past the warm-up.
 
     References:
-        - J.P. Morgan / Reuters (1996). *RiskMetrics — Technical Document* (4th ed.).
+        - J.P. Morgan / Reuters (1996). *RiskMetrics — Technical Document* (4th ed.). Cited for the concept of an
+          exponentially-weighted variance in finance; pomata computes the mean-centered, span-parameterized form
+          above, not RiskMetrics' zero-mean recursion with a ``lambda`` decay factor (``0.94`` daily).
 
     Examples:
         >>> import polars as pl

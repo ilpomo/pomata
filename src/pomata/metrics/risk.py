@@ -325,7 +325,8 @@ def downside_deviation(
     Args:
         returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
-        threshold: The return level separating gains from losses / the minimum acceptable return (default ``0.0``).
+        threshold: The **per-period** return level separating gains from losses / the minimum acceptable return
+            (default ``0.0``); an annual target must be de-annualized by the caller before it is passed.
             Must be finite.
 
     Returns:
@@ -417,7 +418,8 @@ def downside_deviation_rolling(
         returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         window: Number of observations in the moving window. Must be ``>= 1``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
-        threshold: The return level separating gains from losses / the minimum acceptable return (default ``0.0``).
+        threshold: The **per-period** return level separating gains from losses / the minimum acceptable return
+            (default ``0.0``); an annual target must be de-annualized by the caller before it is passed.
             Must be finite.
 
     Returns:
@@ -1510,6 +1512,7 @@ def value_at_risk(
         - :func:`conditional_value_at_risk`: The mean loss beyond this threshold (expected shortfall).
         - :func:`value_at_risk_parametric`: The Gaussian (parametric) estimate of the same quantile.
         - :func:`value_at_risk_modified`: The skewness/kurtosis-corrected (Cornish-Fisher) estimate.
+        - :func:`value_at_risk_rolling`: The rolling (windowed) form.
 
     References:
         - J.P. Morgan / Reuters (1996). *RiskMetrics — Technical Document* (4th ed.).

@@ -545,6 +545,7 @@ def omega_ratio(
         - :func:`gain_to_pain_ratio`: The net-return over total-loss sibling about a zero threshold.
         - :func:`sortino_ratio`: The downside-deviation risk-adjusted alternative.
         - :func:`sharpe_ratio`: The moment-based risk-adjusted ratio.
+        - :func:`omega_ratio_rolling`: The rolling (windowed) form.
 
     References:
         - Keating, C. & Shadwick, W. F. (2002). "A Universal Performance Measure." *The Journal of Performance
@@ -1032,6 +1033,7 @@ def sharpe_ratio(
         - :func:`sortino_ratio`: The downside-only counterpart (penalizes only harmful volatility).
         - :func:`volatility`: The denominator (total dispersion).
         - :func:`adjusted_sharpe_ratio`: The higher-moment correction for non-normal returns.
+        - :func:`sharpe_ratio_rolling`: The rolling (windowed) form.
 
     References:
         - Sharpe, W. F. (1994). "The Sharpe Ratio." *The Journal of Portfolio Management*, 21(1), 49-58.
@@ -1223,6 +1225,7 @@ def sortino_ratio(
         - :func:`sharpe_ratio`: The two-sided counterpart (penalizes all volatility).
         - :func:`downside_deviation`: The denominator (downside-only dispersion).
         - :func:`omega_ratio`: The threshold-based gain-to-loss alternative.
+        - :func:`sortino_ratio_rolling`: The rolling (windowed) form.
 
     References:
         - Sortino, F. A. & Price, L. N. (1994). "Performance Measurement in a Downside Risk Framework." *The Journal of

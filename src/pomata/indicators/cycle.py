@@ -308,10 +308,9 @@ def dominant_cycle_period(
         is the set of frozen golden masters, plus TA-Lib parity on the converged tail (the differential tier compares
         the whole cycle cluster — every HT_* counterpart plus MAMA — against the C reference). Where measurable the
         oracle agrees to ten significant figures (a ``1e-10`` band) on any finite input within a sane dynamic
-        range, except on a flat or period-two (even-lag) series, where the Hilbert quadrature is a pure cancellation
-        residual and the measurement
-        is ill-conditioned (there is no cycle to measure). ``CORRECTNESS.md`` gives the method and the
-        float-conditioning limit beyond it.
+        range — a flat or period-two (even-lag) series included, though there the reading itself is physically
+        meaningless (the Hilbert quadrature is a pure cancellation residual: there is no cycle to measure).
+        ``CORRECTNESS.md`` gives the method and the float-conditioning limit beyond it.
 
         **Edge-case behavior:**
 
@@ -508,10 +507,9 @@ def hilbert_trendline(
         is the set of frozen golden masters, plus TA-Lib parity on the converged tail (the differential tier compares
         the whole cycle cluster — every HT_* counterpart plus MAMA — against the C reference). Where measurable the
         oracle agrees to ten significant figures (a ``1e-10`` band) on any finite input within a sane dynamic
-        range, except on a flat or period-two (even-lag) series, where the Hilbert quadrature is a pure cancellation
-        residual and the measurement
-        is ill-conditioned (there is no cycle to measure). ``CORRECTNESS.md`` gives the method and the
-        float-conditioning limit beyond it.
+        range — a flat or period-two (even-lag) series included, though there the reading itself is physically
+        meaningless (the Hilbert quadrature is a pure cancellation residual: there is no cycle to measure).
+        ``CORRECTNESS.md`` gives the method and the float-conditioning limit beyond it.
 
         **Edge-case behavior:**
 

@@ -585,11 +585,11 @@ def rma(
 
         **Edge-case behavior:**
 
-        - **Null** — a leading ``null`` run is skipped and does not consume warm-up budget: ``min_samples`` counts only
-          non-null observations, so the warm-up gate is independent of where any interior ``null`` falls. An interior
-          ``null`` yields ``null`` at that row while the path-dependent recursion bridges the gap rather than
-          restarting, the running average's weight decaying across it (Polars
-          ``ewm_mean(adjust=False, ignore_nulls=False)`` semantics).
+        - **Null** — a leading ``null`` run is skipped and does not consume warm-up budget: the seeded kernel counts
+          only non-null observations toward its seed, so the warm-up gate is independent of where any interior
+          ``null`` falls. An interior ``null`` yields ``null`` at that row while the path-dependent recursion bridges
+          the gap rather than restarting, the running average's weight decaying across it (a ``k``-row gap decays the
+          carried weight by ``(1 - alpha)^k``, emulating ``ewm_mean(adjust=False, ignore_nulls=False)`` semantics).
         - **NaN** — once a ``NaN`` enters it poisons the recursion and latches ``NaN`` for every subsequent value.
         - **window == 1** — the smoothing factor is ``1``, the warm-up vanishes, and the result reproduces the input.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursion does not span
