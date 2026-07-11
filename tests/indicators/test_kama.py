@@ -139,7 +139,7 @@ class TestKamaEdge:
         with pytest.raises(ValueError, match="window_slow must be >= 1"):
             kama(pl.col(COLUMN_X), window=10, window_fast=2, window_slow=0)
 
-    def test_window_fast_above_slow_raises(self) -> None:
+    def test_fast_above_slow_raises(self) -> None:
         """
         Verifies that ``window_fast > window_slow`` (the bounds reversed) raises ``ValueError``, while the equal-bounds
         boundary is accepted.
@@ -169,7 +169,7 @@ class TestKamaEdge:
 
     def test_nan_latches(self) -> None:
         """
-        Verifies that a NaN propagates (matching the naive reference).
+        Verifies that a NaN latches (matching the naive reference).
         """
         values = [10.0, 11.0, 12.0, 12.5, 13.0, math.nan, 15.0, 16.0]
         assert_matches(apply_kama(values, 2), kama_reference(values, 2))

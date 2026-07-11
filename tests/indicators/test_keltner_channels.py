@@ -192,7 +192,7 @@ class TestKeltnerChannelsEdge:
 
     def test_nan_latches(self) -> None:
         """
-        Verifies that a ``NaN`` in ``close`` propagates to every band through the recursive ``ema`` / ``atr`` legs,
+        Verifies that a ``NaN`` in ``close`` latches on every band through the recursive ``ema`` / ``atr`` legs,
         poisoning the midline forward (``null`` still takes precedence).
         """
         high = [3.0, 4.0, 5.0, 6.0]

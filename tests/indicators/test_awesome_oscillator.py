@@ -161,6 +161,12 @@ class TestAwesomeOscillatorEdge:
         assert result[:2] == [None, None]
         assert result[2] is not None
 
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that a slow window longer than the series yields an all-null result (the warm-up never completes).
+        """
+        assert_matches(apply_awesome_oscillator([2.0, 4.0, 6.0], [0.0, 2.0, 4.0], 2, 10), [None, None, None])
+
     def test_equal_windows_is_zero(self) -> None:
         """
         Verifies that ``window_fast == window_slow`` gives an identically-zero oscillator where defined.

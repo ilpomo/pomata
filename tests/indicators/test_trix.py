@@ -118,7 +118,7 @@ class TestTrixEdge:
 
     def test_nan_latches(self) -> None:
         """
-        Verifies that a NaN propagates (matching the naive reference).
+        Verifies that a NaN latches (matching the naive reference).
         """
         values = [10.0, 11.0, 12.0, 12.0, 14.0, math.nan, 16.0, 17.0]
         assert_matches(apply_expr(values, trix(pl.col(COLUMN_X), 2)), trix_reference(values, 2))

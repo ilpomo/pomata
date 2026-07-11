@@ -207,6 +207,7 @@ _FORBIDDEN_SPELLINGS: dict[str, str] = {
     "test_infinity_propagates": "test_consecutive_infinities_make_nan",
     "test_unordered_windows_raise": "test_misordered_windows_raise",
     "test_fast_exceeds_slow_raises": "test_fast_above_slow_raises",
+    "test_window_fast_above_slow_raises": "test_fast_above_slow_raises",
     "test_windows_below_one_raises": "test_window_below_one_raises",
     "test_golden_master_adjust": "test_golden_master_adjusted",
     "test_matches_reference_adjust": "test_matches_reference_adjusted",

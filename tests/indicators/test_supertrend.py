@@ -189,6 +189,14 @@ class TestSupertrendEdge:
             assert bands[field][:2] == [None, None]
             assert bands[field][2] is not None
 
+    def test_window_exceeds_length(self) -> None:
+        """
+        Verifies that a window longer than the series yields an all-null result on both fields.
+        """
+        bands = apply_supertrend([10.0, 11.0, 12.0], [9.0, 10.0, 11.0], [9.5, 10.8, 11.8], 10)
+        for field in FIELDS:
+            assert_matches(bands[field], [None, None, None])
+
     def test_flat_series(self) -> None:
         """
         Verifies the flat series: a constant ``high == low == close`` run has zero ATR, so both bands collapse onto the

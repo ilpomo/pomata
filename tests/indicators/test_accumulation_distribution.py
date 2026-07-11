@@ -55,7 +55,7 @@ SERIES_MAX = 60
 
 
 @st.composite
-def _bar_cases[T](draw: st.DrawFn, bars: st.SearchStrategy[T]) -> list[T]:
+def _cases[T](draw: st.DrawFn, bars: st.SearchStrategy[T]) -> list[T]:
     """
     A series of bars sized from the facts above. accumulation_distribution is windowless (W = 0), so a case is just the
     series -- every row is output, never warm-up.
@@ -313,7 +313,7 @@ class TestAccumulationDistributionProperties:
     Invariants that must hold for all inputs (property-based).
     """
 
-    @given(case=_bar_cases(coherent_hlcv()))
+    @given(case=_cases(coherent_hlcv()))
     def test_matches_reference_for_any_input(
         self,
         case: list[tuple[float, float, float, float]],
@@ -330,7 +330,7 @@ class TestAccumulationDistributionProperties:
             abs_tol=input_scale(volume_values) * EXACT_TOLERANCE_FACTOR,
         )
 
-    @given(case=_bar_cases(coherent_hlcv_with_missing()))
+    @given(case=_cases(coherent_hlcv_with_missing()))
     def test_matches_reference_under_missing_data(
         self,
         case: list[tuple[float | None, float | None, float | None, float | None]],
@@ -347,7 +347,7 @@ class TestAccumulationDistributionProperties:
         )
 
     @given(
-        case=_bar_cases(coherent_hlcv()),
+        case=_cases(coherent_hlcv()),
         exponent=st.sampled_from([-4, -3, -2, -1, 1, 2, 3, 4]),
     )
     def test_volume_scale_homogeneity(
@@ -368,7 +368,7 @@ class TestAccumulationDistributionProperties:
         assert_scale_homogeneous(result_scaled, result_base, k=c, degree=1)
 
     @given(
-        case=_bar_cases(coherent_hlcv()),
+        case=_cases(coherent_hlcv()),
         scale=st.sampled_from([1e-6, 1e6, 1e9]),
     )
     def test_matches_reference_at_large_magnitude(
@@ -391,7 +391,7 @@ class TestAccumulationDistributionProperties:
             abs_tol=input_scale(volume) * EXACT_TOLERANCE_FACTOR,
         )
 
-    @given(case=_bar_cases(coherent_hlcv()))
+    @given(case=_cases(coherent_hlcv()))
     def test_is_running_difference_of_consecutive_terms(
         self,
         case: list[tuple[float, float, float, float]],
