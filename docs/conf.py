@@ -29,6 +29,7 @@ extensions = [
     "sphinx.ext.mathjax",  # render the ``.. math::`` formula blocks
     "sphinx.ext.doctest",  # run the prose-page examples in CI, like the docstrings
     "sphinx.ext.viewcode",  # add a "source" link next to each object
+    "sphinx_copybutton",  # copy button on code blocks; strips the >>> / ... doctest prompts automatically
 ]
 
 # Markdown niceties: ::: fenced admonitions, definition lists, and pretty arrows/dashes.

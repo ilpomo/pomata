@@ -48,5 +48,7 @@ when something genuinely needs it, and a nightly CI job re-proves the floor stil
 ## Why Polars only — no pandas, no NumPy?
 
 Because the whole design falls out of it. One dependency to vet, expressions that compose instead of objects that
-wrap your data, and lazy execution and streaming for free. You stay in one engine from the raw bars to the final
-metric, with nothing to convert in between.
+wrap your data, and lazy execution and streaming for free — with one caveat: a handful of sequential functions run a
+Python kernel per evaluation, so reuse them via a column rather than textually (see the
+[performance note in concepts](concepts.md#2-over-for-multi-asset-panels)). You stay in one engine from the raw bars
+to the final metric, with nothing to convert in between.
