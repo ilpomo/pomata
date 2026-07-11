@@ -14,6 +14,8 @@ import pytest
 from pomata._expr import (
     float64_expr,
     per_period_rate,
+    rolling_has_nan,
+    rolling_is_constant,
     validate_confidence,
     validate_ddof,
     validate_finite,
@@ -35,6 +37,18 @@ def test_float64_expr_rejects_bare_string() -> None:
     """A bare column-name string (not a ``pl.Expr``) is rejected with the canonical ``TypeError``."""
     with pytest.raises(TypeError, match=r"expected a Polars expression \(pl\.Expr\), got str"):
         float64_expr("x")  # type: ignore[arg-type]
+
+
+def test_rolling_has_nan_flags_the_poisoned_window() -> None:
+    """``True`` exactly where the trailing window holds a ``NaN``; ``null`` while the window is incomplete."""
+    frame = pl.DataFrame({"x": [1.0, math.nan, 2.0, 2.0]})
+    assert frame.select(rolling_has_nan(pl.col("x"), 2))["x"].to_list() == [None, True, True, False]
+
+
+def test_rolling_is_constant_fires_only_on_a_bit_identical_window() -> None:
+    """``True`` exactly where every value in the trailing window is bit-identical; ``null`` while incomplete."""
+    frame = pl.DataFrame({"x": [1.0, 2.0, 2.0, 3.0]})
+    assert frame.select(rolling_is_constant(pl.col("x"), 2))["x"].to_list() == [None, False, True, False]
 
 
 def test_validate_window_accepts_at_minimum() -> None:

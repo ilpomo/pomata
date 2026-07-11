@@ -1,5 +1,6 @@
 """
-Shared input-normalization and validation helpers for all three factory families (indicators, metrics, pnl).
+Shared input-normalization, validation, and rolling-guard helpers for all three factory families (indicators, metrics,
+pnl).
 
 A leaf module: it imports only the standard library and ``polars``, and nothing in the package imports back into it,
 so it never participates in a
@@ -49,6 +50,50 @@ def float64_expr(
             f'like pl.col("<column>"), not a bare column name'
         )
     return candidate.cast(pl.Float64)
+
+
+def rolling_has_nan(
+    expr: pl.Expr,
+    window: int,
+) -> pl.Expr:
+    """
+    Whether the trailing ``window`` holds any ``NaN`` — the rolling counterpart of the whole-series NaN-poison guard.
+
+    A single ``NaN`` anywhere in the window poisons that window's rolling statistic, so the consumers map it to a
+    ``NaN`` result rather than a spuriously finite one; detected as the ``rolling_max`` of the ``NaN`` indicator (a
+    Boolean that turns ``True`` once any value in the window is ``NaN``). Shared by the rolling dispersions and
+    moments across the families so the guard cannot drift between twins.
+
+    Args:
+        expr: Input series the rolling statistic is computed over.
+        window: Number of observations in the moving window.
+
+    Returns:
+        A Boolean expression: ``True`` where the trailing window holds a ``NaN``, ``null`` while it is incomplete.
+    """
+    return expr.is_nan().rolling_max(window, min_samples=window)
+
+
+def rolling_is_constant(
+    expr: pl.Expr,
+    window: int,
+) -> pl.Expr:
+    """
+    Whether every value in the trailing ``window`` is identical — a zero-variance (degenerate) window.
+
+    Compared as ``rolling_max == rolling_min`` (exact and scale-invariant, no epsilon), so it fires only on a
+    bit-identical window: exactly the case where the one-pass central moments or the incremental rolling standard
+    deviation leave a cancellation residue instead of an exact zero. Beware that Polars groups ``NaN == NaN`` as
+    equal, so a NaN-poisoned window also compares constant — consumers check :func:`rolling_has_nan` first.
+
+    Args:
+        expr: Input series the rolling statistic is computed over.
+        window: Number of observations in the moving window.
+
+    Returns:
+        A Boolean expression: ``True`` where the trailing window is bit-constant, ``null`` while it is incomplete.
+    """
+    return expr.rolling_max(window, min_samples=window) == expr.rolling_min(window, min_samples=window)
 
 
 def validate_window(

@@ -4,7 +4,7 @@ Statistic indicators.
 
 import polars as pl
 
-from pomata._expr import float64_expr, validate_ddof, validate_window
+from pomata._expr import float64_expr, rolling_has_nan, rolling_is_constant, validate_ddof, validate_window
 
 __all__ = (
     "linear_regression",
@@ -484,6 +484,9 @@ def standard_deviation_rolling(
 
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
+        - **Constant window** — a window of equal values has zero spread, so the result is exactly ``0`` — pinned
+          explicitly, even where a much larger value has just left the window and the incremental rolling kernel
+          would otherwise leave a cancellation residue.
         - **window == 1** — a single value has no spread, so the result is ``0`` with the default ``ddof = 0``.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the window never spans series
           boundaries, e.g. ``standard_deviation_rolling(pl.col("close"), 20).over("ticker")``.
@@ -524,7 +527,18 @@ def standard_deviation_rolling(
     validate_window(window)
     validate_ddof(ddof, window)
     # Native Polars rolling std; ddof=0 (population) is the charting default, not Polars' own sample ddof=1.
-    return (expr.rolling_std(window, ddof=ddof)).name.keep()
+    dispersion = expr.rolling_std(window, ddof=ddof)
+    # A constant window has zero spread -> exactly 0.0; the incremental rolling standard deviation can leave a residue
+    # after a much larger value exits the window, so guard it explicitly, mirroring the metrics volatility_rolling. The
+    # NaN check comes first: Polars groups NaN == NaN as equal, so the constant check alone would pin a NaN window.
+    return (
+        pl.when(rolling_has_nan(expr, window))
+        .then(pl.lit(float("nan")))
+        .when(rolling_is_constant(expr, window))
+        .then(pl.lit(0.0))
+        .otherwise(dispersion)
+        .name.keep()
+    )
 
 
 def time_series_forecast(
@@ -754,6 +768,9 @@ def variance_rolling(
 
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
+        - **Constant window** — a window of equal values has zero dispersion, so the result is exactly ``0`` — pinned
+          explicitly, even where a much larger value has just left the window and the incremental rolling kernel
+          would otherwise leave a cancellation residue.
         - **window == 1** — a single value has no spread, so the result is ``0`` with the default ``ddof = 0``.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the window never spans series
           boundaries, e.g. ``variance_rolling(pl.col("close"), 20).over("ticker")``.
@@ -794,4 +811,15 @@ def variance_rolling(
     validate_window(window)
     validate_ddof(ddof, window)
     # Native Polars rolling var; ddof=0 (population) is the charting default, not Polars' own sample ddof=1.
-    return (expr.rolling_var(window, ddof=ddof)).name.keep()
+    dispersion = expr.rolling_var(window, ddof=ddof)
+    # A constant window has zero dispersion -> exactly 0.0; the incremental rolling variance can leave a residue after
+    # a much larger value exits the window, so guard it explicitly, mirroring the metrics volatility_rolling. The NaN
+    # check comes first: Polars groups NaN == NaN as equal, so the constant check alone would pin a NaN window.
+    return (
+        pl.when(rolling_has_nan(expr, window))
+        .then(pl.lit(float("nan")))
+        .when(rolling_is_constant(expr, window))
+        .then(pl.lit(0.0))
+        .otherwise(dispersion)
+        .name.keep()
+    )

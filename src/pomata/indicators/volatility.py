@@ -322,6 +322,9 @@ def bollinger_bands(
         - **Null** — a window containing a ``null`` yields ``null`` on all three fields (the window must hold ``window``
           non-null values).
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` on all three fields.
+        - **Constant window** — the standard deviation is pinned to exactly ``0`` (see
+          :func:`standard_deviation_rolling`), so all three bands collapse onto the constant — even where a much
+          larger value has just left the window.
         - **window == 1** — the standard deviation is ``0``, so all three bands collapse onto ``expr`` itself.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so no window spans series
           boundaries, e.g. ``bollinger_bands(pl.col("close"), 20).over("ticker")``.
