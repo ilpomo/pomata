@@ -199,7 +199,8 @@ def atr_normalized(
 
         - **Null** — a ``null`` ATR or a ``null`` ``close`` at a row yields ``null`` there (the ATR inherits
           :func:`atr`'s per-term null handling).
-        - **NaN** — a ``NaN`` ATR or ``close`` yields ``NaN``.
+        - **NaN** — a ``NaN`` ATR or ``close`` yields ``NaN``; a ``NaN`` inside the ATR's recursion latches, exactly
+          as documented for :func:`atr`.
         - **Zero close** — where ``close`` is ``0`` the ratio follows IEEE-754 (``+/-inf`` for a non-zero ATR, ``NaN``
           for a zero ATR).
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the underlying ATR does not

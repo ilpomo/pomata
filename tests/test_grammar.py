@@ -321,3 +321,101 @@ def test_within_tier_rung_order(name: str) -> None:
         assert ranks == sorted(ranks), (
             f"{name}: the {tier} tier runs {methods} (ranks {ranks}); the §4 order is non-decreasing"
         )
+
+
+def _pascal(subject: str) -> str:
+    """The PascalCase stem a subject's tier classes must carry (``profit_factor`` -> ``ProfitFactor``)."""
+    return "".join(part.capitalize() for part in subject.split("_"))
+
+
+@pytest.mark.parametrize("name", sorted(POLICIES))
+def test_tier_class_stems_match_subject(name: str) -> None:
+    """Every tier class in a function's test file is named ``Test<PascalSubject><Tier>`` — the stem cannot drift."""
+    for cls in {cls for cls, _ in _METHODS[name]}:
+        tier = _tier_of(cls)
+        if tier is not None:
+            assert cls == f"Test{_pascal(name)}{tier}", f"{name}: class {cls}"
+
+
+# The only modules allowed to carry a bare numeric tolerance: each holds a one-line comment deriving its departure
+# from the ladder (the policy probe's equality band; the absolute-only band at an expected zero).
+_TOLERANCE_DEROGATIONS = frozenset({"test_policies.py", "indicators/test_linear_regression_angle.py"})
+
+
+def _bare_tolerance_files() -> frozenset[str]:
+    flagged: set[str] = set()
+    for path in sorted(_TESTS_ROOT.rglob("*.py")):
+        relative = path.relative_to(_TESTS_ROOT).as_posix()
+        if relative.startswith("support/"):
+            continue
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call):
+                for keyword in node.keywords:
+                    if (
+                        keyword.arg in {"rel_tol", "abs_tol"}
+                        and isinstance(keyword.value, ast.Constant)
+                        and isinstance(keyword.value.value, float)
+                    ):
+                        flagged.add(relative)
+            if isinstance(node, ast.FunctionDef):
+                parameters = node.args.args[len(node.args.args) - len(node.args.defaults) :] + node.args.kwonlyargs
+                defaults = list(node.args.defaults) + list(node.args.kw_defaults)
+                for parameter, default in zip(parameters, defaults, strict=False):
+                    if (
+                        parameter.arg in {"rel_tol", "abs_tol"}
+                        and isinstance(default, ast.Constant)
+                        and isinstance(default.value, float)
+                    ):
+                        flagged.add(relative)
+    return frozenset(flagged)
+
+
+def test_bare_tolerance_literals_stay_derogated() -> None:
+    """A numeric tolerance is a named ladder constant; the two commented derogations are the only exceptions."""
+    assert _bare_tolerance_files() == _TOLERANCE_DEROGATIONS
+
+
+# The only per-function modules allowed to name OHLCV columns literally: bespoke pinned frames (the differential
+# lens, the published precision table, the benchmark fleet, the hand-maintained typing sweeps), each carrying the
+# derogation comment; everything else routes through ``tests/support/columns.py``.
+_COLUMN_DEROGATIONS = frozenset(
+    {
+        "indicators/test_benchmark.py",
+        "indicators/test_differential.py",
+        "indicators/test_precision_table.py",
+        "indicators/test_typing.py",
+    }
+)
+_OHLCV_LITERALS = frozenset({"open", "high", "low", "close", "volume"})
+
+
+def _column_literal_files() -> frozenset[str]:
+    flagged: set[str] = set()
+    for path in sorted(_TESTS_ROOT.rglob("*.py")):
+        relative = path.relative_to(_TESTS_ROOT).as_posix()
+        if relative.startswith("support/"):
+            continue
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            called = node.func
+            if isinstance(called, ast.Attribute):
+                attribute = called.attr
+            else:
+                attribute = called.id if isinstance(called, ast.Name) else ""
+            if attribute == "col":
+                for argument in node.args:
+                    if isinstance(argument, ast.Constant) and argument.value in _OHLCV_LITERALS:
+                        flagged.add(relative)
+            if attribute == "DataFrame" and node.args and isinstance(node.args[0], ast.Dict):
+                for key in node.args[0].keys:
+                    if isinstance(key, ast.Constant) and key.value in _OHLCV_LITERALS:
+                        flagged.add(relative)
+    return frozenset(flagged)
+
+
+def test_column_literals_stay_derogated() -> None:
+    """OHLCV column names come from ``tests/support/columns.py``; the four bespoke modules are the only exceptions."""
+    assert _column_literal_files() == _COLUMN_DEROGATIONS
