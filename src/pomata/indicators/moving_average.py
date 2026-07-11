@@ -162,8 +162,7 @@ def dema(
         [None, None, 12.0, 11.2222, 12.8148, None, None, 21.0, 22.7778, 22.1852]
 
         A ``null`` (skipped: it voids its own row while the recursion bridges the gap) and a ``NaN`` (which latches)
-        make the
-        exact handling visible at a glance:
+        make the exact handling visible at a glance:
 
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, 13.0, None, 15.0, float("nan"), 17.0, 18.0, 19.0]})
         >>> frame.select(dema(pl.col("close"), 2).round(4).alias("dema"))["dema"].to_list()
@@ -268,8 +267,7 @@ def ema(
         [None, 10.5, 11.5, 11.1667, 12.3889, None, 21.0, 21.0, 22.3333, 22.1111]
 
         A ``null`` (skipped: it voids its own row while the recursion bridges the gap) and a ``NaN`` (which latches)
-        make the
-        exact handling visible at a glance:
+        make the exact handling visible at a glance:
 
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, 13.0, None, 15.0, float("nan"), 17.0, 18.0, 19.0]})
         >>> frame.select(ema(pl.col("close"), 2).round(4).alias("ema"))["ema"].to_list()
@@ -623,8 +621,7 @@ def rma(
         [None, 10.5, 11.25, 11.125, 12.0625, None, 21.0, 21.0, 22.0, 22.0]
 
         A ``null`` (skipped: it voids its own row while the recursion bridges the gap) and a ``NaN`` (which latches)
-        make the
-        exact handling visible at a glance:
+        make the exact handling visible at a glance:
 
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, 13.0, None, 15.0, float("nan"), 17.0, 18.0, 19.0]})
         >>> frame.select(rma(pl.col("close"), 2).round(4).alias("rma"))["rma"].to_list()
@@ -837,8 +834,7 @@ def t3(
         [None, None, None, None, None, None, 13.3568, 14.2815, None, None, None, None, None, None, 24.4079, 24.3942]
 
         A ``null`` (skipped: it voids its own row while the recursion bridges the gap) and a ``NaN`` (which latches)
-        make the
-        exact handling visible at a glance:
+        make the exact handling visible at a glance:
 
         >>> frame = pl.DataFrame(
         ...     {
@@ -964,8 +960,7 @@ def tema(
         [None, None, None, 11.2222, 12.9383, None, None, None, 22.7778, 22.0617]
 
         A ``null`` (skipped: it voids its own row while the recursion bridges the gap) and a ``NaN`` (which latches)
-        make the
-        exact handling visible at a glance:
+        make the exact handling visible at a glance:
 
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, 13.0, None, 15.0, float("nan"), 17.0, 18.0, 19.0]})
         >>> frame.select(tema(pl.col("close"), 2).round(4).alias("tema"))["tema"].to_list()

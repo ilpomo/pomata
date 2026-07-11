@@ -490,7 +490,7 @@ def money_flow_index(
         window: Number of observations in the moving window. Must be ``>= 1``.
 
     Returns:
-        The MFI for each row, bounded in ``[0, 100]`` and the same length as the inputs. The first ``window`` values are
+        The MFI for each row, the same length as the inputs, bounded in ``[0, 100]``. The first ``window`` values are
         ``null`` (warm-up): the value is defined only once ``window`` price *changes* have accumulated, so the first
         defined row is at index ``window`` rather than ``window - 1``.
 

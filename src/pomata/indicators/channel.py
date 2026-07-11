@@ -36,7 +36,7 @@ def donchian_channels(
             ``>= 1``.
 
     Returns:
-        A struct ``pl.Expr`` with three ``Float64`` fields, one struct per row, the same length as the inputs:
+        A struct ``pl.Expr`` with three ``Float64`` fields, the same length as the inputs:
 
         - ``lower`` — the lowest ``low`` over the window.
         - ``middle`` — the channel midline, ``(upper + lower) / 2`` (identical to :func:`midprice`).
@@ -158,9 +158,13 @@ def ichimoku(
         window_senkou: Leading-span-B window (canonically ``52``). Must be ``>= 1`` and ``>= window_kijun``.
 
     Returns:
-        A struct ``pl.Expr`` with ``Float64`` fields ``tenkan``, ``kijun``, ``senkou_a``, ``senkou_b``, the same length
-        as the inputs. Each line is ``null`` through its own warm-up: ``window_tenkan - 1`` rows for ``tenkan``,
-        ``window_kijun - 1`` for ``kijun`` and ``senkou_a`` (which needs both), ``window_senkou - 1`` for ``senkou_b``.
+        A struct ``pl.Expr`` with four ``Float64`` fields, the same length as the inputs:
+
+        - ``tenkan`` — the conversion line; ``null`` through its ``window_tenkan - 1``-row warm-up.
+        - ``kijun`` — the base line; ``null`` through ``window_kijun - 1`` rows.
+        - ``senkou_a`` — the cloud's first bound; ``null`` through ``window_kijun - 1`` rows (it needs both lines).
+        - ``senkou_b`` — the cloud's second bound; ``null`` through ``window_senkou - 1`` rows.
+
         Read a field with ``.struct.field("tenkan")`` or split all four with ``.struct.unnest()``.
 
     Raises:
@@ -304,7 +308,7 @@ def keltner_channels(
         multiplier: Band half-width as a multiple of the ATR (canonically ``2.0``). Must be a finite number ``> 0``.
 
     Returns:
-        A struct ``pl.Expr`` with three ``Float64`` fields, one struct per row, the same length as the inputs:
+        A struct ``pl.Expr`` with three ``Float64`` fields, the same length as the inputs:
 
         - ``lower`` — the lower band, ``middle - multiplier * atr``.
         - ``middle`` — the center band, the :func:`ema` of ``close``.

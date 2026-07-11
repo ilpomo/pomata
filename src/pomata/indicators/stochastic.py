@@ -59,7 +59,7 @@ def stochastic_fast(
         window_d: Number of observations in the %D moving average of %K (canonically ``3``). Must be ``>= 1``.
 
     Returns:
-        A struct column (one struct per row, the same length as the inputs) with two ``Float64`` fields:
+        A struct ``pl.Expr`` with two ``Float64`` fields, the same length as the inputs:
 
         - ``k`` — the raw %K line, ``100 * (close - LL) / (HH - LL)``.
         - ``d`` — the %D signal line, the :func:`sma` of %K over ``window_d``.
@@ -193,7 +193,7 @@ def stochastic_slow(
         window_d: Number of observations in the %D moving average of the slow %K (canonically ``3``). Must be ``>= 1``.
 
     Returns:
-        A struct column (one struct per row, the same length as the inputs) with two ``Float64`` fields:
+        A struct ``pl.Expr`` with two ``Float64`` fields, the same length as the inputs:
 
         - ``k`` — the slow %K line, the :func:`sma` of the raw %K over ``window_slowing``.
         - ``d`` — the %D signal line, the :func:`sma` of the slow %K over ``window_d``.

@@ -427,9 +427,13 @@ def hilbert_phasor(
         expr: Input series, typically a price column (e.g. ``pl.col("close")``).
 
     Returns:
-        A struct ``pl.Expr`` with ``Float64`` fields ``in_phase`` / ``quadrature``, the same length as ``expr``. The
-        first ``32`` rows are ``null`` (warm-up). Read one line with ``.struct.field("in_phase")`` or split both with
-        ``.struct.unnest()``.
+        A struct ``pl.Expr`` with two ``Float64`` fields, the same length as ``expr``:
+
+        - ``in_phase`` — the in-phase (real) component of the phasor.
+        - ``quadrature`` — the quadrature (imaginary) component of the phasor.
+
+        The first ``32`` rows are ``null`` (warm-up). Read one line with ``.struct.field("in_phase")`` or split both
+        with ``.struct.unnest()``.
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
@@ -572,8 +576,12 @@ def mama(
             ``(0, 1]``.
 
     Returns:
-        A struct ``pl.Expr`` with ``Float64`` fields ``mama`` / ``fama``, the same length as ``expr``. The first ``32``
-        rows are ``null`` (warm-up). Read one line with ``.struct.field("mama")`` or split both with
+        A struct ``pl.Expr`` with two ``Float64`` fields, the same length as ``expr``:
+
+        - ``mama`` — the MESA adaptive moving average.
+        - ``fama`` — the Following Adaptive Moving Average, the slower signal-line pass.
+
+        The first ``32`` rows are ``null`` (warm-up). Read one line with ``.struct.field("mama")`` or split both with
         ``.struct.unnest()``.
 
     Raises:
@@ -660,9 +668,13 @@ def sine_wave(
         expr: Input series, typically a price column (e.g. ``pl.col("close")``).
 
     Returns:
-        A struct ``pl.Expr`` with ``Float64`` fields ``sine`` / ``lead_sine`` in ``[-1, 1]``, the same length as
-        ``expr``. The first ``63`` rows are ``null`` (warm-up). Read one line with ``.struct.field("sine")`` or split
-        both with ``.struct.unnest()``.
+        A struct ``pl.Expr`` with two ``Float64`` fields, the same length as ``expr``:
+
+        - ``sine`` — the sine of the dominant-cycle phase, in ``[-1, 1]``.
+        - ``lead_sine`` — the sine advanced ``45°``, in ``[-1, 1]``.
+
+        The first ``63`` rows are ``null`` (warm-up). Read one line with ``.struct.field("sine")`` or split both with
+        ``.struct.unnest()``.
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
