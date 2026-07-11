@@ -12,6 +12,9 @@ automatically. ``test_moving_average_factories_are_typed_as_expr`` then pins the
 type checkers (mypy ``--strict``, pyright, ty) confirm the optional-keyword overloads still resolve to ``pl.Expr``.
 """
 
+# Bespoke pinned frames: this module names the OHLCV columns literally by design (the per-function suite routes
+# every column name through ``tests/support/columns.py``; here the frame IS the fixture being pinned).
+
 from typing import assert_type, get_type_hints
 
 import polars as pl

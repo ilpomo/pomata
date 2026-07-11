@@ -9,6 +9,9 @@ of them only the two Python-kernel recursions (kama, parabolic_sar) are slower t
 would gain from a future native kernel.
 """
 
+# Bespoke pinned frames: this module names the OHLCV columns literally by design (the per-function suite routes
+# every column name through ``tests/support/columns.py``; here the frame IS the fixture being pinned).
+
 import os
 from collections.abc import Callable
 
@@ -233,7 +236,8 @@ def test_throughput(benchmark: BenchmarkFixture, name: str) -> None:
 @pytest.mark.parametrize("name", sorted(CASES), ids=sorted(CASES))
 def test_scales_sub_quadratically(name: str) -> None:
     """
-    Verifies that a 10x increase in rows costs well under 100x the time, guarding against an O(n^2) regression.
+    Verifies that a 10x increase in rows costs less than 25x the time (plus a small additive floor), guarding
+    against an O(n^2) regression.
 
     The bound is multiplicative with a small additive floor: the cheapest indicators evaluate in well under a
     millisecond, where the time is dominated by fixed overhead rather than the row count, and the floor keeps that
