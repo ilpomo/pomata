@@ -148,6 +148,8 @@ class _Observation:
             if (isinstance(here, float) and math.isfinite(here)) and (
                 isinstance(there, float) and math.isfinite(there)
             ):
+                # A deliberate probe-equality band (not a ladder tier): the two reductions differ only by dropping one
+                # interior observation, so 1e-9 is wide enough for any conditioning yet still rejects a real skip bug.
                 return math.isclose(here, there, rel_tol=1e-9, abs_tol=1e-9)
         return True  # inconclusive on both probes (a genuinely degenerate regime); the class-tier contracts verify it
 

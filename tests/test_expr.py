@@ -10,6 +10,7 @@ import math
 
 import polars as pl
 import pytest
+from tests.support import RELATIVE_TOLERANCE_EXACT
 
 from pomata._expr import (
     float64_expr,
@@ -106,7 +107,7 @@ def test_validate_periods_per_year() -> None:
 def test_per_period_rate_geometric() -> None:
     """The per-period rate is the geometric de-annualization ``(1 + r)^(1/P) - 1`` and compounds back."""
     period = per_period_rate(0.05, 252)
-    assert math.isclose((1.0 + period) ** 252 - 1.0, 0.05, rel_tol=1e-12)
+    assert math.isclose((1.0 + period) ** 252 - 1.0, 0.05, rel_tol=RELATIVE_TOLERANCE_EXACT)
 
 
 def test_per_period_rate_rejects_below_minus_one() -> None:
