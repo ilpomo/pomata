@@ -199,6 +199,16 @@ class TestPnlGrossEdge:
                 assert value_scaled is not None
                 assert math.isclose(value_scaled, value_unit * MULTIPLIER, rel_tol=RELATIVE_TOLERANCE_REFERENCE)
 
+    def test_consecutive_infinities_make_nan(self) -> None:
+        """
+        Verifies IEEE infinity handling against the reference: two consecutive equal-sign infinite prices make the
+        second bar's price change ``inf - inf = NaN``. The property tiers cannot reach this (their strategies set
+        ``allow_infinity=False``), so it is pinned here.
+        """
+        quantity = [10.0, 10.0, 10.0, 10.0]
+        price = [math.inf, math.inf, 1.0, -math.inf]
+        assert_matches(apply_pnl_gross(quantity, price), pnl_gross_reference(quantity, price))
+
 
 class TestPnlGrossCorrectness:
     """

@@ -105,6 +105,14 @@ class TestReturnsLogEdge:
             returns_log_reference(values),
         )
 
+    def test_null_takes_precedence_over_nan(self) -> None:
+        """
+        Verifies that the return row where a ``NaN`` price meets the previous row's ``null`` yields ``null``
+        (``null`` takes precedence over ``NaN``), while the next return off the ``NaN`` is ``NaN``.
+        """
+        values = [100.0, None, math.nan, 108.0]
+        assert_matches(apply_expr(values, returns_log(pl.col(COLUMN_X))), [None, None, None, math.nan])
+
     def test_nan_propagates(self) -> None:
         """
         Verifies that a NaN propagates to the positions that reference it (matching the naive reference).
@@ -149,6 +157,15 @@ class TestReturnsLogEdge:
         for values, expected in cases:
             assert_matches(apply_expr(values, returns_log(pl.col(COLUMN_X))), expected)
             assert_matches(returns_log_reference(values), expected)
+
+    def test_consecutive_infinities_make_nan(self) -> None:
+        """
+        Verifies IEEE infinity handling against the reference: two consecutive equal-sign infinite prices make the
+        second log return ``log(inf / inf) = NaN``. The property tiers cannot reach this (their strategies set
+        ``allow_infinity=False``), so it is pinned here.
+        """
+        values = [math.inf, math.inf, 1.0, -math.inf]
+        assert_matches(apply_expr(values, returns_log(pl.col(COLUMN_X))), returns_log_reference(values))
 
 
 class TestReturnsLogCorrectness:

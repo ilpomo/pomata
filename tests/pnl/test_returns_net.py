@@ -136,6 +136,16 @@ class TestReturnsNetEdge:
         cost = [0.0005, 0.0015, 0.0005, 0.0]
         assert_matches(apply_returns_net(returns_gross, cost), returns_net_reference(returns_gross, cost))
 
+    def test_consecutive_infinities_make_nan(self) -> None:
+        """
+        Verifies IEEE infinity handling against the reference: a same-sign infinite gross return and cost meeting at
+        one row cancel to ``inf - inf = NaN``. The property tiers cannot reach this (their strategies set
+        ``allow_infinity=False``), so it is pinned here.
+        """
+        gross = [math.inf, 0.05]
+        cost = [math.inf, 0.01]
+        assert_matches(apply_returns_net(gross, cost), returns_net_reference(gross, cost))
+
 
 class TestReturnsNetCorrectness:
     """
