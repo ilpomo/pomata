@@ -470,7 +470,10 @@ def pnl_gross_inverse(
         - :func:`pnl_gross`: The linear (quote-margined) counterpart; use it when the contract settles in the quote
           currency rather than the base coin.
         - :func:`pnl_net`: Subtracts the composed cost from this gross PnL.
-        - :func:`cost_funding`: The perpetual-swap funding leg, the companion holding cost.
+        - :func:`cost_funding`: The perpetual-swap funding leg — beware the units: it computes the **quote-margined**
+          (linear) funding ``q * P * f``, while this gross PnL is in the base coin, so the coin-margined funding of an
+          inverse contract must be built directly (e.g. ``quantity * multiplier / price * funding_rate``) before the
+          two are composed.
 
     References:
         - https://en.wikipedia.org/wiki/Perpetual_futures

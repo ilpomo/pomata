@@ -1284,6 +1284,7 @@ def treynor_ratio(
         - :func:`beta`: The denominator (systematic risk).
         - :func:`sharpe_ratio`: The total-risk analog.
         - :func:`alpha`: The benchmark-relative excess built on the same beta.
+        - :func:`treynor_ratio_rolling`: The rolling (windowed) form.
 
     References:
         - Treynor, J. L. (1965). "How to Rate Management of Investment Funds." *Harvard Business Review*, 43(1), 63-75.

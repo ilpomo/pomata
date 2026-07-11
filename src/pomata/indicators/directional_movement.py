@@ -57,7 +57,9 @@ def adx(
         **Edge-case behavior:**
 
         - **Null** — a ``null`` reaching the recursion yields ``null`` at that row.
-        - **NaN** — a ``NaN`` poisons the recursion and yields ``NaN`` for every subsequent non-null row.
+        - **NaN** — a ``NaN`` poisons the recursion and yields ``NaN`` for every subsequent non-null row — except at
+          ``window == 1``, where every Wilder smoothing in the stack is the identity and nothing latches: the ``NaN``
+          clears once it leaves the inputs' finite reach.
         - **Flat directional movement** — when ``di+`` and ``di-`` are both zero the underlying :func:`dx` is ``NaN``
           (``0 / 0``), which then poisons the ADX recursion.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursions never span
@@ -283,14 +285,17 @@ def di_minus(
 
         **Edge-case behavior:**
 
-        - **Flat series** — the ATR is an infinite-memory Wilder RMA, so ``0 / 0`` = ``NaN`` needs the whole series so
-          far to be flat (both the ATR and the smoothed movement zero); a merely local flat patch after earlier
-          movement leaves the ATR small-but-positive and the DI finite. The ``[0, 100]`` bound holds on complete
+        - **Flat series** — for ``window >= 2`` the ATR is an infinite-memory Wilder RMA, so ``0 / 0`` = ``NaN`` needs
+          the whole series so far to be flat (both the ATR and the smoothed movement zero); a merely local flat patch
+          after earlier movement leaves the ATR small-but-positive and the DI finite. At ``window == 1`` there is no
+          memory: a single bar with zero range and zero gap already yields ``0 / 0`` = ``NaN``. The ``[0, 100]`` bound
+          holds on complete
           coherent bars; a ``null`` prior close drops the close-based true-range terms and shrinks the ATR, so on a gap
           the ratio can exceed ``100``.
         - **Null** — a ``null`` in the smoothed movement or the ATR at a row yields ``null`` there.
         - **NaN** — a ``NaN`` poisons the Wilder recursion and latches ``NaN`` for every later defined row (the
-          recursion cannot flush it).
+          recursion cannot flush it) — except at ``window == 1``, where the smoothing is the identity and nothing
+          latches: the ``NaN`` clears once it leaves the one-bar reach of the differencing and the true range.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursions never span
           series boundaries, e.g. ``di_minus(pl.col("high"), pl.col("low"), pl.col("close"), 14).over("ticker")``.
 
@@ -399,14 +404,17 @@ def di_plus(
 
         **Edge-case behavior:**
 
-        - **Flat series** — the ATR is an infinite-memory Wilder RMA, so ``0 / 0`` = ``NaN`` needs the whole series so
-          far to be flat (both the ATR and the smoothed movement zero); a merely local flat patch after earlier
-          movement leaves the ATR small-but-positive and the DI finite. The ``[0, 100]`` bound holds on complete
+        - **Flat series** — for ``window >= 2`` the ATR is an infinite-memory Wilder RMA, so ``0 / 0`` = ``NaN`` needs
+          the whole series so far to be flat (both the ATR and the smoothed movement zero); a merely local flat patch
+          after earlier movement leaves the ATR small-but-positive and the DI finite. At ``window == 1`` there is no
+          memory: a single bar with zero range and zero gap already yields ``0 / 0`` = ``NaN``. The ``[0, 100]`` bound
+          holds on complete
           coherent bars; a ``null`` prior close drops the close-based true-range terms and shrinks the ATR, so on a gap
           the ratio can exceed ``100``.
         - **Null** — a ``null`` in the smoothed movement or the ATR at a row yields ``null`` there.
         - **NaN** — a ``NaN`` poisons the Wilder recursion and latches ``NaN`` for every later defined row (the
-          recursion cannot flush it).
+          recursion cannot flush it) — except at ``window == 1``, where the smoothing is the identity and nothing
+          latches: the ``NaN`` clears once it leaves the one-bar reach of the differencing and the true range.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursions never span
           series boundaries, e.g. ``di_plus(pl.col("high"), pl.col("low"), pl.col("close"), 14).over("ticker")``.
 
@@ -531,8 +539,10 @@ def dm_minus(
           difference it touches, so the raw movement carries no interior nulls and the only nulls emitted are the
           ``window - 1`` warm-up nulls from :func:`rma`.
         - **NaN** — a ``NaN`` in ``low`` (the own-side input) poisons the recursion and yields ``NaN`` for every
-          subsequent non-null row; a ``NaN`` in ``high`` (the opposing side) instead makes the directional comparison
-          false, so the affected raw movement is sent to ``0`` and genuine downward movement is silently dropped there.
+          subsequent non-null row (except at ``window == 1``, where the smoothing is the identity and nothing latches:
+          the ``NaN`` clears once it leaves the differencing's one-bar reach); a ``NaN`` in ``high`` (the opposing
+          side) instead makes the directional comparison false, so the affected raw movement is sent to ``0`` and
+          genuine downward movement is silently dropped there.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the differencing and the
           recursion never span series boundaries, e.g. ``dm_minus(pl.col("high"), pl.col("low"), 14).over("ticker")``.
 
@@ -653,8 +663,10 @@ def dm_plus(
           difference it touches, so the raw movement carries no interior nulls and the only nulls emitted are the
           ``window - 1`` warm-up nulls from :func:`rma`.
         - **NaN** — a ``NaN`` in ``high`` (the own-side input) poisons the recursion and yields ``NaN`` for every
-          subsequent non-null row; a ``NaN`` in ``low`` (the opposing side) instead makes the directional comparison
-          false, so the affected raw movement is sent to ``0`` and genuine upward movement is silently dropped there.
+          subsequent non-null row (except at ``window == 1``, where the smoothing is the identity and nothing latches:
+          the ``NaN`` clears once it leaves the differencing's one-bar reach); a ``NaN`` in ``low`` (the opposing
+          side) instead makes the directional comparison false, so the affected raw movement is sent to ``0`` and
+          genuine upward movement is silently dropped there.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the differencing and the
           recursion never span series boundaries, e.g. ``dm_plus(pl.col("high"), pl.col("low"), 14).over("ticker")``.
 
@@ -764,7 +776,8 @@ def dx(
           denominator is zero, so the result follows IEEE-754: the numerator is also zero, hence ``0 / 0`` is ``NaN``.
         - **Null** — a ``null`` in either indicator at a row yields ``null`` there.
         - **NaN** — a ``NaN`` poisons the Wilder recursion and latches ``NaN`` for every later defined row (the
-          recursion cannot flush it).
+          recursion cannot flush it) — except at ``window == 1``, where the smoothing is the identity and nothing
+          latches: the ``NaN`` clears once it leaves the one-bar reach of the differencing and the true range.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursions never span
           series boundaries, e.g. ``dx(pl.col("high"), pl.col("low"), pl.col("close"), 14).over("ticker")``.
 

@@ -775,6 +775,8 @@ def chande_momentum_oscillator(
           stays in range but, past a sane dynamic range, degrades in precision (see the precision note above).
         - **Null** — a window covering a ``null`` (including the leading row, which has no change) yields ``null``.
         - **NaN** — a window covering a ``NaN`` change (and no ``null``) yields ``NaN``.
+        - **window == 1** — the sums collapse to the single change: each row reports ``100`` on an up move, ``-100``
+          on a down move, and ``NaN`` on no move.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so neither the differencing nor
           the rolling sums span series boundaries, e.g.
           ``chande_momentum_oscillator(pl.col("close"), 14).over("ticker")``.

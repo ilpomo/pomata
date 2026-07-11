@@ -3,8 +3,9 @@
 **A Polars-native quant toolkit: technical indicators, PnL accounting, and performance & risk metrics.** Every public
 function is a composable `pl.Expr`, so an entire study is one lazy Polars pipeline, from price to performance.
 
-And it doesn't ask you to trust its numbers — it **proves** them: each function is verified to the `float64` floor
-against an independent reference, under 100% branch coverage.
+And it doesn't ask you to trust its numbers — it **proves** them, each family against the yardstick that catches its
+bugs: indicators to the `float64` floor against an independent reference, PnL and metrics at the edges where every
+degenerate input has a defined, tested behavior — all under 100% branch coverage.
 
 :::{admonition} Alpha
 :class: note
