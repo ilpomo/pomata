@@ -7,10 +7,13 @@ or addition that is not mirrored in the README fails the build instead of rottin
 left a stale ``momentum`` in the indicator list after it was renamed to ``mom``.
 """
 
+import ast
 import re
+import tomllib
 from pathlib import Path
 
 import pytest
+from tests.support.policies import NanPolicy, NullPolicy
 
 import pomata.indicators
 import pomata.metrics
@@ -96,3 +99,76 @@ def test_family_page_catalog_matches_all(family: str) -> None:
     public = set(module.__all__)
     assert referenced <= public, f"stale page entries: {sorted(referenced - public)}"
     assert public <= referenced, f"missing page entries: {sorted(public - referenced)}"
+
+
+_DOCS = Path(__file__).parent.parent / "docs"
+_PYPROJECT = Path(__file__).parent.parent / "pyproject.toml"
+# The modules whose factories run a Python kernel via ``map_batches`` — the set docs/concepts.md's performance note
+# enumerates (the Ehlers cycle family, the seeded EMA family incl. KAMA, SAR / SuperTrend, the Fisher Transform, the
+# rolling moments, the PSR normal CDF). A kernel added elsewhere (or removed) must update that prose, so the set is
+# pinned both ways.
+_KERNEL_MODULES = frozenset({"cycle", "moving_average", "trend", "momentum", "risk", "ratio"})
+
+
+def test_readme_reducer_count_matches_all() -> None:
+    """The README's "N reduce the whole history" figure equals the actual reducer count (non-rolling, non-drawdown)."""
+    names = set(pomata.metrics.__all__)
+    reducers = len(names) - sum(1 for name in names if name.endswith("_rolling")) - 1  # drawdown is row-wise
+    assert f"{reducers} reduce the whole history" in _README.read_text(encoding="utf-8")
+
+
+def test_every_rolling_metric_has_its_reducing_twin() -> None:
+    """The README's "every windowed form ships a rolling twin" pairing holds name-for-name."""
+    names = set(pomata.metrics.__all__)
+    unpaired = sorted(
+        name for name in names if name.endswith("_rolling") and name.removesuffix("_rolling") not in names
+    )
+    assert not unpaired, f"rolling metrics without a reducing twin: {unpaired}"
+
+
+def test_index_family_table_matches_all() -> None:
+    """The docs landing page's family table carries the real ``__all__`` count for each family."""
+    text = (_DOCS / "index.md").read_text(encoding="utf-8")
+    for family, module in (
+        ("indicators", pomata.indicators),
+        ("pnl", pomata.pnl),
+        ("metrics", pomata.metrics),
+    ):
+        match = re.search(r"\| \*\*`pomata\." + family + r"`\*\* \| (\d+) \|", text)
+        assert match is not None, f"index.md: no table row for pomata.{family}"
+        assert int(match.group(1)) == len(module.__all__), f"index.md: pomata.{family} row says {match.group(1)}"
+
+
+def test_python_kernel_modules_match_the_concepts_note() -> None:
+    """The ``map_batches`` kernels live in exactly the modules the concepts page's performance note enumerates."""
+    found: set[str] = set()
+    for path in sorted((Path(__file__).parent.parent / "src" / "pomata").rglob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Attribute) and node.attr == "map_batches":
+                found.add(path.stem)
+    assert found == _KERNEL_MODULES, f"map_batches modules {sorted(found)} != pinned {sorted(_KERNEL_MODULES)}"
+
+
+def test_single_runtime_dependency_claim_holds() -> None:
+    """The "Polars is the only runtime dependency" claim matches ``pyproject.toml`` exactly."""
+    with _PYPROJECT.open("rb") as handle:
+        dependencies = tomllib.load(handle)["project"]["dependencies"]
+    assert len(dependencies) == 1, dependencies
+    assert str(dependencies[0]).startswith("polars"), dependencies
+
+
+def test_glossary_names_every_policy_state() -> None:
+    """The glossary's null/NaN vocabulary names every declared policy state."""
+    text = (_DOCS / "glossary.md").read_text(encoding="utf-8").lower()
+    words = {
+        NullPolicy.SKIPPED: "skipped",
+        NullPolicy.ABSORBED: "absorbed",
+        NullPolicy.PROPAGATES: "propagated",
+        NullPolicy.IN_WINDOW_IS_NULL: "in-window-nulled",
+        NullPolicy.BRIDGED: "bridged",
+        NullPolicy.LATCHES: "latched",
+        NanPolicy.POISONS: "poisoned",
+    }
+    missing = sorted(str(policy) for policy, word in words.items() if word not in text)
+    assert not missing, f"glossary vocabulary misses: {missing}"
