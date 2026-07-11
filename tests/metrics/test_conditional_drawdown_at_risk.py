@@ -29,7 +29,7 @@ from tests.support import (
     assert_matches,
 )
 
-from pomata.metrics import conditional_drawdown_at_risk
+from pomata.metrics import conditional_drawdown_at_risk, max_drawdown
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Test sizing -- conditional_drawdown_at_risk is windowless and REDUCING (M = 0); a case is a positive equity series.
@@ -186,3 +186,15 @@ class TestConditionalDrawdownAtRiskProperties:
             [value * k for value in case], conditional_drawdown_at_risk(pl.col(COLUMN_X), confidence=CONFIDENCE)
         )
         assert_matches(scaled, base, rel_tol=RELATIVE_TOLERANCE_SCALE, abs_tol=ABSOLUTE_TOLERANCE_REFERENCE)
+
+    @given(case=_cases(_EQUITY), confidence=_CONFIDENCE)
+    def test_at_least_max_drawdown(self, case: list[float], confidence: float) -> None:
+        """
+        Verifies the metamorphic relation to :func:`max_drawdown`: the tail mean (a mean of the worst drawdowns)
+        never falls below the single worst drawdown.
+        """
+        tail_mean = apply_expr(case, conditional_drawdown_at_risk(pl.col(COLUMN_X), confidence=confidence))[0]
+        worst = apply_expr(case, max_drawdown(pl.col(COLUMN_X)))[0]
+        assert tail_mean is not None
+        assert worst is not None
+        assert tail_mean >= worst - ABSOLUTE_TOLERANCE_REFERENCE

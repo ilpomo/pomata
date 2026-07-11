@@ -31,6 +31,7 @@ from tests.support import (
     apply_expr,
     assert_matches,
     assert_scale_homogeneous,
+    count_leading_nulls,
     input_scale,
     missing_data_floats,
     subnormal_safe_floats,
@@ -359,3 +360,16 @@ class TestTemaProperties:
             rel_tol=RELATIVE_TOLERANCE_SCALE,
             abs_tol=input_scale(scaled_values) * EXACT_TOLERANCE_FACTOR,
         )
+
+    @given(case=_cases(subnormal_safe_floats(1e6)))
+    def test_warmup_null_count_property(
+        self,
+        case: tuple[list[float], int],
+    ) -> None:
+        """
+        Verifies that the leading-null run is exactly ``min(3 * (window - 1), len(values))``.
+        """
+        values, window = case
+        result = apply_expr(values, tema(pl.col(COLUMN_X), window))
+        leading_nulls = count_leading_nulls(result)
+        assert leading_nulls == min(3 * (window - 1), len(values))

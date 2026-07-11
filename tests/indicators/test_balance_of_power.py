@@ -130,6 +130,13 @@ class TestBalanceOfPowerEdge:
         """
         assert_matches(apply_balance_of_power([10.0, 10.0], [12.0, 12.0], [8.0, 8.0], [11.0, None]), [0.25, None])
 
+    def test_null_takes_precedence_over_nan(self) -> None:
+        """
+        Verifies that a row carrying both a ``null`` (in ``open``) and a ``NaN`` (in ``high``) yields
+        ``null`` — ``null`` takes precedence over ``NaN``.
+        """
+        assert_matches(apply_balance_of_power([10.0, None], [12.0, math.nan], [8.0, 8.0], [11.0, 11.0]), [0.25, None])
+
     def test_nan_propagates(self) -> None:
         """
         Verifies that a ``NaN`` in any input (non-flat bar) yields ``NaN`` for that row.

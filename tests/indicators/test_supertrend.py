@@ -163,10 +163,11 @@ class TestSupertrendEdge:
         for field in FIELDS:
             assert_matches(bands[field], [None, None, None])
 
-    def test_null_and_nan_bridge(self) -> None:
+    def test_null_bridges_and_nan_latches(self) -> None:
         """
-        Verifies that a ``null`` / ``NaN`` flows through the ATR and the recurrence as the reference (a transient gap is
-        bridged by the running state and the last finite close, not latched).
+        Verifies that a ``null`` / ``NaN`` flows through the ATR and the recurrence as the reference: the ``null`` gap
+        is bridged by the running state and the last finite close, while the ``NaN`` poisons the ATR and latches for
+        the rest of the series.
         """
         high = [10.0, 11.0, None, 13.0, math.nan, 12.0, 14.0, 13.0]
         low = [9.0, 10.0, 11.0, 12.0, 13.0, 11.0, 13.0, 12.0]
