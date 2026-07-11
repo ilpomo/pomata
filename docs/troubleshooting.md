@@ -61,4 +61,4 @@ non-deterministic source (a set iteration, an unsorted `group_by` without `maint
 Known and documented. A two-pass rolling sum can shed digits when an entire window collapses onto the float-precision
 floor of a much larger value that recently passed through it — it takes a deliberately adversarial path (a price
 dropping many orders of magnitude bar to bar) to trigger. It is noted on the affected indicators, and the oscillators
-with a hard bound are clamped rather than left to drift. [trust](trust.md) has the full account.
+with a hard bound are clamped rather than left to drift. {doc}`trust` has the full account.

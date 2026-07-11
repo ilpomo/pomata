@@ -58,6 +58,12 @@ it all fuses into one Polars query (eager or lazy, a single series or a multi-as
 
 The `.shift(1)` is the whole no-look-ahead story: a signal computed at the close acts on the next bar, by construction.
 
+## Where pomata fits
+
+`pomata` is for the quant already working in Polars: vectorized analytics and accounting — indicators, total
+mark-to-market PnL, and metrics — with `polars` as the only runtime dependency. It is **not** an execution engine:
+no order fills, no event loop, no lot accounting.
+
 ## Start here
 
 - **{doc}`installation`** — one runtime dependency (Polars), Python 3.12+.
