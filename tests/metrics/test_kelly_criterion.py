@@ -29,7 +29,7 @@ from tests.support import (
     subnormal_safe_floats,
 )
 
-from pomata.metrics import kelly_criterion
+from pomata.metrics import kelly_criterion, payoff_ratio, win_rate
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Test sizing -- kelly_criterion is windowless and REDUCING (M = 0); a case is just a return series. Facts:
@@ -164,3 +164,14 @@ class TestKellyCriterionProperties:
         base = apply_expr(case, kelly_criterion(pl.col(COLUMN_X)))
         scaled = apply_expr([value * k for value in case], kelly_criterion(pl.col(COLUMN_X)))
         assert_matches(scaled, base, rel_tol=RELATIVE_TOLERANCE_SCALE, abs_tol=ABSOLUTE_TOLERANCE_REFERENCE)
+
+    @given(case=_cases(subnormal_safe_floats(bound=1e3)))
+    def test_matches_component_definition(self, case: list[float]) -> None:
+        """
+        Verifies the metamorphic identity: ``kelly_criterion`` equals ``win_rate - (1 - win_rate) / payoff_ratio``,
+        computed as separate metrics.
+        """
+        direct = apply_expr(case, kelly_criterion(pl.col(COLUMN_X)))
+        probability = win_rate(pl.col(COLUMN_X))
+        composed = apply_expr(case, probability - (1.0 - probability) / payoff_ratio(pl.col(COLUMN_X)))
+        assert_matches(direct, composed, rel_tol=RELATIVE_TOLERANCE_PROPERTY, abs_tol=ABSOLUTE_TOLERANCE_REFERENCE)

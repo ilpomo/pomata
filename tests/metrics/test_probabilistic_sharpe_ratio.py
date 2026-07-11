@@ -16,6 +16,7 @@ bound). Categories are split into classes; cross-cutting categories use markers.
 
 import math
 from collections.abc import Sequence
+from statistics import NormalDist
 
 import polars as pl
 import pytest
@@ -34,7 +35,7 @@ from tests.support import (
     well_spread,
 )
 
-from pomata.metrics import probabilistic_sharpe_ratio
+from pomata.metrics import probabilistic_sharpe_ratio, sharpe_ratio
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Test sizing -- probabilistic_sharpe_ratio is windowless and REDUCING (M = 0); a case is just a return series. Facts:
@@ -262,3 +263,38 @@ class TestProbabilisticSharpeRatioProperties:
         result = apply_expr(case, probabilistic_sharpe_ratio(pl.col(COLUMN_X), periods_per_year=PERIODS))[0]
         if result is not None and not math.isnan(result):
             assert -ABSOLUTE_TOLERANCE_REFERENCE <= result <= 1.0 + ABSOLUTE_TOLERANCE_REFERENCE
+
+    @given(
+        case=_cases(standardized_moment_floats(bound=1e3), min_size=2),
+        periods=_PERIODS,
+        risk_free=_RISK_FREE,
+        benchmark=_BENCHMARK,
+    )
+    def test_matches_component_definition(
+        self, case: list[float], periods: int, risk_free: float, benchmark: float
+    ) -> None:
+        """
+        Verifies the metamorphic identity: ``probabilistic_sharpe_ratio`` equals the normal CDF of the test statistic
+        built from the per-period :func:`sharpe_ratio`, composed from the separate public metric.
+        """
+        assume(well_spread(case))
+        assume(_bounded_excess_sharpe(case, risk_free, periods))
+        direct = apply_expr(
+            case,
+            probabilistic_sharpe_ratio(
+                pl.col(COLUMN_X), periods_per_year=periods, benchmark_sharpe=benchmark, risk_free_rate=risk_free
+            ),
+        )
+        column = pl.col(COLUMN_X)
+        rf_period = (1.0 + risk_free) ** (1.0 / periods) - 1.0
+        sharpe = sharpe_ratio(column, periods_per_year=1, risk_free_rate=rf_period)
+        inner = 1.0 - column.skew() * sharpe + (column.kurtosis() + 2.0) / 4.0 * sharpe**2
+        statistic = (sharpe - benchmark) * (column.drop_nulls().len().cast(pl.Int64) - 1).sqrt() / inner.sqrt()
+        argument = apply_expr(case, statistic)[0]
+        assert isinstance(argument, float)
+        assert_matches(
+            direct,
+            [NormalDist().cdf(argument)],
+            rel_tol=RELATIVE_TOLERANCE_SCALE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
+        )

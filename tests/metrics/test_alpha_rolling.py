@@ -111,6 +111,22 @@ class TestAlphaRollingEdge:
             rel_tol=RELATIVE_TOLERANCE_REFERENCE,
         )
 
+    def test_null_in_constant_benchmark_window_is_null(self) -> None:
+        """
+        Verifies that a window with a ``null`` in the returns leg but a constant benchmark yields ``null`` (the
+        pairwise-complete contract), not the ``NaN`` the flat-benchmark branch alone would emit -- the branch is gated
+        on the window actually holding complete pairs.
+        """
+        returns = [0.02, None, 0.03, 0.01, 0.02]
+        benchmark = [0.1, 0.1, 0.1, 0.1, 0.1]
+        assert_matches(
+            materialize(
+                {RETURNS: returns, BENCHMARK: benchmark},
+                alpha_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 3, periods_per_year=PERIODS),
+            ),
+            alpha_rolling_reference(returns, benchmark, 3, PERIODS),
+        )
+
     def test_nan_propagates(self) -> None:
         """
         Verifies that a ``NaN`` in either leg of a window propagates to ``NaN`` for the windows that touch it.
