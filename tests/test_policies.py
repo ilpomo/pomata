@@ -63,7 +63,9 @@ def _column(role: str, series: list[float | None]) -> list[float | None]:
     if role == "volume":
         return [None if v is None else 1000.0 + 10.0 * v for v in series]
     if role == "benchmark":
-        return [None if v is None else 0.4 * v + 5.0 for v in series]  # distinct from a `returns` input, not a copy
+        # Distinct from a `returns` input, not a copy, and scale-preserving: on the signed probe the mapping
+        # crosses zero, so the capture ratios' down-leg is populated and their null-skip proof is conclusive.
+        return [None if v is None else 0.4 * v + 0.005 for v in series]
     return series  # close / open / returns / equity_curve / a single generic price series
 
 
@@ -112,8 +114,22 @@ def _run(
             positional.append(value)
     frame = pl.DataFrame({name: pl.Series(name, data, dtype=pl.Float64) for name, data in columns.items()})
     out = frame.select(factory(*positional, **keywords).alias("o"))
-    column = out.unnest("o").to_series(0) if isinstance(out.schema["o"], pl.Struct) else out["o"]
-    return column.to_list(), out.height
+    if isinstance(out.schema["o"], pl.Struct):
+        # Merge EVERY field into one worst-case flow (None dominates NaN, NaN dominates a value): a struct's policy
+        # is its worst field's, and reading only the first field would silently depend on the field order (keltner's
+        # middle band recovers a NaN its outer bands latch).
+        fields = out.unnest("o")
+        merged: list[object] = []
+        for row in range(out.height):
+            values = [fields[column][row] for column in fields.columns]
+            if any(value is None for value in values):
+                merged.append(None)
+            elif any(isinstance(value, float) and math.isnan(value) for value in values):
+                merged.append(math.nan)
+            else:
+                merged.append(values[0])
+        return merged, out.height
+    return out["o"].to_list(), out.height
 
 
 def _is_nan(value: object) -> bool:
@@ -151,7 +167,7 @@ class _Observation:
                 # A deliberate probe-equality band (not a ladder tier): the two reductions differ only by dropping one
                 # interior observation, so 1e-9 is wide enough for any conditioning yet still rejects a real skip bug.
                 return math.isclose(here, there, rel_tol=1e-9, abs_tol=1e-9)
-        return True  # inconclusive on both probes (a genuinely degenerate regime); the class-tier contracts verify it
+        return True  # inconclusive on every probe (a genuinely degenerate regime); the class-tier contracts verify it
 
     @property
     def reduction_poisons_on_nan(self) -> bool:
