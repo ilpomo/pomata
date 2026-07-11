@@ -3,6 +3,15 @@
 Sorted by what you actually see, not by cause. Most of these are `pomata` behaving exactly as designed — the fix is
 usually one line.
 
+## It raised `TypeError` / `ValueError` before I even called `.collect()`
+
+That is the input validation, and it is eager on purpose: every factory checks its arguments at expression-build
+time, not at execution time, so a bad call fails on the line that wrote it. A `TypeError` means an argument that
+should be an expression is not one — pass `pl.col("close")`, not the bare string `"close"`. A `ValueError` means a
+scalar parameter is outside its documented domain: a `window` below its minimum, a negative `rate`, a `confidence`
+outside `(0, 1)`, a non-finite knob. The message names the parameter and the bound, and each function's `Raises`
+section lists exactly what it checks.
+
 ## My output is all `null` (or null for far longer than I expected)
 
 That is the warm-up. A window of length `n` cannot produce a value until it has seen `n` observations, so the first

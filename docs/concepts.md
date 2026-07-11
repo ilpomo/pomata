@@ -56,10 +56,11 @@ shape: (9, 3)
 
 Ticker `GOOG` starts its own warm-up (`None`) instead of inheriting `AAPL`'s tail.
 
-One performance note: a handful of sequential indicators (the Ehlers cycle family, KAMA, the parabolic SAR,
-SuperTrend, the seeded EMA family) run a Python kernel per evaluation, and reusing such an expression textually
-re-runs it — Polars' subexpression caching does not reach inside `.over(...)`. Assign the expression to a column
-once and derive from the column when composing several outputs from the same expensive input.
+One performance note: a handful of sequential functions run a Python kernel per evaluation — among the indicators
+the Ehlers cycle family, KAMA, the parabolic SAR, SuperTrend, the Fisher Transform, and the seeded EMA family; among
+the metrics the rolling skewness / kurtosis and `probabilistic_sharpe_ratio`'s normal CDF — and reusing such an
+expression textually re-runs it: Polars' subexpression caching does not reach inside `.over(...)`. Assign the
+expression to a column once and derive from the column when composing several outputs from the same expensive input.
 
 ## 3. Warm-up is `null`, never fabricated
 
