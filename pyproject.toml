@@ -44,8 +44,9 @@ Homepage = "https://github.com/ilpomo/pomata"
 Issues = "https://github.com/ilpomo/pomata/issues"
 Repository = "https://github.com/ilpomo/pomata"
 
-# Dev tooling split into categories (PEP 735). `uv sync` installs `dev`, which fans out to every
-# group via include-group; install a single category with e.g. `uv sync --only-group typecheck`.
+# Dev tooling split into categories (PEP 735). `uv sync` installs `dev`, which fans out to every dev-tooling group
+# via include-group (the optional `differential` TA-Lib lens stays opt-in); install a single category with e.g.
+# `uv sync --only-group typecheck`.
 [dependency-groups]
 coverage = [
     "pytest-cov>=7.1.0",
@@ -89,7 +90,8 @@ typecheck = [
 build-backend = "hatchling.build"
 requires = ["hatch-vcs>=0.5.0", "hatchling>=1.30.1"]
 
-# Tool configuration, alphabetical by tool; keys within each table are alphabetical too.
+# Tool configuration, alphabetical by tool; keys within each table are alphabetical too, except the ruff tables,
+# whose keys keep ruff's own logical order (select before its subtractive ignore, primary knobs first).
 [tool.coverage.report]
 fail_under = 100
 show_missing = true
@@ -156,6 +158,12 @@ module = [
     "tests.test_policies",
 ]
 
+[tool.pyrefly]
+# Native config (off the mypy-legacy preset); pyrefly is strict by default. Scoped to the package -- it cannot resolve
+# the tests' cross-imports, which mypy and pyright already cover. CI runs `pyrefly check src/pomata`.
+project-includes = ["src"]
+python-version = "3.12"
+
 [tool.pyright]
 extraPaths = ["."]
 include = ["src", "tests"]
@@ -163,12 +171,6 @@ pythonVersion = "3.12"
 typeCheckingMode = "strict"
 venv = ".venv"
 venvPath = "."
-
-[tool.pyrefly]
-# Native config (off the mypy-legacy preset); pyrefly is strict by default. Scoped to the package -- it cannot resolve
-# the tests' cross-imports, which mypy and pyright already cover. CI runs `pyrefly check src/pomata`.
-project-includes = ["src"]
-python-version = "3.12"
 
 [tool.pytest.ini_options]
 addopts = ["--import-mode=importlib", "--strict-markers"]
@@ -205,8 +207,9 @@ docstring-code-line-length = "dynamic"
 # will surface (dependabot keeps the lock current); triage each then.
 select = ["ALL"]
 ignore = [
-    # Banner-docstring + noun-phrase-title convention: summary starts on the line after the opening
-    # ``"""`` (so D212 off keeps D213 on), the closing ``"""`` sits alone, indicator titles are noun phrases.
+    # Banner-docstring + noun-phrase-title convention: summary starts on the line after the opening ``"""``, the
+    # closing ``"""`` sits alone, indicator titles are noun phrases. D212 is off so the one-line-summary form is not
+    # forced; the google convention already leaves D213 off, so the banner style itself is convention, not lint.
     "D200",
     "D205",
     "D212",
