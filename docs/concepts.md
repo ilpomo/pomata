@@ -15,10 +15,16 @@ macd_line = ema(pl.col("close"), 12) - ema(pl.col("close"), 26)   # just an expr
 frame.with_columns(macd=macd_line)                                # run it wherever you like
 ```
 
-One naming rule follows from this: **the output column keeps the root name of its leading input** (`rsi(pl.col("close"), 14)`
-lands on `close` — in a `with_columns` it *replaces* that column unless you name it). To name an output, alias the
+One naming rule follows from this: **the output column keeps the root name of the expression's first column leaf** —
+for every single-input function that is simply the input's own column (`rsi(pl.col("close"), 14)` lands on `close`,
+and in a `with_columns` it *replaces* that column unless you name it). For a multi-input function the landing column
+is fixed but not always the first argument: eleven land elsewhere (`accumulation_distribution`,
+`accumulation_distribution_oscillator`, `chaikin_money_flow`, `keltner_channels`, `stochastic_fast`,
+`stochastic_slow`, `ultimate_oscillator`, and `balance_of_power` land on `close`; `di_minus`, `dm_minus`, and
+`donchian_channels` land on `low`), so **alias the result of any multi-input call**. To name an output, alias the
 **returned expression**, never the input: `rsi(pl.col("close"), 14).alias("rsi_14")` — an alias on the input is
-deliberately ignored (`name.keep` restores the root), so it can never silently land the result on an unexpected column.
+deliberately ignored (`name.keep` restores the root), so it can never silently land the result on an unexpected
+column, and the test suite pins every function's landing column so none can drift.
 
 ## 2. `.over` for multi-asset panels
 

@@ -39,8 +39,9 @@ myst_heading_anchors = 3
 # Deterministic Polars table rendering so DataFrame reprs in doctests do not drift with terminal width.
 doctest_global_setup = "import polars as pl\npl.Config.set_tbl_width_chars(120)"
 
-# Document members in source order, signatures in the heading, hints kept in the signature (the Args prose carries
-# meaning, the signature carries types).
+# Members render in ``__all__`` order — alphabetical, since RUF022 keeps every ``__all__`` sorted ("bysource" is
+# inert when a module defines ``__all__``; the thematic grouping lives in the families pages instead). Signatures in
+# the heading, hints kept in the signature (the Args prose carries meaning, the signature carries types).
 autodoc_member_order = "bysource"
 
 # Render every signature multi-line -- one parameter per line with a trailing comma -- so the busy OHLCV and

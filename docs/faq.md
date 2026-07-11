@@ -20,7 +20,7 @@ that.
 Yes, and that is deliberate. `pomata` never shifts anything for you: a signal computed on bar *t* sits on bar *t*, and
 the decision to act on the *next* bar is yours to make with `.shift(1)`. Putting that one call in your own code is
 what makes the no-look-ahead choice visible and auditable instead of buried in a library. See the
-[tutorial](tutorial.md) for it in context.
+{doc}`tutorial` for it in context.
 
 ## What `periods_per_year` should I pass?
 
@@ -33,7 +33,7 @@ resamples your data or guesses the frequency, so it has to match the bars you ac
 A `null` is missing data; a `NaN` is a real floating-point value that happens to be "not a number". `pomata` keeps the
 two apart, the way Polars does, because they mean different things: a `null` is a gap to skip or carry across, while a
 `NaN` is a value that propagates and will poison a sum or a reduction it touches. If a metric comes back `NaN`, you
-have a real `NaN` somewhere upstream — not a missing value. [trust](trust.md) states the rule per family; each
+have a real `NaN` somewhere upstream — not a missing value. {doc}`trust` states the rule per family; each
 function's docstring **Note** spells out its own exact null/NaN contract.
 
 ## Which Python and Polars versions are supported?
@@ -43,7 +43,7 @@ when something genuinely needs it, and a nightly CI job re-proves the floor stil
 
 ## How do I install it?
 
-`pip install pomata`, or `uv add pomata`. See [installation](installation.md).
+`pip install pomata`, or `uv add pomata`. See {doc}`installation`.
 
 ## Why Polars only — no pandas, no NumPy?
 

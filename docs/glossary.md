@@ -40,8 +40,9 @@ the trust pages, and `CORRECTNESS.md`.
 
 **null policy / NaN policy**
 : A function's declared, machine-verified behavior for an interior missing value (`null`) or an interior `NaN` —
-  skipped, absorbed, propagated, bridged, latched, or poisoned. The vocabulary and per-function proof live in the
-  test suite (`tests/support/policies.py`); the API docstrings state each function's pair in prose.
+  for `null`: skipped, absorbed, propagated, in-window-nulled, bridged, or latched; for `NaN`: poisoned, propagated,
+  or latched. The vocabulary and per-function proof live in the test suite (`tests/support/policies.py`); the API
+  docstrings state each function's pair in prose.
 
 **rung / ladder**
 : One named test in the canonical four-tier layout every per-function test file follows (Contract → Edge →
