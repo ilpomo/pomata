@@ -28,8 +28,7 @@ CI runs the gate below; run it locally before opening a pull request:
 ```bash
 uv run ruff check                                            # lint
 uv run ruff format --check                                   # formatting
-uv run mypy -p pomata                                        # types (package)
-uv run mypy tests                                            # types (tests)
+uv run mypy -p pomata -p tests                               # types (package + tests)
 uv run pyright                                               # types (pyright)
 uv run pyright --verifytypes pomata --ignoreexternal         # public type completeness
 uv run pyrefly check src/pomata                              # types (pyrefly)
