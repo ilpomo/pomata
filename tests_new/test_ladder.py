@@ -37,6 +37,7 @@ from tests_new.support.spec import (
     ScaleAxis,
     Shape,
     Spec,
+    SpecPin,
     actual_lanes,
     build_expr,
     flat,
@@ -93,9 +94,17 @@ def _scale_cases() -> tuple[list[tuple[Spec, ScaleAxis]], list[str]]:
     return cases, ids
 
 
+def _pin_cases() -> tuple[list[tuple[Spec, SpecPin]], list[str]]:
+    cases = [(spec, pin) for spec in ALL_SPECS for pin in spec.pins]
+    ids = [f"{spec.name}-{pin.label}" for spec in ALL_SPECS for pin in spec.pins]
+    return cases, ids
+
+
 RAISES_CASES, RAISES_IDS = _raises_cases()
 WARMUP_CASES, WARMUP_IDS = _warmup_cases()
 SCALE_CASES, SCALE_IDS = _scale_cases()
+PIN_CASES, PIN_IDS = _pin_cases()
+COMPONENT_SPECS = [spec for spec in ALL_SPECS if spec.component_expr is not None]
 
 
 # --- shared bodies ---
@@ -314,6 +323,15 @@ def test_warmup_null_count(spec: Spec, field_name: str | None, expected: int) ->
         assert observed == expected, f"{field_name}: {observed} != {expected}"
 
 
+@pytest.mark.parametrize(("spec", "field_name", "warmup"), WARMUP_CASES, ids=WARMUP_IDS)
+def test_window_exceeds_length(spec: Spec, field_name: str | None, warmup: int) -> None:
+    """Verifies a frame no longer than a lane's warm-up emits nothing on that lane — the window never completes."""
+    frame = probe_frame(spec.inputs, warmup)
+    lanes = actual_lanes(spec, frame)
+    values = lanes[field_name] if field_name is not None else next(iter(lanes.values()))
+    assert all(value is None for value in values), f"{field_name or 'out'}: a window shorter than its warm-up emitted"
+
+
 @pytest.mark.parametrize("spec", NON_REDUCING_SPECS, ids=spec_id)
 def test_no_lookahead(spec: Spec) -> None:
     """Verifies a prefix of the frame gives the prefix of the full output — no lane reads a future bar."""
@@ -359,6 +377,32 @@ def test_golden_master(spec: Spec) -> None:
         assert_matches(lane, list(expected))
 
 
+def _assert_pinned_lane(actual: list[float | None], expected: list[float | None], *, signed: bool) -> None:
+    """Match a pinned lane by value; when the pin marks the sign, also compare ``copysign`` so ``-0.0`` != ``0.0``."""
+    assert_matches(actual, expected)
+    if signed:
+        for got, want in zip(actual, expected, strict=True):
+            if got is not None and want is not None:
+                assert math.copysign(1.0, got) == math.copysign(1.0, want), f"sign mismatch: {got} vs {want}"
+
+
+@pytest.mark.parametrize(("spec", "pin"), PIN_CASES, ids=PIN_IDS)
+def test_pinned_cases(spec: Spec, pin: SpecPin) -> None:
+    """Verifies each crafted-input case ported from the old suite: the pinned frame maps to the pinned lanes exactly."""
+    frame = pl.DataFrame({role: pl.Series(list(values), dtype=pl.Float64) for role, values in pin.inputs.items()})
+    lanes = lane_series(frame.select(build_expr(spec, **pin.params_override).alias("out")))
+    if isinstance(pin.expected, Mapping):
+        actual = {lane.name: lane.to_list() for lane in lanes}
+        expected = {str(name): list(values) for name, values in pin.expected.items()}
+    else:
+        (single,) = lanes  # a non-struct output is exactly one lane
+        actual = {"out": single.to_list()}
+        expected = {"out": list(pin.expected)}
+    assert sorted(actual) == sorted(expected)
+    for name, values in expected.items():
+        _assert_pinned_lane(actual[name], values, signed=pin.signed)
+
+
 # ======================================================================================================================
 # Properties
 # ======================================================================================================================
@@ -394,3 +438,20 @@ def test_matches_reference_under_missing_data(spec: Spec, data: st.DataObject) -
     if spec.conditioning is not None:
         assume(spec.conditioning(frame))
     _assert_reference(spec, frame, RELATIVE_TOLERANCE_PROPERTY, ABSOLUTE_TOLERANCE_PROPERTY)
+
+
+@pytest.mark.parametrize("spec", COMPONENT_SPECS, ids=spec_id)
+def test_matches_component_definition(spec: Spec) -> None:
+    """Verifies the factory reproduces its recomposition from public functions, lane by lane, on the probe frame."""
+    component = spec.component_expr
+    assert component is not None  # COMPONENT_SPECS filters on this; the bind narrows it for the type checker
+    frame = probe_frame(spec.inputs, probe_length(spec))
+    direct = lane_series(frame.select(build_expr(spec).alias("out")))
+    composed = lane_series(frame.select(component().alias("out")))
+    for lane_direct, lane_composed in zip(direct, composed, strict=True):
+        assert_matches(
+            lane_direct.to_list(),
+            lane_composed.to_list(),
+            rel_tol=RELATIVE_TOLERANCE_PROPERTY,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
+        )
