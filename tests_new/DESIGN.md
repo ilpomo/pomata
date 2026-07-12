@@ -19,7 +19,11 @@ functions** parametrized over the specs they apply to. There is no metaprogrammi
   validation counterexample, per scale axis).
 - **The engine** — `tests_new/support/spec.py`: the frozen data types and the small engine the rungs delegate to
   (the deterministic probe frame, the expression builder, the lane readers, the oracle bridge, the fuzz strategies,
-  the sizing helpers). It is the one module with the `disallow_any_explicit` deroga.
+  the sizing helpers). It is the one module with the `disallow_any_explicit` deroga. The fuzz vocabulary covers the
+  single-input shape, the coherent high/low bar, and the multi-input pnl shapes (each column drawn independently from
+  its role's domain); an unlisted shape raises, so the closed vocabulary can never silently under-test a new function.
+- **The property tier** — `tests_new/conftest.py` pins the same Hypothesis `dev` / `ci` profiles the old suite uses,
+  so the property rungs draw the fixed example count instead of Hypothesis' defaults.
 
 ## The axes are declared fields, not a class hierarchy
 
@@ -54,6 +58,13 @@ ladder each axis is a **declared field** or a **derived fact**, and a rung gates
 | `oracle_adapter` | optional | a frame->result callable when the oracle is not the factory's signature-mirror |
 | `conditioning` | optional | a Hypothesis `assume` filter for the property tier |
 | `all_null` | optional | a `Deviant(expected, reason)` when the all-null answer is not all-null |
+| `pins` | optional | crafted-input cases ported from the old suite: a tuple of `SpecPin(label, inputs, expected, reason, params_override, signed)` |
+| `component_expr` | optional | a zero-argument builder of the public-function recomposition the factory must reproduce (a metamorphic identity) |
+
+A `SpecPin` is itself pure data: `label` (its id suffix), `inputs` (the full input lanes), `expected` (the output
+lanes, a per-field mapping for a struct), the required `reason` (anchored to the old test it was ported from), an
+optional `params_override`, and `signed` (compare the sign too, so `-0.0` is not read as `0.0`). Each pin's `inputs`
+keys and `expected` shape are checked against the spec at construction, and labels must be unique.
 
 Derived, never declared: `name` (from the factory), `family` (from `__all__`), `null_policy` / `nan_policy`
 (from the registry), `spec_id` (the pytest id).
@@ -80,19 +91,22 @@ Contract — `returns_expr`, `output_lands_on_declared_column`, `shape_matches_d
 concatenates; `assert_matches`, never a bit-equality), `bare_string_raises_type_error`.
 Edge — `invalid_params_raise` (per counterexample), `all_null_input` (honoring an `all_null` `Deviant`),
 `single_row`, `empty`, `interior_null_flow` / `interior_nan_flow` (the policy-dispatched flow, tail guards
-included), `warmup_null_count` (windowed subset, per field for a struct), `no_lookahead` (non-reducing subset: a
+included), `warmup_null_count` (windowed subset, per field for a struct), `window_exceeds_length` (windowed subset,
+per lane: a frame no longer than a lane's warm-up emits nothing on that lane), `no_lookahead` (non-reducing subset: a
 prefix of the frame gives the prefix of the full output).
-Correctness — `matches_reference`, `golden_master` (rounded expression-side).
+Correctness — `matches_reference`, `golden_master` (rounded expression-side), `pinned_cases` (per `SpecPin`: the
+crafted frame maps to the crafted lanes, signed pins comparing the sign too).
 Properties — `scale` (per `ScaleAxis`: scale only that axis's roles by a power of two, degree as declared),
 `matches_reference_for_any_input` and `matches_reference_under_missing_data` (`@given(st.data())` inside
-`@parametrize`, honoring a spec's `conditioning`).
+`@parametrize`, honoring a spec's `conditioning`), `matches_component_definition` (specs with `component_expr`: the
+factory reproduces its recomposition from public functions, lane by lane, on the probe frame).
 
 ## Sub-parametrized ids
 
-A struct field, a validation counterexample, and a scale axis each get their own case with a readable id:
+A struct field, a validation counterexample, a scale axis, and a pin each get their own case with a readable id:
 `ichimoku-senkou_b` (per-field warm-up), `sharpe_ratio-0` (per counterexample), `ichimoku-high+low` (per scale
-axis). To read a failure: find the rung by the name in the id, read its few lines, then read the spec row the id
-names.
+axis), `sharpe_ratio-zero_volatility` (per pin). To read a failure: find the rung by the name in the id, read its few
+lines, then read the spec row the id names.
 
 ## The migration map (153 functions)
 

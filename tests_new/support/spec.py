@@ -15,6 +15,7 @@ the lane readers, the oracle bridge, the fuzz strategies, and the sizing helpers
 """
 
 import enum
+import math
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from types import ModuleType
@@ -77,6 +78,7 @@ _SPEC_ROLE_BUILDERS: dict[str, Callable[[int], list[float]]] = {
     "dividend_per_share": lambda n: [0.05 for _ in range(n)],
     "returns_gross": lambda n: [0.01 if i % 2 == 0 else -0.005 for i in range(n)],
     "funding_rate": lambda n: [0.0001 for _ in range(n)],
+    "pnl_gross": lambda n: [10.0 + float(i) for i in range(n)],
 }
 
 
@@ -101,6 +103,24 @@ class ScaleExempt:
     """A function that is neither scale-invariant nor homogeneous, declared exempt with its documented reason."""
 
     reason: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class SpecPin:
+    """
+    One crafted-input case ported from the old suite: fixed input lanes mapped to fixed output lanes, with the reason
+    it exists (anchored to the old test it came from). It is the data home for a hand-computed golden, a domain corner,
+    or a signed-zero case — a fact a probe row or the reference oracle cannot express on its own.
+    """
+
+    label: str  # the case's short name; the pin's pytest id is ``{function}-{label}``
+    inputs: Mapping[str, SPEC_LANE]  # the full input lanes, one per input role
+    expected: SPEC_LANE | Mapping[str, SPEC_LANE]  # the expected output lanes (a per-field mapping for a struct)
+    reason: str  # why the case is pinned, with an anchor to the old suite where it was ported from
+    params_override: Mapping[str, SPEC_SCALAR] = field(default_factory=_no_params)  # kwargs overriding ``params``
+    # Compare the sign as well as the value: ``assert_matches`` reads ``-0.0`` and ``0.0`` as equal, so a case that
+    # pins the sign of a zero sets this and the rung checks ``math.copysign`` on each pair.
+    signed: bool = False
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -145,6 +165,12 @@ class Spec:
     conditioning: "Callable[[pl.DataFrame], bool] | None" = None
     # The documented answer to an all-null input; ``None`` means the answer is all-null (the ordinary case).
     all_null: Deviant | None = None
+    # Crafted-input cases ported from the old suite (hand-computed goldens, domain corners, signed-zero pins): each
+    # maps fixed input lanes to fixed output lanes, the data home for a fact a probe or an oracle cannot express.
+    pins: tuple[SpecPin, ...] = ()
+    # The public-function recomposition this factory must reproduce (a metamorphic identity), as a zero-argument
+    # expression builder; ``None`` when the function has no such definition. Compared to the factory on the probe frame.
+    component_expr: Callable[[], pl.Expr] | None = None
 
     def __post_init__(self) -> None:
         """Conditional requirements, checked loudly at construction (import time) — the one obvious place they live."""
@@ -156,6 +182,7 @@ class Spec:
             raise ValueError(msg)
         self._check_scale()
         self._check_golden()
+        self._check_pins()
         if self.name not in POLICIES:
             msg = f"{self.name}: no declared policy in pomata._policy (the name is derived from the factory)"
             raise ValueError(msg)
@@ -207,6 +234,19 @@ class Spec:
         if struct_golden != (self.shape is Shape.STRUCT):
             msg = f"{self.name}: golden_output is a per-field mapping iff the shape is a struct"
             raise ValueError(msg)
+
+    def _check_pins(self) -> None:
+        labels = [pin.label for pin in self.pins]
+        if len(set(labels)) != len(labels):
+            msg = f"{self.name}: pin labels must be unique, got {sorted(labels)}"
+            raise ValueError(msg)
+        for pin in self.pins:
+            if set(pin.inputs) != set(self.inputs):
+                msg = f"{self.name}: pin {pin.label!r} inputs {sorted(pin.inputs)} must match {list(self.inputs)}"
+                raise ValueError(msg)
+            if isinstance(pin.expected, Mapping) != (self.shape is Shape.STRUCT):
+                msg = f"{self.name}: pin {pin.label!r} expected is a per-field mapping iff the shape is a struct"
+                raise ValueError(msg)
 
     # --- derived, never declared: read off the factory and the package registries ---
 
@@ -325,6 +365,58 @@ def probe_length(spec: Spec) -> int:
     return widest_warmup(spec) + 3 + horizon(spec) + 8
 
 
+def _finite(low: float, high: float) -> st.SearchStrategy[float]:
+    """Finite floats in ``[low, high]`` — the bounded element domain a multi-input column draws from."""
+    return st.floats(min_value=low, max_value=high, allow_nan=False, allow_infinity=False)
+
+
+# Per-role element domains for the multi-input fuzz vocabulary: each column of a pnl input frame is drawn independently
+# from the domain its role lives in — positive for a quantity or a price, a bounded weight, a modest return or funding
+# rate, a non-negative cost or dividend — so a multi-input factory meets its oracle on well-conditioned inputs.
+_FUZZ_ELEMENT: dict[str, st.SearchStrategy[float]] = {
+    "quantity": _finite(1e-3, 1e6),
+    "price": _finite(1e-3, 1e6),
+    "weight": _finite(-1.5, 1.5),
+    "asset_returns": _finite(-0.5, 0.5),
+    "returns_gross": _finite(-0.5, 0.5),
+    "funding_rate": _finite(-0.5, 0.5),
+    "dividend_per_share": _finite(0.0, 1e3),
+    "cost": _finite(0.0, 1e6),
+    "pnl_gross": _finite(-1e6, 1e6),
+}
+
+# The multi-input pnl shapes the vocabulary supports, read off the pnl factory signatures; every role appears in the
+# probe-frame builders too, so each shape can back a real spec. Anything outside this closed set raises below.
+_FUZZ_SHAPES: frozenset[tuple[str, ...]] = frozenset(
+    {
+        ("quantity", "price"),
+        ("quantity", "price", "funding_rate"),
+        ("quantity", "dividend_per_share"),
+        ("weight", "asset_returns"),
+        ("returns_gross", "cost"),
+        ("pnl_gross", "cost"),
+    }
+)
+
+
+def _independent_frame(
+    roles: tuple[str, ...], length: st.SearchStrategy[int], *, missing: bool
+) -> st.SearchStrategy[pl.DataFrame]:
+    """Frames whose columns are drawn independently, each from its role's domain, mixing null / NaN when ``missing``."""
+
+    def column(role: str) -> st.SearchStrategy[float | None]:
+        element = _FUZZ_ELEMENT[role]
+        return st.one_of(st.none(), st.just(math.nan), element) if missing else element
+
+    return length.flatmap(
+        lambda n: st.tuples(*(st.lists(column(role), min_size=n, max_size=n) for role in roles)).map(
+            lambda drawn: pl.DataFrame(
+                {role: pl.Series(values, dtype=pl.Float64) for role, values in zip(roles, drawn, strict=True)}
+            )
+        )
+    )
+
+
 def fuzz_frames(spec: Spec, *, missing: bool) -> st.SearchStrategy[pl.DataFrame]:
     """A Hypothesis strategy of well-formed input frames for the property tier, keyed on the spec's input shape."""
     minimum = widest_warmup(spec) + 4
@@ -344,5 +436,7 @@ def fuzz_frames(spec: Spec, *, missing: bool) -> st.SearchStrategy[pl.DataFrame]
                 lambda rows: pl.DataFrame({role: pl.Series(rows, dtype=pl.Float64)})
             )
         )
+    if spec.inputs in _FUZZ_SHAPES:
+        return _independent_frame(spec.inputs, length, missing=missing)
     msg = f"{spec.name}: no fuzz strategy for inputs {spec.inputs}"  # extended as the rollout reaches new input shapes
     raise TypeError(msg)
