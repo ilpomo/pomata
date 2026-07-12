@@ -88,6 +88,7 @@ CASES: dict[str, Callable[[], pl.Expr]] = {
 }
 
 
+@pytest.mark.benchmark
 def test_cases_cover_public_surface() -> None:
     """
     Verifies that ``CASES`` covers exactly the public PnL surface, so a newly added function cannot slip the benchmark

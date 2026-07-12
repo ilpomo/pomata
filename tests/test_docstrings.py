@@ -102,7 +102,7 @@ def _note(doc: str) -> str:
 
 def _bullets(note: str) -> list[tuple[str, str]]:
     """Every ``- **Label** — text`` bullet of the Note, in order."""
-    raw = re.split(r"^- \*\*", note, flags=re.MULTILINE)[1:]
+    raw = re.split(r"^ *- \*\*", note, flags=re.MULTILINE)[1:]
     return [(part.split("**", 1)[0], part.split("**", 1)[1]) for part in raw]
 
 
@@ -169,6 +169,7 @@ def test_note_opener_matches_family(name: str) -> None:
 def test_edge_bullets_ordered(name: str) -> None:
     """In the edge-case list the Null bullet precedes the NaN bullet, and Partitioning closes the list."""
     labels = [label for label, _ in _bullets(_note(_doc(name)))]
+    assert labels, f"{name}: no Note bullets parsed"
     null_at = next((index for index, label in enumerate(labels) if label.startswith("Null")), None)
     nan_at = next((index for index, label in enumerate(labels) if label.startswith("NaN")), None)
     if null_at is not None and nan_at is not None:

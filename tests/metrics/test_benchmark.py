@@ -173,6 +173,7 @@ CASES: dict[str, Callable[[], pl.Expr]] = {
 }
 
 
+@pytest.mark.benchmark
 def test_cases_cover_public_surface() -> None:
     """
     Verifies that ``CASES`` covers exactly the public metric surface, so a newly added metric cannot slip the benchmark
