@@ -52,10 +52,11 @@ jobs:
           git fetch --no-tags --quiet origin main
           git merge-base --is-ancestor "$GITHUB_SHA" origin/main || { echo "::error::release tag is not on main"; exit 1; }
           version="${GITHUB_REF_NAME#v}"
-          grep -q "^version: ${version}$" CITATION.cff || { echo "::error::CITATION.cff version does not match tag ${version}"; exit 1; }
-          # date-released must match the (UTC) commit date of the release-prep bump that last touched CITATION.cff --
-          # a version bumped with a stale date fails here, before anything is built. Same-day expectation: the bump PR
-          # merges and the tag is cut on the same UTC day; a timezone straddle means re-tagging after the fix.
+          grep -qFx "version: ${version}" CITATION.cff || { echo "::error::CITATION.cff version does not match tag ${version}"; exit 1; }
+          # date-released must match the calendar day recorded in the release-prep bump commit that last touched
+          # CITATION.cff (%cs renders the committer's own timezone offset, not UTC) -- a version bumped with a stale
+          # date fails here, before anything is built. Same-day expectation: the bump PR merges and the tag is cut on
+          # the same committer-local day; a midnight straddle means re-tagging after the fix.
           cff_date=$(grep -oE '^date-released: [0-9-]+' CITATION.cff | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}')
           bump_date=$(git log -1 --format=%cs -- CITATION.cff)
           [ -n "$cff_date" ] && [ "$cff_date" = "$bump_date" ] || { echo "::error::CITATION.cff date-released (${cff_date}) does not match its last bump commit date (${bump_date})"; exit 1; }
