@@ -156,6 +156,7 @@ module = [
     "tests.support.synthesis",
     "tests.support.contracts",
     "tests.test_policies",
+    "tests_new.support.contracts",
 ]
 
 [tool.pyrefly]
@@ -166,7 +167,7 @@ python-version = "3.12"
 
 [tool.pyright]
 extraPaths = ["."]
-include = ["src", "tests"]
+include = ["src", "tests", "tests_new"]
 pythonVersion = "3.12"
 typeCheckingMode = "strict"
 venv = ".venv"
@@ -190,7 +191,7 @@ testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 120
-src = ["src", "tests"]
+src = ["src", "tests", "tests_new"]
 target-version = "py312"
 # ``scripts/`` holds local dev tooling (the README precision-table regenerator), not shipped or imported by the package
 # or the test suite; it is out of the linters' scope, matching mypy / pyright / pyrefly (which include only src + tests).
@@ -257,6 +258,8 @@ max-complexity = 16
 # Test files are deliberately namespace packages (pytest importlib mode needs no ``__init__.py``); their magic numbers
 # (windows, tolerances, golden values) are inherent; oracle/test helpers may take boolean positional flags.
 "tests/**" = ["FBT001", "FBT002", "INP001", "PLR2004", "S101"]
+# The contract-suite redesign grows in parallel under tests_new/ until its cutover; same regime as tests/**.
+"tests_new/**" = ["FBT001", "FBT002", "INP001", "PLR2004", "S101"]
 # The oracle regeneration script is a CLI tool: it prints.
 "tests/indicators/oracles/_regenerate.py" = ["T201"]
 # The Sphinx config is a module-style script, not a package (no __init__.py).
