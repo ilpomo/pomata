@@ -16,9 +16,9 @@ import pomata.metrics
 import pomata.pnl
 
 MIGRATED: dict[str, frozenset[str]] = {
-    "indicators": frozenset(),
-    "metrics": frozenset(),
-    "pnl": frozenset(),
+    "indicators": frozenset({"ichimoku", "mama"}),
+    "metrics": frozenset({"sharpe_ratio"}),
+    "pnl": frozenset({"equity_curve"}),
 }
 
 _FAMILIES = {"indicators": pomata.indicators, "metrics": pomata.metrics, "pnl": pomata.pnl}

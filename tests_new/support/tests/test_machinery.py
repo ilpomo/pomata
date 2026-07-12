@@ -11,13 +11,13 @@ from typing import ClassVar
 
 import polars as pl
 import pytest
-from tests_new.support import REGISTRY, SeriesContract, WindowedContract, probe_frame
+from tests_new.support import REGISTRY, ContractSeries, ContractWindowed, probe_frame
 
 from pomata._policy import POLICIES, NanPolicy, NullPolicy
 from pomata.indicators import sma
 
 
-class TestSma(WindowedContract, SeriesContract):
+class TestSma(ContractWindowed, ContractSeries):
     """The reference toy: a real, fully-declared contract the machinery accepts and pytest runs."""
 
     register: ClassVar[bool] = False  # the sma slot belongs to the real rollout, not to this self-test toy
@@ -26,6 +26,9 @@ class TestSma(WindowedContract, SeriesContract):
     inputs: ClassVar[tuple[str, ...]] = ("expr",)
     params: ClassVar[Mapping[str, int | float | bool]] = {"window": 3}
     warmup: ClassVar[int | Mapping[str, int]] = 2
+    raises: ClassVar[tuple[tuple[Mapping[str, int | float | bool], str], ...]] = (
+        ({"window": 0}, r"window must be >= 1"),
+    )
 
 
 class TestMachineryLocks:
@@ -35,7 +38,7 @@ class TestMachineryLocks:
         """Verifies a contract missing required declarations dies at class creation, naming every gap."""
         with pytest.raises(TypeError, match=r"does not declare.*inputs.*params.*warmup"):
 
-            class TestRsi(WindowedContract, SeriesContract):  # type: ignore[unused-ignore]
+            class TestRsi(ContractWindowed, ContractSeries):  # type: ignore[unused-ignore]
                 register: ClassVar[bool] = False
                 factory = staticmethod(sma)
 
@@ -43,36 +46,45 @@ class TestMachineryLocks:
         """Verifies the Test<Pascal> naming law is structural: a mismatched class name dies at creation."""
         with pytest.raises(TypeError, match=r"must be named TestSma"):
 
-            class TestSimpleMovingAverage(WindowedContract, SeriesContract):  # type: ignore[unused-ignore]
+            class TestSimpleMovingAverage(ContractWindowed, ContractSeries):  # type: ignore[unused-ignore]
                 register: ClassVar[bool] = False
                 factory = staticmethod(sma)
                 inputs: ClassVar[tuple[str, ...]] = ("expr",)
                 params: ClassVar[Mapping[str, int | float | bool]] = {"window": 3}
                 warmup: ClassVar[int | Mapping[str, int]] = 2
+                raises: ClassVar[tuple[tuple[Mapping[str, int | float | bool], str], ...]] = (
+                    ({"window": 0}, r"window must be >= 1"),
+                )
 
     def test_unconsented_override_fails(self) -> None:
         """Verifies a child cannot silently shadow an inherited rung."""
         with pytest.raises(TypeError, match=r"overrides inherited rungs.*test_warmup_null_count"):
 
-            class TestSma(WindowedContract, SeriesContract):  # type: ignore[unused-ignore]
+            class TestSma(ContractWindowed, ContractSeries):  # type: ignore[unused-ignore]
                 register: ClassVar[bool] = False
                 factory = staticmethod(sma)
                 inputs: ClassVar[tuple[str, ...]] = ("expr",)
                 params: ClassVar[Mapping[str, int | float | bool]] = {"window": 3}
                 warmup: ClassVar[int | Mapping[str, int]] = 2
+                raises: ClassVar[tuple[tuple[Mapping[str, int | float | bool], str], ...]] = (
+                    ({"window": 0}, r"window must be >= 1"),
+                )
 
                 def test_warmup_null_count(self) -> None: ...
 
     def test_consented_override_is_accepted(self) -> None:
         """Verifies ``override_ok`` is the visible consent that legalizes a redefinition."""
 
-        class TestSma(WindowedContract, SeriesContract):
+        class TestSma(ContractWindowed, ContractSeries):
             register: ClassVar[bool] = False
             override_ok: ClassVar[frozenset[str]] = frozenset({"test_warmup_null_count"})
             factory = staticmethod(sma)
             inputs: ClassVar[tuple[str, ...]] = ("expr",)
             params: ClassVar[Mapping[str, int | float | bool]] = {"window": 3}
             warmup: ClassVar[int | Mapping[str, int]] = 2
+            raises: ClassVar[tuple[tuple[Mapping[str, int | float | bool], str], ...]] = (
+                ({"window": 0}, r"window must be >= 1"),
+            )
 
             def test_warmup_null_count(self) -> None: ...
 
@@ -82,10 +94,24 @@ class TestMachineryLocks:
         """Verifies a declared input the probe frame cannot synthesize dies at creation."""
         with pytest.raises(TypeError, match=r"probe frame cannot build.*mystery"):
 
-            class TestSma(WindowedContract, SeriesContract):  # type: ignore[unused-ignore]
+            class TestSma(ContractWindowed, ContractSeries):  # type: ignore[unused-ignore]
                 register: ClassVar[bool] = False
                 factory = staticmethod(sma)
                 inputs: ClassVar[tuple[str, ...]] = ("mystery",)
+                params: ClassVar[Mapping[str, int | float | bool]] = {"window": 3}
+                warmup: ClassVar[int | Mapping[str, int]] = 2
+                raises: ClassVar[tuple[tuple[Mapping[str, int | float | bool], str], ...]] = (
+                    ({"window": 0}, r"window must be >= 1"),
+                )
+
+    def test_params_without_raises_fails(self) -> None:
+        """Verifies a contract with validated params but no counterexamples dies: the rung would be a no-op."""
+        with pytest.raises(TypeError, match=r"no raises counterexamples"):
+
+            class TestSma(ContractWindowed, ContractSeries):  # type: ignore[unused-ignore]
+                register: ClassVar[bool] = False
+                factory = staticmethod(sma)
+                inputs: ClassVar[tuple[str, ...]] = ("expr",)
                 params: ClassVar[Mapping[str, int | float | bool]] = {"window": 3}
                 warmup: ClassVar[int | Mapping[str, int]] = 2
 

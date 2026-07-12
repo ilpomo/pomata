@@ -8,19 +8,23 @@ imported from there: this package adds only what the declarative redesign introd
 from tests_new.support.contracts import (
     REGISTRY,
     Contract,
-    ReducingContract,
-    SeriesContract,
-    StructContract,
-    WindowedContract,
+    ContractCorrectness,
+    ContractProperties,
+    ContractReducing,
+    ContractSeries,
+    ContractStruct,
+    ContractWindowed,
     probe_frame,
 )
 
 __all__ = (
     "REGISTRY",
     "Contract",
-    "ReducingContract",
-    "SeriesContract",
-    "StructContract",
-    "WindowedContract",
+    "ContractCorrectness",
+    "ContractProperties",
+    "ContractReducing",
+    "ContractSeries",
+    "ContractStruct",
+    "ContractWindowed",
     "probe_frame",
 )
