@@ -27,8 +27,9 @@ absence of a *method*. The method is this:
 > the public surface and its signature, never restated. A function may depart from the baseline only by *declaring* it,
 > and the build proves the declaration true. Never by drift.**
 
-The one declared fact is each function's `(null_policy, nan_policy)`, in
-[`tests/support/policies.py`](support/policies.py). It is kept honest by
+The one declared fact is each function's `(null_policy, nan_policy)`, in the package's policy registry
+[`src/pomata/_policy.py`](../src/pomata/_policy.py) (re-exported for the suite by
+[`tests/support/policies.py`](support/policies.py)). It is kept honest by
 [`tests/test_policies.py`](test_policies.py): a function added without a policy, or whose actual `null` / `NaN`
 behaviour contradicts the one it declares, is a red build. The shared contract suite iterates each family's public
 `__all__` directly and observes each function's shape from a probe, so the uniform rungs sweep in every new function
@@ -82,7 +83,9 @@ A function's obligations are fixed by *what it does*, not by which file it lives
 
 The **only** facts a test cannot observe, and so must be *declared*, are each function's **`null_policy`** and
 **`nan_policy`** (defined crisply in §3) — because the declaration encodes *intent* and the build proves the code lives
-up to it. They live in [`tests/support/policies.py`](support/policies.py), one `(null_policy, nan_policy)` per name.
+up to it. They are declared in [`src/pomata/_policy.py`](../src/pomata/_policy.py) — the package's policy registry,
+re-exported for the suite by [`tests/support/policies.py`](support/policies.py) — one `(null_policy, nan_policy)`
+per name.
 
 A function's **scale** behaviour is deliberately *not* declared either: its degree is per-input and family-specific (a
 variance is degree-2; a VWAP is degree-1 in price and degree-0 in volume; a borrow cost is degree-1 in quantity; a
