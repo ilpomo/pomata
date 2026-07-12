@@ -41,7 +41,8 @@ the trust pages, and `CORRECTNESS.md`.
 **null policy / NaN policy**
 : A function's declared, machine-verified behavior for an interior missing value (`null`) or an interior `NaN` —
   for `null`: skipped, absorbed, propagated, in-window-nulled, bridged, or latched; for `NaN`: poisoned, propagated,
-  or latched. The vocabulary and per-function proof live in the test suite (`tests/support/policies.py`); the API
+  or latched. The vocabulary and the per-function declaration live in the package's policy registry
+  (`src/pomata/_policy.py`); the proof lives in the test suite (`tests/test_policies.py`); the API
   docstrings state each function's pair in prose.
 
 **rung / ladder**
