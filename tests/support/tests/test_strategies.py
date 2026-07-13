@@ -11,7 +11,6 @@ import math
 from hypothesis import given
 from tests.support import (
     SUBNORMAL_FLOOR,
-    WINDOW_MAX,
     coherent_hl,
     coherent_hl_with_missing,
     coherent_hlc,
@@ -22,10 +21,8 @@ from tests.support import (
     coherent_ohlc_with_missing,
     finite_floats,
     missing_data_floats,
-    positive_missing_data,
-    spans_even_lag_repeat,
+    spans_even_lag_run,
     subnormal_safe_floats,
-    two_segment_missing_data,
 )
 
 
@@ -142,15 +139,6 @@ class TestElementStrategies:
             assert -1e6 <= value <= 1e6
             assert abs(value) >= SUBNORMAL_FLOOR
 
-    @given(value=positive_missing_data(high=1e4))
-    def test_positive_missing_data(self, value: float | None) -> None:
-        """
-        Verifies the value is ``None`` / ``NaN`` / a positive finite in ``[1, high]``.
-        """
-        assert value is None or isinstance(value, float)
-        if value is not None and not math.isnan(value):
-            assert 1.0 <= value <= 1e4
-
     @given(value=subnormal_safe_floats(bound=1e3))
     def test_subnormal_safe_floats_floor(self, value: float) -> None:
         """
@@ -166,34 +154,22 @@ class TestSeriesStrategies:
     The whole-series helpers for the cycle cluster honor their contracts.
     """
 
-    def test_spans_even_lag_repeat_detects_flat_and_alternation(self) -> None:
+    def test_spans_even_lag_run_cuts_at_the_sustained_run(self) -> None:
         """
-        Verifies the even-lag predicate: a repeat two bars apart (flat run or period-two alternation) is detected, a
-        strictly-monotone run is not.
+        Verifies the run-length predicate fires on sustained flat runs and period-two alternations (full-length
+        even-lag runs) and on a seven-long embedded run, while admitting an isolated even-lag tie and a five-long
+        run — the boundary sits at six consecutive even-lag equalities (about eight structured bars).
         """
-        assert spans_even_lag_repeat([1.0, 2.0, 1.0])
-        assert spans_even_lag_repeat([5.0, 9.0, 5.0, 9.0])
-        assert not spans_even_lag_repeat([1.0, 2.0, 3.0, 4.0])
-
-    @given(series=two_segment_missing_data(warmup=4, tail=8))
-    def test_two_segment_finite_prefix_then_tail(self, series: list[float | None]) -> None:
-        """
-        Verifies a finite positive prefix longer than the warm-up (with no even-lag repeat), followed by a missing tail.
-        """
-        assert len(series) > 4
-        prefix = series[:5]
-        assert all(value is not None and not math.isnan(value) and value > 0.0 for value in prefix)
-        assert not spans_even_lag_repeat([value for value in series if value is not None and not math.isnan(value)][:5])
-
-
-class TestWindowMax:
-    """
-    The shared ``window`` cap.
-    """
-
-    def test_is_a_positive_int(self) -> None:
-        """
-        Verifies that ``WINDOW_MAX`` is a usable window bound (a positive ``int``).
-        """
-        assert isinstance(WINDOW_MAX, int)
-        assert WINDOW_MAX >= 1
+        assert spans_even_lag_run([100.0] * 80)
+        assert spans_even_lag_run([100.0 if i % 2 == 0 else 105.0 for i in range(40)])
+        isolated = [float(i) for i in range(40)]
+        isolated[20] = isolated[18]
+        assert not spans_even_lag_run(isolated)
+        seven_run = [float(i) for i in range(40)]
+        for j in range(30, 37):
+            seven_run[j] = seven_run[j - 2]
+        assert spans_even_lag_run(seven_run)
+        five_run = [float(i) for i in range(40)]
+        for j in range(30, 35):
+            five_run[j] = five_run[j - 2]
+        assert not spans_even_lag_run(five_run)

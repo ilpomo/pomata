@@ -26,20 +26,18 @@ Tiers (smallest band first):
 - **Property** — agreement against the oracle over arbitrary Hypothesis-fuzzed inputs, where the worst-case operand
   ordering is hit; held to the SAME ``1e-10`` band as the reference tier, so the ten-significant-figure promise holds on
   fuzzed inputs too, not only on the fixed reference series.
-- **Quotient-at-a-degenerate-edge** — a bounded quotient whose exact-but-tiny denominator amplifies the numerator's
-  reference-band rounding (the stochastic-of-RSI %K near a flat RSI window: the RSI legs agree to ``1e-10`` on values
-  ``O(100)``, an absolute ``~1e-8``, which a near-flat range ``O(0.1)`` amplifies past ``1e-7``); the well-conditioned
-  positions are still held to the property band by construction, this band only absorbs the amplification the
-  ill-conditioned skip-set boundary leaves behind.
 - **Scale** — homogeneity / invariance under a common rescaling, which amplifies rounding by the scale factor.
-- **Streaming-at-magnitude** — a streaming statistic vs a two-pass oracle at extreme magnitude (EWMA / MACD signal),
-  where catastrophic cancellation forces a loose absolute term; use :func:`input_scale` to size it to the data when the
-  magnitude is unknown, or ``ABSOLUTE_TOLERANCE_STREAMING`` for the fixed large-magnitude case.
+- **Rolling-vs-oracle** — a one-pass rolling statistic against its recompute-per-window two-pass oracle: the two
+  accumulate rounding differently across window slides, so the per-window agreement band is wider than the
+  reference tier's; a spec declares it explicitly (``oracle_rel_tol`` / ``oracle_abs_tol``) only where its rolling
+  form needs it, and the well-conditioned reductions stay on the default tight band.
+- **Streaming-at-magnitude** — a streaming statistic vs a two-pass oracle at extreme magnitude, where catastrophic
+  cancellation forces a loose absolute term; the large-magnitude bespoke tests use :func:`input_scale` to size it to
+  the data, or ``ABSOLUTE_TOLERANCE_STREAMING`` for the fixed large-magnitude case.
 - **Differential** — agreement with the external C reference (TA-Lib), held to the SAME ``REFERENCE`` band as the
   internal oracle: with the canonical SMA seeding pomata matches TA-Lib bar for bar, so most indicators are compared
   over the whole series, and only a documented minority -- where TA-Lib itself deviates from the indicator's author
   over the warm-up, or carries a long implementation-specific lead-in -- on the converged tail.
-- **Bound** — the slack allowed when asserting a value lies within a closed range such as ``[0, 100]``.
 
 The **magnitude-relative factors** size an absolute tolerance to the data as ``input_scale ** degree * factor``: a
 streaming or recursive statistic and its two-pass oracle diverge by about ``magnitude ** degree * machine_eps`` on
@@ -47,11 +45,9 @@ degenerate inputs, so a fixed absolute tolerance is wrong at the extremes. The f
 conditioning -- the worst-case residual it predicts on degenerate windows, which the property tests then hold the
 implementation to:
 
-- ``VARIANCE_TOLERANCE_FACTOR`` (degree 2, the two-pass rolling / ewm variance): worst residual about half a ULP, so
-  ``1e-13`` leaves a wide margin.
-- ``STREAMING_TOLERANCE_FACTOR`` (degree 1, standard deviation and the EWMA / MACD signal): the square root amplifies
-  the relative error as the variance approaches zero, worst residual about ``1e-8``, so ``1e-6`` -- std is LOOSER than
-  variance for exactly this reason.
+- ``STREAMING_TOLERANCE_FACTOR`` (degree 1, the square-root-amplified streaming statistics): the square root
+  amplifies the relative error as the variance approaches zero, worst residual about ``1e-8``, so ``1e-6``; consumed
+  through :func:`streaming_abs_tol`.
 - ``EXACT_TOLERANCE_FACTOR`` (degree 1, well-conditioned kernels -- recursive (kama, the EMAs), windowed (sma, wma, the
   linear regressions), or stateless (the price transforms)): the impl-vs-oracle residual is at most a few ULP (exactly
   zero for the recursive and stateless kernels; a streaming-vs-two-pass rounding for the windowed means), far below
@@ -71,15 +67,12 @@ RELATIVE_TOLERANCE_REFERENCE = 1e-10
 ABSOLUTE_TOLERANCE_REFERENCE = 1e-9
 RELATIVE_TOLERANCE_PROPERTY = 1e-10
 ABSOLUTE_TOLERANCE_PROPERTY = 1e-9
-RELATIVE_TOLERANCE_QUOTIENT = 1e-7
-ABSOLUTE_TOLERANCE_QUOTIENT = 1e-7
 RELATIVE_TOLERANCE_SCALE = 1e-6
-ABSOLUTE_TOLERANCE_SCALE = 1e-6
+RELATIVE_TOLERANCE_ROLLING_ORACLE = 1e-6
+ABSOLUTE_TOLERANCE_ROLLING_ORACLE = 1e-6
 ABSOLUTE_TOLERANCE_STREAMING = 1e-3
-BOUND_MARGIN = 1e-9
 EXACT_TOLERANCE_FACTOR = 1e-9
 STREAMING_TOLERANCE_FACTOR = 1e-6
-VARIANCE_TOLERANCE_FACTOR = 1e-13
 
 
 def input_scale(values: Sequence[float | None]) -> float:

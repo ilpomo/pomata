@@ -32,7 +32,9 @@ from tests.metrics.oracles.kurtosis import kurtosis_reference
 from tests.metrics.oracles.kurtosis_rolling import kurtosis_rolling_reference
 from tests.metrics.oracles.max_drawdown import max_drawdown_reference
 from tests.metrics.oracles.max_drawdown_duration import max_drawdown_duration_reference
-from tests.metrics.oracles.modigliani_risk_adjusted_performance import modigliani_risk_adjusted_performance_reference
+from tests.metrics.oracles.modigliani_risk_adjusted_performance import (
+    modigliani_risk_adjusted_performance_reference,
+)
 from tests.metrics.oracles.omega_ratio import omega_ratio_reference
 from tests.metrics.oracles.omega_ratio_rolling import omega_ratio_rolling_reference
 from tests.metrics.oracles.pain_index import pain_index_reference

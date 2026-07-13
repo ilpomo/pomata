@@ -4,7 +4,7 @@
 
 Contributions of all kinds are welcome — bug reports, new indicators, PnL or metrics functions, documentation, and
 fixes. The [contributing guide](https://github.com/ilpomo/pomata/blob/main/CONTRIBUTING.md) covers the setup and the
-bar a change must clear: a new function ships with a docstring, an independent oracle, the four-tier test ladder, and
+bar a change must clear: a new function ships with a docstring, an independent oracle, a declarative spec the shared four-tier ladder verifies, and
 100% branch coverage. A feature is not done until it is verified.
 
 ## Changelog

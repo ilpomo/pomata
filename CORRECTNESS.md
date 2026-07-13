@@ -59,24 +59,29 @@ differential tier.
 
 ### A laddered test suite
 
-Four tiers, each aimed at a different threat:
+Every function declares its whole testing contract as one frozen dataclass of pure data — a spec, one file per
+function — and a single ladder of generic test functions checks every declared fact identically across the whole
+public surface (see `tests/README.md` for the full design). The declaration language itself enforces completeness:
+required fields have no default, the spec tuples must match the public `__all__` exactly (a function cannot be
+exported untested), and an input regime may be excluded from the random tier only together with a fixed case that
+demonstrates what the function returns there. Four tiers, each aimed at a different threat:
 
-- **Contract** — shape, dtype, length, laziness, and that the indicator partitions independently under `.over(...)`. The
-  structural promises the type system cannot state.
-- **Edge** — the dangerous regimes, pinned by hand and checked **deterministically**: the exact warmup count; an empty
-  series; an all-`null` series; a single row; a window longer than the series; an interior `null`; a `NaN`. Each of
-  these is its own named test with a known answer on every indicator. The regimes that bite only some indicators — a
-  constant or monotone series, a window of one or of the series length, a leading `null` — are pinned where they bite.
-  These are not left to chance — and that fact is what lets the random tier below stay small.
+- **Contract** — shape, dtype, length, laziness, and that the function partitions independently under `.over(...)`.
+  The structural promises the type system cannot state.
+- **Edge** — the dangerous regimes, pinned as data and checked **deterministically**: the exact warmup count (per
+  struct field); an empty series; an all-`null` series; a single row; a window longer than the series; an interior
+  `null`; a `NaN`. The regimes that bite only some functions — a constant window, a zero-variance benchmark, an
+  exactly-flat day — are pinned where they bite, each with a written reason. These are not left to chance — and
+  that fact is what lets the random tier below stay small.
 - **Correctness** — agreement with the oracle on a fixed realistic series, plus a frozen golden master so a value can
   never drift unnoticed between versions.
-- **Properties** — the oracle-agreement again, and the mathematical invariants (scale behavior, boundedness, null
-  handling), now over inputs drawn at random.
+- **Properties** — the oracle-agreement again, and the mathematical invariants (scale behavior per declared axis,
+  boundedness, null handling), now over inputs drawn at random.
 
 ### A differential against the industry reference
 
 Separately, and without gating the build, each indicator that TA-Lib also implements is compared to it — the reference
-the industry has used since 2007 — which covers **58 of the 75**. With the canonical seeding most of them match TA-Lib
+the industry has used since 2007 — which covers **58 of the 75 indicators**. With the canonical seeding most of them match TA-Lib
 **bar for bar, from the first defined value**, so the comparison runs over the whole series at the same `1e-10` band as
 the internal oracle. A documented minority is checked only on the converged tail — each a case where TA-Lib itself
 deviates from the indicator's author over the warm-up (Wilder's first true range, the independent MACD / Chaikin EMAs)
@@ -105,7 +110,9 @@ Why `1e-10`, and why it is "safe no matter what" for this library:
 - **It sits far above the float-64 noise floor.** A `float64` holds about sixteen significant figures, so legitimate
   rounding between the streaming implementation and the two-pass oracle lands around `1e-15`. `1e-10` is five orders
   above that: tight enough to reject any real coding error, loose enough that a last-bit difference never flakes.
-- **It is verified, not asserted.** The property tier holds every indicator to `1e-10` over the full random fuzz domain,
+- **It is verified, not asserted.** The property tier holds every indicator to `1e-10` over the full random fuzz
+  domain (the one documented exception: a one-pass rolling moment meets its two-pass oracle at a stated per-spec
+  band, declared on the spec itself),
   and that bound is the enforced guarantee. The realized *headroom* under it is recomputable from a clean clone with
   `scripts/calibrate_tolerances.py`, which fuzzes a representative well-conditioned set across multiple seeds and reports
   the worst relative residual — it lands around `1e-14` (a handful of `float64` noise-floor ULPs), about four orders
@@ -221,7 +228,7 @@ even a handful of independent draws is negligible. Covering a few qualitative re
 is the same coupon-collector arithmetic, and lands in the same range: `N` in the low tens to about a hundred. Once the
 property is proven and the edges are pinned, a hundred draws is already generous; a larger number buys wall-clock, not
 confidence. The figure itself is a single shared number — set once in the test configuration, identical in a local run
-and in CI — that an individual family raises only when its parameter space is genuinely larger.
+and in CI.
 
 ### Tolerances: how close is close enough, by conditioning
 
@@ -256,24 +263,24 @@ separates them with a wide margin and an additive floor absorbs the overhead-bou
 
 The method, the ladder, the sizing, and the tolerance rules above are family-agnostic — they apply unchanged to
 indicators, PnL, and metrics. What differs per family is only the *characteristic invariants*; the exact per-primitive
-figures (warmup, parameter regimes, the tolerance factor) live in the test files, declared in a uniform "Test sizing"
-header, and are not duplicated here.
+figures (warmup, parameter regimes, the tolerance band) are declared on each function's spec
+(`tests/<family>/<name>.py`) and are not duplicated here.
 
 <details>
-<summary><b>Indicators</b> — the technical-analysis layer (the used set of TA-Lib)</summary>
+<summary><b>Indicators</b> — the technical-analysis layer (the commonly-used subset of TA-Lib)</summary>
 
 The characteristic invariants are scale behavior (homogeneity of degree 1 for a price-level output; invariance for a
 bounded ratio, a cycle period, or a flag), boundedness where it applies (RSI in `[0, 100]`, Williams %R in `[-100, 0]`),
 the exact warmup, and `null` / `NaN` propagation — each proven against the independent oracle and, in the non-gating
-differential tier, against TA-Lib. Adding an indicator is a copy job: the file's "Test sizing" header states three facts
-(warmup, parameter regimes, valid domain) and the rest of the property tier follows the same shape as every sibling.
+differential tier, against TA-Lib. Adding an indicator is a declaration: its spec states the facts (warmup,
+parameter regimes, valid domain, the scale claim) and the shared ladder checks every tier from them — no new test code.
 
 </details>
 
 <details>
 <summary><b>PnL</b> — accounting and transaction costs</summary>
 
-Shipped. The same machine applies — an independent oracle, the four-tier ladder, golden masters, and the missing-data /
+The same machine applies — an independent oracle, the four-tier ladder, golden masters, and the missing-data /
 large-magnitude robustness tiers. The characteristic invariants are cost monotonicity (more cost, less PnL), the
 additive-vs-compounded cumulation split (`cumulative_pnl` sums currency P&L, `equity_curve` compounds returns),
 no look-ahead (every bar uses only past data), and a defined, documented behavior for every degenerate input
@@ -284,7 +291,7 @@ no look-ahead (every bar uses only past data), and a defined, documented behavio
 <details>
 <summary><b>Metrics</b> — performance & risk statistics</summary>
 
-Shipped. The same machine applies unchanged — an independent oracle, the four-tier ladder, derived sizing, named
+The same machine applies unchanged — an independent oracle, the four-tier ladder, derived sizing, named
 tolerances. The characteristic invariants are the annualization identities, scale-equivariance (a Sharpe ratio is
 invariant to leverage), closed-form checks (the Sharpe of constant returns, the drawdown of a monotone series), and a
 defined, documented behavior for every degenerate input (`null` skipped, a non-null `NaN` poisoning the result, and a
@@ -301,7 +308,13 @@ We prove, and you can re-run:
 - agreement with an independent oracle to a stated floating-point tolerance, across the valid input domain;
 - the documented invariants — scale behavior, bounds, monotonicity where it applies;
 - parity with TA-Lib, where a counterpart exists (58 of the 75), from the first defined value — a documented minority
-  only on the converged tail, every deliberate divergence documented.
+  only on the converged tail, every deliberate divergence documented;
+- that the suite covers the whole public surface by construction (the spec/`__all__` bijection fails any collection
+  that misses a function) and that every input regime excluded from the random tier is still witnessed by a fixed
+  case with a written, measured reason;
+- that the suite bites: its fixed cases include, by construction, the counterexample of every defect the suite
+  has caught and of every surviving mutant from a systematic one-line mutation screen of the source — each pinned
+  with its measured reason, so the catalog that once got past a weaker check is re-run on every build.
 
 We do **not** claim the absence of all bugs, or correctness on inputs outside the documented domain. One limit is worth
 naming plainly: for the irreducibly-sequential indicators (KAMA, the parabolic SAR, the Hilbert cycle cluster) the oracle

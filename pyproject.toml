@@ -146,16 +146,16 @@ strict_bytes = true
 warn_unreachable = true
 warn_unused_configs = true
 
-# Explicit ``Any`` is unavoidable in two test helpers: the differential tier bridges the untyped TA-Lib C library
-# (no stubs, called dynamically) and numpy, and synthesize_call reflects over the heterogeneous factory signatures
-# (an arbitrary-parameter ``Callable[..., pl.Expr]``). It stays disallowed everywhere else.
+# Explicit ``Any`` is unavoidable in three test modules: the differential tier bridges the untyped TA-Lib C library
+# (no stubs, called dynamically) and numpy, synthesize_call reflects over the heterogeneous factory signatures
+# (an arbitrary-parameter ``Callable[..., pl.Expr]``), and the spec engine carries the same reflective surface. It
+# stays disallowed everywhere else.
 [[tool.mypy.overrides]]
 disallow_any_explicit = false
 module = [
-    "tests.indicators.test_differential",
+    "tests.support.spec",
     "tests.support.synthesis",
-    "tests.support.contracts",
-    "tests.test_policies",
+    "tests.test_differential",
 ]
 
 [tool.pyrefly]
@@ -192,7 +192,7 @@ testpaths = ["tests"]
 line-length = 120
 src = ["src", "tests"]
 target-version = "py312"
-# ``scripts/`` holds local dev tooling (the README precision-table regenerator), not shipped or imported by the package
+# ``scripts/`` holds local dev tooling (the docs/trust.md precision-table regenerator and the tolerance calibrator), not shipped or imported by the package
 # or the test suite; it is out of the linters' scope, matching mypy / pyright / pyrefly (which include only src + tests).
 extend-exclude = ["scripts"]
 

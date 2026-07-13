@@ -9,7 +9,6 @@ suite imports them as ``from tests.support import assert_matches`` / ``assert_sc
 import math
 from collections.abc import Sequence
 
-import polars as pl
 from tests.support.tolerances import (
     ABSOLUTE_TOLERANCE_EXACT,
     EXACT_TOLERANCE_FACTOR,
@@ -109,14 +108,3 @@ def assert_scale_homogeneous(
             assert value_scaled is not None
             assert not math.isnan(value_scaled)
             assert math.isclose(value_scaled, value_base * signed_factor, rel_tol=rel_tol, abs_tol=abs_tol)
-
-
-def assert_all_float64(dtype: pl.DataType, name: str) -> None:
-    """
-    Assert ``dtype`` is ``Float64`` -- or, for a multi-output struct result, that every field is ``Float64``.
-    """
-    if isinstance(dtype, pl.Struct):
-        offenders = [field.name for field in dtype.fields if field.dtype != pl.Float64]
-        assert not offenders, f"{name}: non-Float64 struct fields {offenders}"
-    else:
-        assert dtype == pl.Float64, f"{name}: {dtype}"

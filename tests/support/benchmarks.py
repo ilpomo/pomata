@@ -1,8 +1,8 @@
 """
 Timing helper for the opt-in ``benchmark`` tier: the fastest of repeated evaluations of an expression over a frame.
 
-A plain function rather than a pytest fixture so it composes with the per-family ``test_benchmark`` modules, each of
-which builds its own ``size``-row frame and passes it in.
+A plain function rather than a pytest fixture so it composes with the benchmark tier (``tests/test_benchmark.py``),
+which builds its own ``size``-row frames and passes them in.
 """
 
 import time

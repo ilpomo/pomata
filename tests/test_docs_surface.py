@@ -3,8 +3,7 @@ Guard the README's public-surface lists against drift.
 
 The README advertises each family's full function list (in the collapsible "All N ..." blocks) and a headline count.
 These tests assert those lists equal each family's ``__all__`` exactly, and that the headline counts match, so a rename
-or addition that is not mirrored in the README fails the build instead of rotting silently -- the exact drift that once
-left a stale ``momentum`` in the indicator list after it was renamed to ``mom``.
+or addition that is not mirrored in the README fails the build instead of rotting silently.
 """
 
 import ast
@@ -13,11 +12,11 @@ import tomllib
 from pathlib import Path
 
 import pytest
-from tests.support.policies import NanPolicy, NullPolicy
 
 import pomata.indicators
 import pomata.metrics
 import pomata.pnl
+from pomata._policy import NanPolicy, NullPolicy
 
 _README = Path(__file__).parent.parent / "README.md"
 
@@ -89,8 +88,8 @@ _FAMILY_PAGES = {
 def test_family_page_catalog_matches_all(family: str) -> None:
     """
     Verifies the docs-site family page references exactly the public surface: every ``{py:func}`` role on the page
-    resolves to a public name, and every public name appears at least once — the drift guard the hand-written
-    catalogs previously lacked (a stale or misspelled entry passes ``sphinx -W``, whose nitpick mode is off).
+    resolves to a public name, and every public name appears at least once — a drift guard ``sphinx -W`` alone does
+    not provide (a stale or misspelled entry passes it, since nitpick mode is off).
     """
     page, module = _FAMILY_PAGES[family]
     text = page.read_text(encoding="utf-8")

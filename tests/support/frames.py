@@ -22,8 +22,8 @@ def apply_expr(
 
     Builds a one-column eager frame whose column ``"x"`` holds ``values`` as ``Float64`` (so ``None`` becomes a Polars
     ``null`` and ``float('nan')`` stays a distinct ``NaN``), evaluates ``expr`` against it via ``select``, and returns
-    the single output column as a list. This is the standard adapter for single-input, single-output indicator factories
-    in the test ladder: the test passes raw observations and the ``pl.Expr`` under test (typically built on
+    the single output column as a list. This is the standard adapter the bespoke property tests use for single-input
+    factories: the test passes raw observations and the ``pl.Expr`` under test (typically built on
     ``pl.col("x")``), and gets back a plain list it can compare against the naive reference oracle or a golden master.
 
     Args:
@@ -62,34 +62,11 @@ def materialize(
     return frame.select(expr.alias("y"))["y"].to_list()
 
 
-def materialize_struct(
-    columns: Mapping[str, Sequence[float | None]],
-    expr: pl.Expr,
-    fields: tuple[str, ...],
-) -> dict[str, list[float | None]]:
-    """
-    Materialize a multi-output (struct) indicator expression and return one list per struct field.
-
-    Like :func:`materialize`, but ``expr`` returns a ``pl.struct``; each named field is read out with
-    ``.struct.field(...)`` into its own list, so the result mirrors a naive oracle's dict-of-lists output.
-
-    Args:
-        columns: The named input columns; each is coerced to ``Float64``.
-        expr: The struct-valued indicator expression to evaluate.
-        fields: The struct field names to extract, in the indicator's canonical order.
-
-    Returns:
-        A dict mapping each field in ``fields`` to its materialized list, all the same length as the inputs.
-    """
-    frame = pl.DataFrame({name: pl.Series(name, values, dtype=pl.Float64) for name, values in columns.items()})
-    return {field: frame.select(expr.struct.field(field).alias("y"))["y"].to_list() for field in fields}
-
-
 def count_leading_nulls(values: Sequence[float | None]) -> int:
     """
     The length of the leading ``None`` (warm-up) run, stopping at the first non-null value.
 
-    The shared warm-up check for the property tier: a windowed or recursive indicator emits ``None`` for its warm-up
+    The shared warm-up check: a windowed or recursive function emits ``None`` for its warm-up
     rows, so counting that leading run lets a test pin it against the indicator's documented warm-up length.
 
     Args:

@@ -8,7 +8,7 @@ through Polars unchanged, so an indicator test compares like with like.
 import math
 
 import polars as pl
-from tests.support import CLOSE, COLUMN_X, HIGH, LOW, apply_expr, materialize, materialize_struct
+from tests.support import COLUMN_X, HIGH, LOW, apply_expr, materialize
 
 
 class TestMaterialize:
@@ -51,11 +51,3 @@ class TestMaterialize:
         assert out[1] is not None
         assert math.isnan(out[1])
         assert out[2] == 3.0
-
-    def test_materialize_struct_splits_each_field(self) -> None:
-        """
-        Verifies that the struct adapter returns one aligned list per requested field, in order.
-        """
-        expr = pl.struct(total=pl.col(HIGH) + pl.col(CLOSE), diff=pl.col(HIGH) - pl.col(CLOSE))
-        out = materialize_struct({HIGH: [3.0, 5.0], CLOSE: [1.0, 2.0]}, expr, ("total", "diff"))
-        assert out == {"total": [4.0, 7.0], "diff": [2.0, 3.0]}

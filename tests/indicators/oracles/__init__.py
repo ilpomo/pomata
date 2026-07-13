@@ -14,7 +14,9 @@ its null / NaN / degeneracy contract. This package re-exports them flat, mirrori
 
 from tests.indicators.oracles.absolute_price_oscillator import absolute_price_oscillator_reference
 from tests.indicators.oracles.accumulation_distribution import accumulation_distribution_reference
-from tests.indicators.oracles.accumulation_distribution_oscillator import accumulation_distribution_oscillator_reference
+from tests.indicators.oracles.accumulation_distribution_oscillator import (
+    accumulation_distribution_oscillator_reference,
+)
 from tests.indicators.oracles.adx import adx_reference
 from tests.indicators.oracles.adxr import adxr_reference
 from tests.indicators.oracles.aroon import aroon_reference
