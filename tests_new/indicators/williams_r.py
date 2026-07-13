@@ -1,0 +1,110 @@
+"""Spec for ``pomata.indicators.williams_r`` — Williams %R, the window-nulling bounded oscillator, scale-invariant."""
+
+import math
+
+from tests.indicators.oracles import williams_r_reference
+from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
+
+from pomata.indicators import williams_r
+
+WILLIAMS_R = Spec(
+    factory=williams_r,
+    inputs=("high", "low", "close"),
+    params={"window": 3},
+    shape=Shape.SERIES,
+    warmup=2,
+    raises=(({"window": 0}, r"window must be >= 1"),),
+    oracle=williams_r_reference,
+    # A bounded ratio in [-100, 0], scale-INVARIANT, degree 0 (tests/indicators/test_williams_r.py
+    # ::TestWilliamsRProperties::test_scale_invariance).
+    scale=(ScaleAxis(roles=("high", "low", "close"), degree=0),),
+    golden_input={
+        "high": (10.0, 12.0, 11.0, 13.0, 15.0, 14.0),
+        "low": (8.0, 9.0, 10.0, 11.0, 12.0, 13.0),
+        "close": (9.0, 11.0, 10.5, 12.0, 14.0, 13.5),
+    },
+    golden_output=(None, None, -37.5, -25.0, -20.0, -37.5),
+    pins=(
+        SpecPin(
+            label="single_row_window_one",
+            inputs={"high": (10.0,), "low": (8.0,), "close": (9.0,)},
+            params_override={"window": 1},
+            expected=(-50.0,),
+            reason="a single bar with window=1 (test_williams_r.py::test_single_row)",
+        ),
+        SpecPin(
+            label="single_row_window_two",
+            inputs={"high": (10.0,), "low": (8.0,), "close": (9.0,)},
+            params_override={"window": 2},
+            expected=(None,),
+            reason="a single bar with window=2 exceeds the length (test_williams_r.py::test_single_row)",
+        ),
+        SpecPin(
+            label="window_equals_length",
+            inputs={"high": (10.0, 12.0, 11.0), "low": (8.0, 9.0, 10.0), "close": (9.0, 11.0, 10.5)},
+            expected=(None, None, -37.5),
+            reason="window equal to the series length yields one defined value (test_williams_r.py"
+            "::test_window_equals_length)",
+        ),
+        SpecPin(
+            label="window_one_single_bar",
+            inputs={"high": (10.0, 12.0), "low": (8.0, 9.0), "close": (9.0, 11.0)},
+            params_override={"window": 1},
+            expected=(-50.0, -33.333333333333336),
+            reason="window=1 collapses HH/LL to the single bar's own high/low (test_williams_r.py"
+            "::test_window_one_is_single_bar)",
+        ),
+        SpecPin(
+            label="close_at_high_is_zero",
+            inputs={"high": (10.0, 12.0, 11.0), "low": (8.0, 9.0, 10.0), "close": (10.0, 12.0, 12.0)},
+            params_override={"window": 2},
+            expected=(None, 0.0, 0.0),
+            reason="close at the windowed highest high gives %R == 0, the overbought edge (test_williams_r.py"
+            "::test_close_at_high_is_zero)",
+        ),
+        SpecPin(
+            label="close_at_low_is_minus_hundred",
+            inputs={"high": (10.0, 12.0, 11.0), "low": (8.0, 9.0, 10.0), "close": (8.0, 8.0, 9.0)},
+            params_override={"window": 2},
+            expected=(None, -100.0, -100.0),
+            reason="close at the windowed lowest low gives %R == -100, the oversold edge (test_williams_r.py"
+            "::test_close_at_low_is_minus_hundred)",
+        ),
+        SpecPin(
+            label="constant_range_zero_over_zero_is_nan",
+            inputs={"high": (5.0, 5.0, 5.0), "low": (5.0, 5.0, 5.0), "close": (5.0, 5.0, 5.0)},
+            params_override={"window": 2},
+            expected=(None, math.nan, math.nan),
+            reason="a flat window with close on that level is the 0/0 IEEE degenerate (test_williams_r.py"
+            "::test_constant_range_zero_over_zero_is_nan)",
+        ),
+        SpecPin(
+            label="constant_range_nonzero_numerator_is_inf",
+            inputs={"high": (5.0, 5.0), "low": (5.0, 5.0), "close": (3.0, 3.0)},
+            params_override={"window": 2},
+            expected=(None, -math.inf),
+            reason="a flat window with close off that level is a non-zero numerator over a zero denominator, signed "
+            "inf (test_williams_r.py::test_constant_range_nonzero_numerator_is_inf)",
+        ),
+        SpecPin(
+            label="all_zero_series_is_nan",
+            inputs={"high": (0.0, 0.0, 0.0), "low": (0.0, 0.0, 0.0), "close": (0.0, 0.0, 0.0)},
+            params_override={"window": 2},
+            expected=(None, math.nan, math.nan),
+            reason="an all-zero series collapses the range to zero, 0/0 NaN (test_williams_r.py"
+            "::test_all_zero_series_is_nan)",
+        ),
+        SpecPin(
+            label="all_nan",
+            inputs={
+                "high": (math.nan, math.nan, math.nan),
+                "low": (math.nan, math.nan, math.nan),
+                "close": (math.nan, math.nan, math.nan),
+            },
+            params_override={"window": 2},
+            expected=(None, math.nan, math.nan),
+            reason="an all-NaN input warms up to null then poisons to NaN, distinct from the all-null rung "
+            "(test_williams_r.py::test_all_nan)",
+        ),
+    ),
+)
