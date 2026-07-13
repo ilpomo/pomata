@@ -157,6 +157,7 @@ module = [
     "tests.support.contracts",
     "tests.test_policies",
     "tests_new.support.spec",
+    "tests_new.test_differential",
 ]
 
 [tool.pyrefly]
