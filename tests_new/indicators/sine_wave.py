@@ -4,8 +4,8 @@ import math
 
 import polars as pl
 from tests_new.indicators.oracles import sine_wave_reference
-from tests_new.support import spans_even_lag_repeat
-from tests_new.support.spec import ScaleAxis, Shape, Spec
+from tests_new.support import spans_even_lag_run
+from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import sine_wave
 
@@ -13,10 +13,17 @@ from pomata.indicators import sine_wave
 _SAMPLE = tuple(100.0 + 10.0 * math.sin(2 * math.pi * index / 20) for index in range(80))
 
 
-def _no_even_lag_repeat(frame: pl.DataFrame) -> bool:
-    """Exclude the shared cycle-pipeline degenerate: an even-lag repeat flips the phase that fixes both lines."""
+def _no_sustained_even_lag_run(frame: pl.DataFrame) -> bool:
+    """
+    Reject a SUSTAINED even-lag run — the regime where the phase branch that fixes both lines genuinely flips.
+    Measured boundary (impl vs oracle, trailing flat / alternating runs on the golden carrier): real branch-flip
+    disagreement starts probabilistically at ~9 structured bars and is the norm by 11-14 (a whole-series flat run
+    deviates ~8.3e-2), while an ISOLATED even-lag tie — the bulk of what the old single-pair predicate rejected —
+    stays within ~2.6e-10 on these unit-bounded lanes, inside the property tiers' absolute band. Only the finite
+    bars can reach it, so filtering them keeps the missing-data tier from rejecting on interior null / NaN.
+    """
     finite = [value for value in frame.to_series(0).to_list() if value is not None and math.isfinite(value)]
-    return not spans_even_lag_repeat(finite)
+    return not spans_even_lag_run(finite)
 
 
 SINE_WAVE = Spec(
@@ -27,7 +34,7 @@ SINE_WAVE = Spec(
     fields=("sine", "lead_sine"),
     warmup=63,
     oracle=sine_wave_reference,
-    conditioning=_no_even_lag_repeat,
+    conditioning=_no_sustained_even_lag_run,
     # Both lines are the sine of a phase, bounded in [-1, 1] and scale-INVARIANT, degree 0 (tests/indicators/
     # test_sine_wave.py::TestSineWaveProperties::test_scale_invariance).
     scale=(ScaleAxis(roles=("expr",), degree=0),),
@@ -74,4 +81,57 @@ SINE_WAVE = Spec(
             0.4565,
         ),
     },
+    pins=(
+        SpecPin(
+            label="sustained_flat_run_diverges_from_reference",
+            inputs={"expr": (100.0,) * 80},
+            expected={
+                "sine": (None,) * 63
+                + (
+                    -0.9098528522762199,
+                    -0.9098466913108698,
+                    -0.9098416924932389,
+                    -0.9098376373787095,
+                    -0.9098343484232236,
+                    -0.9098316813577921,
+                    -0.909829518978248,
+                    -0.9098277660887951,
+                    -0.9098263453860005,
+                    -0.9098251941091461,
+                    -0.909824261314937,
+                    -0.909823505660742,
+                    -0.9098228936019193,
+                    -0.9098223979262363,
+                    -0.9098219965626348,
+                    -0.9098216716132133,
+                    -0.9098214085667864,
+                ),
+                "lead_sine": (None,) * 63
+                + (
+                    -0.936763690237157,
+                    -0.9367688863514293,
+                    -0.9367731020425325,
+                    -0.9367765216916077,
+                    -0.9367792951247279,
+                    -0.936781544066418,
+                    -0.936783367391654,
+                    -0.9367848453996032,
+                    -0.9367860432908455,
+                    -0.9367870139960882,
+                    -0.9367878004769019,
+                    -0.936788437596679,
+                    -0.9367889536417882,
+                    -0.9367893715580732,
+                    -0.936789709955756,
+                    -0.9367899839259475,
+                    -0.9367902057039424,
+                ),
+            },
+            reason="the regime the conditioning filter excludes, witnessed once: on a whole-series flat run the "
+            "impl's phase branch flips against the naive oracle (impl sine ~-0.9099 vs oracle ~-0.8346, an intrinsic "
+            "~9e-2 transcription divergence, not a bug), so the lanes are pinned to the implementation's "
+            "deterministic output rather than the oracle; both stay inside the documented [-1, 1] bound",
+            covers_conditioning=True,
+        ),
+    ),
 )

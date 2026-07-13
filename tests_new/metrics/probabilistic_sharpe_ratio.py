@@ -11,7 +11,13 @@ from pomata.metrics import probabilistic_sharpe_ratio
 
 
 def _well_spread(frame: pl.DataFrame) -> bool:
-    """Reject a near-constant sample: the embedded sample Sharpe and higher moments are a 0/0 there."""
+    """
+    Reject a near-constant sample: the embedded sample Sharpe and higher moments are a 0/0 there. KEPT deliberately
+    over-wide: this statistic's own divergence onset sits at var_rel ~2.5e-19, far below the shared cut of 1e-9,
+    but the cut is sized on the worst family member (kurtosis) and a spec-local narrowing would buy back a
+    negligible slice of draws at the price of one more magic constant — over-width here is a safe, conservative
+    guard, not a hazard.
+    """
     return well_spread(frame.to_series(0).to_list())
 
 
@@ -48,7 +54,9 @@ PROBABILISTIC_SHARPE_RATIO = Spec(
             inputs={"returns": (0.01, 0.01, 0.01, 0.01)},
             expected=(math.nan,),
             reason="a constant series has zero dispersion, so the Sharpe and higher moments are undefined, yielding "
-            "NaN (test_probabilistic_sharpe_ratio.py::test_zero_volatility_is_nan)",
+            "NaN — the exact core of the near-constant regime the conditioning filter excludes from the property "
+            "tiers (test_probabilistic_sharpe_ratio.py::test_zero_volatility_is_nan)",
+            covers_conditioning=True,
         ),
         SpecPin(
             label="null_skipped_benchmark_offset",

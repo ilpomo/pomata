@@ -11,7 +11,13 @@ from pomata.metrics import skewness
 
 
 def _well_spread(frame: pl.DataFrame) -> bool:
-    """Reject a near-constant sample: the standardized moment is a 0/0 the one- and two-pass paths resolve apart."""
+    """
+    Reject a near-constant sample: the standardized moment is a 0/0 the one- and two-pass paths resolve apart.
+    KEPT deliberately over-wide: skewness' own divergence onset sits at var_rel ~2.8e-13, far below the shared cut
+    of 1e-9, but the cut is sized on the worst family member (kurtosis, whose onset straddles it) and a spec-local
+    narrowing would buy back <2% of draws at the price of one more magic constant — over-width here is a safe,
+    conservative guard, not a hazard.
+    """
     return well_spread(frame.to_series(0).to_list())
 
 
@@ -38,8 +44,10 @@ SKEWNESS = Spec(
             label="constant_is_nan",
             inputs={"returns": (0.01, 0.01, 0.01)},
             expected=(math.nan,),
-            reason="a constant series has zero variance, so the standardized moment is 0/0, i.e. NaN "
+            reason="a constant series has zero variance, so the standardized moment is 0/0, i.e. NaN — the exact "
+            "core of the near-constant regime the conditioning filter excludes from the property tiers "
             "(test_skewness.py::test_constant_is_nan)",
+            covers_conditioning=True,
         ),
         SpecPin(
             label="subnormal_magnitude_is_nan",

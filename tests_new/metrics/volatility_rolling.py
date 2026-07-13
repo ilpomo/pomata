@@ -9,7 +9,13 @@ from pomata.metrics import volatility_rolling
 
 
 def _windows_well_spread(frame: pl.DataFrame) -> bool:
-    """Reject a near-constant window: the one-pass rolling std cannot track the two-pass oracle there."""
+    """
+    Reject a near-constant window: the one-pass rolling std cannot track the two-pass oracle there. KEPT at the
+    shared cut even though this spec's own onset at unit scale sits ~2.5 orders below it: the true floor here is
+    quasi-ABSOLUTE, not scale-squared-relative, so at the domain's low edge (|r| ~0.01) the same shared cut is
+    already within ~4x of the real onset — no single tighter constant is safe at both ends of the domain, and the
+    shared cut is sized on that low edge.
+    """
     return windows_well_spread(frame.to_series(0).to_list(), 4)
 
 
@@ -43,9 +49,11 @@ VOLATILITY_ROLLING = Spec(
             label="constant_window_is_zero",
             inputs={"returns": (0.01, 0.01, 0.01, 0.01)},
             expected=(None, None, 0.0, 0.0),
-            reason="a constant window has zero dispersion, so the volatility is exactly 0 "
+            reason="a constant window has zero dispersion, so the volatility is exactly 0 — the exact core of the "
+            "near-constant regime the conditioning filter excludes from the property tiers "
             "(test_volatility_rolling.py::test_constant_window_is_zero)",
             params_override={"window": 3},
+            covers_conditioning=True,
         ),
     ),
 )

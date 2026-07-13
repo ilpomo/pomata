@@ -1,17 +1,9 @@
 """Spec for ``pomata.metrics.volatility`` — reducing, the annualized sample standard deviation, degree-1 homogeneous."""
 
-import polars as pl
 from tests_new.metrics.oracles import volatility_reference
-from tests_new.support import well_spread
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import volatility
-
-
-def _well_spread(frame: pl.DataFrame) -> bool:
-    """Reject a near-constant series: the one-pass std and the two-pass oracle round its variance apart at 0."""
-    return well_spread(frame.to_series(0).to_list())
-
 
 VOLATILITY = Spec(
     factory=volatility,
@@ -24,7 +16,6 @@ VOLATILITY = Spec(
         ({"periods_per_year": -252}, r"periods_per_year must be >= 1"),
     ),
     oracle=volatility_reference,
-    conditioning=_well_spread,
     # volatility(k*r) == |k|*volatility(r): degree-1 homogeneous (test_volatility.py::test_scale_homogeneity).
     scale=(ScaleAxis(roles=("returns",), degree=1),),
     golden_input={"returns": (0.1, -0.1, 0.2, -0.2)},
@@ -41,7 +32,9 @@ VOLATILITY = Spec(
             label="flat_returns_zero",
             inputs={"returns": (0.01, 0.01, 0.01, 0.01)},
             expected=(0.0,),
-            reason="a constant series has zero dispersion, so the volatility is exactly 0 "
+            reason="a constant series has zero dispersion, so the volatility is exactly 0 — the exact-zero core of "
+            "the near-constant regime the old suite's well-spread filter excluded; the property tiers' absolute "
+            "band absorbs the rounding-noise dispersion there, so no filter is declared "
             "(test_volatility.py::test_flat_returns_zero)",
         ),
         SpecPin(

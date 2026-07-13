@@ -5,12 +5,17 @@ from collections.abc import Sequence
 
 import polars as pl
 from tests_new.metrics.oracles import treynor_ratio_rolling_reference
-from tests_new.support import CONDITIONING_FLOOR, RELATIVE_TOLERANCE_SCALE
+from tests_new.support import RELATIVE_TOLERANCE_SCALE
 from tests_new.support.spec import ScaleExempt, Shape, Spec, SpecPin
 
 from pomata.metrics import treynor_ratio_rolling
 
-_BETA_FLOOR = 5e-2
+# Spec-local conditioning floors: the shared cuts (variance 1e-2, beta 5e-2) rejected ~5-6 orders of magnitude of
+# well-behaved windows on each axis. The graduated probes measured impl-vs-oracle agreement holding down to 1e-6 on
+# BOTH axes (benchmark var_rel and |beta|) with the first breach at ~1e-8, so 1e-5 keeps a 10x margin above the
+# last verified-agreeing point on each axis.
+_VARIANCE_FLOOR = 1e-5
+_BETA_FLOOR = 1e-5
 
 
 def _treynor_windows_conditioned(
@@ -36,7 +41,7 @@ def _treynor_windows_conditioned(
         mean_benchmark = sum(window_benchmark) / len(pairs)
         variance = sum((value - mean_benchmark) ** 2 for value in window_benchmark) / len(pairs)
         scale = max(abs(value) for value in window_benchmark) or 1.0
-        if variance <= scale * scale * CONDITIONING_FLOOR:
+        if variance <= scale * scale * _VARIANCE_FLOOR:
             return False
         covariance = sum(
             (value_returns - mean_returns) * (value_benchmark - mean_benchmark)
@@ -92,17 +97,21 @@ TREYNOR_RATIO_ROLLING = Spec(
             label="constant_benchmark_window_is_nan",
             inputs={"returns": (0.01, -0.02, 0.03, -0.01), "benchmark": (0.1, 0.1, 0.1, 0.1)},
             expected=(None, None, math.nan, math.nan),
-            reason="a window whose benchmark is exactly constant makes the embedded slope NaN "
+            reason="a window whose benchmark is exactly constant makes the embedded slope NaN — the exact core of "
+            "the near-constant regime the filter's variance clause excludes from the property tiers "
             "(tests/metrics/test_treynor_ratio_rolling.py::test_constant_benchmark_window_is_nan)",
             params_override={"window": 3},
+            covers_conditioning=True,
         ),
         SpecPin(
             label="zero_beta_window_is_inf",
             inputs={"returns": (3.0, 3.0, 1.0, 1.0), "benchmark": (1.0, -1.0, 1.0, -1.0)},
             expected=(None, None, None, math.inf),
-            reason="a zero-beta window with a positive excess return gives +inf, reported not clipped "
+            reason="a zero-beta window with a positive excess return gives +inf, reported not clipped — the exact "
+            "core of the vanishing-slope regime the filter's beta clause excludes from the property tiers "
             "(tests/metrics/test_treynor_ratio_rolling.py::test_zero_beta_window_is_inf)",
             params_override={"window": 4},
+            covers_conditioning=True,
         ),
         SpecPin(
             label="window_equals_length",

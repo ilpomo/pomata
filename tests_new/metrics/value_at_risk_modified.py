@@ -11,7 +11,13 @@ from pomata.metrics import value_at_risk_modified
 
 
 def _well_spread(frame: pl.DataFrame) -> bool:
-    """Reject a near-constant sample: the skew/kurtosis the Cornish-Fisher expansion uses are a 0/0 there."""
+    """
+    Reject a near-constant sample: the skew/kurtosis the Cornish-Fisher expansion uses are a 0/0 there. KEPT
+    deliberately over-wide: this statistic's own divergence onset sits at var_rel ~1e-32 — the most extreme of the
+    well-spread family — but the shared cut of 1e-9 is sized on the worst member (kurtosis) and a spec-local
+    narrowing would buy back a negligible slice of draws at the price of one more magic constant; over-width here
+    is a safe, conservative guard, not a hazard.
+    """
     return well_spread(frame.to_series(0).to_list())
 
 
@@ -44,8 +50,10 @@ VALUE_AT_RISK_MODIFIED = Spec(
             label="zero_volatility",
             inputs={"returns": (0.01, 0.01, 0.01, 0.01)},
             expected=(math.nan,),
-            reason="a constant series has undefined skewness/kurtosis, so the result is NaN "
+            reason="a constant series has undefined skewness/kurtosis, so the result is NaN — the exact core of "
+            "the near-constant regime the conditioning filter excludes from the property tiers "
             "(test_value_at_risk_modified.py::test_zero_volatility_is_nan)",
+            covers_conditioning=True,
         ),
         SpecPin(
             label="domain_nonmonotonic_slope",
