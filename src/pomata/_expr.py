@@ -96,6 +96,34 @@ def rolling_is_constant(
     return expr.rolling_max(window, min_samples=window) == expr.rolling_min(window, min_samples=window)
 
 
+def rolling_mean_exact(
+    expr: pl.Expr,
+    window: int,
+) -> pl.Expr:
+    """
+    A rolling mean that returns the exact constant on a bit-constant window — no incremental residue.
+
+    The native incremental rolling mean can carry a floating-point residue after a much larger value slides out of
+    the window, so a window of identical values (most dangerously: all exact zeros) reports a tiny non-zero mean.
+    Above a denominator pinned to exact zero by :func:`rolling_is_constant` (the rolling ratio kernels — Sharpe,
+    Sortino, information ratio), that residue flips the documented ``0/0 -> NaN`` degeneracy into a spurious
+    ``residue/0 -> +/-inf``. Pinning the mean of a bit-constant window to the constant itself closes the numerator
+    leg of the residue class the same way the rolling dispersions already close the denominator leg.
+
+    Args:
+        expr: Input series the rolling mean is computed over.
+        window: Number of observations in the moving window.
+
+    Returns:
+        The rolling mean, exact on bit-constant windows, ``null`` while the window is incomplete.
+    """
+    return (
+        pl.when(rolling_is_constant(expr, window))
+        .then(expr.rolling_min(window, min_samples=window))
+        .otherwise(expr.rolling_mean(window, min_samples=window))
+    )
+
+
 def validate_window(
     window: int,
     minimum: int = 1,

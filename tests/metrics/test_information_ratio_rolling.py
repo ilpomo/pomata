@@ -205,6 +205,21 @@ class TestInformationRatioRollingEdge:
             information_ratio_rolling_reference(returns, benchmark, 3, PERIODS),
         )
 
+    def test_flat_zero_active_window_by_slide_is_nan(self) -> None:
+        """
+        Verifies that a window whose active returns are all exactly zero degenerates to ``0/0 -> NaN`` even after
+        larger active values have slid out of the window: the exact rolling mean pins the numerator to zero, so the
+        incremental running-sum residue cannot ride above the exactly-zero tracking error as a spurious ``inf``.
+        """
+        returns = [0.0132, -0.3625, 0.0, 0.4404, 0.0, 0.0, 0.0, 0.0]
+        benchmark = [0.3365, 0.2832, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        result = materialize(
+            {RETURNS: returns, BENCHMARK: benchmark},
+            information_ratio_rolling(pl.col(RETURNS), pl.col(BENCHMARK), 4, periods_per_year=PERIODS),
+        )
+        assert result[-1] is not None
+        assert math.isnan(result[-1])
+
 
 class TestInformationRatioRollingCorrectness:
     """
