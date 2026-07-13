@@ -10,8 +10,6 @@ authors:
 repository-code: "https://github.com/ilpomo/pomata"
 url: "https://github.com/ilpomo/pomata"
 license: MIT
-version: 0.4.2
-date-released: 2026-07-13
 doi: 10.5281/zenodo.20980041
 keywords:
   - finance
