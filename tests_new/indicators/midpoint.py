@@ -1,6 +1,6 @@
 """Spec for ``pomata.indicators.midpoint`` — the rolling high/low midpoint of a series, window-nulling, degree-1."""
 
-from tests.indicators.oracles import midpoint_reference
+from tests_new.indicators.oracles import midpoint_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import midpoint

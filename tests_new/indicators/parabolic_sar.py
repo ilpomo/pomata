@@ -1,6 +1,6 @@
 """Spec for ``pomata.indicators.parabolic_sar`` — Wilder's stop-and-reverse, propagating, degree-1 homogeneous."""
 
-from tests.indicators.oracles import parabolic_sar_reference
+from tests_new.indicators.oracles import parabolic_sar_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import parabolic_sar

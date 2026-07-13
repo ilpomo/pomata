@@ -20,8 +20,8 @@ import os
 
 import pytest
 from pytest_benchmark.fixture import BenchmarkFixture
-from tests.support import fastest_eval
 from tests_new.all_specs import ALL_SPECS
+from tests_new.support import fastest_eval
 from tests_new.support.spec import Spec, build_expr, probe_frame, spec_id
 
 if not os.environ.get("POMATA_BENCHMARKS"):

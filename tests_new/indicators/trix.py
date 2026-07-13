@@ -1,7 +1,7 @@
 """Spec for ``pomata.indicators.trix`` — the triple-EMA rate of change, gap-bridging, NaN-latching, degree-0."""
 
-from tests.indicators.oracles import trix_reference
-from tests.support import ABSOLUTE_TOLERANCE_SCALE, RELATIVE_TOLERANCE_SCALE
+from tests_new.indicators.oracles import trix_reference
+from tests_new.support import ABSOLUTE_TOLERANCE_SCALE, RELATIVE_TOLERANCE_SCALE
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import trix

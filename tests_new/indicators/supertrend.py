@@ -2,7 +2,7 @@
 
 import math
 
-from tests.indicators.oracles import supertrend_reference
+from tests_new.indicators.oracles import supertrend_reference
 from tests_new.support.spec import ScaleExempt, Shape, Spec, SpecPin
 
 from pomata.indicators import supertrend

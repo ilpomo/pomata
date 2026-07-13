@@ -1,6 +1,6 @@
 """Spec for ``pomata.indicators.ichimoku`` — a struct of four rolling midpoints, per-field warm-ups, three windows."""
 
-from tests.indicators.oracles import ichimoku_reference
+from tests_new.indicators.oracles import ichimoku_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec
 
 from pomata.indicators import ichimoku

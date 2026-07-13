@@ -25,7 +25,7 @@ from typing import Any
 import numpy as np
 import polars as pl
 import pytest
-from tests.support import ABSOLUTE_TOLERANCE_REFERENCE, RELATIVE_TOLERANCE_REFERENCE
+from tests_new.support import ABSOLUTE_TOLERANCE_REFERENCE, RELATIVE_TOLERANCE_REFERENCE
 
 from pomata import indicators
 from pomata.indicators import (

@@ -1,6 +1,6 @@
 """Spec for ``pomata.pnl.cumulative_pnl`` — the additive running total, bridged nulls, latched NaNs, degree-1."""
 
-from tests.pnl.oracles import cumulative_pnl_reference
+from tests_new.pnl.oracles import cumulative_pnl_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.pnl import cumulative_pnl

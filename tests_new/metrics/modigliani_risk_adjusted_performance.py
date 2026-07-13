@@ -4,8 +4,8 @@ import math
 from collections.abc import Sequence
 
 import polars as pl
-from tests.metrics.oracles import modigliani_risk_adjusted_performance_reference
-from tests.support import well_spread
+from tests_new.metrics.oracles import modigliani_risk_adjusted_performance_reference
+from tests_new.support import well_spread
 from tests_new.support.spec import ScaleExempt, Shape, Spec, SpecPin
 
 from pomata.metrics import modigliani_risk_adjusted_performance, sharpe_ratio, volatility

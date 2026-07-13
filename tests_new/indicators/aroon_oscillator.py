@@ -1,7 +1,7 @@
 """Spec for ``pomata.indicators.aroon_oscillator`` — the aroon up-minus-down line, window-nulling, scale-invariant."""
 
 import polars as pl
-from tests.indicators.oracles import aroon_oscillator_reference
+from tests_new.indicators.oracles import aroon_oscillator_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import aroon, aroon_oscillator

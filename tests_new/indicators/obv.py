@@ -1,6 +1,6 @@
 """Spec for ``pomata.indicators.obv`` — On-Balance Volume, the signed-volume running total, gap-bridging."""
 
-from tests.indicators.oracles import obv_reference
+from tests_new.indicators.oracles import obv_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import obv

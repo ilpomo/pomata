@@ -2,7 +2,7 @@
 
 import math
 
-from tests.indicators.oracles import rsi_reference
+from tests_new.indicators.oracles import rsi_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import rsi

@@ -2,7 +2,7 @@
 
 import math
 
-from tests.metrics.oracles import profit_factor_reference
+from tests_new.metrics.oracles import profit_factor_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import profit_factor

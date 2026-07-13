@@ -2,7 +2,7 @@
 
 import math
 
-from tests.metrics.oracles import capture_downside_ratio_reference
+from tests_new.metrics.oracles import capture_downside_ratio_reference
 from tests_new.support.spec import ScaleExempt, Shape, Spec, SpecPin
 
 from pomata.metrics import capture_downside_ratio

@@ -1,6 +1,6 @@
 """Spec for ``pomata.pnl.equity_curve`` — the compounding cumulation, bridged nulls, latched NaNs, scale-exempt."""
 
-from tests.pnl.oracles import equity_curve_reference
+from tests_new.pnl.oracles import equity_curve_reference
 from tests_new.support.spec import ScaleExempt, Shape, Spec, SpecPin
 
 from pomata.pnl import equity_curve

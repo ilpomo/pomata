@@ -23,7 +23,8 @@ from typing import cast
 
 import polars as pl
 from hypothesis import strategies as st
-from tests.support import (
+from tests_new.support.bars import split_pairs, split_quads, split_triples
+from tests_new.support.strategies import (
     coherent_hl,
     coherent_hl_with_missing,
     coherent_hlc,
@@ -34,9 +35,6 @@ from tests.support import (
     coherent_ohlc_with_missing,
     finite_floats,
     missing_data_floats,
-    split_pairs,
-    split_quads,
-    split_triples,
 )
 
 import pomata.indicators

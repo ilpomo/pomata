@@ -1,7 +1,7 @@
 """Spec for ``pomata.metrics.kelly_criterion`` — reducing, the optimal betting fraction, scale-invariant."""
 
 import polars as pl
-from tests.metrics.oracles import kelly_criterion_reference
+from tests_new.metrics.oracles import kelly_criterion_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import kelly_criterion, payoff_ratio, win_rate

@@ -2,7 +2,7 @@
 scale-invariant.
 """
 
-from tests.metrics.oracles import risk_of_ruin_reference
+from tests_new.metrics.oracles import risk_of_ruin_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import risk_of_ruin

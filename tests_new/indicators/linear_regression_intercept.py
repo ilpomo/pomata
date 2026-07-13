@@ -1,6 +1,6 @@
 """Spec for ``pomata.indicators.linear_regression_intercept`` — the rolling least-squares intercept, degree-1."""
 
-from tests.indicators.oracles import linear_regression_intercept_reference
+from tests_new.indicators.oracles import linear_regression_intercept_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec
 
 from pomata.indicators import linear_regression_intercept

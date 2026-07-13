@@ -4,8 +4,8 @@ import math
 from collections.abc import Sequence
 
 import polars as pl
-from tests.metrics.oracles import treynor_ratio_rolling_reference
-from tests.support import CONDITIONING_FLOOR, RELATIVE_TOLERANCE_SCALE
+from tests_new.metrics.oracles import treynor_ratio_rolling_reference
+from tests_new.support import CONDITIONING_FLOOR, RELATIVE_TOLERANCE_SCALE
 from tests_new.support.spec import ScaleExempt, Shape, Spec, SpecPin
 
 from pomata.metrics import treynor_ratio_rolling

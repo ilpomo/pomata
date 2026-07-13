@@ -3,7 +3,7 @@
 import math
 
 import polars as pl
-from tests.metrics.oracles import calmar_ratio_reference
+from tests_new.metrics.oracles import calmar_ratio_reference
 from tests_new.support.spec import ScaleExempt, Shape, Spec, SpecPin
 
 from pomata.metrics import cagr, calmar_ratio, max_drawdown

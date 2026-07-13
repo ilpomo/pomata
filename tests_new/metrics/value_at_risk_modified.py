@@ -3,8 +3,8 @@
 import math
 
 import polars as pl
-from tests.metrics.oracles import value_at_risk_modified_reference
-from tests.support import well_spread
+from tests_new.metrics.oracles import value_at_risk_modified_reference
+from tests_new.support import well_spread
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import value_at_risk_modified

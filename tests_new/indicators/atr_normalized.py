@@ -1,6 +1,6 @@
 """Spec for ``pomata.indicators.atr_normalized`` — the ATR as a percentage of close, gap-bridging, scale-invariant."""
 
-from tests.indicators.oracles import atr_normalized_reference
+from tests_new.indicators.oracles import atr_normalized_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec
 
 from pomata.indicators import atr_normalized

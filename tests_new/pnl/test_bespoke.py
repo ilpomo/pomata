@@ -20,18 +20,6 @@ import polars as pl
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from tests.support import (
-    ABSOLUTE_TOLERANCE_REFERENCE,
-    ABSOLUTE_TOLERANCE_STREAMING,
-    COLUMN_X,
-    EXACT_TOLERANCE_FACTOR,
-    RELATIVE_TOLERANCE_PROPERTY,
-    RELATIVE_TOLERANCE_SCALE,
-    apply_expr,
-    assert_matches,
-    finite_floats,
-    input_scale,
-)
 from tests_new.pnl.cost_borrow import COST_BORROW
 from tests_new.pnl.cost_funding import COST_FUNDING
 from tests_new.pnl.cost_notional import COST_NOTIONAL
@@ -46,6 +34,18 @@ from tests_new.pnl.pnl_net import PNL_NET
 from tests_new.pnl.returns_gross import RETURNS_GROSS
 from tests_new.pnl.returns_net import RETURNS_NET
 from tests_new.pnl.turnover import TURNOVER
+from tests_new.support import (
+    ABSOLUTE_TOLERANCE_REFERENCE,
+    ABSOLUTE_TOLERANCE_STREAMING,
+    COLUMN_X,
+    EXACT_TOLERANCE_FACTOR,
+    RELATIVE_TOLERANCE_PROPERTY,
+    RELATIVE_TOLERANCE_SCALE,
+    apply_expr,
+    assert_matches,
+    finite_floats,
+    input_scale,
+)
 from tests_new.support.spec import Spec, actual_lanes, fuzz_frames, reference_lanes, spec_id
 
 from pomata.pnl import cumulative_pnl, equity_curve, returns_log

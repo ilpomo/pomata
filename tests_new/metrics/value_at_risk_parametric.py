@@ -1,6 +1,6 @@
 """Spec for ``pomata.metrics.value_at_risk_parametric`` — reducing, mean plus z times std, degree-1 homogeneous."""
 
-from tests.metrics.oracles import value_at_risk_parametric_reference
+from tests_new.metrics.oracles import value_at_risk_parametric_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import value_at_risk_parametric

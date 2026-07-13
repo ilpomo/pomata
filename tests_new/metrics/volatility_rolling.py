@@ -1,8 +1,8 @@
 """Spec for ``pomata.metrics.volatility_rolling`` — the annualized rolling sample std, degree-1 homogeneous."""
 
 import polars as pl
-from tests.metrics.oracles import volatility_rolling_reference
-from tests.support import windows_well_spread
+from tests_new.metrics.oracles import volatility_rolling_reference
+from tests_new.support import windows_well_spread
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import volatility_rolling

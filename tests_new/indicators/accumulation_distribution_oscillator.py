@@ -1,6 +1,6 @@
 """Spec for ``pomata.indicators.accumulation_distribution_oscillator`` — the Chaikin A/D oscillator, gap-bridging."""
 
-from tests.indicators.oracles import accumulation_distribution_oscillator_reference
+from tests_new.indicators.oracles import accumulation_distribution_oscillator_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec
 
 from pomata.indicators import accumulation_distribution_oscillator

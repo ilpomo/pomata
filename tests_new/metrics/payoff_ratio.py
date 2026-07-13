@@ -1,6 +1,6 @@
 """Spec for ``pomata.metrics.payoff_ratio`` — reducing, average win over average loss magnitude, scale-invariant."""
 
-from tests.metrics.oracles import payoff_ratio_reference
+from tests_new.metrics.oracles import payoff_ratio_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import payoff_ratio

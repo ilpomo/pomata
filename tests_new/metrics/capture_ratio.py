@@ -3,7 +3,7 @@
 import math
 
 import polars as pl
-from tests.metrics.oracles import capture_ratio_reference
+from tests_new.metrics.oracles import capture_ratio_reference
 from tests_new.support.spec import ScaleExempt, Shape, Spec, SpecPin
 
 from pomata.metrics import capture_downside_ratio, capture_ratio, capture_upside_ratio

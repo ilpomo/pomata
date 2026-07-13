@@ -1,6 +1,6 @@
 """Spec for ``pomata.metrics.pain_index`` — reducing, the mean absolute drawdown, scale-invariant."""
 
-from tests.metrics.oracles import pain_index_reference
+from tests_new.metrics.oracles import pain_index_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import pain_index

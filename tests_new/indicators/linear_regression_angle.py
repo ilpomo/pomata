@@ -1,6 +1,6 @@
 """Spec for ``pomata.indicators.linear_regression_angle`` — the least-squares slope as a degree angle, scale-exempt."""
 
-from tests.indicators.oracles import linear_regression_angle_reference
+from tests_new.indicators.oracles import linear_regression_angle_reference
 from tests_new.support.spec import ScaleExempt, Shape, Spec
 
 from pomata.indicators import linear_regression_angle

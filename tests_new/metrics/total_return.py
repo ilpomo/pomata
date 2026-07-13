@@ -1,6 +1,6 @@
 """Spec for ``pomata.metrics.total_return`` — reducing, the final growth factor minus one, scale-exempt."""
 
-from tests.metrics.oracles import total_return_reference
+from tests_new.metrics.oracles import total_return_reference
 from tests_new.support.spec import ScaleExempt, Shape, Spec, SpecPin
 
 from pomata.metrics import total_return

@@ -2,7 +2,7 @@
 
 import math
 
-from tests.indicators.oracles import williams_r_reference
+from tests_new.indicators.oracles import williams_r_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import williams_r

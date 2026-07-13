@@ -1,6 +1,6 @@
 """Spec for ``pomata.metrics.max_drawdown_duration`` — reducing, the longest underwater run, scale-invariant."""
 
-from tests.metrics.oracles import max_drawdown_duration_reference
+from tests_new.metrics.oracles import max_drawdown_duration_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import max_drawdown_duration

@@ -2,7 +2,7 @@
 
 import math
 
-from tests.indicators.oracles import chaikin_money_flow_reference
+from tests_new.indicators.oracles import chaikin_money_flow_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import chaikin_money_flow
