@@ -83,9 +83,10 @@ Every pull request carries exactly one **type** label mirroring its conventional
 carries `!`), enforced fail-closed by `.github/workflows/labels.yml`; the **area** labels (`indicators` / `metrics` /
 `pnl`) mirror the title scope and are triage-only. Releases use GitHub's native release notes: tag a SemVer version
 and **Generate release notes**, which `.github/release.yml` groups by those type labels — breaking changes first,
-Dependabot under `dependencies`. Publish only once the release checklist is complete (the `CITATION.cff` version bump
-already merged on `main`): Zenodo archives the release the moment it is published, independently of CI, and its
-records are immutable — a delete-and-recreate leaves a duplicate archive behind.
+Dependabot under `dependencies`. The tag is the single source of the version (`hatch-vcs` stamps the package from
+it, and `CITATION.cff` is versionless by design, so a release needs no prep commit) — but publish deliberately:
+Zenodo archives the release the moment it is published, independently of CI, and its records are immutable — a
+delete-and-recreate leaves a duplicate archive behind.
 
 ## Conventions
 

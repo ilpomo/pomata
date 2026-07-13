@@ -45,21 +45,13 @@ jobs:
           fetch-depth: 0 # hatch-vcs reads the tag history to stamp the version
           persist-credentials: false
       # Fail closed before building anything: the tag must point at a commit already on main (i.e. one that went
-      # through the gated merge path -- a tag on a stray commit publishes nothing), and CITATION.cff must carry the
-      # tag's version so the citation metadata can never ship one release stale again.
-      - name: "Guard: tag is on main and CITATION.cff matches it"
+      # through the gated merge path -- a tag on a stray commit publishes nothing). The citation file is versionless
+      # by design (CFF 1.2 makes version/date-released optional), so a release needs no prep commit: the tag is the
+      # single source of the version (hatch-vcs stamps the package from it) and nothing can go stale.
+      - name: "Guard: tag is on main"
         run: |
           git fetch --no-tags --quiet origin main
           git merge-base --is-ancestor "$GITHUB_SHA" origin/main || { echo "::error::release tag is not on main"; exit 1; }
-          version="${GITHUB_REF_NAME#v}"
-          grep -qFx "version: ${version}" CITATION.cff || { echo "::error::CITATION.cff version does not match tag ${version}"; exit 1; }
-          # date-released must match the calendar day recorded in the release-prep bump commit that last touched
-          # CITATION.cff (%cs renders the committer's own timezone offset, not UTC) -- a version bumped with a stale
-          # date fails here, before anything is built. Same-day expectation: the bump PR merges and the tag is cut on
-          # the same committer-local day; a midnight straddle means re-tagging after the fix.
-          cff_date=$(grep -oE '^date-released: [0-9-]+' CITATION.cff | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}')
-          bump_date=$(git log -1 --format=%cs -- CITATION.cff)
-          [ -n "$cff_date" ] && [ "$cff_date" = "$bump_date" ] || { echo "::error::CITATION.cff date-released (${cff_date}) does not match its last bump commit date (${bump_date})"; exit 1; }
       - name: "Setup: install uv"
         uses: ./.github/actions/setup
         with:
