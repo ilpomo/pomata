@@ -61,5 +61,25 @@ SHARPE_RATIO_ROLLING = Spec(
             "(test_sharpe_ratio_rolling.py::test_window_equals_length)",
             params_override={"window": 5},
         ),
+        SpecPin(
+            label="flat_zero_excess_window_by_slide_is_nan",
+            inputs={"returns": (-0.3233, -0.6457, 0.0, 0.4404, 0.0, 0.0, 0.0, 0.0)},
+            expected=(
+                None,
+                None,
+                None,
+                -4.522342411070932,
+                -1.8213352931142792,
+                7.9372539331937695,
+                7.9372539331937695,
+                math.nan,
+            ),
+            reason="a window whose excess returns are all exactly zero degenerates to 0/0 -> NaN even after larger "
+            "values slid out: the exact rolling mean pins the numerator to zero, so the incremental running-sum "
+            "residue cannot ride above the exactly-zero dispersion as a spurious inf — found by the mutation audit "
+            "(reverting the numerator to the native rolling mean survived the suite without this pin); the residue "
+            "is bit-sensitive, so the prefix must reach the kernel with exactly these bits",
+            params_override={"window": 4},
+        ),
     ),
 )

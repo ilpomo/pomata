@@ -33,6 +33,16 @@ CAGR_ROLLING = Spec(
             params_override={"window": 2, "periods_per_year": 1},
         ),
         SpecPin(
+            label="window_endpoint_exact_zero_is_nan",
+            inputs={"equity_curve": (100.0, 105.0, 0.0, 110.0, 120.0)},
+            expected=(None, None, math.nan, 0.0975056689342404, math.inf),
+            reason="the EXACT-zero boundary of the geometric domain, distinct from the crossing pin's negative "
+            "ratios: an end value of exactly 0.0 must be the loud NaN (not the plausible 0**x - 1 = -1.0), and a "
+            "zero START endpoint blows the ratio to +inf, reported not clipped — found by the mutation audit "
+            "(relaxing the guard from <= 0 to < 0 survived the suite, since no fixed case sat on the boundary)",
+            params_override={"window": 3, "periods_per_year": 4},
+        ),
+        SpecPin(
             label="window_equals_length",
             inputs={"equity_curve": (1.0, 1.1, 1.05, 1.2)},
             expected=(None, None, None, 0.2751902830191333),

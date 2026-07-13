@@ -54,5 +54,14 @@ CAPTURE_UPSIDE_RATIO = Spec(
             reason="a selected up-market return <= -1 is outside the geometric-growth domain, a loud NaN "
             "(tests/metrics/test_capture_upside_ratio.py::test_return_below_negative_one_is_nan)",
         ),
+        SpecPin(
+            label="flat_benchmark_day_is_excluded",
+            inputs={"returns": (0.02, -0.01, 0.03, 0.015), "benchmark": (0.01, -0.02, 0.0, 0.02)},
+            expected=(1.8838761627776746,),
+            reason="an exactly-flat benchmark day (0.0) belongs to NEITHER market leg: the up-market subset takes "
+            "strictly positive benchmark periods only — found by the mutation audit (letting the flat day leak "
+            "into the upside leg distorted this scalar to ~19.67 and survived the suite, since the fuzz domain is "
+            "bounded away from zero and no fixed case held the boundary)",
+        ),
     ),
 )
