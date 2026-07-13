@@ -1,5 +1,7 @@
 """Spec for ``pomata.indicators.vortex`` — the plus/minus vortex movement pair, window-nulling, scale-invariant."""
 
+import math
+
 from tests.indicators.oracles import vortex_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
@@ -35,6 +37,18 @@ VORTEX = Spec(
             expected={"plus": (None, 1.2, 1.2), "minus": (None, 0.4, 0.0)},
             reason="window=1 reduces each line to a single bar's vortex movement over its true range, the first bar "
             "warm-up (no prior bar) (tests/indicators/test_vortex.py::TestVortexEdge::test_window_one)",
+        ),
+        SpecPin(
+            label="flat_window_is_nan",
+            inputs={"high": (10.0,) * 6, "low": (10.0,) * 6, "close": (10.0,) * 6},
+            params_override={"window": 2},
+            expected={
+                "plus": (None, None, math.nan, math.nan, math.nan, math.nan),
+                "minus": (None, None, math.nan, math.nan, math.nan, math.nan),
+            },
+            reason="a flat window has zero summed true range and zero summed movement, so both lines are the "
+            "indeterminate 0/0 == NaN after warm-up (tests/indicators/test_vortex.py::TestVortexEdge"
+            "::test_flat_window_is_nan)",
         ),
     ),
 )

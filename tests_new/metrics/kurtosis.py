@@ -1,9 +1,11 @@
 """Spec for ``pomata.metrics.kurtosis`` — reducing, the standardized fourth moment minus three, scale-invariant."""
 
+import math
+
 import polars as pl
 from tests.metrics.oracles import kurtosis_reference
 from tests.support import well_spread
-from tests_new.support.spec import ScaleAxis, Shape, Spec
+from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import kurtosis
 
@@ -24,4 +26,20 @@ KURTOSIS = Spec(
     scale=(ScaleAxis(roles=("returns",), degree=0),),
     golden_input={"returns": (0.01, -0.02, 0.015, -0.03, 0.005, -0.01, 0.02)},
     golden_output=(-1.3223,),
+    pins=(
+        SpecPin(
+            label="constant_is_nan",
+            inputs={"returns": (0.01, 0.01, 0.01)},
+            expected=(math.nan,),
+            reason="a constant series has zero variance, so the standardized fourth moment is 0/0, i.e. NaN "
+            "(test_kurtosis.py::test_constant_is_nan)",
+        ),
+        SpecPin(
+            label="subnormal_magnitude_is_nan",
+            inputs={"returns": (0.0, 1e-160, 2e-160)},
+            expected=(math.nan,),
+            reason="a subnormal-magnitude series has m2**2 underflow to zero, yielding NaN "
+            "(test_kurtosis.py::test_subnormal_magnitude_is_nan)",
+        ),
+    ),
 )

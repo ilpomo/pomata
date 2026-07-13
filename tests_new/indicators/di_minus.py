@@ -1,7 +1,9 @@
 """Spec for ``pomata.indicators.di_minus`` — Wilder's negative directional indicator, gap-bridging, scale-invariant."""
 
+import math
+
 from tests.indicators.oracles import di_minus_reference
-from tests_new.support.spec import ScaleAxis, Shape, Spec
+from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import di_minus
 
@@ -24,4 +26,14 @@ DI_MINUS = Spec(
         "close": (9.5, 10.5, 11.5, 11.0, 12.5, 12.0, 13.5),
     },
     golden_output=(None, 0.0, 0.0, 21.0526, 7.8431, 24.0964, 9.4787),
+    pins=(
+        SpecPin(
+            label="flat_window_is_nan",
+            inputs={"high": (10.0,) * 8, "low": (10.0,) * 8, "close": (10.0,) * 8},
+            params_override={"window": 3},
+            expected=(None, None, math.nan, math.nan, math.nan, math.nan, math.nan, math.nan),
+            reason="a fully flat window makes the average true range zero, so the smoothed movement over it is the "
+            "indeterminate 0/0 (tests/indicators/test_di_minus.py::TestDiMinusEdge::test_flat_window_is_nan)",
+        ),
+    ),
 )
