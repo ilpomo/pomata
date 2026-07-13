@@ -171,6 +171,10 @@ class Spec:
     # The public-function recomposition this factory must reproduce (a metamorphic identity), as a zero-argument
     # expression builder; ``None`` when the function has no such definition. Compared to the factory on the probe frame.
     component_expr: Callable[[], pl.Expr] | None = None
+    # The oracle-agreement band, declared only where a one-pass rolling form cannot meet the tight default against its
+    # two-pass oracle (the old suite chose a per-metric band for exactly these). ``None`` uses the tier default.
+    oracle_rel_tol: float | None = None
+    oracle_abs_tol: float | None = None
 
     def __post_init__(self) -> None:
         """Conditional requirements, checked loudly at construction (import time) — the one obvious place they live."""
@@ -383,6 +387,11 @@ _FUZZ_ELEMENT: dict[str, st.SearchStrategy[float]] = {
     "dividend_per_share": _finite(0.0, 1e3),
     "cost": _finite(0.0, 1e6),
     "pnl_gross": _finite(-1e6, 1e6),
+    # The two legs of a relative metric: modest returns bounded away from zero (|r| in [0.01, 0.5]) so an embedded
+    # regression's variance stays well-conditioned, both legs stay commensurate, and a capture ratio's geometric power
+    # never lands in the near-one catastrophic-cancellation band.
+    "returns": st.one_of(_finite(0.01, 0.5), _finite(-0.5, -0.01)),
+    "benchmark": st.one_of(_finite(0.01, 0.5), _finite(-0.5, -0.01)),
 }
 
 # The multi-input pnl shapes the vocabulary supports, read off the pnl factory signatures; every role appears in the
@@ -395,8 +404,51 @@ _FUZZ_SHAPES: frozenset[tuple[str, ...]] = frozenset(
         ("weight", "asset_returns"),
         ("returns_gross", "cost"),
         ("pnl_gross", "cost"),
+        ("returns", "benchmark"),
     }
 )
+
+
+# The equity-curve shape draws a positive growth path, not independent draws: a compounded series of small steps stays
+# strictly positive (a growth factor is always > 0), so a drawdown-family metric and its oracle agree on the domain
+# they are defined on, and its magnitude stays modest so an annualizing power never overflows.
+_EQUITY_STEP = st.floats(min_value=-0.1, max_value=0.1, allow_nan=False, allow_infinity=False)
+
+
+def _cumulative_growth(steps: list[float]) -> list[float]:
+    """A strictly-positive equity path: the running product of ``1 + step`` from a unit start (each step in ±0.1)."""
+    path: list[float] = []
+    level = 1.0
+    for step in steps:
+        level *= 1.0 + step
+        path.append(level)
+    return path
+
+
+def _punch_missing(value: float, choice: int) -> float | None:
+    """Keep ``value`` (``0``), drop it to ``null`` (``1``), or replace it with ``NaN`` (``2``) — the missing variant."""
+    if choice == 1:
+        return None
+    if choice == 2:
+        return math.nan
+    return value
+
+
+def _equity_frames(length: st.SearchStrategy[int], *, missing: bool) -> st.SearchStrategy[pl.DataFrame]:
+    """Frames of one positive ``equity_curve`` column; when ``missing``, null / NaN are punched into the grown path."""
+
+    def column(n: int) -> st.SearchStrategy[list[float | None]]:
+        path = st.lists(_EQUITY_STEP, min_size=n, max_size=n).map(_cumulative_growth)
+        if not missing:
+            return cast("st.SearchStrategy[list[float | None]]", path)
+        masks = st.lists(st.sampled_from((0, 1, 2)), min_size=n, max_size=n)
+        return st.tuples(path, masks).map(
+            lambda drawn: [_punch_missing(value, choice) for value, choice in zip(drawn[0], drawn[1], strict=True)]
+        )
+
+    return length.flatmap(
+        lambda n: column(n).map(lambda values: pl.DataFrame({"equity_curve": pl.Series(values, dtype=pl.Float64)}))
+    )
 
 
 def _independent_frame(
@@ -428,9 +480,18 @@ def fuzz_frames(spec: Spec, *, missing: bool) -> st.SearchStrategy[pl.DataFrame]
                 lambda rows: pl.DataFrame(dict(zip(("high", "low"), split_pairs(rows), strict=True)))
             )
         )
+    if spec.inputs == ("equity_curve",):
+        return _equity_frames(length, missing=missing)
     if len(spec.inputs) == 1:
-        values = missing_data_floats() if missing else finite_floats()
         role = spec.inputs[0]
+        if role == "returns":
+            # A modest return domain bounded away from zero (|r| in [0.01, 1.0]): a one-pass rolling moment stays
+            # well-conditioned against its two-pass oracle (a subnormal-magnitude or near-zero draw would round the two
+            # apart), matching the bounded strategy every rolling-returns metric drew from in the old suite.
+            finite = st.one_of(_finite(0.01, 1.0), _finite(-1.0, -0.01))
+            values = st.one_of(st.none(), st.just(math.nan), finite) if missing else finite
+        else:
+            values = missing_data_floats() if missing else finite_floats()
         return length.flatmap(
             lambda n: st.lists(values, min_size=n, max_size=n).map(
                 lambda rows: pl.DataFrame({role: pl.Series(rows, dtype=pl.Float64)})

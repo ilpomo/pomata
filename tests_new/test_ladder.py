@@ -115,8 +115,10 @@ def _assert_reference(spec: Spec, frame: pl.DataFrame, rel_tol: float, abs_tol: 
     expected = reference_lanes(spec, frame)
     actual = actual_lanes(spec, frame)
     assert sorted(actual) == sorted(expected)
+    rel = spec.oracle_rel_tol if spec.oracle_rel_tol is not None else rel_tol
+    abs_ = spec.oracle_abs_tol if spec.oracle_abs_tol is not None else abs_tol
     for name, values in expected.items():
-        assert_matches(actual[name], values, rel_tol=rel_tol, abs_tol=abs_tol)
+        assert_matches(actual[name], values, rel_tol=rel, abs_tol=abs_)
 
 
 # ======================================================================================================================
@@ -293,8 +295,16 @@ def _assert_flow(spec: Spec, *, nan: bool) -> None:
             assert not bool(tail.is_null().any()), f"{poisoned_lane.name}: did not recover to defined values"
             assert not bool(tail.is_nan().any()), f"{poisoned_lane.name}: NaN survived past the horizon"
             if policy in (NullPolicy.PROPAGATES, NullPolicy.IN_WINDOW_IS_NULL, NanPolicy.PROPAGATES):
+                # Past the window the lane must return to the clean baseline. A one-pass rolling moment (a cumulative
+                # -sum kernel, e.g. rolling covariance or a standardized moment) carries a sub-ULP rounding of the
+                # missing bar forever, so the recovery is to the baseline values within tolerance, not bit-for-bit.
                 expected_tail = baseline.slice(injection + reach)
-                assert tail.equals(expected_tail), f"{poisoned_lane.name}: tail drifted from the clean baseline"
+                assert_matches(
+                    tail.to_list(),
+                    expected_tail.to_list(),
+                    rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+                    abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
+                )
 
 
 def _assert_reducing_flow(spec: Spec, clean: pl.DataFrame, injection: int, poisoned: pl.Series, *, nan: bool) -> None:
