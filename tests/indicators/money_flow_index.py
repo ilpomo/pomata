@@ -3,6 +3,7 @@
 import math
 
 from tests.indicators.oracles import money_flow_index_reference
+from tests.support import ABSOLUTE_TOLERANCE_ROLLING_ORACLE, RELATIVE_TOLERANCE_ROLLING_ORACLE
 from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import money_flow_index
@@ -15,6 +16,12 @@ MONEY_FLOW_INDEX = Spec(
     warmup=3,
     raises=(({"window": 0}, r"window must be >= 1"),),
     oracle=money_flow_index_reference,
+    # The mixed-window quotient is a pair of one-pass rolling sums: after an extreme-magnitude flow exits, their
+    # sub-ULP residue moves the reading by up to ~1e-8 relative, so the oracle band is the declared rolling-oracle
+    # tier; the documented exact answers (0 / 100 / the flat NaN) are held exactly by the residual-free guards and
+    # the saturation pin.
+    oracle_rel_tol=RELATIVE_TOLERANCE_ROLLING_ORACLE,
+    oracle_abs_tol=ABSOLUTE_TOLERANCE_ROLLING_ORACLE,
     # A bounded ratio in [0, 100], scale-INVARIANT in the price legs and in volume independently, degree 0
     #
     scale=(
@@ -29,6 +36,20 @@ MONEY_FLOW_INDEX = Spec(
     },
     golden_output=(None, None, None, 68.4466, 67.0051, 72.3404, 66.9291, 72.6384),
     pins=(
+        SpecPin(
+            label="saturation_after_outlier_exit_is_exact",
+            inputs={
+                "high": (538.0, 197.0, 518.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0),
+                "low": (1.0, 145.53532625042, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0),
+                "close": (1.0, 197.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0),
+                "volume": (1.0, 666440.5, 883217.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0),
+            },
+            expected=(None, None, None, 0.0, 0.0, 0.0, math.nan, math.nan, math.nan, math.nan, math.nan, 100.0),
+            reason="a window with no strictly negative typical-price change must saturate at exactly 100 even after "
+            "enormous money flows (~1.3e8) slid out of the incremental rolling sums: the residual-free guards read "
+            "the changes, never the flow sums, whose sub-ULP residue would otherwise drag the reading to ~99.999998 "
+            "(the flat stretch in between is the documented 0/0 NaN, and the all-down prefix the exact 0)",
+        ),
         SpecPin(
             label="window_one_is_up_or_down",
             inputs={
