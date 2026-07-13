@@ -1,7 +1,9 @@
 """Spec for ``pomata.indicators.adxr`` — Wilder's average directional index rating, gap-bridging, scale-invariant."""
 
+import math
+
 from tests.indicators.oracles import adxr_reference
-from tests_new.support.spec import ScaleAxis, Shape, Spec
+from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import adxr
 
@@ -23,4 +25,27 @@ ADXR = Spec(
         "close": (9.5, 10.5, 11.5, 11.0, 12.5, 12.0, 13.5, 13.0, 14.5, 14.0),
     },
     golden_output=(None, None, None, None, 84.1176, 52.0588, 63.2977, 41.6489, 56.9044, 38.4522),
+    pins=(
+        SpecPin(
+            label="flat_window_is_nan",
+            inputs={"high": (10.0,) * 11, "low": (10.0,) * 11, "close": (10.0,) * 11},
+            params_override={"window": 3},
+            expected=(
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                math.nan,
+                math.nan,
+                math.nan,
+                math.nan,
+            ),
+            reason="a fully flat window makes the underlying dx the indeterminate 0/0, which poisons the Wilder "
+            "smoothing recursion and the averaging of the current and one-window-back adx (tests/indicators/"
+            "test_adxr.py::TestAdxrEdge::test_flat_window_is_nan)",
+        ),
+    ),
 )

@@ -1,7 +1,9 @@
 """Spec for ``pomata.indicators.dx`` — Wilder's directional movement index, gap-bridging, scale-invariant."""
 
+import math
+
 from tests.indicators.oracles import dx_reference
-from tests_new.support.spec import ScaleAxis, Shape, Spec
+from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import dx
 
@@ -23,4 +25,14 @@ DX = Spec(
         "close": (9.5, 10.5, 11.5, 11.0, 12.5, 12.0, 13.5),
     },
     golden_output=(None, 100.0, 100.0, 20.0, 76.4706, 20.0, 72.6027),
+    pins=(
+        SpecPin(
+            label="flat_window_is_nan",
+            inputs={"high": (10.0,) * 8, "low": (10.0,) * 8, "close": (10.0,) * 8},
+            params_override={"window": 3},
+            expected=(None, None, math.nan, math.nan, math.nan, math.nan, math.nan, math.nan),
+            reason="a fully flat window has no movement either way, so both directional indicators are NaN and the "
+            "indeterminate 0/0 spread propagates (tests/indicators/test_dx.py::TestDxEdge::test_flat_window_is_nan)",
+        ),
+    ),
 )
