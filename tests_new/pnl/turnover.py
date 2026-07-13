@@ -2,7 +2,7 @@
 
 import math
 
-from tests.pnl.oracles import turnover_reference
+from tests_new.pnl.oracles import turnover_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.pnl import turnover

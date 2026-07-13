@@ -1,6 +1,6 @@
 """Spec for ``pomata.metrics.ulcer_index`` — reducing, the RMS drawdown, scale-invariant."""
 
-from tests.metrics.oracles import ulcer_index_reference
+from tests_new.metrics.oracles import ulcer_index_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import ulcer_index

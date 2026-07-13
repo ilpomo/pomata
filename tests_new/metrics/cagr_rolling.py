@@ -2,7 +2,7 @@
 
 import math
 
-from tests.metrics.oracles import cagr_rolling_reference
+from tests_new.metrics.oracles import cagr_rolling_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import cagr_rolling

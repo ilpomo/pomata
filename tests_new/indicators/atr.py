@@ -1,6 +1,6 @@
 """Spec for ``pomata.indicators.atr`` — Wilder's Average True Range, gap-bridging, NaN-latching, degree-1."""
 
-from tests.indicators.oracles import atr_reference
+from tests_new.indicators.oracles import atr_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import atr

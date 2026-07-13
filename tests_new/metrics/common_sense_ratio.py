@@ -3,7 +3,7 @@
 import math
 
 import polars as pl
-from tests.metrics.oracles import common_sense_ratio_reference
+from tests_new.metrics.oracles import common_sense_ratio_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import common_sense_ratio, profit_factor, tail_ratio

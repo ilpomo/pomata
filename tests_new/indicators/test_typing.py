@@ -18,7 +18,7 @@ from typing import assert_type, get_type_hints
 
 import polars as pl
 import pytest
-from tests.support import synthesize_call
+from tests_new.support import synthesize_call
 
 from pomata import indicators
 from pomata.indicators import dema, ema, hma, rma, sma, t3, tema, vwma, wma
@@ -29,7 +29,7 @@ def test_every_public_factory_builds_an_expr(name: str) -> None:
     """
     Verifies that every public factory in ``__all__``, called with minimal valid arguments, builds a ``pl.Expr``.
 
-    The call is synthesized from the signature (see :func:`tests.support.synthesize_call`), so parametrizing over
+    The call is synthesized from the signature (see :func:`tests_new.support.synthesize_call`), so parametrizing over
     ``__all__`` keeps coverage in lock-step with the public API: a newly added indicator is swept in automatically.
     """
     factory = getattr(indicators, name)

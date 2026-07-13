@@ -2,7 +2,7 @@
 
 import math
 
-from tests.metrics.oracles import omega_ratio_reference
+from tests_new.metrics.oracles import omega_ratio_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import omega_ratio

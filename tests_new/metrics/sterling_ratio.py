@@ -3,7 +3,7 @@
 import math
 
 import polars as pl
-from tests.metrics.oracles import sterling_ratio_reference
+from tests_new.metrics.oracles import sterling_ratio_reference
 from tests_new.support.spec import ScaleExempt, Shape, Spec, SpecPin
 
 from pomata.metrics import cagr, pain_index, sterling_ratio

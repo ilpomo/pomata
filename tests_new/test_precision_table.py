@@ -13,8 +13,8 @@ import math
 
 import polars as pl
 import pytest
-from tests.indicators.oracles import atr_reference, ema_reference, macd_reference, rsi_reference, sma_reference
-from tests.support import RELATIVE_TOLERANCE_REFERENCE, assert_matches
+from tests_new.indicators.oracles import atr_reference, ema_reference, macd_reference, rsi_reference, sma_reference
+from tests_new.support import RELATIVE_TOLERANCE_REFERENCE, assert_matches
 
 from pomata.indicators import atr, ema, macd, rsi, sma
 

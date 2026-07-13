@@ -1,6 +1,6 @@
 """Spec for ``pomata.indicators.tema`` — the triple EMA lag-correction, gap-bridging, NaN-latching, degree-1."""
 
-from tests.indicators.oracles import tema_reference
+from tests_new.indicators.oracles import tema_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import tema

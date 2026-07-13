@@ -3,8 +3,8 @@
 import math
 
 import polars as pl
-from tests.indicators.oracles import dominant_cycle_phase_reference
-from tests.support import spans_even_lag_repeat
+from tests_new.indicators.oracles import dominant_cycle_phase_reference
+from tests_new.support import spans_even_lag_repeat
 from tests_new.support.spec import ScaleAxis, Shape, Spec
 
 from pomata.indicators import dominant_cycle_phase

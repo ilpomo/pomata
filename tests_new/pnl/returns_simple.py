@@ -2,7 +2,7 @@
 
 import math
 
-from tests.pnl.oracles import returns_simple_reference
+from tests_new.pnl.oracles import returns_simple_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.pnl import returns_simple

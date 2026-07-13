@@ -1,7 +1,7 @@
 """Spec for ``pomata.indicators.awesome_oscillator`` — the SMA-of-median difference, window-nulling, degree-1."""
 
-from tests.indicators.oracles import awesome_oscillator_reference
-from tests.support import ABSOLUTE_TOLERANCE_SCALE, RELATIVE_TOLERANCE_SCALE
+from tests_new.indicators.oracles import awesome_oscillator_reference
+from tests_new.support import ABSOLUTE_TOLERANCE_SCALE, RELATIVE_TOLERANCE_SCALE
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import awesome_oscillator

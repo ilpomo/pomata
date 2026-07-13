@@ -3,8 +3,8 @@
 import math
 
 import polars as pl
-from tests.metrics.oracles import downside_deviation_rolling_reference
-from tests.support import windows_well_spread
+from tests_new.metrics.oracles import downside_deviation_rolling_reference
+from tests_new.support import windows_well_spread
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import downside_deviation_rolling

@@ -2,7 +2,7 @@
 
 import math
 
-from tests.indicators.oracles import price_median_reference
+from tests_new.indicators.oracles import price_median_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import price_median

@@ -1,8 +1,8 @@
 """Spec for ``pomata.metrics.volatility`` — reducing, the annualized sample standard deviation, degree-1 homogeneous."""
 
 import polars as pl
-from tests.metrics.oracles import volatility_reference
-from tests.support import well_spread
+from tests_new.metrics.oracles import volatility_reference
+from tests_new.support import well_spread
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import volatility

@@ -13,9 +13,9 @@ from collections.abc import Callable
 
 import polars as pl
 from polars.testing import assert_frame_equal
-from tests.support.asserts import assert_matches
-from tests.support.columns import COLUMN_X, GROUP_KEY
-from tests.support.synthesis import synthesize_call
+from tests_new.support.asserts import assert_matches
+from tests_new.support.columns import COLUMN_X, GROUP_KEY
+from tests_new.support.synthesis import synthesize_call
 
 _SERIES: list[float | None] = [100.0, 105.0, 102.0, 108.0, 110.0]
 _GROUP_A: list[float | None] = [100.0, 105.0, 102.0, 108.0, 110.0, 103.0]

@@ -2,7 +2,7 @@
 
 import math
 
-from tests.indicators.oracles import dm_plus_reference
+from tests_new.indicators.oracles import dm_plus_reference
 from tests_new.support.spec import Deviant, ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import dm_plus

@@ -1,6 +1,6 @@
 """Spec for ``pomata.indicators.aroon`` — the time-since-extreme struct (up, down), window-nulling, scale-invariant."""
 
-from tests.indicators.oracles import aroon_reference
+from tests_new.indicators.oracles import aroon_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import aroon

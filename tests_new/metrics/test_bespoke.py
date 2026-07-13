@@ -23,7 +23,13 @@ import polars as pl
 import pytest
 from hypothesis import assume, given
 from hypothesis import strategies as st
-from tests.support import (
+from tests_new.metrics.conditional_value_at_risk import CONDITIONAL_VALUE_AT_RISK
+from tests_new.metrics.downside_deviation import DOWNSIDE_DEVIATION
+from tests_new.metrics.value_at_risk import VALUE_AT_RISK
+from tests_new.metrics.value_at_risk_modified import VALUE_AT_RISK_MODIFIED
+from tests_new.metrics.value_at_risk_parametric import VALUE_AT_RISK_PARAMETRIC
+from tests_new.metrics.volatility import VOLATILITY
+from tests_new.support import (
     ABSOLUTE_TOLERANCE_REFERENCE,
     BENCHMARK,
     COLUMN_X,
@@ -40,12 +46,6 @@ from tests.support import (
     subnormal_safe_floats,
     well_spread,
 )
-from tests_new.metrics.conditional_value_at_risk import CONDITIONAL_VALUE_AT_RISK
-from tests_new.metrics.downside_deviation import DOWNSIDE_DEVIATION
-from tests_new.metrics.value_at_risk import VALUE_AT_RISK
-from tests_new.metrics.value_at_risk_modified import VALUE_AT_RISK_MODIFIED
-from tests_new.metrics.value_at_risk_parametric import VALUE_AT_RISK_PARAMETRIC
-from tests_new.metrics.volatility import VOLATILITY
 from tests_new.support.spec import Spec, actual_lanes, fuzz_frames, reference_lanes, spec_id
 
 from pomata.metrics import (

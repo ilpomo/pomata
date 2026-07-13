@@ -3,8 +3,8 @@
 import math
 
 import polars as pl
-from tests.metrics.oracles import stability_reference
-from tests.support import well_spread
+from tests_new.metrics.oracles import stability_reference
+from tests_new.support import well_spread
 from tests_new.support.spec import ScaleExempt, Shape, Spec, SpecPin
 
 from pomata.metrics import stability

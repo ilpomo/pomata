@@ -3,8 +3,8 @@
 import math
 
 import polars as pl
-from tests.metrics.oracles import adjusted_sharpe_ratio_reference
-from tests.support import well_spread
+from tests_new.metrics.oracles import adjusted_sharpe_ratio_reference
+from tests_new.support import well_spread
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import adjusted_sharpe_ratio, sharpe_ratio

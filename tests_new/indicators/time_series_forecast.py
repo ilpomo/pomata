@@ -1,6 +1,6 @@
 """Spec for ``pomata.indicators.time_series_forecast`` — the one-step least-squares forecast, degree-1 homogeneous."""
 
-from tests.indicators.oracles import time_series_forecast_reference
+from tests_new.indicators.oracles import time_series_forecast_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec
 
 from pomata.indicators import time_series_forecast

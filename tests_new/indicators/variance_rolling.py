@@ -1,7 +1,7 @@
 """Spec for ``pomata.indicators.variance_rolling`` — the rolling variance, window-nulling, degree-2 homogeneous."""
 
-from tests.indicators.oracles import variance_rolling_reference
-from tests.support import ABSOLUTE_TOLERANCE_SCALE, RELATIVE_TOLERANCE_SCALE
+from tests_new.indicators.oracles import variance_rolling_reference
+from tests_new.support import ABSOLUTE_TOLERANCE_SCALE, RELATIVE_TOLERANCE_SCALE
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import variance_rolling

@@ -1,6 +1,6 @@
 """Spec for ``pomata.indicators.linear_regression_slope`` — the rolling least-squares slope, degree-1 homogeneous."""
 
-from tests.indicators.oracles import linear_regression_slope_reference
+from tests_new.indicators.oracles import linear_regression_slope_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec
 
 from pomata.indicators import linear_regression_slope

@@ -1,6 +1,6 @@
 """Spec for ``pomata.indicators.kama`` — Kaufman's adaptive recursive mean, gap-bridging, NaN-latching, degree-1."""
 
-from tests.indicators.oracles import kama_reference
+from tests_new.indicators.oracles import kama_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import kama

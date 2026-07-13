@@ -2,7 +2,7 @@
 
 import math
 
-from tests.metrics.oracles import total_return_rolling_reference
+from tests_new.metrics.oracles import total_return_rolling_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import total_return_rolling

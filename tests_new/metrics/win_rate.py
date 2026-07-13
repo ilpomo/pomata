@@ -1,6 +1,6 @@
 """Spec for ``pomata.metrics.win_rate`` — reducing, the fraction of decisive returns that are gains, scale-invariant."""
 
-from tests.metrics.oracles import win_rate_reference
+from tests_new.metrics.oracles import win_rate_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import win_rate

@@ -3,8 +3,8 @@
 import math
 
 import polars as pl
-from tests.metrics.oracles import alpha_reference
-from tests.support import complete_benchmark, well_spread
+from tests_new.metrics.oracles import alpha_reference
+from tests_new.support import complete_benchmark, well_spread
 from tests_new.support.spec import ScaleExempt, Shape, Spec, SpecPin
 
 from pomata.metrics import alpha, beta

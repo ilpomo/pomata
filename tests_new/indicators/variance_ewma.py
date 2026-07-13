@@ -1,7 +1,7 @@
 """Spec for ``pomata.indicators.variance_ewma`` — the EWM variance, gap-bridging, NaN-latching, degree-2."""
 
-from tests.indicators.oracles import variance_ewma_reference
-from tests.support import ABSOLUTE_TOLERANCE_SCALE, RELATIVE_TOLERANCE_SCALE
+from tests_new.indicators.oracles import variance_ewma_reference
+from tests_new.support import ABSOLUTE_TOLERANCE_SCALE, RELATIVE_TOLERANCE_SCALE
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import variance_ewma

@@ -1,6 +1,6 @@
 """Spec for ``pomata.indicators.rma`` — Wilder's recursive mean, gap-bridging, NaN-latching, degree-1 homogeneous."""
 
-from tests.indicators.oracles import rma_reference
+from tests_new.indicators.oracles import rma_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import rma

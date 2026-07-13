@@ -3,8 +3,8 @@
 import math
 
 import polars as pl
-from tests.metrics.oracles import alpha_rolling_reference
-from tests.support import RELATIVE_TOLERANCE_SCALE, windows_well_conditioned
+from tests_new.metrics.oracles import alpha_rolling_reference
+from tests_new.support import RELATIVE_TOLERANCE_SCALE, windows_well_conditioned
 from tests_new.support.spec import ScaleExempt, Shape, Spec, SpecPin
 
 from pomata.metrics import alpha_rolling

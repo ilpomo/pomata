@@ -1,6 +1,6 @@
 """Spec for ``pomata.indicators.donchian_channels`` — the rolling high/low channel struct, window-nulling, degree-1."""
 
-from tests.indicators.oracles import donchian_channels_reference
+from tests_new.indicators.oracles import donchian_channels_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import donchian_channels

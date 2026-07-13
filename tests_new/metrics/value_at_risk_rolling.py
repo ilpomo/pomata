@@ -1,6 +1,6 @@
 """Spec for ``pomata.metrics.value_at_risk_rolling`` — the rolling historical return quantile, degree-1 homogeneous."""
 
-from tests.metrics.oracles import value_at_risk_rolling_reference
+from tests_new.metrics.oracles import value_at_risk_rolling_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import value_at_risk_rolling

@@ -2,7 +2,7 @@
 
 import math
 
-from tests.indicators.oracles import ultimate_oscillator_reference
+from tests_new.indicators.oracles import ultimate_oscillator_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import ultimate_oscillator

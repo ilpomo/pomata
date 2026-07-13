@@ -1,6 +1,6 @@
 """Spec for ``pomata.indicators.midprice`` — the rolling high/low midprice of a bar series, window-nulling, degree-1."""
 
-from tests.indicators.oracles import midprice_reference
+from tests_new.indicators.oracles import midprice_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec
 
 from pomata.indicators import midprice

@@ -1,6 +1,6 @@
 """Spec for ``pomata.indicators.hma`` — Hull's lag-reduced weighted mean, window-nulling, degree-1 homogeneous."""
 
-from tests.indicators.oracles import hma_reference
+from tests_new.indicators.oracles import hma_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import hma

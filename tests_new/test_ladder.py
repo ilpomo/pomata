@@ -21,7 +21,8 @@ import polars as pl
 import pytest
 from hypothesis import assume, given
 from hypothesis import strategies as st
-from tests.support import (
+from tests_new.all_specs import ALL_SPECS
+from tests_new.support import (
     ABSOLUTE_TOLERANCE_PROPERTY,
     ABSOLUTE_TOLERANCE_REFERENCE,
     RELATIVE_TOLERANCE_PROPERTY,
@@ -30,7 +31,6 @@ from tests.support import (
     assert_scale_homogeneous,
     count_leading_nulls,
 )
-from tests_new.all_specs import ALL_SPECS
 from tests_new.support.spec import (
     SPEC_LANE,
     SPEC_SCALAR,

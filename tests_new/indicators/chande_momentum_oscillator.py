@@ -3,8 +3,8 @@
 import math
 
 import polars as pl
-from tests.indicators.oracles import chande_momentum_oscillator_reference
-from tests.support import windows_well_spread
+from tests_new.indicators.oracles import chande_momentum_oscillator_reference
+from tests_new.support import windows_well_spread
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import chande_momentum_oscillator

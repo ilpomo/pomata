@@ -1,6 +1,6 @@
 """Spec for ``pomata.indicators.sma`` — the simple rolling mean, window-nulling, degree-1 homogeneous."""
 
-from tests.indicators.oracles import sma_reference
+from tests_new.indicators.oracles import sma_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import sma

@@ -1,6 +1,6 @@
 """Spec for ``pomata.metrics.drawdown_rolling`` — the decline from the trailing-window peak, scale-invariant."""
 
-from tests.metrics.oracles import drawdown_rolling_reference
+from tests_new.metrics.oracles import drawdown_rolling_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import drawdown_rolling

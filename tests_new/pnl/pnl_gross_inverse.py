@@ -2,7 +2,7 @@
 
 import math
 
-from tests.pnl.oracles import pnl_gross_inverse_reference
+from tests_new.pnl.oracles import pnl_gross_inverse_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.pnl import pnl_gross_inverse

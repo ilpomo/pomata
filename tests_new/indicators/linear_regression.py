@@ -1,6 +1,6 @@
 """Spec for ``pomata.indicators.linear_regression`` — the rolling least-squares endpoint, window-nulling, degree-1."""
 
-from tests.indicators.oracles import linear_regression_reference
+from tests_new.indicators.oracles import linear_regression_reference
 from tests_new.support.spec import ScaleAxis, Shape, Spec
 
 from pomata.indicators import linear_regression

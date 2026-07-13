@@ -2,7 +2,7 @@
 
 import math
 
-from tests.metrics.oracles import cagr_reference
+from tests_new.metrics.oracles import cagr_reference
 from tests_new.support.spec import ScaleExempt, Shape, Spec, SpecPin
 
 from pomata.metrics import cagr
