@@ -52,5 +52,18 @@ BOLLINGER_BANDS = Spec(
             "arithmetic a single default-multiplier golden cannot exercise (test_bollinger_bands.py"
             "::TestBollingerBandsCorrectness::test_multiplier_scales_width)",
         ),
+        SpecPin(
+            label="constant_window_collapses_bands_after_large_value",
+            inputs={"price": (1000000.0, 0.1, 0.1, 0.1, 0.1)},
+            params_override={"window": 3},
+            expected={
+                "lower": (None, None, -609475.5473011592, 0.1, 0.1),
+                "middle": (None, None, 333333.39999999997, 0.1, 0.1),
+                "upper": (None, None, 1276142.3473011593, 0.1, 0.1),
+            },
+            reason="a constant window has exactly zero (pinned) deviation, so all three bands collapse onto the middle "
+            "even after a much larger value has left the window, where the rolling kernel would otherwise leave a "
+            "residue (test_bollinger_bands.py::TestBollingerBandsEdge::test_constant_window_collapses_bands)",
+        ),
     ),
 )

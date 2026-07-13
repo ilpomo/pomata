@@ -46,5 +46,14 @@ STANDARD_DEVIATION_ROLLING = Spec(
             reason="window=1 has no spread, so the deviation is 0 at every row with no warm-up "
             "(test_standard_deviation_rolling.py::TestStandardDeviationRollingEdge::test_window_one_is_zero)",
         ),
+        SpecPin(
+            label="constant_window_is_exactly_zero_after_large_value",
+            inputs={"price": (1000000.0, 0.1, 0.1, 0.1, 0.1)},
+            params_override={"window": 3},
+            expected=(None, None, 471404.47365057963, 0.0, 0.0),
+            reason="a constant window has exactly zero spread even after a much larger value has left it, where an "
+            "incremental rolling standard deviation would leave a residue (test_standard_deviation_rolling.py"
+            "::TestStandardDeviationRollingEdge::test_constant_window_is_zero)",
+        ),
     ),
 )
