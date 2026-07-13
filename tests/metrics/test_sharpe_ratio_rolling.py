@@ -156,6 +156,17 @@ class TestSharpeRatioRollingEdge:
             [None, None, math.inf, math.inf],
         )
 
+    def test_flat_zero_excess_window_by_slide_is_nan(self) -> None:
+        """
+        Verifies that a window whose excess returns are all exactly zero degenerates to ``0/0 -> NaN`` even after
+        larger returns have slid out of the window: the exact rolling mean pins the numerator to zero, so the
+        incremental running-sum residue cannot ride above the exactly-zero pinned dispersion as a spurious ``inf``.
+        """
+        values = [-0.3233, -0.6457, 0.0, 0.4404, 0.0, 0.0, 0.0, 0.0]
+        result = apply_expr(values, sharpe_ratio_rolling(pl.col(COLUMN_X), 4, periods_per_year=PERIODS))
+        assert result[-1] is not None
+        assert math.isnan(result[-1])
+
 
 class TestSharpeRatioRollingCorrectness:
     """

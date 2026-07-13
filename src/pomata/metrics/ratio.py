@@ -11,7 +11,14 @@ from statistics import NormalDist
 
 import polars as pl
 
-from pomata._expr import float64_expr, per_period_rate, validate_finite, validate_periods_per_year, validate_window
+from pomata._expr import (
+    float64_expr,
+    per_period_rate,
+    rolling_mean_exact,
+    validate_finite,
+    validate_periods_per_year,
+    validate_window,
+)
 from pomata.metrics.drawdown import drawdown, max_drawdown, pain_index, ulcer_index
 from pomata.metrics.performance import cagr, total_return
 from pomata.metrics.risk import (
@@ -1167,7 +1174,9 @@ def sharpe_ratio_rolling(
     rf_period = per_period_rate(risk_free_rate, periods_per_year, name="risk_free_rate")
     excess = returns - rf_period
     return (
-        excess.rolling_mean(window, min_samples=window)
+        # rolling_mean_exact, not the native rolling mean: on a bit-constant excess window the incremental mean's
+        # residue (after a larger value exits) would ride above the exactly-zero pinned denominator as a spurious inf.
+        rolling_mean_exact(excess, window)
         * periods_per_year
         / volatility_rolling(excess, window, periods_per_year=periods_per_year)
     ).name.keep()
@@ -1369,7 +1378,9 @@ def sortino_ratio_rolling(
     rf_period = per_period_rate(risk_free_rate, periods_per_year, name="risk_free_rate")
     excess = returns - rf_period
     return (
-        excess.rolling_mean(window, min_samples=window)
+        # rolling_mean_exact, not the native rolling mean: on a bit-constant excess window the incremental mean's
+        # residue (after a larger value exits) would ride above the exactly-zero pinned denominator as a spurious inf.
+        rolling_mean_exact(excess, window)
         * periods_per_year
         / downside_deviation_rolling(returns, window, periods_per_year=periods_per_year, threshold=rf_period)
     ).name.keep()

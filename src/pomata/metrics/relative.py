@@ -17,7 +17,14 @@ from typing import Final
 
 import polars as pl
 
-from pomata._expr import float64_expr, per_period_rate, validate_finite, validate_periods_per_year, validate_window
+from pomata._expr import (
+    float64_expr,
+    per_period_rate,
+    rolling_mean_exact,
+    validate_finite,
+    validate_periods_per_year,
+    validate_window,
+)
 from pomata.metrics.ratio import sharpe_ratio
 from pomata.metrics.risk import volatility, volatility_rolling
 
@@ -1113,7 +1120,10 @@ def information_ratio_rolling(
     validate_window(window, minimum=2)
     validate_periods_per_year(periods_per_year)
     active = returns - benchmark
-    mean_active = active.rolling_mean(window, min_samples=window)
+    # rolling_mean_exact, not the native rolling mean: on a bit-constant active window (portfolio tracking the
+    # benchmark exactly) the incremental mean's residue would ride above the exactly-zero pinned tracking error as a
+    # spurious inf where the documented degeneracy is 0/0 -> NaN.
+    mean_active = rolling_mean_exact(active, window)
     # The guarded rolling volatility core (the same one sharpe_ratio_rolling composes) pins a bit-constant window's
     # tracking error to exactly zero, so the documented "zero tracking error -> +/-inf" contract holds even after a
     # much larger active value has slid out of the window (the incremental rolling_std residue regime).
