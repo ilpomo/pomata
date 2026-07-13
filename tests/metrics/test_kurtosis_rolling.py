@@ -176,6 +176,19 @@ class TestKurtosisRollingEdge:
             rel_tol=RELATIVE_TOLERANCE_REFERENCE,
         )
 
+    def test_moderate_outlier_exit_matches_reference(self) -> None:
+        """
+        Verifies the recompute trigger also covers a *moderate* exited outlier (tens, not hundreds, of times the
+        window's own scale): the fourth power in the kurtosis amplifies the incremental residue as the ratio to the
+        fourth, so a ratio of only ~40 already pushes the stale-sum error past the guaranteed absolute band.
+        """
+        values = [0.01, 0.01, -1.0, 0.01, 0.01, 0.2174, 0.3097, 0.01, 0.8594, 0.01, 0.3, 0.01, 0.01, 0.01, 0.025]
+        assert_matches(
+            apply_expr(values, kurtosis_rolling(pl.col(COLUMN_X), 4)),
+            kurtosis_rolling_reference(values, 4),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+        )
+
 
 class TestKurtosisRollingCorrectness:
     """
