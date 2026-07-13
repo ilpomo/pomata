@@ -99,9 +99,12 @@ def _rolling_moment(
         values = series.to_list()
         result = native.to_list()
         # Sliding maximum of |x| over the trailing window via a monotonic deque (O(n)); prefix_scale tracks the
-        # largest magnitude the incremental sums have ever absorbed. A window whose own scale sits two-plus orders
-        # below that prefix is at residue risk (the onset measured against the reducing oracle is ~200x) and is
-        # recomputed exactly; everything else keeps the native result untouched.
+        # largest magnitude the incremental sums have ever absorbed. The residue the sums keep after that value
+        # exits scales like ulp(prefix^k) against a window moment of order window_scale^k, i.e. a relative error of
+        # ~2^-52 * ratio^k for the k-th moment: at the kurtosis' k = 4, a ratio of 1e2 already leaves ~2e-8 — above
+        # the 1e-9 absolute band the suite guarantees for these O(1) outputs — so the trigger sits at 1e1, keeping
+        # ~2e-12 (three orders of margin) at the boundary. Flagged windows are recomputed exactly; clean series never
+        # leave the native fast path.
         deque_indices: deque[int] = deque()
         prefix_scale = 0.0
         for index, value in enumerate(values):
@@ -121,7 +124,7 @@ def _rolling_moment(
                 continue
             head = values[deque_indices[0]]
             window_scale = abs(head) if head is not None and math.isfinite(head) else 0.0
-            if prefix_scale > window_scale * 1e2:
+            if prefix_scale > window_scale * 1e1:
                 result[index] = _exact(values[index - window + 1 : index + 1])
         return pl.Series(series.name, result, dtype=pl.Float64)
 

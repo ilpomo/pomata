@@ -178,6 +178,19 @@ class TestSkewnessRollingEdge:
             rel_tol=RELATIVE_TOLERANCE_REFERENCE,
         )
 
+    def test_moderate_outlier_exit_matches_reference(self) -> None:
+        """
+        Verifies the recompute trigger also covers a *moderate* exited outlier (tens, not hundreds, of times the
+        window's own scale): the third power in the skewness amplifies the incremental residue as the ratio cubed,
+        so the stale-sum error approaches the guaranteed band well below the hundredfold regime.
+        """
+        values = [0.01, 0.01, -1.0, 0.01, 0.01, 0.2174, 0.3097, 0.01, 0.8594, 0.01, 0.3, 0.01, 0.01, 0.01, 0.025]
+        assert_matches(
+            apply_expr(values, skewness_rolling(pl.col(COLUMN_X), 4)),
+            skewness_rolling_reference(values, 4),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+        )
+
 
 class TestSkewnessRollingCorrectness:
     """
