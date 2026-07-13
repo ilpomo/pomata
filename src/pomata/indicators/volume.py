@@ -624,14 +624,29 @@ def money_flow_index(
     )
     money_ratio = positive_flow.rolling_sum(window_size=window) / negative_flow.rolling_sum(window_size=window)
     index = 100.0 - 100.0 / (1.0 + money_ratio)
-    # Flat window: when every typical-price change is exactly zero both flows are zero, the documented 0/0 -> NaN.
-    # Detect it exactly via the rolling maximum of the absolute change (zero only when every change is exactly 0), so a
-    # sub-ULP residual left in the rolling sums after large flows slide out cannot fake a saturated reading. A null/NaN
-    # change makes the rolling maximum null/NaN (never == 0), so the guard does not fire and the null-precedence and
-    # NaN-poisoning above are unchanged. The clip pins the [0, 100] bound: beyond a sane dynamic range a residual-
-    # dominated near-flat window degrades but stays in range rather than escaping (see CORRECTNESS.md).
+    # Degenerate windows, detected exactly via residual-free rolling maxima of the CHANGES (never the incremental
+    # flow sums, which can keep a sub-ULP residual after large flows slide out and fake a near-saturated reading):
+    # every change exactly zero -> both flows are zero, the documented 0/0 -> NaN; no strictly negative change -> the
+    # negative flow is zero by construction, so the index saturates at exactly 100; no strictly positive change ->
+    # exactly 0. A null/NaN change makes the rolling maxima null/NaN (never == 0), so no guard fires and the
+    # null-precedence and NaN-poisoning above are unchanged. The clip pins the [0, 100] bound for the mixed windows:
+    # beyond a sane dynamic range a residual-dominated near-flat window degrades but stays in range rather than
+    # escaping (see CORRECTNESS.md).
     is_flat = typical_change.abs().rolling_max(window_size=window) == 0
-    return pl.when(is_flat).then(float("nan")).otherwise(index.clip(0.0, 100.0)).name.keep()
+    no_negative_change = (-typical_change).clip(lower_bound=0.0).rolling_max(window_size=window) == 0
+    no_positive_change = typical_change.clip(lower_bound=0.0).rolling_max(window_size=window) == 0
+    # The saturation overrides require a finite quotient: a null / NaN volume keeps its lane's flow (and so the
+    # index) null / NaN, the condition reads false, and the missing value falls through and propagates unchanged.
+    return (
+        pl.when(is_flat)
+        .then(float("nan"))
+        .when(no_negative_change & index.is_finite())
+        .then(100.0)
+        .when(no_positive_change & index.is_finite())
+        .then(0.0)
+        .otherwise(index.clip(0.0, 100.0))
+        .name.keep()
+    )
 
 
 def obv(
