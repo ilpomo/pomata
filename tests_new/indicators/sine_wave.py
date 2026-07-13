@@ -32,12 +32,12 @@ SINE_WAVE = Spec(
     params={},
     shape=Shape.STRUCT,
     fields=("sine", "lead_sine"),
-    warmup=63,
+    warmup={"sine": 63, "lead_sine": 63},
     oracle=sine_wave_reference,
     conditioning=_no_sustained_even_lag_run,
     # Both lines are the sine of a phase, bounded in [-1, 1] and scale-INVARIANT, degree 0 (tests/indicators/
     # test_sine_wave.py::TestSineWaveProperties::test_scale_invariance).
-    scale=(ScaleAxis(roles=("expr",), degree=0),),
+    scale=(ScaleAxis(roles=("expr",), degree={"sine": 0, "lead_sine": 0}),),
     golden_input={"expr": _SAMPLE},
     golden_output={
         "sine": (None,) * 63

@@ -22,7 +22,7 @@ FISHER_TRANSFORM = Spec(
     oracle=fisher_transform_reference,
     # A rolling-channel normalization, scale-INVARIANT, degree 0 (tests/indicators/test_fisher_transform.py
     # ::TestFisherTransformProperties::test_scale_invariance).
-    scale=(ScaleAxis(roles=("high", "low"), degree=0),),
+    scale=(ScaleAxis(roles=("high", "low"), degree={"fisher": 0, "signal": 0}),),
     golden_params={"window": 2},
     golden_input={"high": (2.0, 4.0, 3.0), "low": (0.0, 2.0, 1.0)},
     golden_output={

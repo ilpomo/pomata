@@ -23,7 +23,7 @@ STOCHASTIC_SLOW = Spec(
     oracle=stochastic_slow_reference,
     # Both lines are bounded ratios of price ranges, scale-INVARIANT, degree 0 (tests/indicators/test_stochastic_slow.py
     # ::test_scale_invariance).
-    scale=(ScaleAxis(roles=("high", "low", "close"), degree=0),),
+    scale=(ScaleAxis(roles=("high", "low", "close"), degree={"k": 0, "d": 0}),),
     golden_params={"window_k": 5, "window_slowing": 3, "window_d": 3},
     golden_input={
         "high": (10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 14.0, 13.5, 15.0, 14.5),

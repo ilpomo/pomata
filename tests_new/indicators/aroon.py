@@ -11,12 +11,12 @@ AROON = Spec(
     params={"window": 25},
     shape=Shape.STRUCT,
     fields=("up", "down"),
-    warmup=25,
+    warmup={"up": 25, "down": 25},
     raises=(({"window": 0}, r"window must be >= 1"),),
     oracle=aroon_reference,
     # Each line depends only on the position of the window extreme, so it is scale-INVARIANT, degree 0
     # (tests/indicators/test_aroon.py::test_scale_invariance).
-    scale=(ScaleAxis(roles=("high", "low"), degree=0),),
+    scale=(ScaleAxis(roles=("high", "low"), degree={"up": 0, "down": 0}),),
     golden_params={"window": 3},
     golden_input={
         "high": (10.0, 11.0, 12.0, 11.0, 13.0, 12.0, 14.0, 13.0),

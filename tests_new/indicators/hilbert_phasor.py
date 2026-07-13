@@ -16,11 +16,11 @@ HILBERT_PHASOR = Spec(
     params={},
     shape=Shape.STRUCT,
     fields=("in_phase", "quadrature"),
-    warmup=32,
+    warmup={"in_phase": 32, "quadrature": 32},
     oracle=hilbert_phasor_reference,
     # Both components carry the price's units, homogeneous of degree 1 (tests/indicators/test_hilbert_phasor.py
     # ::TestHilbertPhasorProperties::test_scale_homogeneity).
-    scale=(ScaleAxis(roles=("expr",), degree=1),),
+    scale=(ScaleAxis(roles=("expr",), degree={"in_phase": 1, "quadrature": 1}),),
     golden_input={"expr": _SAMPLE},
     golden_output={
         "in_phase": (None,) * 32 + (-0.0296, -2.9751, -5.7341, -7.9735, -9.445, -10.0056, -9.5949, -8.227),

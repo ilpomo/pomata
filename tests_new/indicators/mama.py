@@ -41,7 +41,7 @@ MAMA = Spec(
     params={"limit_fast": 0.5, "limit_slow": 0.05},
     shape=Shape.STRUCT,
     fields=("mama", "fama"),
-    warmup=32,
+    warmup={"mama": 32, "fama": 32},
     raises=(
         ({"limit_fast": 0.0}, r"limit_fast must be in"),
         ({"limit_slow": 0.0}, r"limit_slow must be in"),
@@ -54,7 +54,7 @@ MAMA = Spec(
     conditioning=_no_sustained_even_lag_run,
     # Both lines ride the price scale, so they scale linearly with the bars (tests/indicators/test_mama.py:312
     # test_scale_homogeneity).
-    scale=(ScaleAxis(roles=("expr",), degree=1),),
+    scale=(ScaleAxis(roles=("expr",), degree={"mama": 1, "fama": 1}),),
     golden_input={"expr": _SAMPLE},
     golden_output={
         "mama": (None,) * 32 + (97.9767, 97.6734, 97.3142, 96.9485, 96.6255, 96.3897, 96.2764, 96.308),

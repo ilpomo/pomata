@@ -13,12 +13,12 @@ VORTEX = Spec(
     params={"window": 14},
     shape=Shape.STRUCT,
     fields=("plus", "minus"),
-    warmup=14,
+    warmup={"plus": 14, "minus": 14},
     raises=(({"window": 0}, r"window must be >= 1"),),
     oracle=vortex_reference,
     # Each line is a ratio of a rolling vortex movement to the rolling true range, scale-INVARIANT, degree 0
     # (tests/indicators/test_vortex.py::TestVortexProperties::test_scale_invariance).
-    scale=(ScaleAxis(roles=("high", "low", "close"), degree=0),),
+    scale=(ScaleAxis(roles=("high", "low", "close"), degree={"plus": 0, "minus": 0}),),
     golden_params={"window": 2},
     golden_input={
         "high": (2.0, 4.0, 6.0, 5.0, 7.0),

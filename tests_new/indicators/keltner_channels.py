@@ -13,7 +13,7 @@ KELTNER_CHANNELS = Spec(
     params={"window": 20, "window_atr": 10, "multiplier": 2.0},
     shape=Shape.STRUCT,
     fields=("lower", "middle", "upper"),
-    warmup=19,
+    warmup={"lower": 19, "middle": 19, "upper": 19},
     lands_on="close",
     raises=(
         ({"window": 0}, r"window must be >= 1"),
@@ -27,7 +27,7 @@ KELTNER_CHANNELS = Spec(
     oracle=keltner_channels_reference,
     # Every band is a price level (an EMA plus/minus a multiple of the ATR), homogeneous of degree 1 (tests/indicators/
     # test_keltner_channels.py::TestKeltnerChannelsProperties::test_scale_homogeneity).
-    scale=(ScaleAxis(roles=("high", "low", "close"), degree=1),),
+    scale=(ScaleAxis(roles=("high", "low", "close"), degree={"lower": 1, "middle": 1, "upper": 1}),),
     golden_params={"window": 3, "window_atr": 3},
     golden_input={
         "high": (10.0, 12.0, 11.0, 13.0, 15.0),

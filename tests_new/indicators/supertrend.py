@@ -1,9 +1,9 @@
-"""Spec for ``pomata.indicators.supertrend`` — the ATR-banded trend struct (line, direction), gap-bridging, exempt."""
+"""Spec for ``pomata.indicators.supertrend`` — the ATR-banded trend struct (line, direction), gap-bridging."""
 
 import math
 
 from tests_new.indicators.oracles import supertrend_reference
-from tests_new.support.spec import ScaleExempt, Shape, Spec, SpecPin
+from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import supertrend
 
@@ -17,7 +17,7 @@ SUPERTREND = Spec(
     params={"window": 10, "multiplier": 3.0},
     shape=Shape.STRUCT,
     fields=("line", "direction"),
-    warmup=9,
+    warmup={"line": 9, "direction": 9},
     raises=(
         ({"window": 0}, r"window must be >= 1"),
         ({"multiplier": 0.0}, r"multiplier must be a finite number > 0"),
@@ -27,13 +27,9 @@ SUPERTREND = Spec(
         ({"multiplier": -math.inf}, r"multiplier must be a finite number > 0"),
     ),
     oracle=supertrend_reference,
-    # The struct carries two different homogeneity degrees (line: a degree-1 price level; direction: a degree-0
-    # invariant flag), which a single per-axis scale rung cannot express (tests/indicators/test_supertrend.py
-    # ::test_scale_homogeneity).
-    scale=ScaleExempt(
-        reason="a struct whose fields carry different homogeneity degrees: line is a degree-1 price level, direction "
-        "a degree-0 invariant flag, so no single ScaleAxis can hold both"
-    ),
+    # line is a degree-1 price level, direction a degree-0 invariant flag: the per-field degrees state the split
+    # homogeneity claim the old suite tested (tests/indicators/test_supertrend.py::test_scale_homogeneity).
+    scale=(ScaleAxis(roles=("high", "low", "close"), degree={"line": 1, "direction": 0}),),
     golden_params={"window": 3, "multiplier": 2.0},
     golden_input={"high": _GOLDEN_HIGH, "low": _GOLDEN_LOW, "close": _GOLDEN_CLOSE},
     golden_output={
