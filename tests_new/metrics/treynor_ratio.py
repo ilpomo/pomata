@@ -5,12 +5,16 @@ from collections.abc import Sequence
 
 import polars as pl
 from tests_new.metrics.oracles import treynor_ratio_reference
-from tests_new.support import complete_benchmark, well_spread
 from tests_new.support.spec import ScaleExempt, Shape, Spec, SpecPin
 
 from pomata.metrics import beta, treynor_ratio
 
-_BETA_FLOOR = 5e-2
+# Spec-local beta floor: the old 5e-2 cut sat ~6 orders of magnitude above the measured impl-vs-oracle crossing
+# (|beta| ~3e-8..1e-7), with agreement at 1e-13..1e-16 relative deviation everywhere down to 1e-5, so 1e-5 keeps a
+# ~2-3 order margin above the crossing while re-admitting the needlessly excluded band. The old filter's two
+# well-spread clauses (returns leg, benchmark leg) were the same mal-applied grade-1 guards removed from alpha /
+# beta / sharpe_ratio — the vanishing-slope quotient below is the only regime treynor's ratio genuinely needs.
+_BETA_FLOOR = 1e-5
 
 
 def _beta_nondegenerate(returns: Sequence[float | None], benchmark: Sequence[float | None]) -> bool:
@@ -23,8 +27,6 @@ def _beta_nondegenerate(returns: Sequence[float | None], benchmark: Sequence[flo
         and not math.isnan(value_returns)
         and not math.isnan(value_benchmark)
     ]
-    if not well_spread([value_returns for value_returns, _ in pairs]):
-        return False
     if len(pairs) < 2:
         return True
     complete_returns = [value for value, _ in pairs]
@@ -42,10 +44,8 @@ def _beta_nondegenerate(returns: Sequence[float | None], benchmark: Sequence[flo
 
 
 def _treynor_conditioning(frame: pl.DataFrame) -> bool:
-    """A well-spread benchmark and a beta bounded away from zero — the two regimes treynor's quotient needs."""
-    returns = frame["returns"].to_list()
-    benchmark = frame["benchmark"].to_list()
-    return well_spread(complete_benchmark(returns, benchmark)) and _beta_nondegenerate(returns, benchmark)
+    """A beta bounded away from zero — the one regime treynor's quotient genuinely needs."""
+    return _beta_nondegenerate(frame["returns"].to_list(), frame["benchmark"].to_list())
 
 
 def _treynor_component() -> pl.Expr:
@@ -92,8 +92,18 @@ TREYNOR_RATIO = Spec(
             label="zero_beta_is_inf",
             inputs={"returns": (3.0, 3.0, 1.0, 1.0), "benchmark": (1.0, -1.0, 1.0, -1.0)},
             expected=(math.inf,),
-            reason="a zero beta (uncorrelated returns) with a positive excess return gives +inf, reported not clipped "
-            "(tests/metrics/test_treynor_ratio.py::TestTreynorRatioEdge::test_zero_beta_is_inf)",
+            reason="a zero beta (uncorrelated returns) with a positive excess return gives +inf, reported not "
+            "clipped — the exact core of the vanishing-slope regime the conditioning filter excludes from the "
+            "property tiers (tests/metrics/test_treynor_ratio.py::TestTreynorRatioEdge::test_zero_beta_is_inf)",
+            covers_conditioning=True,
+        ),
+        SpecPin(
+            label="small_beta_matches_reference",
+            inputs={"returns": (3.001, 2.999, 1.001, 0.999), "benchmark": (1.0, -1.0, 1.0, -1.0)},
+            expected=(504000.0000000275,),
+            reason="an exact-by-construction beta of 0.001 — 50x inside the band the old 5e-2 floor excluded: the "
+            "quotient still matches the oracle to ~5.6e-14 relative deviation, the measured fact that justified "
+            "narrowing the floor to 1e-5",
         ),
         SpecPin(
             label="constant_benchmark_is_nan_0_1",

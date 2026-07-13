@@ -131,6 +131,10 @@ class SpecPin:
     # Compare the sign as well as the value: ``assert_matches`` reads ``-0.0`` and ``0.0`` as equal, so a case that
     # pins the sign of a zero sets this and the rung checks ``math.copysign`` on each pair.
     signed: bool = False
+    # This pin witnesses the degenerate regime the spec's ``conditioning`` filter excludes from the property tiers:
+    # a filter is only allowed together with at least one such pin (checked in ``__post_init__``), so no input regime
+    # is ever silently asserted away — what the fuzz never sees, a fixed case must still demonstrate.
+    covers_conditioning: bool = False
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -267,6 +271,16 @@ class Spec:
             if isinstance(pin.expected, Mapping) != (self.shape is Shape.STRUCT):
                 msg = f"{self.name}: pin {pin.label!r} expected is a per-field mapping iff the shape is a struct"
                 raise ValueError(msg)
+        covering = [pin.label for pin in self.pins if pin.covers_conditioning]
+        if self.conditioning is not None and not covering:
+            msg = (
+                f"{self.name}: a conditioning filter excludes an input regime from the property tiers, so at least "
+                "one pin must witness that regime (covers_conditioning=True) — no exclusion without a fixed case"
+            )
+            raise ValueError(msg)
+        if self.conditioning is None and covering:
+            msg = f"{self.name}: pins {covering} claim to cover a conditioning filter, but none is declared"
+            raise ValueError(msg)
 
     # --- derived, never declared: read off the factory and the package registries ---
 

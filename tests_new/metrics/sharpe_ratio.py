@@ -2,21 +2,10 @@
 
 import math
 
-import polars as pl
 from tests_new.metrics.oracles import sharpe_ratio_reference
-from tests_new.support import well_spread
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import sharpe_ratio
-
-
-def _well_spread(frame: pl.DataFrame) -> bool:
-    """
-    Reject a near-constant return series: its dispersion is pure rounding noise, so the one-pass ratio and the
-    two-pass oracle resolve the ``0 / 0`` oppositely — a degeneracy, not a bug.
-    """
-    return well_spread(frame.to_series(0).to_list())
-
 
 SHARPE_RATIO = Spec(
     factory=sharpe_ratio,
@@ -30,7 +19,6 @@ SHARPE_RATIO = Spec(
         ({"risk_free_rate": -math.inf}, r"risk_free_rate must be a finite number"),
     ),
     oracle=sharpe_ratio_reference,
-    conditioning=_well_spread,
     # A ratio of a mean to a standard deviation at a zero risk-free rate: scale-invariant, degree 0 (tests/metrics/
     # test_sharpe_ratio.py:181 test_scale_invariance).
     scale=(ScaleAxis(roles=("returns",), degree=0),),
@@ -48,9 +36,16 @@ SHARPE_RATIO = Spec(
             label="zero_volatility",
             inputs={"returns": (0.01, 0.01, 0.01, 0.01)},
             expected=(math.inf,),
-            reason="a constant series has zero dispersion with a positive mean, so the ratio is +inf; the well-spread "
-            "conditioning keeps it out of the reference tier (tests/metrics/test_sharpe_ratio.py::test_zero_volatility"
-            "_is_inf)",
+            reason="a constant series has zero dispersion with a positive mean, so the ratio is +inf "
+            "(tests/metrics/test_sharpe_ratio.py::test_zero_volatility_is_inf)",
+        ),
+        SpecPin(
+            label="zero_excess_is_nan",
+            inputs={"returns": (0.0, 0.0, 0.0, 0.0)},
+            expected=(math.nan,),
+            reason="an all-zero series at a zero risk-free rate has zero mean AND zero dispersion, so the ratio is "
+            "the 0/0 NaN — the exact-zero core of the near-constant regime the old suite's well-spread filter "
+            "excluded (a first-moment ratio needs no such filter: the fuzz never rounds impl and oracle apart)",
         ),
     ),
 )

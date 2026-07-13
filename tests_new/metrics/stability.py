@@ -2,29 +2,10 @@
 
 import math
 
-import polars as pl
 from tests_new.metrics.oracles import stability_reference
-from tests_new.support import well_spread
 from tests_new.support.spec import ScaleExempt, Shape, Spec, SpecPin
 
 from pomata.metrics import stability
-
-
-def _well_conditioned(frame: pl.DataFrame) -> bool:
-    """Reject a series whose cumulative log path is degenerate: a return <= -1 makes the log undefined, and a flat
-    cumulative log is a 0/0 the impl (NaN) and the oracle (0.0) resolve apart.
-    """
-    values = frame.to_series(0).to_list()
-    finite = [value for value in values if value is not None and not math.isnan(value)]
-    if any(value <= -1.0 for value in finite):
-        return False
-    cumulative: list[float] = []
-    level = 0.0
-    for value in finite:
-        level += math.log1p(value)
-        cumulative.append(level)
-    return well_spread(cumulative)
-
 
 STABILITY = Spec(
     factory=stability,
@@ -32,7 +13,6 @@ STABILITY = Spec(
     params={},
     shape=Shape.REDUCING,
     oracle=stability_reference,
-    conditioning=_well_conditioned,
     # A coefficient of determination of the cumulative-log-return trend: the nonlinear log breaks homogeneity, so it is
     # neither scale-invariant nor homogeneous — its defining property is the [0, 1] bound (test_stability.py sizing
     # note).
@@ -61,8 +41,9 @@ STABILITY = Spec(
             label="flat_path_is_nan",
             inputs={"returns": (0.0, 0.0, 0.0)},
             expected=(math.nan,),
-            reason="an all-zero series has a flat (zero-variance) cumulative log, so R-squared is NaN "
-            "(test_stability.py::test_flat_path_is_nan)",
+            reason="an all-zero series has a flat (zero-variance) cumulative log, so R-squared is NaN — the "
+            "exact-flat core of the regime the old suite's filter excluded (impl and oracle agree on every "
+            "fuzz-reachable path, so no filter is declared) (test_stability.py::test_flat_path_is_nan)",
         ),
         SpecPin(
             label="out_of_domain_is_nan",

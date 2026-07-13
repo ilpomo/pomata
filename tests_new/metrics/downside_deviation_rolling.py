@@ -2,18 +2,10 @@
 
 import math
 
-import polars as pl
 from tests_new.metrics.oracles import downside_deviation_rolling_reference
-from tests_new.support import windows_well_spread
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import downside_deviation_rolling
-
-
-def _windows_well_spread(frame: pl.DataFrame) -> bool:
-    """Reject a near-constant window: the one-pass shortfall square cannot track the two-pass oracle there."""
-    return windows_well_spread(frame.to_series(0).to_list(), 3)
-
 
 DOWNSIDE_DEVIATION_ROLLING = Spec(
     factory=downside_deviation_rolling,
@@ -29,7 +21,6 @@ DOWNSIDE_DEVIATION_ROLLING = Spec(
         ({"threshold": -math.inf}, r"threshold must be a finite number"),
     ),
     oracle=downside_deviation_rolling_reference,
-    conditioning=_windows_well_spread,
     # Degree-1 homogeneous per window at threshold=0 (by analogy to the reducing downside_deviation).
     scale=(ScaleAxis(roles=("returns",), degree=1),),
     golden_input={"returns": (0.01, -0.02, 0.03, -0.01, 0.02, 0.0, -0.015)},
@@ -48,6 +39,14 @@ DOWNSIDE_DEVIATION_ROLLING = Spec(
             expected=(None, None, 0.18330302779823363),
             reason="when the window equals the series length only the last row is defined "
             "(test_downside_deviation_rolling.py::test_window_equals_length)",
+        ),
+        SpecPin(
+            label="constant_downside_window_matches_reference",
+            inputs={"returns": (-0.01, -0.01, -0.01)},
+            expected=(None, None, 0.15874507866387544),
+            reason="a bit-constant all-downside window — the near-constant regime the old suite's well-spread "
+            "filter excluded: the shortfall RMS sums non-negative squares with NO mean subtraction, so there is no "
+            "cancellation to round apart and impl and oracle agree to the ULP; no filter is declared",
         ),
     ),
 )

@@ -1,37 +1,12 @@
 """Spec for ``pomata.metrics.sortino_ratio_rolling`` — the Sortino over a trailing window, scale-invariant."""
 
 import math
-from collections.abc import Sequence
 
-import polars as pl
 from tests_new.metrics.oracles import sortino_ratio_rolling_reference
 from tests_new.support import RELATIVE_TOLERANCE_SCALE
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import sortino_ratio_rolling
-
-_DOWNSIDE_FLOOR = 1e-3
-
-
-def _windows_conditioned(values: Sequence[float | None], window: int) -> bool:
-    """Whether every window's downside deviation is either zero or a real fraction of the magnitude."""
-    for index in range(window - 1, len(values)):
-        finite = [
-            value for value in values[index - window + 1 : index + 1] if value is not None and not math.isnan(value)
-        ]
-        if not finite:
-            continue
-        downside_square = sum(value * value for value in finite if value < 0.0) / len(finite)
-        scale = max(abs(value) for value in finite) or 1.0
-        if 0.0 < downside_square < (scale * _DOWNSIDE_FLOOR) ** 2:
-            return False
-    return True
-
-
-def _sortino_conditioning(frame: pl.DataFrame) -> bool:
-    """Every window's downside deviation well-conditioned — the regime the rolling ratio needs."""
-    return _windows_conditioned(frame.to_series(0).to_list(), 3)
-
 
 SORTINO_RATIO_ROLLING = Spec(
     factory=sortino_ratio_rolling,
@@ -47,7 +22,6 @@ SORTINO_RATIO_ROLLING = Spec(
         ({"risk_free_rate": -math.inf}, r"risk_free_rate must be a finite number"),
     ),
     oracle=sortino_ratio_rolling_reference,
-    conditioning=_sortino_conditioning,
     oracle_rel_tol=RELATIVE_TOLERANCE_SCALE,
     # A ratio of a rolling mean to a rolling downside deviation is scale-invariant (by analogy to the reducing sortino).
     scale=(ScaleAxis(roles=("returns",), degree=0),),
@@ -85,6 +59,15 @@ SORTINO_RATIO_ROLLING = Spec(
             reason="reference agreement at a non-default risk-free rate "
             "(test_sortino_ratio_rolling.py::test_matches_reference)",
             params_override={"window": 4, "risk_free_rate": 0.02},
+        ),
+        SpecPin(
+            label="tiny_downside_window_matches_reference",
+            inputs={"returns": (-0.01, 0.5, 0.5)},
+            expected=(None, None, 907.3499876012563),
+            reason="the smallest downside deviation the fuzz domain can put in a window (one loss at the "
+            "|r| >= 0.01 floor against gains at the 0.5 cap) — at the fixed window of 3 this sits ABOVE the "
+            "downside floor the old suite's filter cut at, so that filter was dead code and is not declared; the "
+            "ratio matches the oracle to the ULP even here",
         ),
     ),
 )

@@ -11,7 +11,15 @@ from pomata.metrics import kurtosis_rolling
 
 
 def _windows_well_conditioned(frame: pl.DataFrame) -> bool:
-    """Reject a near-constant window: the standardized moment is a 0/0 the one- and two-pass paths resolve apart."""
+    """
+    Reject a near-constant CURRENT window: the standardized moment is a 0/0 the one- and two-pass paths resolve
+    apart, the same genuine degeneracy the reducing kurtosis filters (its measured onset straddles the shared cut).
+    The conditioning audit found this predicate had been excusing a DIFFERENT failure it cannot see — a stale
+    residue in the incremental kernel's running sums after a large value exits the buffer, i.e. a property of a
+    PAST window — which the kernel now recomputes exactly (the src recompute trigger covers ratio**4 amplification);
+    that regime is witnessed by the moderate_outlier_exit pin below, so the filter's stated reason matches what it
+    actually guards again.
+    """
     return windows_well_conditioned(frame.to_series(0).to_list(), 4)
 
 
@@ -35,9 +43,11 @@ KURTOSIS_ROLLING = Spec(
             label="constant_window_is_nan",
             inputs={"returns": (0.3, 0.3, 0.3, 0.3)},
             expected=(None, None, math.nan, math.nan),
-            reason="a constant window has zero variance, so the standardized moment is 0/0, i.e. NaN "
+            reason="a constant window has zero variance, so the standardized moment is 0/0, i.e. NaN — the exact "
+            "core of the near-constant regime the conditioning filter excludes from the property tiers "
             "(test_kurtosis_rolling.py::test_constant_window_is_nan)",
             params_override={"window": 3},
+            covers_conditioning=True,
         ),
         SpecPin(
             label="window_equals_length",
@@ -46,6 +56,51 @@ KURTOSIS_ROLLING = Spec(
             reason="when the window equals the series length only the last row is defined "
             "(test_kurtosis_rolling.py::test_window_equals_length)",
             params_override={"window": 5},
+        ),
+        SpecPin(
+            label="moderate_outlier_exit_matches_reference",
+            inputs={
+                "returns": (
+                    0.01,
+                    0.01,
+                    -1.0,
+                    0.01,
+                    0.01,
+                    0.2174,
+                    0.3097,
+                    0.01,
+                    0.8594,
+                    0.01,
+                    0.3,
+                    0.01,
+                    0.01,
+                    0.01,
+                    0.025,
+                )
+            },
+            expected=(
+                None,
+                None,
+                None,
+                -0.666666666666667,
+                -0.666666666666667,
+                -0.7385644585582893,
+                -1.7630178398191556,
+                -1.7630178398191554,
+                -0.9075115004157928,
+                -1.0398296785270926,
+                -1.016312919913764,
+                -1.0163129199137637,
+                -0.6666666666663654,
+                -0.6666666666663654,
+                -0.6666666666666656,
+            ),
+            reason="the failure the old filter was wrongly excusing as current-window ill-conditioning: after a "
+            "moderate outlier (tens of times the window scale) exits the buffer, the incremental kernel's running "
+            "sums keep a stale residue the fourth power amplifies as ratio**4 — the src recompute trigger now "
+            "rebuilds those windows exactly (worst |impl - oracle| here 3.4e-13), the counterexample the "
+            "conditioning audit unmasked and src fixed "
+            "(test_kurtosis_rolling.py::test_moderate_outlier_exit_matches_reference)",
         ),
     ),
 )

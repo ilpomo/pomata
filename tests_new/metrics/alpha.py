@@ -4,17 +4,9 @@ import math
 
 import polars as pl
 from tests_new.metrics.oracles import alpha_reference
-from tests_new.support import complete_benchmark, well_spread
 from tests_new.support.spec import ScaleExempt, Shape, Spec, SpecPin
 
 from pomata.metrics import alpha, beta
-
-
-def _well_spread_benchmark(frame: pl.DataFrame) -> bool:
-    """Reject a near-constant benchmark: the embedded regression slope is ill-conditioned on it."""
-    returns = frame["returns"].to_list()
-    benchmark = frame["benchmark"].to_list()
-    return well_spread(complete_benchmark(returns, benchmark))
 
 
 def _alpha_component() -> pl.Expr:
@@ -38,7 +30,6 @@ ALPHA = Spec(
         ({"risk_free_rate": -math.inf}, r"risk_free_rate must be a finite number"),
     ),
     oracle=alpha_reference,
-    conditioning=_well_spread_benchmark,
     # Annualizes a return beyond a benchmark-explained baseline — neither scale-invariant nor homogeneous
     # (tests/metrics/test_alpha.py module docstring).
     scale=ScaleExempt(
@@ -80,7 +71,9 @@ ALPHA = Spec(
             label="constant_benchmark_0_1",
             inputs={"returns": (0.01, -0.02, 0.03), "benchmark": (0.1, 0.1, 0.1)},
             expected=(math.nan,),
-            reason="a constant benchmark makes the embedded beta NaN, which propagates to alpha "
+            reason="a constant benchmark makes the embedded beta NaN, which propagates to alpha — the exact-zero "
+            "core of the near-constant regime the old suite's well-spread filter excluded (the cov/var slope is "
+            "robust down to a benchmark spread the fuzz cannot reach, so no filter is declared) "
             "(tests/metrics/test_alpha.py::TestAlphaEdge::test_constant_benchmark_is_nan)",
         ),
         SpecPin(

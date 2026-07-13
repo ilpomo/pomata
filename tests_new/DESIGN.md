@@ -56,15 +56,26 @@ ladder each axis is a **declared field** or a **derived fact**, and a rung gates
 | `lands_on` | optional | landing column when it is not the first input |
 | `flow_horizon` | optional | rows past a missing bar the flow must have played out by |
 | `oracle_adapter` | optional | a frame->result callable when the oracle is not the factory's signature-mirror |
-| `conditioning` | optional | a Hypothesis `assume` filter for the property tier |
+| `conditioning` | optional | a Hypothesis `assume` filter for the property tier — allowed only together with a pin that carries `covers_conditioning=True` (see below) |
 | `all_null` | optional | a `Deviant(expected, reason)` when the all-null answer is not all-null |
-| `pins` | optional | crafted-input cases ported from the old suite: a tuple of `SpecPin(label, inputs, expected, reason, params_override, signed)` |
+| `pins` | optional | crafted-input cases ported from the old suite: a tuple of `SpecPin(label, inputs, expected, reason, params_override, signed, covers_conditioning)` |
 | `component_expr` | optional | a zero-argument builder of the public-function recomposition the factory must reproduce (a metamorphic identity) |
 
 A `SpecPin` is itself pure data: `label` (its id suffix), `inputs` (the full input lanes), `expected` (the output
 lanes, a per-field mapping for a struct), the required `reason` (anchored to the old test it was ported from), an
-optional `params_override`, and `signed` (compare the sign too, so `-0.0` is not read as `0.0`). Each pin's `inputs`
-keys and `expected` shape are checked against the spec at construction, and labels must be unique.
+optional `params_override`, `signed` (compare the sign too, so `-0.0` is not read as `0.0`), and
+`covers_conditioning` (this pin is the fixed case witnessing the input regime the spec's `conditioning` filter
+excludes). Each pin's `inputs` keys and `expected` shape are checked against the spec at construction, and labels
+must be unique.
+
+**No exclusion without a fixed case.** A `conditioning` filter tells Hypothesis to skip an input regime, which is
+exactly where a bug could hide unobserved — so a spec may declare one only if at least one pin carries
+`covers_conditioning=True` and demonstrates, on a concrete input from that regime, what the function actually
+returns there (checked in `__post_init__`, so an uncovered filter cannot even be imported). The reverse also
+holds: a `covers_conditioning=True` pin on a spec with no filter is rejected as stale. Every filter's docstring
+states the *measured* boundary it was calibrated against (the conditioning audit's probes), and every threshold
+narrowed from a shared constant is a spec-local constant with the measurement in a comment — the shared constants
+themselves (`well_spread` 1e-9, `windows_well_spread` 1e-9, `CONDITIONING_FLOOR` 1e-2) are never retuned per spec.
 
 Derived, never declared: `name` (from the factory), `family` (from `__all__`), `null_policy` / `nan_policy`
 (from the registry), `spec_id` (the pytest id).
@@ -76,7 +87,9 @@ Derived, never declared: `name` (from the factory), `family` (from `__all__`), `
 2. **`__post_init__`** — the conditional requirements, checked loudly at construction (import time): a struct names
    its `fields`; a reduction has no `warmup`; declared `params` imply `raises` (else the validation rung is a
    no-op); `scale` is never an empty tuple (an exemption is a reasoned `ScaleExempt`); every scale axis and input
-   role is real; the derived name has a declared policy and a public `__all__`.
+   role is real; the derived name has a declared policy and a public `__all__`; a `conditioning` filter implies a
+   `covers_conditioning=True` pin, and such a pin implies the filter (no exclusion without a fixed case, no stale
+   coverage claim).
 3. **Two-way bijection** — `tests_new/all_specs.py` holds the per-family tuples in exact correspondence with
    `MIGRATED`, requires each migrated name to be in its family's `__all__`, and forbids duplicate names. It runs at
    import (born red), so any collection enforces it.
@@ -107,6 +120,34 @@ A struct field, a validation counterexample, a scale axis, and a pin each get th
 `ichimoku-senkou_b` (per-field warm-up), `sharpe_ratio-0` (per counterexample), `ichimoku-high+low` (per scale
 axis), `sharpe_ratio-zero_volatility` (per pin). To read a failure: find the rung by the name in the id, read its few
 lines, then read the spec row the id names.
+
+## Glossary (plain words for the suite's terms)
+
+- **spec** — one public function's whole testing contract, written as a single frozen dataclass of plain data in
+  `tests_new/<family>/<name>.py`. No logic lives there: it *states* facts, the ladder *checks* them.
+- **rung** — one generic test function in `tests_new/test_ladder.py`, parametrized over every spec it applies to.
+  One rung = one guarantee (e.g. "the golden master matches"), checked identically for all functions.
+- **tier** — an informal grouping of rungs by strength: contract (types and shapes), edge (fixed corner inputs),
+  correctness (oracle and golden agreement), properties (Hypothesis-generated inputs).
+- **oracle** — the naive, obviously-correct reimplementation of a function (plain Python, two-pass, no streaming
+  tricks) that the fast Polars implementation is compared against.
+- **golden master** — one frozen input with its frozen, hand-verified output; a change in behavior shows up as a
+  golden mismatch even if impl and oracle drift together.
+- **pin (fixed case)** — one crafted input mapped to its exact expected output, with a written reason. The data
+  home for a fact a random input or an oracle cannot express: a hand-computed value, a domain corner, a signed
+  zero, a degenerate regime.
+- **conditioning (filter)** — a per-spec predicate that tells the property tiers to skip an input regime where the
+  implementation and the oracle *cannot* be expected to agree (a genuine 0/0, a branch-flip residual). Declared as
+  data on the spec, never hidden in a rung.
+- **`covers_conditioning`** — the flag marking the pin that witnesses a filter's excluded regime. Every filter must
+  have one (checked at import): what the fuzz never sees, a fixed case must still demonstrate.
+- **warm-up** — the exact count of leading `null` rows a windowed function emits before its first defined value.
+- **flow** — how an interior missing value (a `null` or a `NaN` in the middle of the input) propagates through a
+  function: which rows go missing, and how far downstream.
+- **born red** — the rule that every new guard must first be demonstrated *failing* on a real counterexample
+  (locally, never committed) before it lands green; a guard that was never red proves nothing.
+- **policy** — a function's declared answer to interior `null` / `NaN`, from the `pomata._policy` registry; the
+  flow rungs dispatch on it.
 
 ## The migration map (153 functions)
 

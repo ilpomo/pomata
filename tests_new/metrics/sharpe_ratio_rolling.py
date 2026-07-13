@@ -11,7 +11,13 @@ from pomata.metrics import sharpe_ratio_rolling
 
 
 def _windows_well_spread(frame: pl.DataFrame) -> bool:
-    """Reject a near-constant window: the one-pass rolling std cannot track the two-pass oracle there."""
+    """
+    Reject a near-constant window: the one-pass rolling std cannot track the two-pass oracle there. JUSTIFIED by
+    measurement — if anything slightly PERMISSIVE: real disagreement was measured right at the cut (var_rel 1e-9,
+    ~1e-4 relative deviation) and agreement only returns ~23x above it, but that sliver of admitted-and-divergent
+    windows is unreachable by the property tiers' independent draws, so the shared cut is kept rather than inventing
+    a spec-local widening.
+    """
     return windows_well_spread(frame.to_series(0).to_list(), 3)
 
 
@@ -41,9 +47,11 @@ SHARPE_RATIO_ROLLING = Spec(
             label="zero_volatility",
             inputs={"returns": (0.5, 0.5, 0.5, 0.5)},
             expected=(None, None, math.inf, math.inf),
-            reason="a constant window has zero dispersion with a positive mean, so the ratio is +inf "
+            reason="a constant window has zero dispersion with a positive mean, so the ratio is +inf — the exact "
+            "core of the near-constant regime the conditioning filter excludes from the property tiers "
             "(test_sharpe_ratio_rolling.py::test_zero_volatility_is_inf)",
             params_override={"window": 3},
+            covers_conditioning=True,
         ),
         SpecPin(
             label="window_equals_length",

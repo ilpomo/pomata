@@ -15,7 +15,9 @@ def _windows_well_spread(frame: pl.DataFrame) -> bool:
     Reject a near-flat window: where the changes over a window are tiny relative to the accumulated series magnitude,
     the implementation's one-pass rolling gain/loss sums lose the window's contribution to a sub-ULP residual (and its
     residual-free flat guard may fire ``NaN`` outright), while the naive oracle recomputes the window fresh — the two
-    round to opposite sides of the 0/0 boundary there. The exact-flat corners are fixed by the ``flat_window`` /
+    round to opposite sides of the 0/0 boundary there. JUSTIFIED by measurement: the empirical audit found zero
+    impl-vs-oracle failures on every admitted draw and real disagreement starting right at the predicate's own
+    boundary, so the cut sits where the hazard actually is. The exact-flat corners are fixed by the ``flat_window`` /
     ``flat_tail`` pins; the fuzz stays on genuinely-moving windows, matching the old suite's conditioning idiom.
     """
     return windows_well_spread(frame.to_series(0).to_list(), 3)
@@ -40,8 +42,10 @@ CHANDE_MOMENTUM_OSCILLATOR = Spec(
             label="flat_window_is_nan",
             inputs={"price": (10.0, 10.0, 10.0, 10.0, 10.0)},
             expected=(None, None, None, math.nan, math.nan),
-            reason="an all-flat window (every change exactly zero) is the 0/0 degenerate, returned as NaN "
+            reason="an all-flat window (every change exactly zero) is the 0/0 degenerate, returned as NaN — the "
+            "exact core of the near-flat regime the conditioning filter excludes from the property tiers "
             "(test_chande_momentum_oscillator.py::test_flat_window_is_nan)",
+            covers_conditioning=True,
         ),
         SpecPin(
             label="flat_tail_after_movement_is_nan",

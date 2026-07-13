@@ -2,21 +2,10 @@
 
 import math
 
-import polars as pl
 from tests_new.metrics.oracles import information_ratio_reference
-from tests_new.support import well_spread
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import information_ratio
-
-
-def _well_spread_active(frame: pl.DataFrame) -> bool:
-    """Reject a near-constant active series: the tracking-error denominator would be ill-conditioned."""
-    returns = frame["returns"].to_list()
-    benchmark = frame["benchmark"].to_list()
-    active = [x - y for x, y in zip(returns, benchmark, strict=True) if x is not None and y is not None]
-    return well_spread(active)
-
 
 INFORMATION_RATIO = Spec(
     factory=information_ratio,
@@ -25,7 +14,6 @@ INFORMATION_RATIO = Spec(
     shape=Shape.REDUCING,
     raises=(({"periods_per_year": 0}, r"periods_per_year must be >= 1"),),
     oracle=information_ratio_reference,
-    conditioning=_well_spread_active,
     # A mean of the active series over its standard deviation: a joint rescale of both legs by k leaves the ratio
     # unchanged (tests/metrics/test_information_ratio.py::test_scale_invariance).
     scale=(ScaleAxis(roles=("returns", "benchmark"), degree=0),),
@@ -48,6 +36,15 @@ INFORMATION_RATIO = Spec(
             expected=(math.inf,),
             reason="a constant active series has zero tracking error with a positive mean, so the ratio is +inf "
             "(tests/metrics/test_information_ratio.py::test_zero_tracking_error_is_inf)",
+        ),
+        SpecPin(
+            label="zero_active_is_nan",
+            inputs={"returns": (0.01, 0.02, 0.03), "benchmark": (0.01, 0.02, 0.03)},
+            expected=(math.nan,),
+            reason="identical legs give an exactly-zero active series: zero mean over zero tracking error is the "
+            "0/0 NaN, resolved by the exact dispersion guard — the exact-zero core of the near-constant regime the "
+            "old suite's well-spread filter excluded (a first-moment ratio needs no such filter: the fuzz never "
+            "rounds impl and oracle apart)",
         ),
     ),
 )

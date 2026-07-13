@@ -3,37 +3,12 @@ scale-invariant.
 """
 
 import math
-from collections.abc import Sequence
 
-import polars as pl
 from tests_new.metrics.oracles import omega_ratio_rolling_reference
 from tests_new.support import RELATIVE_TOLERANCE_SCALE
 from tests_new.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import omega_ratio_rolling
-
-_LOSS_FLOOR = 1e-3
-
-
-def _windows_conditioned(values: Sequence[float | None], window: int) -> bool:
-    """Whether every window's mean loss is either zero or a real fraction of the window magnitude."""
-    for index in range(window - 1, len(values)):
-        finite = [
-            value for value in values[index - window + 1 : index + 1] if value is not None and not math.isnan(value)
-        ]
-        if not finite:
-            continue
-        mean_loss = sum(-value for value in finite if value < 0.0) / len(finite)
-        scale = max(abs(value) for value in finite) or 1.0
-        if 0.0 < mean_loss < scale * _LOSS_FLOOR:
-            return False
-    return True
-
-
-def _omega_conditioning(frame: pl.DataFrame) -> bool:
-    """Every window's mean loss well-conditioned — the regime the rolling ratio needs."""
-    return _windows_conditioned(frame.to_series(0).to_list(), 3)
-
 
 OMEGA_RATIO_ROLLING = Spec(
     factory=omega_ratio_rolling,
@@ -48,7 +23,6 @@ OMEGA_RATIO_ROLLING = Spec(
         ({"threshold": -math.inf}, r"threshold must be a finite number"),
     ),
     oracle=omega_ratio_rolling_reference,
-    conditioning=_omega_conditioning,
     oracle_rel_tol=RELATIVE_TOLERANCE_SCALE,
     # A ratio of a rolling mean gain to a rolling mean loss is scale-invariant (by analogy to the reducing omega).
     scale=(ScaleAxis(roles=("returns",), degree=0),),
@@ -85,6 +59,15 @@ OMEGA_RATIO_ROLLING = Spec(
             reason="a large-magnitude corner guarding a spurious +inf residue against a correct 0/0=NaN "
             "(test_omega_ratio_rolling.py::test_no_activity_window_is_nan)",
             params_override={"window": 2},
+        ),
+        SpecPin(
+            label="tiny_loss_window_matches_reference",
+            inputs={"returns": (-0.01, 0.5, 0.5)},
+            expected=(None, None, 99.99999999999999),
+            reason="the smallest mean loss the fuzz domain can put in a window (one loss at the |r| >= 0.01 floor "
+            "against gains at the 0.5 cap) — at the fixed window of 3 this sits ABOVE the loss floor the old "
+            "suite's filter cut at, so that filter was dead code and is not declared; the plain sum ratio matches "
+            "the oracle exactly even here",
         ),
     ),
 )

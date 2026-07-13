@@ -125,6 +125,38 @@ def spans_even_lag_repeat(series: Sequence[float | None]) -> bool:
     return any(series[index] == series[index - 2] for index in range(2, len(series)))
 
 
+def spans_even_lag_run(series: Sequence[float | None], min_run: int = 6) -> bool:
+    """
+    Whether ``series`` contains a SUSTAINED run of at least ``min_run`` consecutive even-lag equalities
+    (``x[i] == x[i - 2]`` at ``min_run`` consecutive indices) — the regime where the cycle pipeline's phasor branch
+    genuinely flips.
+
+    The narrowed twin of :func:`spans_even_lag_repeat` for the cycle indicators that read the phase branch (mama,
+    sine_wave, dominant_cycle_phase). An empirical boundary probe (impl vs oracle, graduated trailing runs on the
+    golden carriers) showed the single-pair predicate is ~one-to-fourteen too blunt: an ISOLATED even-lag tie — the
+    overwhelming majority of what it rejects under fuzzing — never produces real disagreement (worst measured
+    deviation ~1e-14 for mama, ≤2.6e-10 on unit-bounded sine_wave lanes, inside the property tiers' absolute band),
+    while real branch-flip disagreement needs the four-bar smooth to repeat across an even lag for a sustained
+    stretch: onset at ~9 structured bars for sine_wave (probabilistic, the norm by 11-14), ~14 for mama, and a
+    whole-series flat run for dominant_cycle_phase. A run of ``k`` consecutive even-lag equalities corresponds to
+    ``k + 2`` such bars, so the default ``min_run=6`` (≈ 8 bars) sits one bar below the earliest measured onset,
+    rejecting every sustained flat run or period-two alternation while re-admitting the isolated coincidences.
+
+    Args:
+        series: The candidate price series (the finite list a property tier would feed the indicator).
+        min_run: The minimum count of consecutive even-lag equalities that makes the series degenerate.
+
+    Returns:
+        ``True`` if some ``min_run`` consecutive indices each equal the value two positions earlier, else ``False``.
+    """
+    run = 0
+    for index in range(2, len(series)):
+        run = run + 1 if series[index] == series[index - 2] else 0
+        if run >= min_run:
+            return True
+    return False
+
+
 def subnormal_safe_floats(bound: float = 1e3) -> st.SearchStrategy[float]:
     """
     Finite floats in ``[-bound, bound]`` whose magnitude is floored at ``SUBNORMAL_FLOOR``, for any indicator whose
@@ -223,15 +255,17 @@ def windows_well_spread(values: Sequence[float | None], window: int) -> bool:
     return all(well_spread(values[index - window + 1 : index + 1]) for index in range(window - 1, len(values)))
 
 
-def windows_well_conditioned(values: Sequence[float | None], window: int) -> bool:
+def windows_well_conditioned(values: Sequence[float | None], window: int, floor: float = CONDITIONING_FLOOR) -> bool:
     """
     Whether every trailing ``window``'s variance is a real fraction of its magnitude (a well-conditioned slope or
     standardized moment).
 
-    A window whose variance is below ``scale ** 2 * CONDITIONING_FLOOR`` is too near-constant for a one-pass rolling
-    ratio to track the two-pass oracle; the rolling moment-ratio and benchmark-relative property tiers filter it out and
-    pin the degenerate case deterministically in the edge tier. Fewer than two finite values is skipped (both paths
-    already agree there).
+    A window whose variance is below ``scale ** 2 * floor`` is too near-constant for a one-pass rolling ratio to
+    track the two-pass oracle; the rolling moment-ratio and benchmark-relative property tiers filter it out and pin
+    the degenerate case deterministically in the edge tier. Fewer than two finite values is skipped (both paths
+    already agree there). The ``floor`` defaults to the shared conservative ``CONDITIONING_FLOOR``; a spec whose
+    empirical disagreement onset was measured (see each spec's conditioning wrapper) passes its own tighter,
+    spec-local floor instead — the shared constant itself is never retuned per spec.
     """
     for index in range(window - 1, len(values)):
         finite = [
@@ -242,7 +276,7 @@ def windows_well_conditioned(values: Sequence[float | None], window: int) -> boo
         mean = sum(finite) / len(finite)
         variance = sum((value - mean) ** 2 for value in finite) / len(finite)
         scale = max(abs(value) for value in finite) or 1.0
-        if variance <= scale * scale * CONDITIONING_FLOOR:
+        if variance <= scale * scale * floor:
             return False
     return True
 

@@ -9,10 +9,17 @@ from tests_new.support.spec import ScaleExempt, Shape, Spec, SpecPin
 
 from pomata.metrics import alpha_rolling
 
+# Spec-local conditioning floor: the shared 1e-2 rejected ~5 orders of magnitude of well-behaved windows. On the
+# benchmark-variance axis the embedded cov/var slope was probed to agree with the oracle down to var_rel 1e-6 and to
+# break only at ~1e-8 (measured on treynor_ratio_rolling, the same slope over the same benchmark window; alpha's
+# multiply-by-beta is strictly better conditioned than treynor's divide-by-beta), so 1e-5 keeps a 10x margin above
+# the last verified-agreeing point while re-admitting three orders of the needlessly excluded band.
+_CONDITIONING_FLOOR = 1e-5
+
 
 def _windows_well_conditioned(frame: pl.DataFrame) -> bool:
     """Reject any trailing window whose benchmark variance is too near zero for the one-pass slope to track."""
-    return windows_well_conditioned(frame["benchmark"].to_list(), 4)
+    return windows_well_conditioned(frame["benchmark"].to_list(), 4, floor=_CONDITIONING_FLOOR)
 
 
 ALPHA_ROLLING = Spec(
@@ -64,9 +71,11 @@ ALPHA_ROLLING = Spec(
             label="constant_benchmark_window_is_nan",
             inputs={"returns": (0.01, -0.02, 0.03, -0.01), "benchmark": (0.1, 0.1, 0.1, 0.1)},
             expected=(None, None, math.nan, math.nan),
-            reason="a window whose benchmark is exactly constant makes the embedded slope NaN "
+            reason="a window whose benchmark is exactly constant makes the embedded slope NaN — the exact core of "
+            "the near-constant regime the conditioning filter excludes from the property tiers "
             "(tests/metrics/test_alpha_rolling.py::test_constant_benchmark_window_is_nan)",
             params_override={"window": 3},
+            covers_conditioning=True,
         ),
         SpecPin(
             label="window_equals_length",
