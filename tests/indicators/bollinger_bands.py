@@ -3,7 +3,7 @@
 import math
 
 from tests.indicators.oracles import bollinger_bands_reference
-from tests.support import ABSOLUTE_TOLERANCE_SCALE, RELATIVE_TOLERANCE_SCALE
+from tests.support import ABSOLUTE_TOLERANCE_ROLLING_ORACLE, RELATIVE_TOLERANCE_ROLLING_ORACLE
 from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import bollinger_bands
@@ -26,10 +26,9 @@ BOLLINGER_BANDS = Spec(
     oracle=bollinger_bands_reference,
     # The bands ride a one-pass rolling deviation against a two-pass oracle: the fixed streaming band over the
     # well-conditioned domain, matching every other one-pass moment family.
-    oracle_rel_tol=RELATIVE_TOLERANCE_SCALE,
-    oracle_abs_tol=ABSOLUTE_TOLERANCE_SCALE,
-    # Every band is a price level (mean plus/minus a dispersion), homogeneous of degree 1 (tests/indicators/
-    # test_bollinger_bands.py::TestBollingerBandsProperties::test_scale_homogeneity).
+    oracle_rel_tol=RELATIVE_TOLERANCE_ROLLING_ORACLE,
+    oracle_abs_tol=ABSOLUTE_TOLERANCE_ROLLING_ORACLE,
+    # Every band is a price level (mean plus/minus a dispersion), homogeneous of degree 1
     scale=(ScaleAxis(roles=("price",), degree={"lower": 1, "middle": 1, "upper": 1}),),
     golden_params={"window": 2},
     golden_input={"price": (2.0, 4.0, 4.0, 8.0)},
@@ -49,8 +48,7 @@ BOLLINGER_BANDS = Spec(
                 "upper": (None, 4.0, 4.0, 8.0),
             },
             reason="the band half-width is linear in the multiplier: at multiplier=1 it is half of the default, the "
-            "arithmetic a single default-multiplier golden cannot exercise (test_bollinger_bands.py"
-            "::TestBollingerBandsCorrectness::test_multiplier_scales_width)",
+            "arithmetic a single default-multiplier golden cannot exercise",
         ),
         SpecPin(
             label="constant_window_collapses_bands_after_large_value",
@@ -63,7 +61,7 @@ BOLLINGER_BANDS = Spec(
             },
             reason="a constant window has exactly zero (pinned) deviation, so all three bands collapse onto the middle "
             "even after a much larger value has left the window, where the rolling kernel would otherwise leave a "
-            "residue (test_bollinger_bands.py::TestBollingerBandsEdge::test_constant_window_collapses_bands)",
+            "residue",
         ),
     ),
 )

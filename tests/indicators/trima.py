@@ -17,8 +17,7 @@ TRIMA = Spec(
     warmup=4,
     raises=(({"window": 0}, r"window must be >= 1"),),
     oracle=trima_reference,
-    # A fixed triangular-weight normalization scales linearly with the series (tests/indicators/test_trima.py
-    # ::test_scale_homogeneity).
+    # A fixed triangular-weight normalization scales linearly with the series.
     scale=(ScaleAxis(roles=("expr",), degree=1),),
     golden_params={"window": 4},
     golden_input={"expr": (3.0, 1.0, 4.0, 1.0, 5.0)},
@@ -29,54 +28,49 @@ TRIMA = Spec(
             inputs={"expr": (42.0,)},
             expected=(42.0,),
             params_override={"window": 1},
-            reason="window=1 on one row returns the value itself (test_trima.py::TestTrimaEdge::test_single_row)",
+            reason="window=1 on one row returns the value itself",
         ),
         SpecPin(
             label="single_row_window_exceeds_length",
             inputs={"expr": (42.0,)},
             expected=(None,),
             params_override={"window": 3},
-            reason="window > length on one row yields null (test_trima.py::TestTrimaEdge::test_single_row)",
+            reason="window > length on one row yields null",
         ),
         SpecPin(
             label="null_in_window_recovers",
             inputs={"expr": (1.0, None, 3.0, 4.0)},
             expected=(None, None, None, 3.5),
             params_override={"window": 2},
-            reason="a null inside the window yields null there, and the value returns once the window clears "
-            "(test_trima.py::TestTrimaEdge::test_null_in_window_is_null)",
+            reason="a null inside the window yields null there, and the value returns once the window clears",
         ),
         SpecPin(
             label="nan_propagates_confined",
             inputs={"expr": (1.0, math.nan, 3.0, 4.0)},
             expected=(None, math.nan, math.nan, 3.5),
             params_override={"window": 2},
-            reason="a NaN inside the window yields NaN there, confined to the windows spanning it "
-            "(test_trima.py::TestTrimaEdge::test_nan_propagates)",
+            reason="a NaN inside the window yields NaN there, confined to the windows spanning it",
         ),
         SpecPin(
             label="window_one_is_identity",
             inputs={"expr": (1.0, 2.0, 3.0)},
             expected=(1.0, 2.0, 3.0),
             params_override={"window": 1},
-            reason="window=1 reduces to the identity across a full series "
-            "(test_trima.py::TestTrimaEdge::test_window_one_is_identity)",
+            reason="window=1 reduces to the identity across a full series",
         ),
         SpecPin(
             label="matches_reference_window_2",
             inputs={"expr": _SWEEP},
             expected=(None, 2.0, 2.5, 2.5, 3.0, 7.0, 5.5, 4.0),
             params_override={"window": 2},
-            reason="the even-window branch of the old odd/even reference sweep "
-            "(test_trima.py::TestTrimaCorrectness::test_matches_reference)",
+            reason="the even-window branch of the odd/even weight construction at the smallest even window",
         ),
         SpecPin(
             label="matches_reference_window_3",
             inputs={"expr": _SWEEP},
             expected=(None, None, 2.25, 2.5, 2.75, 5.0, 6.25, 4.75),
             params_override={"window": 3},
-            reason="the odd-window branch of the old reference sweep "
-            "(test_trima.py::TestTrimaCorrectness::test_matches_reference)",
+            reason="the odd-window branch of the odd/even weight construction at the smallest non-trivial odd window",
         ),
         SpecPin(
             label="matches_reference_window_4",
@@ -92,8 +86,7 @@ TRIMA = Spec(
                 5.5,
             ),
             params_override={"window": 4},
-            reason="the even-window branch of the old reference sweep "
-            "(test_trima.py::TestTrimaCorrectness::test_matches_reference)",
+            reason="the wider even-window branch of the odd/even weight construction",
         ),
         SpecPin(
             label="matches_reference_window_5",
@@ -109,16 +102,14 @@ TRIMA = Spec(
                 5.333333333333333,
             ),
             params_override={"window": 5},
-            reason="the odd-window branch of the old reference sweep "
-            "(test_trima.py::TestTrimaCorrectness::test_matches_reference)",
+            reason="the odd-window branch of the odd/even weight construction at the canonical window",
         ),
         SpecPin(
             label="matches_reference_window_6",
             inputs={"expr": _SWEEP},
             expected=(None, None, None, None, None, 3.25, 3.916666666666667, 4.833333333333334),
             params_override={"window": 6},
-            reason="the widest window of the old reference sweep "
-            "(test_trima.py::TestTrimaCorrectness::test_matches_reference)",
+            reason="the widest window of the reference sweep, one past the canonical window",
         ),
     ),
 )

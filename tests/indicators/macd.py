@@ -2,7 +2,7 @@
 
 import polars as pl
 from tests.indicators.oracles import macd_reference
-from tests.support import ABSOLUTE_TOLERANCE_SCALE, RELATIVE_TOLERANCE_SCALE
+from tests.support import ABSOLUTE_TOLERANCE_ROLLING_ORACLE, RELATIVE_TOLERANCE_ROLLING_ORACLE
 from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import absolute_price_oscillator, ema, macd
@@ -29,14 +29,13 @@ MACD = Spec(
         ({"window_fast": 26, "window_slow": 12}, r"windows must be ordered window_fast <= window_slow"),
     ),
     oracle=macd_reference,
-    # Every field is a difference/EMA of the price, homogeneous of degree 1 (tests/indicators/test_macd.py
-    # ::TestMacdProperties::test_scale_homogeneity).
+    # Every field is a difference/EMA of the price, homogeneous of degree 1.
     scale=(ScaleAxis(roles=("expr",), degree={"macd": 1, "signal": 1, "histogram": 1}),),
     component_expr=_macd_component,
-    # A one-pass EMA difference against a two-pass oracle: a magnitude-proportional band, matching every other migrated
-    # one-pass family (the old suite used input_scale * STREAMING_TOLERANCE_FACTOR).
-    oracle_rel_tol=RELATIVE_TOLERANCE_SCALE,
-    oracle_abs_tol=ABSOLUTE_TOLERANCE_SCALE,
+    # A one-pass EMA difference against a two-pass oracle: a magnitude-proportional band, matching every other
+    # one-pass family.
+    oracle_rel_tol=RELATIVE_TOLERANCE_ROLLING_ORACLE,
+    oracle_abs_tol=ABSOLUTE_TOLERANCE_ROLLING_ORACLE,
     golden_params={"window_fast": 2, "window_slow": 3, "window_signal": 2},
     golden_input={"expr": (10.0, 11.0, 12.0, 11.0, 13.0, 14.0, 13.0, 15.0)},
     golden_output={
@@ -55,7 +54,7 @@ MACD = Spec(
                 "histogram": (None, None, None, 0.0, 0.0, 0.0),
             },
             reason="equal fast/slow windows make the MACD line identically zero (x - x is exact +0.0), so signal and "
-            "histogram are zero too (test_macd.py::TestMacdEdge::test_fast_equals_slow_is_zero)",
+            "histogram are zero too",
         ),
     ),
 )

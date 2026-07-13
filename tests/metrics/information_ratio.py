@@ -15,7 +15,7 @@ INFORMATION_RATIO = Spec(
     raises=(({"periods_per_year": 0}, r"periods_per_year must be >= 1"),),
     oracle=information_ratio_reference,
     # A mean of the active series over its standard deviation: a joint rescale of both legs by k leaves the ratio
-    # unchanged (tests/metrics/test_information_ratio.py::test_scale_invariance).
+    # unchanged.
     scale=(ScaleAxis(roles=("returns", "benchmark"), degree=0),),
     golden_input={
         "returns": (0.012, -0.008, 0.02, -0.015, 0.005, 0.0, -0.02, 0.018),
@@ -27,24 +27,22 @@ INFORMATION_RATIO = Spec(
             label="single_pair",
             inputs={"returns": (0.05,), "benchmark": (0.04,)},
             expected=(None,),
-            reason="a single complete pair yields null — the tracking error needs two observations "
-            "(tests/metrics/test_information_ratio.py::test_single_pair)",
+            reason="a single complete pair yields null — the tracking error needs two observations",
         ),
         SpecPin(
             label="zero_tracking_error_is_inf",
             inputs={"returns": (0.01, 0.01, 0.01), "benchmark": (0.0, 0.0, 0.0)},
             expected=(math.inf,),
-            reason="a constant active series has zero tracking error with a positive mean, so the ratio is +inf "
-            "(tests/metrics/test_information_ratio.py::test_zero_tracking_error_is_inf)",
+            reason="a constant active series has zero tracking error with a positive mean, so the ratio is +inf",
         ),
         SpecPin(
             label="zero_active_is_nan",
             inputs={"returns": (0.01, 0.02, 0.03), "benchmark": (0.01, 0.02, 0.03)},
             expected=(math.nan,),
             reason="identical legs give an exactly-zero active series: zero mean over zero tracking error is the "
-            "0/0 NaN, resolved by the exact dispersion guard — the exact-zero core of the near-constant regime the "
-            "old suite's well-spread filter excluded (a first-moment ratio needs no such filter: the fuzz never "
-            "rounds impl and oracle apart)",
+            "0/0 NaN, resolved by the exact dispersion guard — the exact-zero core of the near-constant regime; "
+            "no conditioning filter is declared: a first-moment ratio needs none, and the fuzz never rounds impl "
+            "and oracle apart",
         ),
     ),
 )

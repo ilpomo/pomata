@@ -4,7 +4,7 @@ import math
 
 import polars as pl
 from tests.metrics.oracles import alpha_rolling_reference
-from tests.support import RELATIVE_TOLERANCE_SCALE, windows_well_conditioned
+from tests.support import RELATIVE_TOLERANCE_ROLLING_ORACLE, windows_well_conditioned
 from tests.support.spec import ScaleExempt, Shape, Spec, SpecPin
 
 from pomata.metrics import alpha_rolling
@@ -37,7 +37,7 @@ ALPHA_ROLLING = Spec(
     ),
     oracle=alpha_rolling_reference,
     conditioning=_windows_well_conditioned,
-    oracle_rel_tol=RELATIVE_TOLERANCE_SCALE,
+    oracle_rel_tol=RELATIVE_TOLERANCE_ROLLING_ORACLE,
     # Annualizes an excess leg against a fixed per-period risk-free constant — not scale-invariant, by the same
     # reasoning as the reducing alpha (verified numerically).
     scale=ScaleExempt(
@@ -55,16 +55,14 @@ ALPHA_ROLLING = Spec(
             label="null_in_window_is_null",
             inputs={"returns": (0.01, None, 0.03, -0.01, 0.02), "benchmark": (0.008, -0.015, 0.025, None, 0.018)},
             expected=(None, None, None, None, None),
-            reason="a null in either leg nulls every window touching it, disjoint rows and all "
-            "(tests/metrics/test_alpha_rolling.py::test_null_in_window_is_null)",
+            reason="a null in either leg nulls every window touching it, disjoint rows and all ",
             params_override={"window": 3},
         ),
         SpecPin(
             label="null_in_constant_benchmark_window_is_null",
             inputs={"returns": (0.02, None, 0.03, 0.01, 0.02), "benchmark": (0.1, 0.1, 0.1, 0.1, 0.1)},
             expected=(None, None, None, None, math.nan),
-            reason="a null in the returns leg wins over the constant-benchmark NaN branch on incomplete windows "
-            "(tests/metrics/test_alpha_rolling.py::test_null_in_constant_benchmark_window_is_null)",
+            reason="a null in the returns leg wins over the constant-benchmark NaN branch on incomplete windows ",
             params_override={"window": 3},
         ),
         SpecPin(
@@ -73,7 +71,7 @@ ALPHA_ROLLING = Spec(
             expected=(None, None, math.nan, math.nan),
             reason="a window whose benchmark is exactly constant makes the embedded slope NaN — the exact core of "
             "the near-constant regime the conditioning filter excludes from the property tiers "
-            "(tests/metrics/test_alpha_rolling.py::test_constant_benchmark_window_is_nan)",
+            "",
             params_override={"window": 3},
             covers_conditioning=True,
         ),
@@ -81,8 +79,7 @@ ALPHA_ROLLING = Spec(
             label="window_equals_length",
             inputs={"returns": (0.01, -0.02, 0.03, -0.01), "benchmark": (0.008, -0.015, 0.025, -0.008)},
             expected=(None, None, None, -0.14222632801543245),
-            reason="when the window equals the series length only the last row is defined "
-            "(tests/metrics/test_alpha_rolling.py::test_window_equals_length)",
+            reason="when the window equals the series length only the last row is defined ",
             params_override={"window": 4},
         ),
     ),

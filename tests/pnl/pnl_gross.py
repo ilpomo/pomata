@@ -21,7 +21,7 @@ PNL_GROSS = Spec(
         ({"multiplier": -math.inf}, r"multiplier must be a finite number > 0"),
     ),
     oracle=pnl_gross_reference,
-    # Degree-1 homogeneous in the position (tests/pnl/test_pnl_gross.py::test_scale_homogeneity_in_quantity).
+    # Degree-1 homogeneous in the position
     scale=(ScaleAxis(roles=("quantity",), degree=1),),
     golden_input={
         "quantity": (10.0, 10.0, -5.0, -5.0, 20.0),
@@ -34,22 +34,21 @@ PNL_GROSS = Spec(
             inputs={"quantity": (1.0, None, 2.0), "price": (100.0, math.nan, 110.0)},
             expected=(None, None, math.nan),
             reason="a null quantity against a NaN price yields null (null wins); the next bar reads the NaN previous "
-            "price and propagates to NaN (tests/pnl/test_pnl_gross.py::test_null_takes_precedence_over_nan)",
+            "price and propagates to NaN",
         ),
         SpecPin(
             label="null_precedence_nan_quantity_null_price",
             inputs={"quantity": (1.0, math.nan, 2.0), "price": (100.0, None, 110.0)},
             expected=(None, None, None),
             reason="the reverse precedence direction: a NaN quantity against a null price yields null, and the null "
-            "previous price also nulls the next bar (tests/pnl/test_pnl_gross.py::test_null_takes_precedence_over_nan)",
+            "previous price also nulls the next bar",
         ),
         SpecPin(
             label="short_on_flat_price_is_negative_zero",
             inputs={"quantity": (-5.0, -5.0), "price": (100.0, 100.0)},
             expected=(None, -0.0),
             reason="a short over a flat price yields IEEE -0.0 (a negative quantity times an exact +0.0 delta carries "
-            "the sign bit); assert_matches reads -0.0 == 0.0 (tests/pnl/test_pnl_gross.py"
-            "::test_short_on_flat_price_is_negative_zero)",
+            "the sign bit); assert_matches reads -0.0 == 0.0",
             signed=True,
         ),
         SpecPin(
@@ -57,8 +56,7 @@ PNL_GROSS = Spec(
             inputs={"quantity": (10.0, 10.0, 10.0, 10.0), "price": (math.inf, math.inf, 1.0, -math.inf)},
             expected=(None, math.nan, -math.inf, -math.inf),
             reason="two consecutive equal-sign infinite prices make the second bar's price change inf - inf = NaN; the "
-            "property tiers set allow_infinity=False (tests/pnl/test_pnl_gross.py"
-            "::test_consecutive_infinities_make_nan)",
+            "property tiers set allow_infinity=False",
         ),
         SpecPin(
             label="multiplier_50x_golden",
@@ -68,7 +66,7 @@ PNL_GROSS = Spec(
             },
             expected=(None, 1000.0, 250.0, -750.0, -1000.0),
             reason="the frozen golden master's 50x futures-multiplier branch, exercising the exact multiplier "
-            "arithmetic a single canonical golden cannot (tests/pnl/test_pnl_gross.py::test_golden_master)",
+            "arithmetic a single canonical golden cannot",
             params_override={"multiplier": 50.0},
         ),
     ),

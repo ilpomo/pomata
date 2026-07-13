@@ -19,8 +19,7 @@ ICHIMOKU = Spec(
         ({"window_kijun": 5}, r"windows must be ordered window_tenkan <= window_kijun <= window_senkou"),
     ),
     oracle=ichimoku_reference,
-    # Every line is a windowed high-low midpoint, so all four scale linearly with the bars (tests/indicators/
-    # test_ichimoku.py:363 test_scale_homogeneity).
+    # Every line is a windowed high-low midpoint, so all four scale linearly with the bars
     scale=(ScaleAxis(roles=("high", "low"), degree={"tenkan": 1, "kijun": 1, "senkou_a": 1, "senkou_b": 1}),),
     golden_params={"window_tenkan": 2, "window_kijun": 3, "window_senkou": 4},
     golden_input={

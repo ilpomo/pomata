@@ -37,7 +37,7 @@ PROBABILISTIC_SHARPE_RATIO = Spec(
     ),
     oracle=probabilistic_sharpe_ratio_reference,
     conditioning=_well_spread,
-    # A standardized statistic, scale-invariant, degree 0 (test_probabilistic_sharpe_ratio.py::test_scale_invariance).
+    # A standardized statistic, scale-invariant, degree 0
     scale=(ScaleAxis(roles=("returns",), degree=0),),
     golden_input={"returns": (0.012, 0.008, 0.015, -0.004, 0.02, 0.006, 0.011, -0.003, 0.014, 0.009)},
     golden_output=(0.9922,),
@@ -46,8 +46,7 @@ PROBABILISTIC_SHARPE_RATIO = Spec(
             label="single_row",
             inputs={"returns": (0.05,)},
             expected=(None,),
-            reason="one observation has no sample dispersion, so the statistic is null "
-            "(test_probabilistic_sharpe_ratio.py::test_single_row)",
+            reason="one observation has no sample dispersion, so the statistic is null ",
         ),
         SpecPin(
             label="zero_volatility",
@@ -55,23 +54,21 @@ PROBABILISTIC_SHARPE_RATIO = Spec(
             expected=(math.nan,),
             reason="a constant series has zero dispersion, so the Sharpe and higher moments are undefined, yielding "
             "NaN — the exact core of the near-constant regime the conditioning filter excludes from the property "
-            "tiers (test_probabilistic_sharpe_ratio.py::test_zero_volatility_is_nan)",
+            "tiers",
             covers_conditioning=True,
         ),
         SpecPin(
             label="null_skipped_benchmark_offset",
             inputs={"returns": (0.012, -0.008, 0.02, None, 0.005, 0.0, -0.02, 0.018, 0.01, -0.004)},
             expected=(0.729973707391394,),
-            reason="a null is skipped under a non-default benchmark Sharpe "
-            "(test_probabilistic_sharpe_ratio.py::test_null_skipped)",
+            reason="a null is skipped under a non-default benchmark Sharpe ",
             params_override={"benchmark_sharpe": 0.05},
         ),
         SpecPin(
             label="matches_reference_benchmark_offset",
             inputs={"returns": (0.012, -0.008, 0.02, -0.015, 0.005, 0.0, -0.02, 0.018, 0.01, -0.004)},
             expected=(0.5961103866888193,),
-            reason="reference agreement under a non-default benchmark Sharpe "
-            "(test_probabilistic_sharpe_ratio.py::test_matches_reference)",
+            reason="reference agreement under a non-default benchmark Sharpe ",
             params_override={"benchmark_sharpe": 0.05},
         ),
     ),

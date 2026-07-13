@@ -16,7 +16,7 @@ ADX = Spec(
     raises=(({"window": 0}, r"window must be >= 1"),),
     oracle=adx_reference,
     # A Wilder rma of the directional movement index, bounded in [0, 100] and scale-INVARIANT, degree 0
-    # (tests/indicators/test_adx.py::TestAdxProperties::test_scale_invariance).
+    #
     scale=(ScaleAxis(roles=("high", "low", "close"), degree=0),),
     golden_params={"window": 2},
     golden_input={
@@ -32,8 +32,7 @@ ADX = Spec(
             params_override={"window": 3},
             expected=(None, None, None, None, math.nan, math.nan, math.nan, math.nan),
             reason="a fully flat window makes the underlying dx the indeterminate 0/0 (both directional indicators are "
-            "zero), which then poisons the Wilder smoothing recursion (tests/indicators/test_adx.py"
-            "::TestAdxEdge::test_flat_window_is_nan)",
+            "zero), which then poisons the Wilder smoothing recursion",
         ),
     ),
 )

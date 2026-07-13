@@ -1,8 +1,8 @@
 """
 Self-tests of the spec engine: every conditional requirement bites on a counterexample built inline.
 
-The point of the redesign is that a declaration cannot lie by omission. These tests construct deliberately wrong
-specs and prove each is rejected at construction — a missing required field by the language itself (a native
+The spec language's core guarantee is that a declaration cannot lie by omission. These tests construct deliberately
+wrong specs and prove each is rejected at construction — a missing required field by the language itself (a native
 ``TypeError``), and every conditional rule by :meth:`Spec.__post_init__`. If any check ever regressed into a silent
 no-op, one of these would go green where it must be red.
 """

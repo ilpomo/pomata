@@ -19,8 +19,7 @@ COST_NOTIONAL = Spec(
         ({"rate": -math.inf}, r"rate must be a finite number >= 0"),
     ),
     oracle=cost_notional_reference,
-    # Degree-1 homogeneous in quantity; the old suite exercises only the quantity axis (tests/pnl/
-    # test_cost_notional.py::test_scale_homogeneity_in_quantity).
+    # Degree-1 homogeneous in quantity; only the quantity axis is exercised.
     scale=(ScaleAxis(roles=("quantity",), degree=1),),
     golden_input={
         "quantity": (10.0, 10.0, -5.0, -5.0, 20.0),
@@ -32,23 +31,20 @@ COST_NOTIONAL = Spec(
             label="single_row",
             inputs={"quantity": (10.0,), "price": (100.0,)},
             expected=(1.0,),
-            reason="the first row charges on the entry trade |quantity| * price * rate = 10 * 100 * 0.001 = 1.0 "
-            "(tests/pnl/test_cost_notional.py::test_single_row)",
+            reason="the first row charges on the entry trade |quantity| * price * rate = 10 * 100 * 0.001 = 1.0",
         ),
         SpecPin(
             label="null_takes_precedence_over_nan",
             inputs={"quantity": (10.0, None), "price": (100.0, math.nan)},
             expected=(1.0, None),
-            reason="a null in quantity against a NaN in price at the same row yields null (null wins) (tests/pnl/"
-            "test_cost_notional.py::test_null_takes_precedence_over_nan)",
+            reason="a null in quantity against a NaN in price at the same row yields null (null wins)",
         ),
         SpecPin(
             label="consecutive_infinities_make_nan",
             inputs={"quantity": (math.inf, math.inf, 1.0, -math.inf), "price": (100.0, 100.0, 100.0, 100.0)},
             expected=(math.inf, math.nan, math.inf, math.inf),
             reason="two consecutive equal-sign infinite quantities make inf - inf = NaN turnover at the second bar; "
-            "the property tiers set allow_infinity=False (tests/pnl/test_cost_notional.py"
-            "::test_consecutive_infinities_make_nan)",
+            "the property tiers set allow_infinity=False",
         ),
     ),
 )

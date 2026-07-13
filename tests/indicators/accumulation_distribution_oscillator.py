@@ -19,8 +19,7 @@ ACCUMULATION_DISTRIBUTION_OSCILLATOR = Spec(
     ),
     oracle=accumulation_distribution_oscillator_reference,
     # The difference of two EMAs of the A/D line, homogeneous of degree 1 in volume (the line scales with volume while
-    # the multiplier is price-invariant, degree 0) (tests/indicators/test_accumulation_distribution_oscillator.py
-    # ::TestAccumulationDistributionOscillatorProperties::test_scale_homogeneity).
+    # the multiplier is price-invariant, degree 0).
     scale=(
         ScaleAxis(roles=("volume",), degree=1),
         ScaleAxis(roles=("high", "low", "close"), degree=0),

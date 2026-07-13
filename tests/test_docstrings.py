@@ -32,7 +32,7 @@ _LATCH_MARKERS = ("latch", "contaminat", "poison", "every subsequent", "every la
 _DELEGATION_MARKERS = ("documented for each", "inherited from", "inherits")
 
 # The shared parameters whose Args prose is byte-identical across the package, with the sanctioned per-role
-# deviants pinned by name: a new deviant (or a silently "healed" one) is a red build, not the next audit's finding.
+# deviants pinned by name: a new deviant (or a silently "healed" one) is a red build.
 _SHARED_PARAMS: dict[str, frozenset[str]] = {
     "expr": frozenset({"obv"}),
     "high": frozenset(),

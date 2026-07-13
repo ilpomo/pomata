@@ -1,10 +1,10 @@
 """
 The pnl residue the declarative spec cannot carry: the large-magnitude reference tier and the intra-function
-metamorphic identities, ported as ordinary property tests.
+metamorphic identities, expressed as ordinary property tests.
 
 A :class:`~tests.support.spec.SpecPin` is a fixed crafted case and a :class:`~tests.support.spec.ScaleAxis` is
-an exact homogeneity ratio at one ``k``; neither expresses a Hypothesis-quantified claim. Two such claims survive from
-the old pnl suite and live here as ordinary ``@given`` tests, named for the old-suite tests they port:
+an exact homogeneity ratio at one ``k``; neither expresses a Hypothesis-quantified claim. Two such claims live here
+as ordinary ``@given`` tests:
 
 - ``test_matches_reference_at_large_magnitude`` — every degree-1-homogeneous pnl function keeps oracle agreement when
   its inputs are pushed to extreme magnitude (a numeric-stability tier, distinct from the exact-ratio ``scale`` axis),
@@ -54,9 +54,9 @@ from pomata.pnl import cumulative_pnl, equity_curve, returns_log
 # Large magnitude — the numeric-stability tier of every degree-1-homogeneous pnl function
 # ======================================================================================================================
 
-# The specs whose old suite carried a ``test_matches_reference_at_large_magnitude`` tier: every function homogeneous of
-# non-zero degree (so the value genuinely rides the input scale). The scale-invariant siblings (cost_fixed,
-# returns_simple, returns_log) and the nonlinear compounding equity_curve had no such tier and are excluded.
+# The specs that carry the large-magnitude tier: every function homogeneous of non-zero degree (so the value
+# genuinely rides the input scale). The scale-invariant siblings (cost_fixed, returns_simple, returns_log) and the
+# nonlinear compounding equity_curve carry no such tier and are excluded.
 LARGE_MAGNITUDE_SPECS: tuple[Spec, ...] = (
     COST_BORROW,
     COST_FUNDING,

@@ -13,8 +13,7 @@ ATR_NORMALIZED = Spec(
     warmup=13,
     raises=(({"window": 0}, r"window must be >= 1"),),
     oracle=atr_normalized_reference,
-    # The ATR divided by the close, a percentage that is scale-INVARIANT, degree 0 (tests/indicators/
-    # test_atr_normalized.py::TestAtrNormalizedProperties::test_scale_invariance).
+    # The ATR divided by the close, a percentage that is scale-INVARIANT, degree 0
     scale=(ScaleAxis(roles=("high", "low", "close"), degree=0),),
     golden_params={"window": 2},
     golden_input={

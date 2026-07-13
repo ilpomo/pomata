@@ -28,7 +28,7 @@ KURTOSIS = Spec(
     shape=Shape.REDUCING,
     oracle=kurtosis_reference,
     conditioning=_well_spread,
-    # A standardized moment is scale-invariant, degree 0 (test_kurtosis.py::test_scale_invariance).
+    # A standardized moment is scale-invariant, degree 0
     scale=(ScaleAxis(roles=("returns",), degree=0),),
     golden_input={"returns": (0.01, -0.02, 0.015, -0.03, 0.005, -0.01, 0.02)},
     golden_output=(-1.3223,),
@@ -39,7 +39,7 @@ KURTOSIS = Spec(
             expected=(math.nan,),
             reason="a constant series has zero variance, so the standardized fourth moment is 0/0, i.e. NaN — the "
             "exact core of the near-constant regime the conditioning filter excludes from the property tiers "
-            "(test_kurtosis.py::test_constant_is_nan)",
+            "",
             covers_conditioning=True,
         ),
         SpecPin(
@@ -55,8 +55,7 @@ KURTOSIS = Spec(
             label="subnormal_magnitude_is_nan",
             inputs={"returns": (0.0, 1e-160, 2e-160)},
             expected=(math.nan,),
-            reason="a subnormal-magnitude series has m2**2 underflow to zero, yielding NaN "
-            "(test_kurtosis.py::test_subnormal_magnitude_is_nan)",
+            reason="a subnormal-magnitude series has m2**2 underflow to zero, yielding NaN ",
         ),
     ),
 )

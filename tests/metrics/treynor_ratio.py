@@ -9,11 +9,9 @@ from tests.support.spec import ScaleExempt, Shape, Spec, SpecPin
 
 from pomata.metrics import beta, treynor_ratio
 
-# Spec-local beta floor: the old 5e-2 cut sat ~6 orders of magnitude above the measured impl-vs-oracle crossing
-# (|beta| ~3e-8..1e-7), with agreement at 1e-13..1e-16 relative deviation everywhere down to 1e-5, so 1e-5 keeps a
-# ~2-3 order margin above the crossing while re-admitting the needlessly excluded band. The old filter's two
-# well-spread clauses (returns leg, benchmark leg) were the same mal-applied grade-1 guards removed from alpha /
-# beta / sharpe_ratio — the vanishing-slope quotient below is the only regime treynor's ratio genuinely needs.
+# Spec-local beta floor. Measured: impl and oracle agree at 1e-13..1e-16 relative deviation everywhere down to
+# |beta| = 1e-5, and real disagreement starts only at |beta| ~3e-8..1e-7, so a floor of 1e-5 keeps a ~2-3 order
+# margin above the crossing. The vanishing-slope quotient below is the only regime treynor's ratio genuinely needs.
 _BETA_FLOOR = 1e-5
 
 
@@ -68,7 +66,7 @@ TREYNOR_RATIO = Spec(
     oracle=treynor_ratio_reference,
     conditioning=_treynor_conditioning,
     # An annualized excess return divided by a regression slope — neither scale-homogeneous nor scale-invariant
-    # (tests/metrics/test_treynor_ratio.py module docstring).
+    #
     scale=ScaleExempt(
         reason="an annualized excess return divided by a regression slope — neither scale-homogeneous nor "
         "scale-invariant"
@@ -85,8 +83,7 @@ TREYNOR_RATIO = Spec(
             label="single_pair",
             inputs={"returns": (0.05,), "benchmark": (0.04,)},
             expected=(None,),
-            reason="a single complete pair yields null — the regression slope needs two observations "
-            "(tests/metrics/test_treynor_ratio.py::TestTreynorRatioEdge::test_single_pair)",
+            reason="a single complete pair yields null — the regression slope needs two observations",
         ),
         SpecPin(
             label="zero_beta_is_inf",
@@ -94,37 +91,34 @@ TREYNOR_RATIO = Spec(
             expected=(math.inf,),
             reason="a zero beta (uncorrelated returns) with a positive excess return gives +inf, reported not "
             "clipped — the exact core of the vanishing-slope regime the conditioning filter excludes from the "
-            "property tiers (tests/metrics/test_treynor_ratio.py::TestTreynorRatioEdge::test_zero_beta_is_inf)",
+            "property tiers",
             covers_conditioning=True,
         ),
         SpecPin(
             label="small_beta_matches_reference",
             inputs={"returns": (3.001, 2.999, 1.001, 0.999), "benchmark": (1.0, -1.0, 1.0, -1.0)},
             expected=(504000.0000000275,),
-            reason="an exact-by-construction beta of 0.001 — 50x inside the band the old 5e-2 floor excluded: the "
-            "quotient still matches the oracle to ~5.6e-14 relative deviation, the measured fact that justified "
-            "narrowing the floor to 1e-5",
+            reason="an exact-by-construction beta of 0.001, well inside the small-slope band the 1e-5 conditioning "
+            "floor admits: the quotient matches the oracle to ~5.6e-14 relative deviation, holding the fact that a "
+            "tiny-but-clean beta stays well-conditioned",
         ),
         SpecPin(
             label="constant_benchmark_is_nan_0_1",
             inputs={"returns": (0.01, -0.02, 0.03), "benchmark": (0.1, 0.1, 0.1)},
             expected=(math.nan,),
-            reason="a constant benchmark makes the embedded beta NaN, so the excess-over-beta ratio is NaN "
-            "(tests/metrics/test_treynor_ratio.py::TestTreynorRatioEdge::test_constant_benchmark_is_nan)",
+            reason="a constant benchmark makes the embedded beta NaN, so the excess-over-beta ratio is NaN",
         ),
         SpecPin(
             label="constant_benchmark_is_nan_1_3",
             inputs={"returns": (0.01, -0.02, 0.03), "benchmark": (1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0)},
             expected=(math.nan,),
-            reason="the same guard at a repeating-decimal constant magnitude "
-            "(tests/metrics/test_treynor_ratio.py::TestTreynorRatioEdge::test_constant_benchmark_is_nan)",
+            reason="the same guard at a repeating-decimal constant magnitude",
         ),
         SpecPin(
             label="constant_benchmark_is_nan_0_123456789",
             inputs={"returns": (0.01, -0.02, 0.03), "benchmark": (0.123456789, 0.123456789, 0.123456789)},
             expected=(math.nan,),
-            reason="the same guard at a third magnitude, firing regardless of the constant "
-            "(tests/metrics/test_treynor_ratio.py::TestTreynorRatioEdge::test_constant_benchmark_is_nan)",
+            reason="the same guard at a third magnitude, firing regardless of the constant",
         ),
     ),
 )

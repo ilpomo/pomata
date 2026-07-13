@@ -12,7 +12,7 @@ TOTAL_RETURN = Spec(
     shape=Shape.REDUCING,
     oracle=total_return_reference,
     # A growth-factor series normalized to a unit start (the result is the final value minus one), neither
-    # scale-homogeneous nor scale-invariant (tests/metrics/test_total_return.py module docstring).
+    # scale-homogeneous nor scale-invariant
     scale=ScaleExempt(
         reason="a growth-factor series normalized to a unit start (the result is the final value minus one), "
         "neither scale-homogeneous nor scale-invariant"
@@ -24,8 +24,7 @@ TOTAL_RETURN = Spec(
             label="single_row",
             inputs={"equity_curve": (1.21,)},
             expected=(0.21,),
-            reason="a one-element series resolves to the final growth minus one "
-            "(tests/metrics/test_total_return.py::TestTotalReturnEdge::test_single_row)",
+            reason="a one-element series resolves to the final growth minus one ",
         ),
     ),
 )

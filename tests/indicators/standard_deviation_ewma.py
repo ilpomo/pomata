@@ -1,7 +1,7 @@
 """Spec for ``pomata.indicators.standard_deviation_ewma`` — the EWM standard deviation, gap-bridging, degree-1."""
 
 from tests.indicators.oracles import standard_deviation_ewma_reference
-from tests.support import ABSOLUTE_TOLERANCE_SCALE, RELATIVE_TOLERANCE_SCALE
+from tests.support import ABSOLUTE_TOLERANCE_ROLLING_ORACLE, RELATIVE_TOLERANCE_ROLLING_ORACLE
 from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import standard_deviation_ewma
@@ -16,10 +16,9 @@ STANDARD_DEVIATION_EWMA = Spec(
     oracle=standard_deviation_ewma_reference,
     # A one-pass EWM dispersion against a two-pass weighted oracle (the square root of the EWM variance): the fixed
     # streaming band over the well-conditioned domain, matching every other one-pass moment family.
-    oracle_rel_tol=RELATIVE_TOLERANCE_SCALE,
-    oracle_abs_tol=ABSOLUTE_TOLERANCE_SCALE,
-    # An EWM dispersion in the price's units, homogeneous of degree 1 (tests/indicators/test_standard_deviation_ewma.py
-    # ::TestStandardDeviationEwmaProperties::test_scale_homogeneity).
+    oracle_rel_tol=RELATIVE_TOLERANCE_ROLLING_ORACLE,
+    oracle_abs_tol=ABSOLUTE_TOLERANCE_ROLLING_ORACLE,
+    # An EWM dispersion in the price's units, homogeneous of degree 1.
     scale=(ScaleAxis(roles=("price",), degree=1),),
     golden_params={"window": 3},
     golden_input={"price": (10.0, 11.0, 13.0, 12.0, 14.0, 13.0, 15.0)},
@@ -31,8 +30,7 @@ STANDARD_DEVIATION_EWMA = Spec(
             params_override={"window": 3},
             expected=(None, None, None, 1.2133516482134201, 0.8620067027323837),
             reason="an interior null ages the lag of 10 while contributing no term; at the last defined row the "
-            "ignore_nulls=False weights reduce to 1:2:3:6, so the deviation is sqrt(107/144) (test_standard_deviation_"
-            "ewma.py::TestStandardDeviationEwmaCorrectness::test_golden_master_interior_null)",
+            "ignore_nulls=False weights reduce to 1:2:3:6, so the deviation is sqrt(107/144)",
         ),
     ),
 )

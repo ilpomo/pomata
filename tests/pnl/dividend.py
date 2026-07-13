@@ -13,8 +13,7 @@ DIVIDEND = Spec(
     params={},
     shape=Shape.SERIES,
     oracle=dividend_reference,
-    # Degree-1 homogeneous in the position; the old suite exercises only the quantity axis (tests/pnl/test_dividend.py
-    # ::test_scale_homogeneity_in_quantity).
+    # Degree-1 homogeneous in the position; only the quantity axis is exercised.
     scale=(ScaleAxis(roles=("quantity",), degree=1),),
     golden_input={
         "quantity": (100.0, 100.0, 100.0, 0.0, -50.0),
@@ -26,15 +25,13 @@ DIVIDEND = Spec(
             label="single_row",
             inputs={"quantity": (100.0,), "dividend_per_share": (0.5,)},
             expected=(50.0,),
-            reason="a one-row series resolves to the single product 100 * 0.5 = 50 (tests/pnl/test_dividend.py"
-            "::test_single_row)",
+            reason="a one-row series resolves to the single product 100 * 0.5 = 50",
         ),
         SpecPin(
             label="null_takes_precedence_over_nan",
             inputs={"quantity": (None, 100.0), "dividend_per_share": (math.nan, 0.5)},
             expected=(None, 50.0),
-            reason="a null in one input against a NaN in the other at the same row yields null (null wins over NaN) "
-            "(tests/pnl/test_dividend.py::test_null_takes_precedence_over_nan)",
+            reason="a null in one input against a NaN in the other at the same row yields null (null wins over NaN)",
         ),
     ),
 )

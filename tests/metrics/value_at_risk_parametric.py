@@ -17,7 +17,7 @@ VALUE_AT_RISK_PARAMETRIC = Spec(
         ({"confidence": 1.5}, r"confidence must be in the open interval"),
     ),
     oracle=value_at_risk_parametric_reference,
-    # mean + z*std is exactly degree-1 homogeneous (test_value_at_risk_parametric.py::test_scale_homogeneity).
+    # mean + z*std is exactly degree-1 homogeneous
     scale=(ScaleAxis(roles=("returns",), degree=1),),
     golden_input={"returns": (0.02, -0.04, 0.01, -0.06, 0.03)},
     golden_output=(-0.0732,),
@@ -26,15 +26,13 @@ VALUE_AT_RISK_PARAMETRIC = Spec(
             label="single_row",
             inputs={"returns": (0.05,)},
             expected=(None,),
-            reason="one observation has no sample standard deviation (ddof=1 needs two), so the result is null "
-            "(test_value_at_risk_parametric.py::test_single_row)",
+            reason="one observation has no sample standard deviation (ddof=1 needs two), so the result is null ",
         ),
         SpecPin(
             label="constant_is_mean",
             inputs={"returns": (0.01, 0.01, 0.01)},
             expected=(0.01,),
-            reason="a constant series has zero dispersion, so z*std=0 and the value-at-risk is the mean itself "
-            "(test_value_at_risk_parametric.py::test_constant_is_mean)",
+            reason="a constant series has zero dispersion, so z*std=0 and the value-at-risk is the mean itself ",
         ),
     ),
 )

@@ -16,7 +16,7 @@ CAPTURE_RATIO = Spec(
     raises=(({"periods_per_year": 0}, r"periods_per_year must be >= 1"),),
     oracle=capture_ratio_reference,
     # A ratio of two capture ratios — neither scale-homogeneous nor scale-invariant
-    # (tests/metrics/test_capture_ratio.py module docstring).
+    #
     scale=ScaleExempt(reason="a ratio of two capture ratios — neither scale-homogeneous nor scale-invariant"),
     golden_input={
         "returns": (0.012, -0.008, 0.02, -0.015, 0.005, 0.0, -0.02, 0.018),
@@ -32,22 +32,19 @@ CAPTURE_RATIO = Spec(
             label="missing_regime_is_null",
             inputs={"returns": (0.01, 0.02, 0.03), "benchmark": (0.01, 0.02, 0.03)},
             expected=(None,),
-            reason="with no down-market period the downside capture is undefined, so the ratio is null "
-            "(tests/metrics/test_capture_ratio.py::test_missing_regime_is_null)",
+            reason="with no down-market period the downside capture is undefined, so the ratio is null ",
         ),
         SpecPin(
             label="return_below_negative_one_is_nan_returns_leg",
             inputs={"returns": (0.02, -1.5, 0.01), "benchmark": (0.01, 0.02, -0.03)},
             expected=(math.nan,),
-            reason="a selected gross return <= -1 (returns leg) is out of the geometric-growth domain, a loud NaN "
-            "(tests/metrics/test_capture_ratio.py::test_return_below_negative_one_is_nan)",
+            reason="a selected gross return <= -1 (returns leg) is out of the geometric-growth domain, a loud NaN ",
         ),
         SpecPin(
             label="return_below_negative_one_is_nan_benchmark_leg",
             inputs={"returns": (0.02, -0.03, 0.01), "benchmark": (0.01, -1.2, 0.03)},
             expected=(math.nan,),
-            reason="the same domain-boundary fact carried by the benchmark leg "
-            "(tests/metrics/test_capture_ratio.py::test_return_below_negative_one_is_nan)",
+            reason="the same domain-boundary fact carried by the benchmark leg ",
         ),
     ),
 )

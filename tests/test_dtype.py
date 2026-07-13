@@ -3,15 +3,14 @@ Dtype-uniformity contract for every public factory, derived from the registry.
 
 Every factory routes each input through ``float64_expr`` (a cast to ``Float64``), so the package has one predictable
 output dtype regardless of the input's numeric dtype. This tier pins that promise across the whole public surface:
-``ALL_SPECS`` x {Float32, Int64} — the exact input-dtype set the old per-family ``test_dtype`` modules swept — with the
-probe frame cast to the input dtype and every output lane (each struct field expanded by the engine's ``flat``) required
-to come back ``Float64``. Because the cases are derived from the registry, a newly added function is swept in the moment
-its spec lands, and a struct that regressed one field off ``Float64`` is caught on that field, not blurred into the
-whole.
+``ALL_SPECS`` x {Float32, Int64}, with the probe frame cast to the input dtype and every output lane (each struct field
+expanded by the engine's ``flat``) required to come back ``Float64``. Because the cases are derived from the registry,
+a newly added function is swept in the moment its spec lands, and a struct that regressed one field off ``Float64`` is
+caught on that field, not blurred into the whole.
 
 The misuse path (a bare column name passed where a ``pl.Expr`` is required) is not re-pinned here: the ladder's
 ``test_bare_string_raises_type_error`` already covers it for every spec, so this module holds only the output-dtype
-guarantee the old ``test_output_is_float64`` carried.
+guarantee.
 """
 
 import polars as pl
@@ -19,8 +18,7 @@ import pytest
 from tests.all_specs import ALL_SPECS
 from tests.support.spec import Spec, flat, probe_frame, widest_warmup
 
-# The exact input-dtype set the old per-family ``test_dtype`` modules parametrized over: a narrower float and a
-# non-float, so the ``Float64`` promise is proven for a downcast and an integer input alike.
+# A narrower float and a non-float, so the ``Float64`` promise is proven for a downcast and an integer input alike.
 INPUT_DTYPES: tuple[type[pl.DataType], ...] = (pl.Float32, pl.Int64)
 
 

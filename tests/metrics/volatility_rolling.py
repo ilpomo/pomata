@@ -31,8 +31,7 @@ VOLATILITY_ROLLING = Spec(
     ),
     oracle=volatility_rolling_reference,
     conditioning=_windows_well_spread,
-    # A sample standard deviation per window is degree-1 homogeneous (by analogy to the reducing volatility; the old
-    # rolling suite carries no scale test).
+    # A sample standard deviation per window is degree-1 homogeneous (by analogy to the reducing volatility).
     scale=(ScaleAxis(roles=("returns",), degree=1),),
     golden_input={"returns": (0.01, -0.02, 0.03, -0.01, 0.02, 0.0, -0.015)},
     golden_output=(None, None, None, 0.352, 0.3779, 0.2898, 0.2457),
@@ -41,8 +40,7 @@ VOLATILITY_ROLLING = Spec(
             label="window_equals_length",
             inputs={"returns": (0.01, -0.02, 0.03, -0.01, 0.02)},
             expected=(None, None, None, None, 0.32918080138428485),
-            reason="when the window equals the series length only the last row is defined "
-            "(test_volatility_rolling.py::test_window_equals_length)",
+            reason="when the window equals the series length only the last row is defined",
             params_override={"window": 5},
         ),
         SpecPin(
@@ -50,8 +48,7 @@ VOLATILITY_ROLLING = Spec(
             inputs={"returns": (0.01, 0.01, 0.01, 0.01)},
             expected=(None, None, 0.0, 0.0),
             reason="a constant window has zero dispersion, so the volatility is exactly 0 — the exact core of the "
-            "near-constant regime the conditioning filter excludes from the property tiers "
-            "(test_volatility_rolling.py::test_constant_window_is_zero)",
+            "near-constant regime the conditioning filter excludes from the property tiers",
             params_override={"window": 3},
             covers_conditioning=True,
         ),

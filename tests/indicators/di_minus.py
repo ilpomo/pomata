@@ -17,7 +17,7 @@ DI_MINUS = Spec(
     raises=(({"window": 0}, r"window must be >= 1"),),
     oracle=di_minus_reference,
     # A percentage ratio of smoothed movements to the average true range, bounded in [0, 100] and scale-INVARIANT,
-    # degree 0 (tests/indicators/test_di_minus.py::TestDiMinusProperties::test_scale_invariance).
+    # degree 0
     scale=(ScaleAxis(roles=("high", "low", "close"), degree=0),),
     golden_params={"window": 2},
     golden_input={
@@ -33,7 +33,7 @@ DI_MINUS = Spec(
             params_override={"window": 3},
             expected=(None, None, math.nan, math.nan, math.nan, math.nan, math.nan, math.nan),
             reason="a fully flat window makes the average true range zero, so the smoothed movement over it is the "
-            "indeterminate 0/0 (tests/indicators/test_di_minus.py::TestDiMinusEdge::test_flat_window_is_nan)",
+            "indeterminate 0/0",
         ),
     ),
 )

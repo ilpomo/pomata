@@ -126,15 +126,15 @@ class ScaleExempt:
 @dataclass(frozen=True, kw_only=True)
 class SpecPin:
     """
-    One crafted-input case ported from the old suite: fixed input lanes mapped to fixed output lanes, with the reason
-    it exists (anchored to the old test it came from). It is the data home for a hand-computed golden, a domain corner,
-    or a signed-zero case — a fact a probe row or the reference oracle cannot express on its own.
+    One crafted-input case: fixed input lanes mapped to fixed output lanes, with the reason it exists. It is the data
+    home for a hand-computed golden, a domain corner, or a signed-zero case — a fact a probe row or the reference
+    oracle cannot express on its own.
     """
 
     label: str  # the case's short name; the pin's pytest id is ``{function}-{label}``
     inputs: Mapping[str, SPEC_LANE]  # the full input lanes, one per input role
     expected: SPEC_LANE | Mapping[str, SPEC_LANE]  # the expected output lanes (a per-field mapping for a struct)
-    reason: str  # why the case is pinned, with an anchor to the old suite where it was ported from
+    reason: str  # why the case is pinned
     params_override: Mapping[str, SPEC_SCALAR] = field(default_factory=_no_params)  # kwargs overriding ``params``
     # Compare the sign as well as the value: ``assert_matches`` reads ``-0.0`` and ``0.0`` as equal, so a case that
     # pins the sign of a zero sets this and the rung checks ``math.copysign`` on each pair.
@@ -197,14 +197,14 @@ class Spec:
     conditioning: "Callable[[pl.DataFrame], bool] | None" = None
     # The documented answer to an all-null input; ``None`` means the answer is all-null (the ordinary case).
     all_null: Deviant | None = None
-    # Crafted-input cases ported from the old suite (hand-computed goldens, domain corners, signed-zero pins): each
-    # maps fixed input lanes to fixed output lanes, the data home for a fact a probe or an oracle cannot express.
+    # Crafted-input cases (hand-computed goldens, domain corners, signed-zero pins): each maps fixed input lanes to
+    # fixed output lanes, the data home for a fact a probe or an oracle cannot express.
     pins: tuple[SpecPin, ...] = ()
     # The public-function recomposition this factory must reproduce (a metamorphic identity), as a zero-argument
     # expression builder; ``None`` when the function has no such definition. Compared to the factory on the probe frame.
     component_expr: Callable[[], pl.Expr] | None = None
     # The oracle-agreement band, declared only where a one-pass rolling form cannot meet the tight default against its
-    # two-pass oracle (the old suite chose a per-metric band for exactly these). ``None`` uses the tier default.
+    # two-pass oracle. ``None`` uses the tier default.
     oracle_rel_tol: float | None = None
     oracle_abs_tol: float | None = None
 
@@ -427,7 +427,7 @@ def _finite(low: float, high: float) -> st.SearchStrategy[float]:
     return st.floats(min_value=low, max_value=high, allow_nan=False, allow_infinity=False)
 
 
-# Per-role element domains for the multi-input fuzz vocabulary: each column of a pnl input frame is drawn independently
+# Per-role element domains for the multi-input fuzz vocabulary: each column of an input frame is drawn independently
 # from the domain its role lives in — positive for a quantity or a price, a bounded weight, a modest return or funding
 # rate, a non-negative cost or dividend — so a multi-input factory meets its oracle on well-conditioned inputs.
 _FUZZ_ELEMENT: dict[str, st.SearchStrategy[float]] = {
@@ -447,8 +447,9 @@ _FUZZ_ELEMENT: dict[str, st.SearchStrategy[float]] = {
     "benchmark": st.one_of(_finite(0.01, 0.5), _finite(-0.5, -0.01)),
 }
 
-# The multi-input pnl shapes the vocabulary supports, read off the pnl factory signatures; every role appears in the
-# probe-frame builders too, so each shape can back a real spec. Anything outside this closed set raises below.
+# The multi-input shapes the vocabulary supports, read off the pnl and benchmark-relative metrics factory signatures;
+# every role appears in the probe-frame builders too, so each shape can back a real spec. Anything outside this closed
+# set raises below.
 _FUZZ_SHAPES: frozenset[tuple[str, ...]] = frozenset(
     {
         ("quantity", "price"),
@@ -571,14 +572,14 @@ def fuzz_frames(spec: Spec, *, missing: bool) -> st.SearchStrategy[pl.DataFrame]
         if role == "returns":
             # A modest return domain bounded away from zero (|r| in [0.01, 1.0]): a one-pass rolling moment stays
             # well-conditioned against its two-pass oracle (a subnormal-magnitude or near-zero draw would round the two
-            # apart), matching the bounded strategy every rolling-returns metric drew from in the old suite.
+            # apart).
             finite = st.one_of(_finite(0.01, 1.0), _finite(-1.0, -0.01))
             values = st.one_of(st.none(), st.just(math.nan), finite) if missing else finite
         elif role == "price":
             # Strictly positive prices in a modest band ([1.0, 1e3]): an indicator that divides by a moving average of
             # the price (a percentage oscillator) or forms a one-pass rolling sum over it (an adaptive mean) stays
             # well-conditioned against its two-pass oracle here, where a symmetric or near-zero draw would round the two
-            # apart — the positive-only, modest-magnitude domain the old suite drew such a series from.
+            # apart — a positive-only, modest-magnitude domain.
             positive = _finite(1.0, 1e3)
             values = st.one_of(st.none(), st.just(math.nan), positive) if missing else positive
         else:
@@ -603,5 +604,5 @@ def fuzz_frames(spec: Spec, *, missing: bool) -> st.SearchStrategy[pl.DataFrame]
         )
     if spec.inputs in _FUZZ_SHAPES:
         return _independent_frame(spec.inputs, length, missing=missing)
-    msg = f"{spec.name}: no fuzz strategy for inputs {spec.inputs}"  # extended as the rollout reaches new input shapes
+    msg = f"{spec.name}: no fuzz strategy for inputs {spec.inputs}"  # extend when a spec introduces a new input shape
     raise TypeError(msg)

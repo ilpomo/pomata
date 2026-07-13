@@ -13,8 +13,7 @@ OBV = Spec(
     warmup=None,
     oracle=obv_reference,
     # Each bar adds or subtracts its whole volume by the sign of the price change: homogeneous of degree 1 in volume,
-    # and invariant to a positive rescaling of the price (the sign is preserved), degree 0 (tests/indicators/
-    # test_obv.py::TestObvProperties::test_volume_scale_homogeneity).
+    # and invariant to a positive rescaling of the price (the sign is preserved), degree 0
     scale=(
         ScaleAxis(roles=("volume",), degree=1),
         ScaleAxis(roles=("price",), degree=0),
@@ -29,8 +28,7 @@ OBV = Spec(
             label="flat_price_never_moves_the_total",
             inputs={"price": (5.0, 5.0, 5.0, 5.0), "volume": (10.0, 20.0, 30.0, 40.0)},
             expected=(0.0, 0.0, 0.0, 0.0),
-            reason="an unchanged price contributes no signed volume, so the running total stays at the seed 0 "
-            "(test_obv.py::TestObvEdge::test_flat_price_no_change)",
+            reason="an unchanged price contributes no signed volume, so the running total stays at the seed 0 ",
         ),
     ),
 )

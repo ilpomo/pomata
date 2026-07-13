@@ -9,7 +9,7 @@ from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import sine_wave
 
-# A clean 20-bar-period carrier: 80 bars leave 17 emitted values past the 63-bar settling warm-up (the old golden).
+# A clean 20-bar-period carrier: 80 bars leave 17 emitted values past the 63-bar settling warm-up.
 _SAMPLE = tuple(100.0 + 10.0 * math.sin(2 * math.pi * index / 20) for index in range(80))
 
 
@@ -18,9 +18,9 @@ def _no_sustained_even_lag_run(frame: pl.DataFrame) -> bool:
     Reject a SUSTAINED even-lag run — the regime where the phase branch that fixes both lines genuinely flips.
     Measured boundary (impl vs oracle, trailing flat / alternating runs on the golden carrier): real branch-flip
     disagreement starts probabilistically at ~9 structured bars and is the norm by 11-14 (a whole-series flat run
-    deviates ~8.3e-2), while an ISOLATED even-lag tie — the bulk of what the old single-pair predicate rejected —
-    stays within ~2.6e-10 on these unit-bounded lanes, inside the property tiers' absolute band. Only the finite
-    bars can reach it, so filtering them keeps the missing-data tier from rejecting on interior null / NaN.
+    deviates ~8.3e-2), while an ISOLATED even-lag tie stays within ~2.6e-10 on these unit-bounded lanes, inside
+    the property tiers' absolute band. Only the finite bars can reach it, so filtering them keeps the missing-data
+    tier from rejecting on interior null / NaN.
     """
     finite = [value for value in frame.to_series(0).to_list() if value is not None and math.isfinite(value)]
     return not spans_even_lag_run(finite)
@@ -35,8 +35,7 @@ SINE_WAVE = Spec(
     warmup={"sine": 63, "lead_sine": 63},
     oracle=sine_wave_reference,
     conditioning=_no_sustained_even_lag_run,
-    # Both lines are the sine of a phase, bounded in [-1, 1] and scale-INVARIANT, degree 0 (tests/indicators/
-    # test_sine_wave.py::TestSineWaveProperties::test_scale_invariance).
+    # Both lines are the sine of a phase, bounded in [-1, 1] and scale-INVARIANT, degree 0.
     scale=(ScaleAxis(roles=("expr",), degree={"sine": 0, "lead_sine": 0}),),
     golden_input={"expr": _SAMPLE},
     golden_output={

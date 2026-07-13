@@ -81,7 +81,7 @@ demonstrates what the function returns there. Four tiers, each aimed at a differ
 ### A differential against the industry reference
 
 Separately, and without gating the build, each indicator that TA-Lib also implements is compared to it — the reference
-the industry has used since 2007 — which covers **58 of the 75**. With the canonical seeding most of them match TA-Lib
+the industry has used since 2007 — which covers **58 of the 75 indicators**. With the canonical seeding most of them match TA-Lib
 **bar for bar, from the first defined value**, so the comparison runs over the whole series at the same `1e-10` band as
 the internal oracle. A documented minority is checked only on the converged tail — each a case where TA-Lib itself
 deviates from the indicator's author over the warm-up (Wilder's first true range, the independent MACD / Chaikin EMAs)
@@ -110,7 +110,9 @@ Why `1e-10`, and why it is "safe no matter what" for this library:
 - **It sits far above the float-64 noise floor.** A `float64` holds about sixteen significant figures, so legitimate
   rounding between the streaming implementation and the two-pass oracle lands around `1e-15`. `1e-10` is five orders
   above that: tight enough to reject any real coding error, loose enough that a last-bit difference never flakes.
-- **It is verified, not asserted.** The property tier holds every indicator to `1e-10` over the full random fuzz domain,
+- **It is verified, not asserted.** The property tier holds every indicator to `1e-10` over the full random fuzz
+  domain (the one documented exception: a one-pass rolling moment meets its two-pass oracle at a stated per-spec
+  band, declared on the spec itself),
   and that bound is the enforced guarantee. The realized *headroom* under it is recomputable from a clean clone with
   `scripts/calibrate_tolerances.py`, which fuzzes a representative well-conditioned set across multiple seeds and reports
   the worst relative residual — it lands around `1e-14` (a handful of `float64` noise-floor ULPs), about four orders
@@ -265,7 +267,7 @@ figures (warmup, parameter regimes, the tolerance factor) live in the test files
 header, and are not duplicated here.
 
 <details>
-<summary><b>Indicators</b> — the technical-analysis layer (the used set of TA-Lib)</summary>
+<summary><b>Indicators</b> — the technical-analysis layer (the commonly-used subset of TA-Lib)</summary>
 
 The characteristic invariants are scale behavior (homogeneity of degree 1 for a price-level output; invariance for a
 bounded ratio, a cycle period, or a flag), boundedness where it applies (RSI in `[0, 100]`, Williams %R in `[-100, 0]`),

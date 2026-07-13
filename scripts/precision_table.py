@@ -6,7 +6,7 @@ Run from the repo root with the differential group (TA-Lib + NumPy) installed::
     uv run --group differential python scripts/precision_table.py
 
 The deterministic 400-bar series and the ``pomata`` / reference figures are owned and pinned by
-``tests/indicators/test_precision_table.py``; this tool reuses that series, adds the TA-Lib (C reference) column, and
+``tests/test_precision_table.py``; this tool reuses that series, adds the TA-Lib (C reference) column, and
 prints the two blocks that appear in ``docs/trust.md``, so the headline figures can be refreshed from a single source.
 """
 
@@ -28,7 +28,7 @@ from tests.indicators.oracles import (
     rsi_reference,
     sma_reference,
 )
-from tests.indicators.test_precision_table import CLOSE, HIGH, LOW
+from tests.test_precision_table import CLOSE, HIGH, LOW
 
 _frame = pl.DataFrame({"high": HIGH, "low": LOW, "close": CLOSE})
 _close, _high, _low = np.asarray(CLOSE), np.asarray(HIGH), np.asarray(LOW)

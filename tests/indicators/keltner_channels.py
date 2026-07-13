@@ -25,8 +25,7 @@ KELTNER_CHANNELS = Spec(
         ({"multiplier": -math.inf}, r"multiplier must be a finite number > 0"),
     ),
     oracle=keltner_channels_reference,
-    # Every band is a price level (an EMA plus/minus a multiple of the ATR), homogeneous of degree 1 (tests/indicators/
-    # test_keltner_channels.py::TestKeltnerChannelsProperties::test_scale_homogeneity).
+    # Every band is a price level (an EMA plus/minus a multiple of the ATR), homogeneous of degree 1
     scale=(ScaleAxis(roles=("high", "low", "close"), degree={"lower": 1, "middle": 1, "upper": 1}),),
     golden_params={"window": 3, "window_atr": 3},
     golden_input={
@@ -49,8 +48,7 @@ KELTNER_CHANNELS = Spec(
                 "middle": (None, 4.0, 4.0, 4.0),
                 "upper": (None, 4.0, 4.0, 4.0),
             },
-            reason="a flat series has zero ATR, so all three bands collapse onto the EMA of the close "
-            "(test_keltner_channels.py::TestKeltnerChannelsCorrectness::test_golden_master_flat)",
+            reason="a flat series has zero ATR, so all three bands collapse onto the EMA of the close ",
         ),
     ),
 )

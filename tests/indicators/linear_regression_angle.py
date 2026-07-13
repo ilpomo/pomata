@@ -14,7 +14,7 @@ LINEAR_REGRESSION_ANGLE = Spec(
     raises=(({"window": 1}, r"window must be >= 2"),),
     oracle=linear_regression_angle_reference,
     # The arctangent of the slope in degrees: neither scale-invariant nor degree-1 homogeneous (a rescaling changes
-    # the slope inside the atan), bounded in (-90, 90) (tests/indicators/test_linear_regression_angle.py sizing note).
+    # the slope inside the atan), bounded in (-90, 90)
     scale=ScaleExempt(
         reason="atan(slope) in degrees: a rescaling scales the slope inside the arctangent, so the angle is neither "
         "invariant nor degree-1 homogeneous; it is a bounded O(1) value in (-90, 90)"

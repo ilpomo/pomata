@@ -7,7 +7,7 @@ from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import hilbert_phasor
 
-# A clean 20-bar-period carrier: 40 bars leave 8 emitted values past the 32-bar settling warm-up (the old golden).
+# A clean 20-bar-period carrier: 40 bars leave 8 emitted values past the 32-bar settling warm-up.
 _SAMPLE = tuple(100.0 + 10.0 * math.sin(2 * math.pi * index / 20) for index in range(40))
 
 HILBERT_PHASOR = Spec(
@@ -18,8 +18,7 @@ HILBERT_PHASOR = Spec(
     fields=("in_phase", "quadrature"),
     warmup={"in_phase": 32, "quadrature": 32},
     oracle=hilbert_phasor_reference,
-    # Both components carry the price's units, homogeneous of degree 1 (tests/indicators/test_hilbert_phasor.py
-    # ::TestHilbertPhasorProperties::test_scale_homogeneity).
+    # Both components carry the price's units, homogeneous of degree 1.
     scale=(ScaleAxis(roles=("expr",), degree={"in_phase": 1, "quadrature": 1}),),
     golden_input={"expr": _SAMPLE},
     golden_output={
@@ -34,11 +33,11 @@ HILBERT_PHASOR = Spec(
                 "in_phase": (None,) * 32 + (0.0,) * 8,
                 "quadrature": (None,) * 32 + (0.0,) * 8,
             },
-            reason="the cycle-pipeline degenerate (a flat run) the old suite filtered out of the property tiers: this "
-            "struct exports the raw FIR components, so both collapse to the ~1e-14 cancellation residual itself, "
-            "which the property tiers' absolute band absorbs (measured worst deviation ~3.4e-13) — no conditioning "
-            "filter is declared and the corner stays witnessed by this fixed case instead: at the declared "
-            "rounding the residual reads as an exact 0.0 on every platform, which IS the fact worth pinning",
+            reason="the cycle-pipeline degenerate (a flat run): this struct exports the raw FIR components, so both "
+            "collapse to the ~1e-14 cancellation residual itself, which the property tiers' absolute band absorbs "
+            "(measured worst deviation ~3.4e-13) — no conditioning filter is declared and the corner stays witnessed "
+            "by this fixed case instead: at the declared rounding the residual reads as an exact 0.0 on every "
+            "platform, which IS the fact worth pinning",
             round_to=4,
         ),
     ),

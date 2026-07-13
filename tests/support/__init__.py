@@ -13,11 +13,11 @@ every test imports from one place. They are plain functions rather than pytest f
 ``@given`` without leaking state across generated examples. See ``tests/DESIGN.md``.
 """
 
-from tests.support.asserts import assert_all_float64, assert_matches, assert_scale_homogeneous
-from tests.support.bars import complete_benchmark, split_pairs, split_quads, split_triples
+from tests.support.asserts import assert_matches, assert_scale_homogeneous
+from tests.support.bars import split_pairs, split_quads, split_triples
 from tests.support.benchmarks import fastest_eval
-from tests.support.columns import BENCHMARK, CLOSE, COLUMN_X, GROUP_KEY, HIGH, LOW, OPEN, RETURNS, VOLUME
-from tests.support.frames import apply_expr, count_leading_nulls, materialize, materialize_struct
+from tests.support.columns import BENCHMARK, CLOSE, COLUMN_X, HIGH, LOW, RETURNS
+from tests.support.frames import apply_expr, count_leading_nulls, materialize
 from tests.support.spec import (
     SPEC_LANE,
     SPEC_SCALAR,
@@ -38,11 +38,8 @@ from tests.support.spec import (
     reference_lanes,
     spec_id,
     widest_warmup,
-    widest_window,
 )
 from tests.support.strategies import (
-    CONDITIONING_FLOOR,
-    STANDARDIZED_MOMENT_FLOOR,
     SUBNORMAL_FLOOR,
     WINDOW_MAX,
     coherent_hl,
@@ -55,30 +52,26 @@ from tests.support.strategies import (
     coherent_ohlc_with_missing,
     finite_floats,
     missing_data_floats,
-    positive_missing_data,
-    spans_even_lag_repeat,
     spans_even_lag_run,
     standardized_moment_floats,
     subnormal_safe_floats,
-    two_segment_missing_data,
     well_spread,
     windows_well_conditioned,
     windows_well_spread,
 )
-from tests.support.synthesis import sample_argument, synthesize_call
+from tests.support.synthesis import synthesize_call
 from tests.support.tolerances import (
     ABSOLUTE_TOLERANCE_EXACT,
     ABSOLUTE_TOLERANCE_PROPERTY,
-    ABSOLUTE_TOLERANCE_QUOTIENT,
     ABSOLUTE_TOLERANCE_REFERENCE,
+    ABSOLUTE_TOLERANCE_ROLLING_ORACLE,
     ABSOLUTE_TOLERANCE_SCALE,
     ABSOLUTE_TOLERANCE_STREAMING,
-    BOUND_MARGIN,
     EXACT_TOLERANCE_FACTOR,
     RELATIVE_TOLERANCE_EXACT,
     RELATIVE_TOLERANCE_PROPERTY,
-    RELATIVE_TOLERANCE_QUOTIENT,
     RELATIVE_TOLERANCE_REFERENCE,
+    RELATIVE_TOLERANCE_ROLLING_ORACLE,
     RELATIVE_TOLERANCE_SCALE,
     STREAMING_TOLERANCE_FACTOR,
     VARIANCE_TOLERANCE_FACTOR,
@@ -89,33 +82,27 @@ from tests.support.tolerances import (
 __all__ = (
     "ABSOLUTE_TOLERANCE_EXACT",
     "ABSOLUTE_TOLERANCE_PROPERTY",
-    "ABSOLUTE_TOLERANCE_QUOTIENT",
     "ABSOLUTE_TOLERANCE_REFERENCE",
+    "ABSOLUTE_TOLERANCE_ROLLING_ORACLE",
     "ABSOLUTE_TOLERANCE_SCALE",
     "ABSOLUTE_TOLERANCE_STREAMING",
     "BENCHMARK",
-    "BOUND_MARGIN",
     "CLOSE",
     "COLUMN_X",
-    "CONDITIONING_FLOOR",
     "EXACT_TOLERANCE_FACTOR",
-    "GROUP_KEY",
     "HIGH",
     "LOW",
-    "OPEN",
     "RELATIVE_TOLERANCE_EXACT",
     "RELATIVE_TOLERANCE_PROPERTY",
-    "RELATIVE_TOLERANCE_QUOTIENT",
     "RELATIVE_TOLERANCE_REFERENCE",
+    "RELATIVE_TOLERANCE_ROLLING_ORACLE",
     "RELATIVE_TOLERANCE_SCALE",
     "RETURNS",
     "SPEC_LANE",
     "SPEC_SCALAR",
-    "STANDARDIZED_MOMENT_FLOOR",
     "STREAMING_TOLERANCE_FACTOR",
     "SUBNORMAL_FLOOR",
     "VARIANCE_TOLERANCE_FACTOR",
-    "VOLUME",
     "WINDOW_MAX",
     "Deviant",
     "ScaleAxis",
@@ -125,7 +112,6 @@ __all__ = (
     "SpecPin",
     "actual_lanes",
     "apply_expr",
-    "assert_all_float64",
     "assert_matches",
     "assert_scale_homogeneous",
     "build_expr",
@@ -137,7 +123,6 @@ __all__ = (
     "coherent_hlcv_with_missing",
     "coherent_ohlc",
     "coherent_ohlc_with_missing",
-    "complete_benchmark",
     "count_leading_nulls",
     "fastest_eval",
     "finite_floats",
@@ -147,14 +132,10 @@ __all__ = (
     "input_scale",
     "lane_series",
     "materialize",
-    "materialize_struct",
     "missing_data_floats",
-    "positive_missing_data",
     "probe_frame",
     "probe_length",
     "reference_lanes",
-    "sample_argument",
-    "spans_even_lag_repeat",
     "spans_even_lag_run",
     "spec_id",
     "split_pairs",
@@ -164,10 +145,8 @@ __all__ = (
     "streaming_abs_tol",
     "subnormal_safe_floats",
     "synthesize_call",
-    "two_segment_missing_data",
     "well_spread",
     "widest_warmup",
-    "widest_window",
     "windows_well_conditioned",
     "windows_well_spread",
 )

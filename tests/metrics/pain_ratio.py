@@ -21,7 +21,7 @@ PAIN_RATIO = Spec(
     ),
     oracle=pain_ratio_reference,
     # A normalized growth-factor curve (excess CAGR over the average-drawdown pain index) — neither homogeneous nor
-    # invariant (tests/metrics/test_pain_ratio.py module docstring).
+    # invariant
     scale=ScaleExempt(
         reason="a normalized growth-factor curve (excess CAGR over the average-drawdown pain index) — neither "
         "homogeneous nor invariant"
@@ -37,15 +37,14 @@ PAIN_RATIO = Spec(
             label="single_row",
             inputs={"equity_curve": (1.0,)},
             expected=(math.nan,),
-            reason="one observation has zero excess growth and a zero pain index, so the ratio is the 0/0 NaN branch "
-            "(tests/metrics/test_pain_ratio.py::test_single_row)",
+            reason="one observation has zero excess growth and a zero pain index, so the ratio is the 0/0 NaN branch ",
         ),
         SpecPin(
             label="no_drawdown_is_inf",
             inputs={"equity_curve": (1.0, 1.1, 1.21)},
             expected=(math.inf,),
             reason="a monotonically rising curve has a zero pain index with positive excess growth, so the ratio "
-            "is +inf (tests/metrics/test_pain_ratio.py::test_no_drawdown_is_inf)",
+            "is +inf",
             params_override={"periods_per_year": 1},
         ),
     ),

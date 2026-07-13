@@ -14,8 +14,7 @@ PRICE_AVERAGE = Spec(
     shape=Shape.SERIES,
     warmup=None,
     oracle=price_average_reference,
-    # The mean of four price legs scales linearly with them together, degree 1 (tests/indicators/test_price_average.py
-    # ::TestPriceAverageProperties::test_scale_homogeneity).
+    # The mean of four price legs scales linearly with them together, degree 1.
     scale=(ScaleAxis(roles=("open", "high", "low", "close"), degree=1),),
     golden_input={
         "open": (10.0, 11.0, 12.0, 11.5, 13.0),
@@ -29,8 +28,7 @@ PRICE_AVERAGE = Spec(
             label="null_takes_precedence_over_nan",
             inputs={"open": (10.0, None), "high": (11.0, math.nan), "low": (9.0, 10.0), "close": (10.0, 11.5)},
             expected=(10.0, None),
-            reason="a null in open and a NaN in high on the same row yields null — null wins over NaN "
-            "(test_price_average.py::TestPriceAverageEdge::test_null_takes_precedence_over_nan)",
+            reason="a null in open and a NaN in high on the same row yields null — null wins over NaN",
         ),
     ),
 )

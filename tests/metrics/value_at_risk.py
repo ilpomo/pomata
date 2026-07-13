@@ -19,7 +19,7 @@ VALUE_AT_RISK = Spec(
         ({"confidence": 1.5}, r"confidence must be in the open interval"),
     ),
     oracle=value_at_risk_reference,
-    # A historical quantile scales linearly (test_value_at_risk.py::test_scale_homogeneity).
+    # A historical quantile scales linearly
     scale=(ScaleAxis(roles=("returns",), degree=1),),
     golden_input={"returns": (0.02, -0.04, 0.01, -0.06, 0.03)},
     golden_output=(-0.056,),
@@ -28,7 +28,7 @@ VALUE_AT_RISK = Spec(
             label="single_row",
             inputs={"returns": (-0.02,)},
             expected=(-0.02,),
-            reason="every quantile of a single value is that value (test_value_at_risk.py::test_single_row)",
+            reason="every quantile of a single value is that value",
         ),
     ),
 )

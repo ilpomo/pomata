@@ -4,7 +4,7 @@ import math
 
 import polars as pl
 from tests.metrics.oracles import skewness_rolling_reference
-from tests.support import RELATIVE_TOLERANCE_SCALE, windows_well_conditioned
+from tests.support import RELATIVE_TOLERANCE_ROLLING_ORACLE, windows_well_conditioned
 from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import skewness_rolling
@@ -13,11 +13,11 @@ from pomata.metrics import skewness_rolling
 def _windows_well_conditioned(frame: pl.DataFrame) -> bool:
     """
     Reject a near-constant CURRENT window: the standardized moment is a 0/0 the one- and two-pass paths resolve
-    apart, the same genuine degeneracy the reducing skewness filters. The conditioning audit found this predicate
-    had been excusing a DIFFERENT failure it cannot see — a stale residue in the incremental kernel's running sums
-    after a large value exits the buffer, i.e. a property of a PAST window (the same leak as kurtosis_rolling, one
-    power lower: ratio**3) — which the kernel now recomputes exactly; that regime is witnessed by the
-    moderate_outlier_exit pin below, so the filter's stated reason matches what it actually guards again.
+    apart, the same genuine degeneracy the reducing skewness filters. This predicate cannot see failures rooted in
+    a PAST window — a stale residue in the incremental kernel's running sums after a large value exits the buffer
+    (the same leak as kurtosis_rolling, one power lower: ratio**3) — which the kernel recomputes exactly; that
+    regime is witnessed by the moderate_outlier_exit pin below, so the filter's stated reason matches what it
+    actually guards.
     """
     return windows_well_conditioned(frame.to_series(0).to_list(), 4)
 
@@ -31,7 +31,7 @@ SKEWNESS_ROLLING = Spec(
     raises=(({"window": 1}, r"window must be >= 2"),),
     oracle=skewness_rolling_reference,
     conditioning=_windows_well_conditioned,
-    oracle_rel_tol=RELATIVE_TOLERANCE_SCALE,
+    oracle_rel_tol=RELATIVE_TOLERANCE_ROLLING_ORACLE,
     oracle_abs_tol=1e-7,
     # A standardized moment per window is scale-invariant, degree 0 (by analogy to the reducing skewness).
     scale=(ScaleAxis(roles=("returns",), degree=0),),
@@ -43,8 +43,7 @@ SKEWNESS_ROLLING = Spec(
             inputs={"returns": (0.3, 0.3, 0.3, 0.3)},
             expected=(None, None, math.nan, math.nan),
             reason="a constant window has zero variance, so the standardized moment is 0/0, i.e. NaN — the exact "
-            "core of the near-constant regime the conditioning filter excludes from the property tiers "
-            "(test_skewness_rolling.py::test_constant_window_is_nan)",
+            "core of the near-constant regime the conditioning filter excludes from the property tiers",
             params_override={"window": 3},
             covers_conditioning=True,
         ),
@@ -52,16 +51,14 @@ SKEWNESS_ROLLING = Spec(
             label="constant_window_by_slide_is_nan",
             inputs={"returns": (0.03, 0.0, 0.0, 0.0, 0.0)},
             expected=(None, None, None, 1.1547005383792517, math.nan),
-            reason="a window that becomes bit-constant only because a larger value slid out still reads as NaN "
-            "(test_skewness_rolling.py::test_constant_window_by_slide_is_nan)",
+            reason="a window that becomes bit-constant only because a larger value slid out still reads as NaN",
             params_override={"window": 4},
         ),
         SpecPin(
             label="near_constant_window_is_finite",
             inputs={"returns": (100.0, 100.0, 100.0, 100.000001)},
             expected=(None, None, None, 1.1547005383792515),
-            reason="a near-constant (non-bit-identical) window yields the finite reference skewness "
-            "(test_skewness_rolling.py::test_near_constant_window_is_finite)",
+            reason="a near-constant (non-bit-identical) window yields the finite reference skewness",
         ),
         SpecPin(
             label="moderate_outlier_exit_matches_reference",
@@ -101,12 +98,10 @@ SKEWNESS_ROLLING = Spec(
                 1.1547005383792213,
                 1.154700538379252,
             ),
-            reason="the failure the old filter was wrongly excusing as current-window ill-conditioning: after a "
-            "moderate outlier exits the buffer, the incremental kernel's stale running-sum residue is amplified as "
-            "ratio**3 by the third power — the src recompute trigger now rebuilds those windows exactly (worst "
-            "|impl - oracle| here 3.0e-14), the same counterexample family the conditioning audit unmasked for "
-            "kurtosis_rolling, one power lower "
-            "(test_skewness_rolling.py::test_moderate_outlier_exit_matches_reference)",
+            reason="after a moderate outlier exits the buffer, the incremental kernel's running sums would keep a "
+            "stale residue the third power amplifies as ratio**3 — a property of a PAST window the conditioning "
+            "predicate cannot see; the kernel's recompute trigger rebuilds those windows exactly (worst "
+            "|impl - oracle| here 3.0e-14)",
         ),
     ),
 )

@@ -6,13 +6,13 @@ import math
 
 import polars as pl
 from tests.metrics.oracles import information_ratio_rolling_reference
-from tests.support import RELATIVE_TOLERANCE_SCALE, windows_well_conditioned
+from tests.support import RELATIVE_TOLERANCE_ROLLING_ORACLE, windows_well_conditioned
 from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import information_ratio_rolling
 
-# Spec-local conditioning floor: the shared 1e-2 rejected ~23% of drawn frames. The graduated boundary probe put
-# the real impl-vs-oracle crossing of the property band at active var_rel ~1.9e-4 in the worst realistic embedding
+# Spec-local conditioning floor: the shared 1e-2 rejects ~23% of drawn frames. Measured: the impl-vs-oracle
+# crossing of the property band sits at active var_rel ~1.9e-4 in the worst realistic embedding
 # (and lower elsewhere), so 1e-3 sits ~5x above the highest measured crossing; any floor below ~2e-4 (e.g. a
 # seemingly-generous 1e-6) would sit UNDER that crossing and re-admit the measured disagreement band.
 _CONDITIONING_FLOOR = 1e-3
@@ -38,9 +38,9 @@ INFORMATION_RATIO_ROLLING = Spec(
     ),
     oracle=information_ratio_rolling_reference,
     conditioning=_active_windows_conditioned,
-    oracle_rel_tol=RELATIVE_TOLERANCE_SCALE,
+    oracle_rel_tol=RELATIVE_TOLERANCE_ROLLING_ORACLE,
     # A mean of the active series over its rolling standard deviation: a joint rescale of both legs by k leaves the
-    # ratio unchanged (verified numerically; the old rolling suite carries no scale test).
+    # ratio unchanged (verified numerically).
     scale=(ScaleAxis(roles=("returns", "benchmark"), degree=0),),
     golden_input={
         "returns": (0.02, -0.01, 0.03, -0.02, 0.015, 0.005, -0.01, 0.02),
@@ -52,23 +52,22 @@ INFORMATION_RATIO_ROLLING = Spec(
             label="null_in_window_is_null",
             inputs={"returns": (0.01, None, 0.03, -0.01, 0.02), "benchmark": (0.008, -0.015, 0.025, None, 0.018)},
             expected=(None, None, None, None, None),
-            reason="two separate misses in two different legs poison every window=3 window over a 5-row series "
-            "(tests/metrics/test_information_ratio_rolling.py::test_null_in_window_is_null)",
+            reason="two separate misses in two different legs poison every window=3 window over a 5-row series",
             params_override={"window": 3},
         ),
         SpecPin(
             label="window_equals_length",
             inputs={"returns": (0.01, -0.02, 0.03, -0.01), "benchmark": (0.008, -0.015, 0.025, -0.008)},
             expected=(None, None, None, -3.1314621094842335e-15),
-            reason="window equals series length, so only the last row is defined; the active series sums to (near) zero"
-            "(tests/metrics/test_information_ratio_rolling.py::test_window_equals_length)",
+            reason="window equals series length, so only the last row is defined; the active series sums to (near) "
+            "zero",
         ),
         SpecPin(
             label="constant_window_by_slide_is_inf",
             inputs={"returns": (1000000.0, 0.1, 0.1, 0.1, 0.1), "benchmark": (0.0, 0.0, 0.0, 0.0, 0.0)},
             expected=(None, None, 9.16515413945737, math.inf, math.inf),
             reason="once the outlier slides out, the window is bit-constant with zero tracking error, so the ratio is "
-            "+inf (tests/metrics/test_information_ratio_rolling.py::test_constant_window_by_slide_is_inf)",
+            "+inf",
             params_override={"window": 3},
         ),
         SpecPin(
@@ -77,7 +76,7 @@ INFORMATION_RATIO_ROLLING = Spec(
             expected=(None, None, math.inf, math.inf),
             reason="a constant active-return window has zero tracking error with a positive mean, so the ratio is "
             "+inf — the exact core of the near-constant regime the conditioning filter excludes from the property "
-            "tiers (tests/metrics/test_information_ratio_rolling.py::test_zero_tracking_error_is_inf)",
+            "tiers",
             params_override={"window": 3},
             covers_conditioning=True,
         ),
@@ -99,11 +98,9 @@ INFORMATION_RATIO_ROLLING = Spec(
             ),
             reason="a window whose active returns are all exactly zero degenerates to 0/0 -> NaN even after larger "
             "active values slid out: the exact rolling mean pins the numerator to zero, so the incremental "
-            "running-sum residue cannot ride above the exactly-zero tracking error as a spurious inf — the real "
-            "defect this spec's old, too-wide filter was masking, unmasked by the conditioning audit and fixed in "
-            "src; the residue is bit-sensitive, so the prefix must reach the kernel with exactly these bits (a "
-            "zero benchmark keeps the active leg bit-identical to the returns) "
-            "(tests/metrics/test_information_ratio_rolling.py::test_flat_zero_active_window_by_slide_is_nan)",
+            "running-sum residue cannot ride above the exactly-zero tracking error as a spurious inf; the "
+            "residue is bit-sensitive, so the prefix must reach the kernel with exactly these bits (a zero "
+            "benchmark keeps the active leg bit-identical to the returns)",
         ),
     ),
 )

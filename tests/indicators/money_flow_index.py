@@ -16,7 +16,7 @@ MONEY_FLOW_INDEX = Spec(
     raises=(({"window": 0}, r"window must be >= 1"),),
     oracle=money_flow_index_reference,
     # A bounded ratio in [0, 100], scale-INVARIANT in the price legs and in volume independently, degree 0
-    # (tests/indicators/test_money_flow_index.py::test_price_scale_invariance / test_volume_scale_invariance).
+    #
     scale=(
         ScaleAxis(roles=("high", "low", "close"), degree=0),
         ScaleAxis(roles=("volume",), degree=0),
@@ -39,8 +39,7 @@ MONEY_FLOW_INDEX = Spec(
             },
             params_override={"window": 1},
             expected=(None, 100.0, 100.0, 0.0, 100.0),
-            reason="with window=1 each bar is fully up (100) or fully down (0) (test_money_flow_index.py"
-            "::test_window_one_is_up_or_down)",
+            reason="with window=1 each bar is fully up (100) or fully down (0)",
         ),
         SpecPin(
             label="all_up_saturates_at_one_hundred",
@@ -51,8 +50,7 @@ MONEY_FLOW_INDEX = Spec(
                 "volume": (100.0, 150.0, 120.0, 130.0, 110.0),
             },
             expected=(None, None, None, 100.0, 100.0),
-            reason="a strictly rising typical price (zero negative flow) saturates MFI at 100 "
-            "(test_money_flow_index.py::test_all_up_saturates_at_one_hundred)",
+            reason="a strictly rising typical price (zero negative flow) saturates MFI at 100",
         ),
         SpecPin(
             label="all_down_saturates_at_zero",
@@ -63,8 +61,7 @@ MONEY_FLOW_INDEX = Spec(
                 "volume": (100.0, 150.0, 120.0, 130.0, 110.0),
             },
             expected=(None, None, None, 0.0, 0.0),
-            reason="a strictly falling typical price (zero positive flow) saturates MFI at 0 "
-            "(test_money_flow_index.py::test_all_down_saturates_at_zero)",
+            reason="a strictly falling typical price (zero positive flow) saturates MFI at 0",
         ),
         SpecPin(
             label="constant_typical_is_nan",
@@ -75,8 +72,7 @@ MONEY_FLOW_INDEX = Spec(
                 "volume": (100.0, 100.0, 100.0, 100.0, 100.0),
             },
             expected=(None, None, None, math.nan, math.nan),
-            reason="a window whose typical price never moves leaves the money ratio at the genuine 0/0 NaN "
-            "(test_money_flow_index.py::test_constant_typical_is_nan)",
+            reason="a window whose typical price never moves leaves the money ratio at the genuine 0/0 NaN",
         ),
         SpecPin(
             label="nan_typical_price_poisons_successor_change",
@@ -88,8 +84,7 @@ MONEY_FLOW_INDEX = Spec(
             },
             params_override={"window": 1},
             expected=(None, math.nan, math.nan, 0.0),
-            reason="a NaN typical price poisons both its own change and the successor change into NaN "
-            "(test_money_flow_index.py::test_nan_typical_price_poisons_successor_change)",
+            reason="a NaN typical price poisons both its own change and the successor change into NaN",
         ),
         SpecPin(
             label="null_in_price_propagates",
@@ -102,7 +97,7 @@ MONEY_FLOW_INDEX = Spec(
             params_override={"window": 2},
             expected=(None, None, None, None, None),
             reason="a null in one price column voids the typical price and the next change; the tail never clears a "
-            "full clean window here (test_money_flow_index.py::test_null_in_price_propagates)",
+            "full clean window here",
         ),
         SpecPin(
             label="null_in_volume_voids_only_its_row",
@@ -114,8 +109,7 @@ MONEY_FLOW_INDEX = Spec(
             },
             params_override={"window": 2},
             expected=(None, None, None, None, 50.38167938931298),
-            reason="a null volume voids only that row's money-flow contribution, the difference survives "
-            "(test_money_flow_index.py::test_null_in_volume_voids_only_its_row)",
+            reason="a null volume voids only that row's money-flow contribution, the difference survives",
         ),
         SpecPin(
             label="nan_in_price_propagates",
@@ -127,8 +121,7 @@ MONEY_FLOW_INDEX = Spec(
             },
             params_override={"window": 2},
             expected=(None, None, math.nan, math.nan, math.nan),
-            reason="a NaN in one price column contaminates the typical price and both its own and the successor change "
-            "(test_money_flow_index.py::test_nan_in_price_propagates)",
+            reason="a NaN in one price column contaminates the typical price and both its own and the successor change",
         ),
         SpecPin(
             label="nan_in_volume_propagates",
@@ -140,8 +133,7 @@ MONEY_FLOW_INDEX = Spec(
             },
             params_override={"window": 2},
             expected=(None, None, math.nan, math.nan, 50.38167938931298),
-            reason="a NaN volume contaminates only that row's money flow, so the series recovers "
-            "(test_money_flow_index.py::test_nan_in_volume_propagates)",
+            reason="a NaN volume contaminates only that row's money flow, so the series recovers",
         ),
         SpecPin(
             label="all_nan",
@@ -154,7 +146,7 @@ MONEY_FLOW_INDEX = Spec(
             params_override={"window": 2},
             expected=(None, None, math.nan, math.nan),
             reason="an all-NaN input is untested by the all-null rung; the first two rows stay null (flow[0] is always "
-            "null), then NaN (test_money_flow_index.py::test_all_nan)",
+            "null), then NaN",
         ),
         SpecPin(
             label="leading_null_defers_warmup",
@@ -166,8 +158,7 @@ MONEY_FLOW_INDEX = Spec(
             },
             params_override={"window": 2},
             expected=(None, None, None, 100.0, 100.0, 100.0),
-            reason="a leading null extends the null run past the declared warm-up (test_money_flow_index.py"
-            "::test_leading_null_defers_warmup)",
+            reason="a leading null extends the null run past the declared warm-up",
         ),
         SpecPin(
             label="huge_then_dust_flow_stays_bounded",
@@ -275,8 +266,7 @@ MONEY_FLOW_INDEX = Spec(
                 42.857142857142854,
             ),
             reason="a ~1e7 typical-price dynamic range with volume spanning to 1e-9: the raw ratio transiently escapes "
-            "[0, 100] and the clip pulls every value back in (test_money_flow_index.py"
-            "::test_huge_then_dust_flow_stays_bounded)",
+            "[0, 100] and the clip pulls every value back in",
         ),
         SpecPin(
             label="flat_tail_after_movement_is_nan",
@@ -399,8 +389,7 @@ MONEY_FLOW_INDEX = Spec(
                 math.nan,
             ),
             reason="a window that goes flat after large head movement leaves the rolling sums with a sub-ULP residual; "
-            "the exact all-zero-change guard pins the flat tail to NaN, not a falsely-saturated 100 "
-            "(test_money_flow_index.py::test_flat_tail_after_movement_is_nan)",
+            "the exact all-zero-change guard pins the flat tail to NaN, not a falsely-saturated 100",
         ),
     ),
 )

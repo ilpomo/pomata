@@ -20,8 +20,7 @@ STOCHASTIC_FAST = Spec(
         ({"window_d": 0}, r"window_d must be >= 1"),
     ),
     oracle=stochastic_fast_reference,
-    # Both lines are bounded ratios of price ranges, scale-INVARIANT, degree 0 (tests/indicators/test_stochastic_fast.py
-    # ::test_scale_invariance).
+    # Both lines are bounded ratios of price ranges, scale-INVARIANT, degree 0.
     scale=(ScaleAxis(roles=("high", "low", "close"), degree={"k": 0, "d": 0}),),
     golden_params={"window_k": 5, "window_d": 3},
     golden_input={
@@ -39,8 +38,7 @@ STOCHASTIC_FAST = Spec(
             inputs={"high": (10.0, 10.0, 10.0), "low": (10.0, 10.0, 10.0), "close": (10.0, 10.0, 10.0)},
             params_override={"window_k": 2, "window_d": 1},
             expected={"k": (None, math.nan, math.nan), "d": (None, math.nan, math.nan)},
-            reason="a flat window makes the raw %K's 0/0 division NaN, which the %D pass carries through "
-            "(test_stochastic_fast.py::test_flat_window_is_nan)",
+            reason="a flat window makes the raw %K's 0/0 division NaN, which the %D pass carries through",
         ),
     ),
 )

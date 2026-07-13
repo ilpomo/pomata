@@ -13,8 +13,7 @@ MIDPRICE = Spec(
     warmup=13,
     raises=(({"window": 0}, r"window must be >= 1"),),
     oracle=midprice_reference,
-    # The mean of the window's highest high and lowest low, homogeneous of degree 1 (tests/indicators/
-    # test_midprice.py::TestMidpriceProperties::test_scale_homogeneity).
+    # The mean of the window's highest high and lowest low, homogeneous of degree 1
     scale=(ScaleAxis(roles=("high", "low"), degree=1),),
     golden_params={"window": 3},
     golden_input={

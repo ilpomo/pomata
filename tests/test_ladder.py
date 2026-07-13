@@ -5,8 +5,9 @@ spec subset.
 Applicability is a plain comprehension on spec *fields* — no capability mixins, no ``__init_subclass__``. A subset
 cannot silently drop an obligation, because the field it filters on is either required by the language (``shape``) or
 made mandatory by :meth:`Spec.__post_init__` (``raises`` whenever ``params`` is non-empty; a non-empty ``scale``
-tuple). Sub-parametrized rungs give one case per struct field, per validation counterexample, or per scale axis, with
-a readable id (``ichimoku-senkou_b``, ``sharpe_ratio-0``, ``ichimoku-high+low``).
+tuple). Sub-parametrized rungs give one case per struct field, per validation counterexample, per scale axis, or per
+pin, with a readable id (``ichimoku-senkou_b``, ``sharpe_ratio-0``, ``ichimoku-high+low``,
+``sharpe_ratio-zero_volatility``).
 
 To read a failure: find the rung by the name in the pytest id, read its few lines, then read the spec row the id
 names. Two obvious places, no inheritance graph to walk. The rungs run in the canonical order of the method of record
@@ -468,6 +469,9 @@ def test_matches_component_definition(spec: Spec) -> None:
     direct = lane_series(frame.select(build_expr(spec).alias("out")))
     composed = lane_series(frame.select(component().alias("out")))
     for lane_direct, lane_composed in zip(direct, composed, strict=True):
+        # A deliberate tier mix, not a typo: accumulation-order noise between the two evaluations sits inside the
+        # property-tier relative band, while a near-zero lane (a struct's difference field) needs the reference-tier
+        # absolute floor.
         assert_matches(
             lane_direct.to_list(),
             lane_composed.to_list(),

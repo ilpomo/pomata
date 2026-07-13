@@ -24,7 +24,7 @@ STERLING_RATIO = Spec(
     ),
     oracle=sterling_ratio_reference,
     # A normalized growth factor over a scale-invariant average drawdown — neither homogeneous nor invariant
-    # (tests/metrics/test_sterling_ratio.py module docstring).
+    #
     scale=ScaleExempt(
         reason="a normalized growth factor over a scale-invariant average drawdown — neither homogeneous nor invariant"
     ),
@@ -41,7 +41,7 @@ STERLING_RATIO = Spec(
             expected=(0.0,),
             reason="a flat single-period growth has zero drawdown and zero excess growth, so the ratio is exactly 0 "
             "(the excess cushion keeps the denominator finite) "
-            "(tests/metrics/test_sterling_ratio.py::TestSterlingRatioEdge::test_no_drawdown_is_zero)",
+            "",
         ),
     ),
 )
