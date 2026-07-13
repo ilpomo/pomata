@@ -26,9 +26,17 @@ from hypothesis import strategies as st
 from tests.support import (
     coherent_hl,
     coherent_hl_with_missing,
+    coherent_hlc,
+    coherent_hlc_with_missing,
+    coherent_hlcv,
+    coherent_hlcv_with_missing,
+    coherent_ohlc,
+    coherent_ohlc_with_missing,
     finite_floats,
     missing_data_floats,
     split_pairs,
+    split_quads,
+    split_triples,
 )
 
 import pomata.indicators
@@ -67,6 +75,10 @@ _SPEC_ROLE_BUILDERS: dict[str, Callable[[int], list[float]]] = {
     "close": lambda n: [float(i) + 1.1 for i in range(n)],
     "volume": lambda n: [100.0 + float(i) for i in range(n)],
     "expr": lambda n: [float(i) + 1.0 for i in range(n)],
+    # A non-monotone oscillating price series: a strictly-monotone probe saturates any RSI to a flat 100, which then
+    # drives a stochastic-of-RSI to a 0/0 all-NaN output the flow rungs cannot read. This role gives such a function a
+    # varied, well-defined baseline instead (rsi_stochastic).
+    "wave": lambda n: [100.0 + 10.0 * math.sin(0.7 * float(i)) for i in range(n)],
     "price": lambda n: [float(i) + 10.0 for i in range(n)],
     "equity_curve": lambda n: [100.0 * (1.02 ** float(i)) for i in range(n)],
     "returns": lambda n: [0.01 if i % 2 == 0 else -0.005 for i in range(n)],
@@ -156,6 +168,12 @@ class Spec:
     # Rows past an interior missing bar beyond which the declared flow must have played out; ``-1`` derives it from
     # the warm-up and the widest window (declare a positive value only where an output is displaced further).
     flow_horizon: int = -1
+    # A reason a function's interior-missing-bar flow is input-dependent and so cannot be expressed by the shared
+    # policy rung: a directional-movement guard turns a fully-missing bar into neutral 0 movement (a full-bar null /
+    # NaN is absorbed and the recursion continues at 0), while a single-column NaN on the driving leg still latches —
+    # two behaviours one declared policy cannot hold. Non-empty exempts the function from the two flow rungs; its flow
+    # is pinned as crafted cases and covered by the missing-data property tier instead. Empty = the flow rungs apply.
+    flow_deviation: str = ""
     # A deviation stated as data: an oracle whose signature is not a mirror of the factory's (different kwarg names)
     # supplies a frame->result callable here. ``None`` means "mirror the signature" (positional inputs, params kwargs).
     oracle_adapter: "Callable[[Spec, pl.DataFrame], object] | None" = None
@@ -469,17 +487,48 @@ def _independent_frame(
     )
 
 
+def _bars_to_frames[T](
+    roles: tuple[str, ...],
+    bars: st.SearchStrategy[T],
+    length: st.SearchStrategy[int],
+    split: Callable[[list[T]], tuple[list[float | None], ...]],
+) -> st.SearchStrategy[pl.DataFrame]:
+    """A frame strategy: draw a list of coherent bars, then unzip it into the declared per-role columns."""
+    return length.flatmap(
+        lambda n: st.lists(bars, min_size=n, max_size=n).map(
+            lambda rows: pl.DataFrame(dict(zip(roles, split(rows), strict=True)))
+        )
+    )
+
+
+def _coherent_bar_frames(
+    inputs: tuple[str, ...], length: st.SearchStrategy[int], *, missing: bool
+) -> st.SearchStrategy[pl.DataFrame] | None:
+    """Frames of coherent OHLC-family bars for the price-bar input shapes, or ``None`` when the shape is not one."""
+    if inputs == ("high", "low"):
+        return _bars_to_frames(inputs, coherent_hl_with_missing() if missing else coherent_hl(), length, split_pairs)
+    if inputs == ("high", "low", "close"):
+        return _bars_to_frames(
+            inputs, coherent_hlc_with_missing() if missing else coherent_hlc(), length, split_triples
+        )
+    if inputs == ("high", "low", "close", "volume"):
+        return _bars_to_frames(
+            inputs, coherent_hlcv_with_missing() if missing else coherent_hlcv(), length, split_quads
+        )
+    if inputs == ("open", "high", "low", "close"):
+        return _bars_to_frames(
+            inputs, coherent_ohlc_with_missing() if missing else coherent_ohlc(), length, split_quads
+        )
+    return None
+
+
 def fuzz_frames(spec: Spec, *, missing: bool) -> st.SearchStrategy[pl.DataFrame]:
     """A Hypothesis strategy of well-formed input frames for the property tier, keyed on the spec's input shape."""
     minimum = widest_warmup(spec) + 4
     length = st.integers(min_value=minimum, max_value=minimum + 24)
-    if spec.inputs == ("high", "low"):
-        bars = coherent_hl_with_missing() if missing else coherent_hl()
-        return length.flatmap(
-            lambda n: st.lists(bars, min_size=n, max_size=n).map(
-                lambda rows: pl.DataFrame(dict(zip(("high", "low"), split_pairs(rows), strict=True)))
-            )
-        )
+    bar_frames = _coherent_bar_frames(spec.inputs, length, missing=missing)
+    if bar_frames is not None:
+        return bar_frames
     if spec.inputs == ("equity_curve",):
         return _equity_frames(length, missing=missing)
     if len(spec.inputs) == 1:
@@ -490,11 +539,31 @@ def fuzz_frames(spec: Spec, *, missing: bool) -> st.SearchStrategy[pl.DataFrame]
             # apart), matching the bounded strategy every rolling-returns metric drew from in the old suite.
             finite = st.one_of(_finite(0.01, 1.0), _finite(-1.0, -0.01))
             values = st.one_of(st.none(), st.just(math.nan), finite) if missing else finite
+        elif role == "price":
+            # Strictly positive prices in a modest band ([1.0, 1e3]): an indicator that divides by a moving average of
+            # the price (a percentage oscillator) or forms a one-pass rolling sum over it (an adaptive mean) stays
+            # well-conditioned against its two-pass oracle here, where a symmetric or near-zero draw would round the two
+            # apart — the positive-only, modest-magnitude domain the old suite drew such a series from.
+            positive = _finite(1.0, 1e3)
+            values = st.one_of(st.none(), st.just(math.nan), positive) if missing else positive
         else:
             values = missing_data_floats() if missing else finite_floats()
         return length.flatmap(
             lambda n: st.lists(values, min_size=n, max_size=n).map(
                 lambda rows: pl.DataFrame({role: pl.Series(rows, dtype=pl.Float64)})
+            )
+        )
+    if spec.inputs == ("price", "volume"):
+        # A modest positive band ([1, 1e3]) for both a price and its volume: a one-pass rolling volume-weighted sum
+        # stays well-conditioned against its two-pass oracle here, where a wide product range would drop a small
+        # window's contribution into the accumulated sum's rounding.
+        element = _finite(1.0, 1e3)
+        column = st.one_of(st.none(), st.just(math.nan), element) if missing else element
+        return length.flatmap(
+            lambda n: st.tuples(st.lists(column, min_size=n, max_size=n), st.lists(column, min_size=n, max_size=n)).map(
+                lambda drawn: pl.DataFrame(
+                    {"price": pl.Series(drawn[0], dtype=pl.Float64), "volume": pl.Series(drawn[1], dtype=pl.Float64)}
+                )
             )
         )
     if spec.inputs in _FUZZ_SHAPES:
