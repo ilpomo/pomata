@@ -1,24 +1,46 @@
 """
-Re-export shim: the shared test helpers now live in :mod:`tests_new.support`, flattened here for the legacy
-``from tests.support import ...`` path used across the existing suite.
+The consolidated test-support surface: the shared low-level helpers plus the spec framework the rungs delegate to.
 
-The stateless helpers were consolidated into the ``tests_new`` home during the contract-suite redesign — one concern
-per module: :mod:`tests_new.support.asserts` (compare a result against an oracle), :mod:`tests_new.support.bars`
-(transpose generated bars into columns), :mod:`tests_new.support.benchmarks` (time an expression for the benchmark
-tier), :mod:`tests_new.support.columns` (canonical column-name constants), :mod:`tests_new.support.frames`
-(materialize inputs into a frame and evaluate an expression), :mod:`tests_new.support.strategies` (Hypothesis input
-generators and the ``window`` cap), :mod:`tests_new.support.synthesis` (signature-driven call synthesis for the public
-factories), :mod:`tests_new.support.tolerances` (the named floating-point tolerance ladder and :func:`input_scale`) —
-and re-exported here so every legacy test still imports them from one place. They are plain functions rather than
-pytest fixtures so they compose with Hypothesis ``@given`` without leaking state across generated examples.
+The stateless helpers — one concern per module: :mod:`tests.support.asserts` (compare a result against an oracle),
+:mod:`tests.support.bars` (transpose generated bars into columns), :mod:`tests.support.benchmarks` (time an
+expression for the benchmark tier), :mod:`tests.support.columns` (canonical column-name constants),
+:mod:`tests.support.frames` (materialize inputs into a frame and evaluate an expression),
+:mod:`tests.support.strategies` (Hypothesis input generators and the ``window`` cap),
+:mod:`tests.support.synthesis` (signature-driven call synthesis for the public factories),
+:mod:`tests.support.tolerances` (the named floating-point tolerance ladder and :func:`input_scale`) — are
+re-exported flat here alongside the spec framework's frozen data types and engine (:mod:`tests.support.spec`), so
+every test imports from one place. They are plain functions rather than pytest fixtures so they compose with Hypothesis
+``@given`` without leaking state across generated examples. See ``tests/DESIGN.md``.
 """
 
-from tests_new.support.asserts import assert_all_float64, assert_matches, assert_scale_homogeneous
-from tests_new.support.bars import complete_benchmark, split_pairs, split_quads, split_triples
-from tests_new.support.benchmarks import fastest_eval
-from tests_new.support.columns import BENCHMARK, CLOSE, COLUMN_X, GROUP_KEY, HIGH, LOW, OPEN, RETURNS, VOLUME
-from tests_new.support.frames import apply_expr, count_leading_nulls, materialize, materialize_struct
-from tests_new.support.strategies import (
+from tests.support.asserts import assert_all_float64, assert_matches, assert_scale_homogeneous
+from tests.support.bars import complete_benchmark, split_pairs, split_quads, split_triples
+from tests.support.benchmarks import fastest_eval
+from tests.support.columns import BENCHMARK, CLOSE, COLUMN_X, GROUP_KEY, HIGH, LOW, OPEN, RETURNS, VOLUME
+from tests.support.frames import apply_expr, count_leading_nulls, materialize, materialize_struct
+from tests.support.spec import (
+    SPEC_LANE,
+    SPEC_SCALAR,
+    Deviant,
+    ScaleAxis,
+    ScaleExempt,
+    Shape,
+    Spec,
+    SpecPin,
+    actual_lanes,
+    build_expr,
+    flat,
+    fuzz_frames,
+    horizon,
+    lane_series,
+    probe_frame,
+    probe_length,
+    reference_lanes,
+    spec_id,
+    widest_warmup,
+    widest_window,
+)
+from tests.support.strategies import (
     CONDITIONING_FLOOR,
     STANDARDIZED_MOMENT_FLOOR,
     SUBNORMAL_FLOOR,
@@ -35,6 +57,7 @@ from tests_new.support.strategies import (
     missing_data_floats,
     positive_missing_data,
     spans_even_lag_repeat,
+    spans_even_lag_run,
     standardized_moment_floats,
     subnormal_safe_floats,
     two_segment_missing_data,
@@ -42,8 +65,8 @@ from tests_new.support.strategies import (
     windows_well_conditioned,
     windows_well_spread,
 )
-from tests_new.support.synthesis import sample_argument, synthesize_call
-from tests_new.support.tolerances import (
+from tests.support.synthesis import sample_argument, synthesize_call
+from tests.support.tolerances import (
     ABSOLUTE_TOLERANCE_EXACT,
     ABSOLUTE_TOLERANCE_PROPERTY,
     ABSOLUTE_TOLERANCE_QUOTIENT,
@@ -86,16 +109,26 @@ __all__ = (
     "RELATIVE_TOLERANCE_REFERENCE",
     "RELATIVE_TOLERANCE_SCALE",
     "RETURNS",
+    "SPEC_LANE",
+    "SPEC_SCALAR",
     "STANDARDIZED_MOMENT_FLOOR",
     "STREAMING_TOLERANCE_FACTOR",
     "SUBNORMAL_FLOOR",
     "VARIANCE_TOLERANCE_FACTOR",
     "VOLUME",
     "WINDOW_MAX",
+    "Deviant",
+    "ScaleAxis",
+    "ScaleExempt",
+    "Shape",
+    "Spec",
+    "SpecPin",
+    "actual_lanes",
     "apply_expr",
     "assert_all_float64",
     "assert_matches",
     "assert_scale_homogeneous",
+    "build_expr",
     "coherent_hl",
     "coherent_hl_with_missing",
     "coherent_hlc",
@@ -108,13 +141,22 @@ __all__ = (
     "count_leading_nulls",
     "fastest_eval",
     "finite_floats",
+    "flat",
+    "fuzz_frames",
+    "horizon",
     "input_scale",
+    "lane_series",
     "materialize",
     "materialize_struct",
     "missing_data_floats",
     "positive_missing_data",
+    "probe_frame",
+    "probe_length",
+    "reference_lanes",
     "sample_argument",
     "spans_even_lag_repeat",
+    "spans_even_lag_run",
+    "spec_id",
     "split_pairs",
     "split_quads",
     "split_triples",
@@ -124,6 +166,8 @@ __all__ = (
     "synthesize_call",
     "two_segment_missing_data",
     "well_spread",
+    "widest_warmup",
+    "widest_window",
     "windows_well_conditioned",
     "windows_well_spread",
 )

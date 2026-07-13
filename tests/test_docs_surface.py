@@ -13,11 +13,11 @@ import tomllib
 from pathlib import Path
 
 import pytest
-from tests.support.policies import NanPolicy, NullPolicy
 
 import pomata.indicators
 import pomata.metrics
 import pomata.pnl
+from pomata._policy import NanPolicy, NullPolicy
 
 _README = Path(__file__).parent.parent / "README.md"
 

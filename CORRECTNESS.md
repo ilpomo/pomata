@@ -59,19 +59,24 @@ differential tier.
 
 ### A laddered test suite
 
-Four tiers, each aimed at a different threat:
+Every function declares its whole testing contract as one frozen dataclass of pure data — a spec, one file per
+function — and a single ladder of generic test functions checks every declared fact identically across the whole
+public surface (see `tests/README.md` for the full design). The declaration language itself enforces completeness:
+required fields have no default, the spec tuples must match the public `__all__` exactly (a function cannot be
+exported untested), and an input regime may be excluded from the random tier only together with a fixed case that
+demonstrates what the function returns there. Four tiers, each aimed at a different threat:
 
-- **Contract** — shape, dtype, length, laziness, and that the indicator partitions independently under `.over(...)`. The
-  structural promises the type system cannot state.
-- **Edge** — the dangerous regimes, pinned by hand and checked **deterministically**: the exact warmup count; an empty
-  series; an all-`null` series; a single row; a window longer than the series; an interior `null`; a `NaN`. Each of
-  these is its own named test with a known answer on every indicator. The regimes that bite only some indicators — a
-  constant or monotone series, a window of one or of the series length, a leading `null` — are pinned where they bite.
-  These are not left to chance — and that fact is what lets the random tier below stay small.
+- **Contract** — shape, dtype, length, laziness, and that the function partitions independently under `.over(...)`.
+  The structural promises the type system cannot state.
+- **Edge** — the dangerous regimes, pinned as data and checked **deterministically**: the exact warmup count (per
+  struct field); an empty series; an all-`null` series; a single row; a window longer than the series; an interior
+  `null`; a `NaN`. The regimes that bite only some functions — a constant window, a zero-variance benchmark, an
+  exactly-flat day — are pinned where they bite, each with a written reason. These are not left to chance — and
+  that fact is what lets the random tier below stay small.
 - **Correctness** — agreement with the oracle on a fixed realistic series, plus a frozen golden master so a value can
   never drift unnoticed between versions.
-- **Properties** — the oracle-agreement again, and the mathematical invariants (scale behavior, boundedness, null
-  handling), now over inputs drawn at random.
+- **Properties** — the oracle-agreement again, and the mathematical invariants (scale behavior per declared axis,
+  boundedness, null handling), now over inputs drawn at random.
 
 ### A differential against the industry reference
 
@@ -301,7 +306,13 @@ We prove, and you can re-run:
 - agreement with an independent oracle to a stated floating-point tolerance, across the valid input domain;
 - the documented invariants — scale behavior, bounds, monotonicity where it applies;
 - parity with TA-Lib, where a counterpart exists (58 of the 75), from the first defined value — a documented minority
-  only on the converged tail, every deliberate divergence documented.
+  only on the converged tail, every deliberate divergence documented;
+- that the suite covers the whole public surface by construction (the spec/`__all__` bijection fails any collection
+  that misses a function) and that every input regime excluded from the random tier is still witnessed by a fixed
+  case with a written, measured reason;
+- that the suite bites: it was validated by reintroducing the historically fixed defects and a vetted catalog of
+  one-line semantic mutations across every source module, and it kills the full catalog — the survivors of the
+  first pass were themselves turned into fixed cases.
 
 We do **not** claim the absence of all bugs, or correctness on inputs outside the documented domain. One limit is worth
 naming plainly: for the irreducibly-sequential indicators (KAMA, the parabolic SAR, the Hilbert cycle cluster) the oracle
