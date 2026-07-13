@@ -14,7 +14,7 @@ BOLLINGER_BANDS = Spec(
     params={"window": 20, "multiplier": 2.0},
     shape=Shape.STRUCT,
     fields=("lower", "middle", "upper"),
-    warmup=19,
+    warmup={"lower": 19, "middle": 19, "upper": 19},
     raises=(
         ({"window": 0}, r"window must be >= 1"),
         ({"multiplier": 0.0}, r"multiplier must be a finite number > 0"),
@@ -30,7 +30,7 @@ BOLLINGER_BANDS = Spec(
     oracle_abs_tol=ABSOLUTE_TOLERANCE_SCALE,
     # Every band is a price level (mean plus/minus a dispersion), homogeneous of degree 1 (tests/indicators/
     # test_bollinger_bands.py::TestBollingerBandsProperties::test_scale_homogeneity).
-    scale=(ScaleAxis(roles=("price",), degree=1),),
+    scale=(ScaleAxis(roles=("price",), degree={"lower": 1, "middle": 1, "upper": 1}),),
     golden_params={"window": 2},
     golden_input={"price": (2.0, 4.0, 4.0, 8.0)},
     golden_output={

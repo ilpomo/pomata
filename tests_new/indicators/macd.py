@@ -31,7 +31,7 @@ MACD = Spec(
     oracle=macd_reference,
     # Every field is a difference/EMA of the price, homogeneous of degree 1 (tests/indicators/test_macd.py
     # ::TestMacdProperties::test_scale_homogeneity).
-    scale=(ScaleAxis(roles=("expr",), degree=1),),
+    scale=(ScaleAxis(roles=("expr",), degree={"macd": 1, "signal": 1, "histogram": 1}),),
     component_expr=_macd_component,
     # A one-pass EMA difference against a two-pass oracle: a magnitude-proportional band, matching every other migrated
     # one-pass family (the old suite used input_scale * STREAMING_TOLERANCE_FACTOR).

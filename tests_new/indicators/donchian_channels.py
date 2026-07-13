@@ -11,13 +11,13 @@ DONCHIAN_CHANNELS = Spec(
     params={"window": 20},
     shape=Shape.STRUCT,
     fields=("lower", "middle", "upper"),
-    warmup=19,
+    warmup={"lower": 19, "middle": 19, "upper": 19},
     lands_on="low",
     raises=(({"window": 0}, r"window must be >= 1"),),
     oracle=donchian_channels_reference,
     # Every band is a price extreme (or their mean), homogeneous of degree 1 (tests/indicators/
     # test_donchian_channels.py::TestDonchianChannelsProperties::test_scale_homogeneity).
-    scale=(ScaleAxis(roles=("high", "low"), degree=1),),
+    scale=(ScaleAxis(roles=("high", "low"), degree={"lower": 1, "middle": 1, "upper": 1}),),
     golden_params={"window": 3},
     golden_input={
         "high": (11.0, 12.0, 13.0, 12.5, 14.0),

@@ -32,9 +32,10 @@ ladder each axis is a **declared field** or a **derived fact**, and a rung gates
 
 - **shape** — `Shape.REDUCING` (43) · `Shape.SERIES` (95) · `Shape.STRUCT` (15): what one probe row observes. A
   struct declares its ordered `fields`, and every struct-aware rung reads **all** of them (never only the first).
-- **windowed** — `warmup is not None` (75): the exact leading-null count under `params` — an `int`, or a per-field
-  mapping for a struct whose lines warm up differently (e.g. `ichimoku`). A reduction and an unwindowed transform
-  declare `warmup=None`.
+- **windowed** — `warmup is not None` (75): the exact leading-null count under `params` — an `int` for a series, a
+  per-field mapping for a struct (always, even when every line shares the count: the form is fixed by the shape, so
+  a reader never guesses which lanes a number covers). A reduction and an unwindowed transform declare
+  `warmup=None`.
 - **null / NaN policy** — **not declared**: derived from `pomata._policy` by function name and dispatched inside
   the shared flow rungs, so a spec cannot pair the wrong behavior with the wrong declaration.
 
@@ -46,10 +47,10 @@ ladder each axis is a **declared field** or a **derived fact**, and a rung gates
 | `inputs` | yes | ordered input column roles (drawn from the probe-frame vocabulary) |
 | `params` | yes | the canonical scalar kwargs used by probes and goldens |
 | `shape` | yes | `REDUCING` / `SERIES` / `STRUCT` — the observed output shape |
-| `scale` | yes | a non-empty tuple of `ScaleAxis`, or a `ScaleExempt(reason)` — never an empty tuple |
+| `scale` | yes | a non-empty tuple of `ScaleAxis`, or a `ScaleExempt(reason)` — never an empty tuple; an axis's `degree` is an `int` for a single-lane output and a per-field mapping for a struct (e.g. `supertrend`: `line` degree 1, `direction` degree 0) |
 | `oracle` | yes | the naive reference oracle |
 | `golden_input` / `golden_output` | yes | the frozen golden master (per field for a struct) |
-| `warmup` | optional | exact leading-null count under `params` (`int` / per-field mapping / `None`) |
+| `warmup` | optional | exact leading-null count under `params`: an `int` for a series, a per-field mapping for a struct, `None` when nothing warms up |
 | `fields` | struct | the struct's field names, in order |
 | `raises` | params ⇒ yes | validation counterexamples: `(overrides, ValueError match)` |
 | `golden_params` / `golden_round` | optional | the golden's own params and its rounding |
@@ -89,7 +90,9 @@ Derived, never declared: `name` (from the factory), `family` (from `__all__`), `
    no-op); `scale` is never an empty tuple (an exemption is a reasoned `ScaleExempt`); every scale axis and input
    role is real; the derived name has a declared policy and a public `__all__`; a `conditioning` filter implies a
    `covers_conditioning=True` pin, and such a pin implies the filter (no exclusion without a fixed case, no stale
-   coverage claim).
+   coverage claim); a struct's `warmup` and every one of its axes' `degree` are per-field mappings keyed exactly by
+   its `fields`, and only a struct's — the form is fixed by the shape, so there is exactly one way to write each
+   declaration and the reader is never left inferring which lanes a bare number covers.
 3. **Two-way bijection** — `tests_new/all_specs.py` holds the per-family tuples in exact correspondence with
    `MIGRATED`, requires each migrated name to be in its family's `__all__`, and forbids duplicate names. It runs at
    import (born red), so any collection enforces it.

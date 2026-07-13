@@ -21,7 +21,7 @@ ICHIMOKU = Spec(
     oracle=ichimoku_reference,
     # Every line is a windowed high-low midpoint, so all four scale linearly with the bars (tests/indicators/
     # test_ichimoku.py:363 test_scale_homogeneity).
-    scale=(ScaleAxis(roles=("high", "low"), degree=1),),
+    scale=(ScaleAxis(roles=("high", "low"), degree={"tenkan": 1, "kijun": 1, "senkou_a": 1, "senkou_b": 1}),),
     golden_params={"window_tenkan": 2, "window_kijun": 3, "window_senkou": 4},
     golden_input={
         "high": (10.0, 12.0, 11.0, 13.0, 14.0, 12.0, 15.0, 13.0),

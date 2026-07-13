@@ -76,9 +76,9 @@ def _warmup_cases() -> tuple[list[tuple[Spec, str | None, int]], list[str]]:
         if warmup is None:
             continue
         if spec.shape is Shape.STRUCT:
+            assert isinstance(warmup, Mapping)  # a struct's warm-up is per-field by construction
             for field_name in spec.fields:
-                expected = warmup[field_name] if isinstance(warmup, Mapping) else warmup
-                cases.append((spec, field_name, expected))
+                cases.append((spec, field_name, warmup[field_name]))
                 ids.append(f"{spec.name}-{field_name}")
         else:
             assert isinstance(warmup, int)
@@ -424,14 +424,15 @@ def test_pinned_cases(spec: Spec, pin: SpecPin) -> None:
 
 @pytest.mark.parametrize(("spec", "axis"), SCALE_CASES, ids=SCALE_IDS)
 def test_scale(spec: Spec, axis: ScaleAxis) -> None:
-    """Verifies each homogeneity axis: scaling only its roles by a power of two scales the output by ``k**degree``."""
+    """Verifies each homogeneity axis: scaling only its roles by a power of two scales each lane by ``k**degree``."""
     length = widest_warmup(spec) + 12
     base_frame = probe_frame(spec.inputs, length)
     scaled_frame = base_frame.with_columns((pl.col(role) * 4.0).alias(role) for role in axis.roles)
     base = actual_lanes(spec, base_frame)
     scaled = actual_lanes(spec, scaled_frame)
     for name, base_values in base.items():
-        assert_scale_homogeneous(scaled[name], base_values, k=4.0, degree=axis.degree)
+        degree = axis.degree[name] if isinstance(axis.degree, Mapping) else axis.degree
+        assert_scale_homogeneous(scaled[name], base_values, k=4.0, degree=degree)
 
 
 @pytest.mark.parametrize("spec", ALL_SPECS, ids=spec_id)

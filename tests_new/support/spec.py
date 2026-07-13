@@ -102,10 +102,18 @@ class Deviant:
 
 @dataclass(frozen=True)
 class ScaleAxis:
-    """One homogeneity claim: scaling the named ``roles`` by ``k`` scales the output by ``k ** degree``."""
+    """
+    One homogeneity claim: scaling the named ``roles`` by ``k`` scales the output by ``k ** degree``.
+
+    The ``degree`` form is fixed by the spec's shape, so a reader is never left guessing which lanes a number
+    covers: a single-lane output (SERIES / REDUCING) declares one ``int``, a STRUCT declares one degree per field
+    (a mapping keyed exactly by its ``fields``) — a bare int on a struct and a mapping on a single lane are both
+    rejected at construction (e.g. supertrend's ``line`` rides the price scale at degree 1 while its ``direction``
+    flag is degree-0 invariant under the same input rescale).
+    """
 
     roles: tuple[str, ...]
-    degree: int
+    degree: int | Mapping[str, int]
 
 
 @dataclass(frozen=True)
@@ -232,10 +240,13 @@ class Spec:
         if self.shape is Shape.REDUCING and self.warmup is not None:
             msg = f"{self.name}: a reduction has no warm-up; declare warmup=None"
             raise ValueError(msg)
+        if self.shape is Shape.STRUCT and self.warmup is not None and not isinstance(self.warmup, Mapping):
+            msg = f"{self.name}: a struct declares its warm-up per field — a bare int hides which lanes it covers"
+            raise ValueError(msg)
         if isinstance(self.warmup, Mapping) and (
             self.shape is not Shape.STRUCT or set(self.warmup) != set(self.fields)
         ):
-            msg = f"{self.name}: a per-field warm-up mapping is keyed by a struct's fields"
+            msg = f"{self.name}: a per-field warm-up mapping is keyed by a struct's fields, and only a struct's"
             raise ValueError(msg)
 
     def _check_scale(self) -> None:
@@ -248,6 +259,14 @@ class Spec:
             unknown = sorted(role for role in axis.roles if role not in self.inputs)
             if not axis.roles or unknown:
                 msg = f"{self.name}: a scale axis names input roles; unknown or empty: {unknown or axis.roles}"
+                raise ValueError(msg)
+            if self.shape is Shape.STRUCT and (
+                not isinstance(axis.degree, Mapping) or set(axis.degree) != set(self.fields)
+            ):
+                msg = f"{self.name}: a struct's scale axis declares one degree per field — a bare int hides them"
+                raise ValueError(msg)
+            if self.shape is not Shape.STRUCT and isinstance(axis.degree, Mapping):
+                msg = f"{self.name}: only a struct's scale axis maps degrees per field; declare a single int"
                 raise ValueError(msg)
 
     def _check_golden(self) -> None:
