@@ -2,10 +2,11 @@
 The declared null / NaN policy of every public function — the package's one policy registry.
 
 These are the two facts about a function that a test cannot observe and so must be *stated*: the declaration encodes
-intent, and :mod:`tests.test_policies` proves it against the code on every run. The registry lives in the package —
-not in the test suite — so there is a single source of truth for every consumer: the suite imports it back through
-``tests/support/policies.py``, and the docstrings state each function's pair in prose. See ``tests/README.md`` for
-the full definition of each state.
+intent, and the test ladder proves it against the code on every run (each function's spec derives its policy pair
+from this registry and the shared flow rungs dispatch on it). The registry lives in the package — not in the test
+suite — so there is a single source of truth for every consumer: the suite reads it directly from
+:mod:`pomata._policy`, and the docstrings state each function's pair in prose. See ``tests/README.md`` for the full
+definition of each state.
 """
 
 from enum import Enum
@@ -30,8 +31,9 @@ class NanPolicy(Enum):
     LATCHES = "latches"  # a recursion carries it forward forever
 
 
-# One row per public function: its declared ``(null_policy, nan_policy)``. Proven against actual behaviour, and kept in
-# exact bijection with the public surface, by :mod:`tests.test_policies`.
+# One row per public function: its declared ``(null_policy, nan_policy)``. Proven against actual behaviour by the
+# test ladder's flow rungs, and kept in exact correspondence with the public surface by the suite's guards (a spec
+# without a registry row cannot even be constructed).
 POLICIES: dict[str, tuple[NullPolicy, NanPolicy]] = {
     # indicators
     "absolute_price_oscillator": (NullPolicy.BRIDGED, NanPolicy.LATCHES),

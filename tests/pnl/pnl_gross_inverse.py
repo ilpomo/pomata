@@ -75,7 +75,7 @@ PNL_GROSS_INVERSE = Spec(
                 -0.2380952380952383,
                 -0.10869565217391311,
             ),
-            reason="the 100x inverse-contract notional branch of the golden master, at full precision (a pin has no "
+            reason="a 100x inverse-contract notional golden, at full precision (a pin has no "
             "rounding step), also subsuming the multiplier-scaling property",
             params_override={"multiplier": 100.0},
         ),

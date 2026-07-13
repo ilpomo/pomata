@@ -8,9 +8,9 @@ an exact homogeneity ratio at one ``k``; neither expresses a Hypothesis-quantifi
 public metrics* (an inequality, a self-identity, a bounded range) has no declarative slot at all. These claims live
 here as ordinary ``@given`` tests:
 
-- ``test_matches_reference_at_large_magnitude`` — every degree-1-homogeneous dispersion / quantile metric keeps oracle
-  agreement when its returns are pushed to extreme magnitude (a numeric-stability tier, distinct from the exact-ratio
-  ``scale`` axis), parametrized over the specs that carry it.
+- ``test_matches_reference_at_large_magnitude`` — every REDUCING degree-1-homogeneous dispersion / quantile
+  metric keeps oracle agreement on returns pushed to extreme magnitude (a numeric-stability tier, distinct from
+  the exact-ratio ``scale`` axis), parametrized over the specs that carry it.
 - the cross-function metamorphic relations — the two tail-risk inequalities, the two self-capture identities, the
   cagr/total-return identity, and the two unit-interval bounds — each a relation between two public metrics or a
   bounded range, not a recomposition of one factory from others (which is what ``component_expr`` is for).
@@ -65,8 +65,9 @@ from pomata.metrics import (
 # Large magnitude — the numeric-stability tier of every degree-1-homogeneous dispersion / quantile metric
 # ======================================================================================================================
 
-# The specs that carry the large-magnitude tier: every returns-homogeneous dispersion or quantile metric (so the
-# value genuinely rides the input scale). The scale-invariant siblings (skewness, kurtosis, stability, the ratios)
+# The specs that carry the large-magnitude tier: every REDUCING returns-homogeneous dispersion or quantile metric
+# (so the value genuinely rides the input scale); their rolling twins share the same kernels per window, so the
+# reducing sweep carries the claim. The scale-invariant siblings (skewness, kurtosis, stability, the ratios)
 # carry no such tier and are excluded.
 LARGE_MAGNITUDE_SPECS: tuple[Spec, ...] = (
     CONDITIONAL_VALUE_AT_RISK,

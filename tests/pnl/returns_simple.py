@@ -31,7 +31,7 @@ RETURNS_SIMPLE = Spec(
             inputs={"price": (0.0, 10.0, 0.0, 0.0)},
             expected=(None, math.inf, -1.0, math.nan),
             reason="the IEEE division boundary: a non-zero change over a zero previous price is +/-inf, a zero change "
-            "over zero is NaN; the fuzz draws prices in [1, PRICE_MAX]",
+            "over zero is NaN; the fuzz draws strictly positive prices, so only a fixed case holds this boundary",
         ),
         SpecPin(
             label="negative_zero_positive_change",

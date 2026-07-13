@@ -33,7 +33,7 @@ functions** parametrized over the specs they apply to. There is no metaprogrammi
   validation counterexample, per scale axis).
 - **The engine** — `tests/support/spec.py`: the frozen data types and the small engine the rungs delegate to
   (the deterministic probe frame, the expression builder, the lane readers, the oracle bridge, the fuzz strategies,
-  the sizing helpers). It is the one module exempted from `disallow_any_explicit`. The fuzz vocabulary covers the
+  the sizing helpers). It is one of the three modules exempted from `disallow_any_explicit` (with the reflective `synthesis` and the TA-Lib-bridging differential tier). The fuzz vocabulary covers the
   single-input shapes, the coherent OHLC-family bars, the strictly-positive equity-curve growth path, and the
   multi-input shapes (the pnl frames and the returns/benchmark pair, each column drawn independently from its
   role's domain); an unlisted shape raises, so the closed vocabulary can never silently under-test a new function.
@@ -147,7 +147,7 @@ lines, then read the spec row the id names.
 
 Beyond the ladder, a small set of modules holds every claim that is not per-function-contract shaped: the
 registry-derived sweeps (their cases come from `ALL_SPECS`, so a new function is swept in the moment its spec
-lands), the per-family `test_bespoke.py` modules (the Hypothesis-quantified claims the spec language cannot carry —
+lands), the family `test_bespoke.py` modules (metrics and pnl; the Hypothesis-quantified claims the spec language cannot carry —
 metamorphic identities and large-magnitude properties, as ordinary `@given` tests), the `tests/support/tests/`
 unit tests of the harness itself, and the source-and-docs guards:
 

@@ -11,7 +11,6 @@ import math
 from hypothesis import given
 from tests.support import (
     SUBNORMAL_FLOOR,
-    WINDOW_MAX,
     coherent_hl,
     coherent_hl_with_missing,
     coherent_hlc,
@@ -174,16 +173,3 @@ class TestSeriesStrategies:
         for j in range(30, 35):
             five_run[j] = five_run[j - 2]
         assert not spans_even_lag_run(five_run)
-
-
-class TestWindowMax:
-    """
-    The shared ``window`` cap.
-    """
-
-    def test_is_a_positive_int(self) -> None:
-        """
-        Verifies that ``WINDOW_MAX`` is a usable window bound (a positive ``int``).
-        """
-        assert isinstance(WINDOW_MAX, int)
-        assert WINDOW_MAX >= 1

@@ -12,7 +12,6 @@ from tests.support import (
     ABSOLUTE_TOLERANCE_PROPERTY,
     ABSOLUTE_TOLERANCE_REFERENCE,
     ABSOLUTE_TOLERANCE_ROLLING_ORACLE,
-    ABSOLUTE_TOLERANCE_SCALE,
     ABSOLUTE_TOLERANCE_STREAMING,
     EXACT_TOLERANCE_FACTOR,
     RELATIVE_TOLERANCE_EXACT,
@@ -20,8 +19,6 @@ from tests.support import (
     RELATIVE_TOLERANCE_REFERENCE,
     RELATIVE_TOLERANCE_ROLLING_ORACLE,
     RELATIVE_TOLERANCE_SCALE,
-    STREAMING_TOLERANCE_FACTOR,
-    VARIANCE_TOLERANCE_FACTOR,
     input_scale,
 )
 
@@ -30,7 +27,6 @@ ALL_TOLERANCES = (
     ABSOLUTE_TOLERANCE_PROPERTY,
     ABSOLUTE_TOLERANCE_REFERENCE,
     ABSOLUTE_TOLERANCE_ROLLING_ORACLE,
-    ABSOLUTE_TOLERANCE_SCALE,
     ABSOLUTE_TOLERANCE_STREAMING,
     EXACT_TOLERANCE_FACTOR,
     RELATIVE_TOLERANCE_EXACT,
@@ -38,8 +34,6 @@ ALL_TOLERANCES = (
     RELATIVE_TOLERANCE_REFERENCE,
     RELATIVE_TOLERANCE_ROLLING_ORACLE,
     RELATIVE_TOLERANCE_SCALE,
-    STREAMING_TOLERANCE_FACTOR,
-    VARIANCE_TOLERANCE_FACTOR,
 )
 
 
@@ -91,16 +85,15 @@ class TestToleranceLadder:
 
     def test_magnitude_relative_factor_ordering(self) -> None:
         """
-        Verifies the conditioning order: degree-2 variance is tightest, the well-conditioned degree-1 kernels next, the
-        square-root-amplified streaming factor loosest.
+        Verifies the magnitude-relative factor stays far below any per-tier band (it multiplies the input scale).
         """
-        assert VARIANCE_TOLERANCE_FACTOR < EXACT_TOLERANCE_FACTOR < STREAMING_TOLERANCE_FACTOR
+        assert EXACT_TOLERANCE_FACTOR < ABSOLUTE_TOLERANCE_STREAMING
 
     def test_tier_ordering(self) -> None:
         """
         Verifies the per-tier band order: reference / property (tightest) <= scale <= streaming.
         """
         assert ABSOLUTE_TOLERANCE_REFERENCE == ABSOLUTE_TOLERANCE_PROPERTY
-        assert ABSOLUTE_TOLERANCE_PROPERTY <= ABSOLUTE_TOLERANCE_SCALE <= ABSOLUTE_TOLERANCE_STREAMING
+        assert ABSOLUTE_TOLERANCE_PROPERTY <= ABSOLUTE_TOLERANCE_ROLLING_ORACLE <= ABSOLUTE_TOLERANCE_STREAMING
         assert RELATIVE_TOLERANCE_REFERENCE == RELATIVE_TOLERANCE_PROPERTY
         assert RELATIVE_TOLERANCE_PROPERTY <= RELATIVE_TOLERANCE_SCALE

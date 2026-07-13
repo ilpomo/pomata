@@ -3,7 +3,7 @@ Performance benchmarks and complexity-scaling checks for every public function (
 
 One file for all three families: the per-function expression and its timing frame are *derived* from the registry —
 the canonical call is :func:`build_expr`, the frame is :func:`probe_frame` at the timed size — so there is no separate
-case table to keep in sync and no ``CASES == __all__`` guard: ``ALL_SPECS`` (bijective with the public surface by the
+case table to keep in sync: ``ALL_SPECS`` (bijective with the public surface by the
 :mod:`tests.all_specs` import-time check) *is* the coverage. A newly added function is swept in the moment its spec
 lands.
 

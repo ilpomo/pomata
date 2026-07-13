@@ -22,8 +22,8 @@ def apply_expr(
 
     Builds a one-column eager frame whose column ``"x"`` holds ``values`` as ``Float64`` (so ``None`` becomes a Polars
     ``null`` and ``float('nan')`` stays a distinct ``NaN``), evaluates ``expr`` against it via ``select``, and returns
-    the single output column as a list. This is the standard adapter for single-input, single-output indicator factories
-    in the test ladder: the test passes raw observations and the ``pl.Expr`` under test (typically built on
+    the single output column as a list. This is the standard adapter the bespoke property tests use for single-input
+    factories: the test passes raw observations and the ``pl.Expr`` under test (typically built on
     ``pl.col("x")``), and gets back a plain list it can compare against the naive reference oracle or a golden master.
 
     Args:
@@ -66,7 +66,7 @@ def count_leading_nulls(values: Sequence[float | None]) -> int:
     """
     The length of the leading ``None`` (warm-up) run, stopping at the first non-null value.
 
-    The shared warm-up check for the property tier: a windowed or recursive indicator emits ``None`` for its warm-up
+    The shared warm-up check: a windowed or recursive function emits ``None`` for its warm-up
     rows, so counting that leading run lets a test pin it against the indicator's documented warm-up length.
 
     Args:
