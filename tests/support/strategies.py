@@ -1,20 +1,18 @@
 """
-Shared Hypothesis element strategies for the indicator test ladder, plus the shared ``window`` cap they draw from.
+Shared Hypothesis element strategies for the test suite.
 
-Each element strategy draws a single element; tests wrap them in ``st.lists(...)`` to build a series. They are the
-canonical, one-home inputs for the property tiers — the missing-data tier, the scaling tier, and the positive-price
-(OHLC) tier — so the same ``null`` / ``NaN`` / magnitude regimes are exercised identically across every indicator.
+Each element strategy draws a single element; callers wrap them in ``st.lists(...)`` to build a series. They are the
+canonical, one-home input domains for the fuzz engine (:func:`tests.support.spec.fuzz_frames`) and the bespoke
+property tests, so the same ``null`` / ``NaN`` / magnitude regimes are exercised identically across the suite.
 The cycle-cluster predicate (:func:`spans_even_lag_run`) instead reads a whole series at once, since its
-guarantee is about a sustained run.
+guarantee is about a sustained run; the conditioning predicates (:func:`well_spread` and friends) read whole
+series or windows for the same reason.
 """
 
 import math
 from collections.abc import Sequence
 
 from hypothesis import strategies as st
-
-# The shared upper bound the property tiers draw their windows from; a tier needing a different cap passes its own.
-WINDOW_MAX = 16
 
 # Magnitude floor for finite draws: below it a squared or EWM-derived quantity underflows into the subnormal range,
 # where the one-pass form and the two-pass oracle round apart (see subnormal_safe_floats). One place to tune.
@@ -27,8 +25,8 @@ CONDITIONING_FLOOR = 1e-2
 
 # Magnitude floor for standardized-moment draws (skewness / kurtosis): these normalize by ``m2 ** p`` with ``p >= 1.5``,
 # so the variance is raised above a plain square and underflows at a LARGER input magnitude than SUBNORMAL_FLOOR guards
-# against (kurtosis' ``m2 ** 2`` underflows to zero around an input scale of ``1e-80``). Flooring ``|v|`` here keeps the
-# standardized moment well-conditioned across the scale tier's ``2 ** +-4`` rescaling (see standardized_moment_floats).
+# against (kurtosis' ``m2 ** 2`` underflows to zero around an input scale of ``1e-80``). Flooring ``|v|`` here keeps
+# the standardized moment well-conditioned even after a modest rescale of the draw (see standardized_moment_floats).
 STANDARDIZED_MOMENT_FLOOR = 1e-60
 
 
@@ -36,11 +34,11 @@ def finite_floats(bound: float = 1e6) -> st.SearchStrategy[float]:
     """
     Finite floats in ``[-bound, bound]``, the shared element strategy for the ordinary-input property tiers.
 
-    This is the canonical "well-behaved finite value" domain: the matches-reference and bounds tiers draw a series from
-    it to exercise an indicator against its naive oracle on inputs with no missing data. The ``bound`` is the
-    per-indicator safe magnitude -- the largest scale at which the implementation stays well-conditioned (raise it for a
-    linear indicator, lower it where a difference of large terms would cancel) -- and is declared in each test file's
-    sizing section rather than hard-coded here.
+    This is the canonical "well-behaved finite value" domain: the fuzz engine and the bespoke property tests draw a
+    series from it to exercise a function against its naive oracle on inputs with no missing data. The ``bound`` is
+    the caller's safe magnitude -- the largest scale at which the implementation stays well-conditioned (wider for a
+    linear function, tighter where a difference of large terms would cancel) -- so it is passed in, never hard-coded
+    here.
 
     Args:
         bound: The symmetric magnitude bound; values are drawn from ``[-bound, bound]`` (default ``1e6``).
@@ -60,10 +58,9 @@ def missing_data_floats(min_magnitude: float = 0.0) -> st.SearchStrategy[float |
     ``null`` / ``NaN`` paths are exercised against their naive reference oracles rather than only on hand-picked
     literals.
 
-    For an indicator that squares its input (variance / standard deviation / Bollinger) or whose recursive EWM mean
-    collapses its abs-tol at a subnormal-magnitude ``window`` (ema / rma / dema / tema / t3), pass
-    ``min_magnitude=SUBNORMAL_FLOOR`` so the finite draws are floored away from the subnormal range (see
-    :func:`subnormal_safe_floats`); otherwise the one-pass streaming form and the two-pass oracle can diverge on a tiny
+    Where a squared or EWM-derived quantity would underflow into the subnormal range on a tiny draw, pass
+    ``min_magnitude=SUBNORMAL_FLOOR`` so the finite draws are floored away from it (see
+    :func:`subnormal_safe_floats`); otherwise a one-pass streaming form and its two-pass oracle can diverge on a tiny
     value — a pure floating-point artifact.
 
     Args:
@@ -85,15 +82,15 @@ def spans_even_lag_run(series: Sequence[float | None], min_run: int = 6) -> bool
     (``x[i] == x[i - 2]`` at ``min_run`` consecutive indices) — the regime where the cycle pipeline's phasor branch
     genuinely flips.
 
-    The narrowed twin of :func:`spans_even_lag_repeat` for the cycle indicators that read the phase branch (mama,
-    sine_wave, dominant_cycle_phase). An empirical boundary probe (impl vs oracle, graduated trailing runs on the
-    golden carriers) showed the single-pair predicate is ~one-to-fourteen too blunt: an ISOLATED even-lag tie — the
-    overwhelming majority of what it rejects under fuzzing — never produces real disagreement (worst measured
-    deviation ~1e-14 for mama, ≤2.6e-10 on unit-bounded sine_wave lanes, inside the property tiers' absolute band),
-    while real branch-flip disagreement needs the four-bar smooth to repeat across an even lag for a sustained
-    stretch: onset at ~9 structured bars for sine_wave (probabilistic, the norm by 11-14), ~14 for mama, and a
-    whole-series flat run for dominant_cycle_phase. A run of ``k`` consecutive even-lag equalities corresponds to
-    ``k + 2`` such bars, so the default ``min_run=6`` (≈ 8 bars) sits one bar below the earliest measured onset,
+    The whole-series conditioning predicate for the cycle indicators that read the phase branch (mama, sine_wave,
+    dominant_cycle_phase). The cut targets the SUSTAINED run, never the isolated tie: an isolated even-lag tie —
+    the overwhelming majority of even-lag coincidences under fuzzing — never produces real disagreement (worst
+    measured deviation ~1e-14 for mama, ≤2.6e-10 on unit-bounded sine_wave lanes, inside the property tiers'
+    absolute band), while real branch-flip disagreement needs the four-bar smooth to repeat across an even lag for
+    a sustained stretch: measured onset at ~9 structured bars for sine_wave (probabilistic, the norm by 11-14),
+    ~14 for mama, and a whole-series flat run for dominant_cycle_phase. A run of ``k`` consecutive even-lag
+    equalities corresponds to ``k + 2`` such bars, so the default ``min_run=6`` (≈ 8 bars) sits one bar below the
+    earliest measured onset,
     rejecting every sustained flat run or period-two alternation while re-admitting the isolated coincidences.
 
     Args:
@@ -126,13 +123,12 @@ def subnormal_safe_floats(bound: float = 1e3) -> st.SearchStrategy[float]:
     - **Recursive EWM means** (ema, rma, dema, tema, t3) are checked against ``input_scale(values) *
       EXACT_TOLERANCE_FACTOR``; at a subnormal-magnitude ``window`` that abs-tol collapses to exactly ``0.0`` while the
       recursion and the two-pass oracle round one ULP apart -- a deterministic failure on data that is mathematically
-      fine. The degenerate all-zero ``window`` is pinned in the edge tier instead.
+      fine. The degenerate all-zero ``window`` is pinned as a fixed case instead.
 
     Flooring ``|v|`` at ``SUBNORMAL_FLOOR`` keeps ``v ** 2`` (and the scaled ``(k * v) ** 2`` with ``|k| >= 1e-2``)
     comfortably inside the normal range and keeps ``input_scale`` above the subnormal threshold, while still spanning
-    a wide magnitude. Use it in EVERY property tier of such an indicator (any-input, scale, large-magnitude), not only
-    the scale tier: the underflow can surface wherever a tiny value is drawn (it was originally caught only on the
-    scale tier and later re-surfaced on the any-input tier). For the missing-data tier, pass
+    a wide magnitude. Use it for EVERY random draw such a claim consumes, not only the rescaled one: the underflow
+    can surface wherever a tiny value is drawn. For draws that mix missing values, pass
     ``min_magnitude=SUBNORMAL_FLOOR`` to :func:`missing_data_floats` for the same reason.
 
     Args:
@@ -155,9 +151,9 @@ def standardized_moment_floats(bound: float = 1e3) -> st.SearchStrategy[float]:
     A standardized moment divides a central moment by ``m2 ** p`` with ``p >= 1.5`` (``1.5`` for skewness, ``2`` for
     kurtosis), so the variance is raised above a plain square: at an input scale near ``1e-80`` that power underflows to
     ``0`` and the value collapses to ``nan``. The plain :func:`subnormal_safe_floats` floor (``1e-100``) guards only a
-    square and is too low here -- under the scale tier's ``2 ** -4`` rescaling a ``1e-100`` draw still underflows.
-    Flooring ``|v|`` at ``STANDARDIZED_MOMENT_FLOOR`` keeps ``m2 ** p`` (and the rescaled ``(k * v)`` with
-    ``|k| >= 2 ** -4``) comfortably inside the normal range while still spanning a wide magnitude. The subnormal
+    square and is too low here -- after even a modest down-rescale of the draw a ``1e-100`` value still underflows.
+    Flooring ``|v|`` at ``STANDARDIZED_MOMENT_FLOOR`` keeps ``m2 ** p`` (and a modestly rescaled ``k * v``)
+    comfortably inside the normal range while still spanning a wide magnitude. The subnormal
     collapse itself is pinned deterministically in the edge tier.
 
     Args:

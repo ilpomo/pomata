@@ -31,9 +31,9 @@ Tiers (smallest band first):
   accumulate rounding differently across window slides, so the per-window agreement band is wider than the
   reference tier's; a spec declares it explicitly (``oracle_rel_tol`` / ``oracle_abs_tol``) only where its rolling
   form needs it, and the well-conditioned reductions stay on the default tight band.
-- **Streaming-at-magnitude** — a streaming statistic vs a two-pass oracle at extreme magnitude (EWMA / MACD signal),
-  where catastrophic cancellation forces a loose absolute term; use :func:`input_scale` to size it to the data when the
-  magnitude is unknown, or ``ABSOLUTE_TOLERANCE_STREAMING`` for the fixed large-magnitude case.
+- **Streaming-at-magnitude** — a streaming statistic vs a two-pass oracle at extreme magnitude, where catastrophic
+  cancellation forces a loose absolute term; the large-magnitude bespoke tests use :func:`input_scale` to size it to
+  the data, or ``ABSOLUTE_TOLERANCE_STREAMING`` for the fixed large-magnitude case.
 - **Differential** — agreement with the external C reference (TA-Lib), held to the SAME ``REFERENCE`` band as the
   internal oracle: with the canonical SMA seeding pomata matches TA-Lib bar for bar, so most indicators are compared
   over the whole series, and only a documented minority -- where TA-Lib itself deviates from the indicator's author
@@ -45,11 +45,9 @@ degenerate inputs, so a fixed absolute tolerance is wrong at the extremes. The f
 conditioning -- the worst-case residual it predicts on degenerate windows, which the property tests then hold the
 implementation to:
 
-- ``VARIANCE_TOLERANCE_FACTOR`` (degree 2, the two-pass rolling / ewm variance): worst residual about half a ULP, so
-  ``1e-13`` leaves a wide margin.
-- ``STREAMING_TOLERANCE_FACTOR`` (degree 1, standard deviation and the EWMA / MACD signal): the square root amplifies
-  the relative error as the variance approaches zero, worst residual about ``1e-8``, so ``1e-6`` -- std is LOOSER than
-  variance for exactly this reason.
+- ``STREAMING_TOLERANCE_FACTOR`` (degree 1, the square-root-amplified streaming statistics): the square root
+  amplifies the relative error as the variance approaches zero, worst residual about ``1e-8``, so ``1e-6``; consumed
+  through :func:`streaming_abs_tol`.
 - ``EXACT_TOLERANCE_FACTOR`` (degree 1, well-conditioned kernels -- recursive (kama, the EMAs), windowed (sma, wma, the
   linear regressions), or stateless (the price transforms)): the impl-vs-oracle residual is at most a few ULP (exactly
   zero for the recursive and stateless kernels; a streaming-vs-two-pass rounding for the windowed means), far below
@@ -70,13 +68,11 @@ ABSOLUTE_TOLERANCE_REFERENCE = 1e-9
 RELATIVE_TOLERANCE_PROPERTY = 1e-10
 ABSOLUTE_TOLERANCE_PROPERTY = 1e-9
 RELATIVE_TOLERANCE_SCALE = 1e-6
-ABSOLUTE_TOLERANCE_SCALE = 1e-6
 RELATIVE_TOLERANCE_ROLLING_ORACLE = 1e-6
 ABSOLUTE_TOLERANCE_ROLLING_ORACLE = 1e-6
 ABSOLUTE_TOLERANCE_STREAMING = 1e-3
 EXACT_TOLERANCE_FACTOR = 1e-9
 STREAMING_TOLERANCE_FACTOR = 1e-6
-VARIANCE_TOLERANCE_FACTOR = 1e-13
 
 
 def input_scale(values: Sequence[float | None]) -> float:

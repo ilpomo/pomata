@@ -65,7 +65,7 @@ PNL_GROSS = Spec(
                 "price": (100.0, 102.0, 101.0, 104.0, 103.0),
             },
             expected=(None, 1000.0, 250.0, -750.0, -1000.0),
-            reason="the frozen golden master's 50x futures-multiplier branch, exercising the exact multiplier "
+            reason="a 50x futures-multiplier golden, exercising the exact multiplier "
             "arithmetic a single canonical golden cannot",
             params_override={"multiplier": 50.0},
         ),

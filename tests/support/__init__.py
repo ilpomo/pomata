@@ -5,12 +5,12 @@ The stateless helpers — one concern per module: :mod:`tests.support.asserts` (
 :mod:`tests.support.bars` (transpose generated bars into columns), :mod:`tests.support.benchmarks` (time an
 expression for the benchmark tier), :mod:`tests.support.columns` (canonical column-name constants),
 :mod:`tests.support.frames` (materialize inputs into a frame and evaluate an expression),
-:mod:`tests.support.strategies` (Hypothesis input generators and the ``window`` cap),
+:mod:`tests.support.strategies` (Hypothesis input generators),
 :mod:`tests.support.synthesis` (signature-driven call synthesis for the public factories),
 :mod:`tests.support.tolerances` (the named floating-point tolerance ladder and :func:`input_scale`) — are
 re-exported flat here alongside the spec framework's frozen data types and engine (:mod:`tests.support.spec`), so
 every test imports from one place. They are plain functions rather than pytest fixtures so they compose with Hypothesis
-``@given`` without leaking state across generated examples. See ``tests/DESIGN.md``.
+``@given`` without leaking state across generated examples. See ``tests/README.md``.
 """
 
 from tests.support.asserts import assert_matches, assert_scale_homogeneous
@@ -41,7 +41,6 @@ from tests.support.spec import (
 )
 from tests.support.strategies import (
     SUBNORMAL_FLOOR,
-    WINDOW_MAX,
     coherent_hl,
     coherent_hl_with_missing,
     coherent_hlc,
@@ -65,7 +64,6 @@ from tests.support.tolerances import (
     ABSOLUTE_TOLERANCE_PROPERTY,
     ABSOLUTE_TOLERANCE_REFERENCE,
     ABSOLUTE_TOLERANCE_ROLLING_ORACLE,
-    ABSOLUTE_TOLERANCE_SCALE,
     ABSOLUTE_TOLERANCE_STREAMING,
     EXACT_TOLERANCE_FACTOR,
     RELATIVE_TOLERANCE_EXACT,
@@ -73,8 +71,6 @@ from tests.support.tolerances import (
     RELATIVE_TOLERANCE_REFERENCE,
     RELATIVE_TOLERANCE_ROLLING_ORACLE,
     RELATIVE_TOLERANCE_SCALE,
-    STREAMING_TOLERANCE_FACTOR,
-    VARIANCE_TOLERANCE_FACTOR,
     input_scale,
     streaming_abs_tol,
 )
@@ -84,7 +80,6 @@ __all__ = (
     "ABSOLUTE_TOLERANCE_PROPERTY",
     "ABSOLUTE_TOLERANCE_REFERENCE",
     "ABSOLUTE_TOLERANCE_ROLLING_ORACLE",
-    "ABSOLUTE_TOLERANCE_SCALE",
     "ABSOLUTE_TOLERANCE_STREAMING",
     "BENCHMARK",
     "CLOSE",
@@ -100,10 +95,7 @@ __all__ = (
     "RETURNS",
     "SPEC_LANE",
     "SPEC_SCALAR",
-    "STREAMING_TOLERANCE_FACTOR",
     "SUBNORMAL_FLOOR",
-    "VARIANCE_TOLERANCE_FACTOR",
-    "WINDOW_MAX",
     "Deviant",
     "ScaleAxis",
     "ScaleExempt",

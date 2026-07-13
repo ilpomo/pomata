@@ -228,7 +228,7 @@ even a handful of independent draws is negligible. Covering a few qualitative re
 is the same coupon-collector arithmetic, and lands in the same range: `N` in the low tens to about a hundred. Once the
 property is proven and the edges are pinned, a hundred draws is already generous; a larger number buys wall-clock, not
 confidence. The figure itself is a single shared number — set once in the test configuration, identical in a local run
-and in CI — that an individual family raises only when its parameter space is genuinely larger.
+and in CI.
 
 ### Tolerances: how close is close enough, by conditioning
 
@@ -263,8 +263,8 @@ separates them with a wide margin and an additive floor absorbs the overhead-bou
 
 The method, the ladder, the sizing, and the tolerance rules above are family-agnostic — they apply unchanged to
 indicators, PnL, and metrics. What differs per family is only the *characteristic invariants*; the exact per-primitive
-figures (warmup, parameter regimes, the tolerance factor) live in the test files, declared in a uniform "Test sizing"
-header, and are not duplicated here.
+figures (warmup, parameter regimes, the tolerance band) are declared on each function's spec
+(`tests/<family>/<name>.py`) and are not duplicated here.
 
 <details>
 <summary><b>Indicators</b> — the technical-analysis layer (the commonly-used subset of TA-Lib)</summary>
@@ -272,15 +272,15 @@ header, and are not duplicated here.
 The characteristic invariants are scale behavior (homogeneity of degree 1 for a price-level output; invariance for a
 bounded ratio, a cycle period, or a flag), boundedness where it applies (RSI in `[0, 100]`, Williams %R in `[-100, 0]`),
 the exact warmup, and `null` / `NaN` propagation — each proven against the independent oracle and, in the non-gating
-differential tier, against TA-Lib. Adding an indicator is a copy job: the file's "Test sizing" header states three facts
-(warmup, parameter regimes, valid domain) and the rest of the property tier follows the same shape as every sibling.
+differential tier, against TA-Lib. Adding an indicator is a declaration: its spec states the facts (warmup,
+parameter regimes, valid domain, the scale claim) and the shared ladder checks every tier from them — no new test code.
 
 </details>
 
 <details>
 <summary><b>PnL</b> — accounting and transaction costs</summary>
 
-Shipped. The same machine applies — an independent oracle, the four-tier ladder, golden masters, and the missing-data /
+The same machine applies — an independent oracle, the four-tier ladder, golden masters, and the missing-data /
 large-magnitude robustness tiers. The characteristic invariants are cost monotonicity (more cost, less PnL), the
 additive-vs-compounded cumulation split (`cumulative_pnl` sums currency P&L, `equity_curve` compounds returns),
 no look-ahead (every bar uses only past data), and a defined, documented behavior for every degenerate input
@@ -291,7 +291,7 @@ no look-ahead (every bar uses only past data), and a defined, documented behavio
 <details>
 <summary><b>Metrics</b> — performance & risk statistics</summary>
 
-Shipped. The same machine applies unchanged — an independent oracle, the four-tier ladder, derived sizing, named
+The same machine applies unchanged — an independent oracle, the four-tier ladder, derived sizing, named
 tolerances. The characteristic invariants are the annualization identities, scale-equivariance (a Sharpe ratio is
 invariant to leverage), closed-form checks (the Sharpe of constant returns, the drawdown of a monotone series), and a
 defined, documented behavior for every degenerate input (`null` skipped, a non-null `NaN` poisoning the result, and a
@@ -312,9 +312,9 @@ We prove, and you can re-run:
 - that the suite covers the whole public surface by construction (the spec/`__all__` bijection fails any collection
   that misses a function) and that every input regime excluded from the random tier is still witnessed by a fixed
   case with a written, measured reason;
-- that the suite bites: it was validated by reintroducing the historically fixed defects and a vetted catalog of
-  one-line semantic mutations across every source module, and it kills the full catalog — the survivors of the
-  first pass were themselves turned into fixed cases.
+- that the suite bites: its fixed cases include, by construction, the counterexample of every defect the suite
+  has caught and of every surviving mutant from a systematic one-line mutation screen of the source — each pinned
+  with its measured reason, so the catalog that once got past a weaker check is re-run on every build.
 
 We do **not** claim the absence of all bugs, or correctness on inputs outside the documented domain. One limit is worth
 naming plainly: for the irreducibly-sequential indicators (KAMA, the parabolic SAR, the Hilbert cycle cluster) the oracle
