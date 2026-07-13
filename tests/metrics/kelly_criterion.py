@@ -19,7 +19,7 @@ KELLY_CRITERION = Spec(
     params={},
     shape=Shape.REDUCING,
     oracle=kelly_criterion_reference,
-    # Win rate and payoff ratio are both scale-invariant (test_kelly_criterion.py::test_scale_invariance).
+    # Win rate and payoff ratio are both scale-invariant
     scale=(ScaleAxis(roles=("returns",), degree=0),),
     golden_input={"returns": (0.03, -0.01, 0.02, -0.015, 0.01, 0.005, -0.02)},
     golden_output=(0.1758,),
@@ -29,22 +29,19 @@ KELLY_CRITERION = Spec(
             label="single_row_one_sided",
             inputs={"returns": (0.02,)},
             expected=(None,),
-            reason="a one-element series is one-sided, so the payoff ratio is undefined and the fraction is null "
-            "(test_kelly_criterion.py::test_single_row)",
+            reason="a one-element series is one-sided, so the payoff ratio is undefined and the fraction is null ",
         ),
         SpecPin(
             label="no_losses_is_null",
             inputs={"returns": (0.01, 0.02, 0.03)},
             expected=(None,),
-            reason="an all-positive series has an undefined payoff ratio, so the fraction is null "
-            "(test_kelly_criterion.py::test_no_losses_is_null)",
+            reason="an all-positive series has an undefined payoff ratio, so the fraction is null ",
         ),
         SpecPin(
             label="no_wins_is_null",
             inputs={"returns": (-0.01, -0.02, -0.03)},
             expected=(None,),
-            reason="an all-negative series has an undefined payoff ratio, so the fraction is null "
-            "(test_kelly_criterion.py::test_no_wins_is_null)",
+            reason="an all-negative series has an undefined payoff ratio, so the fraction is null ",
         ),
     ),
 )

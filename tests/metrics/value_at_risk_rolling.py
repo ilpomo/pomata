@@ -28,16 +28,14 @@ VALUE_AT_RISK_ROLLING = Spec(
             label="window_equals_length",
             inputs={"returns": (0.01, -0.02, 0.03, -0.01, 0.02)},
             expected=(None, None, None, None, -0.018),
-            reason="when the window equals the series length only the last row is defined "
-            "(test_value_at_risk_rolling.py::test_window_equals_length)",
+            reason="when the window equals the series length only the last row is defined ",
             params_override={"window": 5},
         ),
         SpecPin(
             label="sign_convention_is_signed_quantile",
             inputs={"returns": (-0.05, -0.04, -0.03, -0.02, -0.01)},
             expected=(None, None, -0.049, -0.039, -0.028999999999999998),
-            reason="an all-loss series yields a strictly negative rolling VaR (the signed return quantile) "
-            "(test_value_at_risk_rolling.py::test_sign_convention_is_signed_quantile)",
+            reason="an all-loss series yields a strictly negative rolling VaR (the signed return quantile) ",
             params_override={"window": 3},
         ),
     ),

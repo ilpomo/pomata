@@ -14,8 +14,7 @@ ACCUMULATION_DISTRIBUTION = Spec(
     lands_on="close",
     oracle=accumulation_distribution_reference,
     # The running total of the money-flow multiplier times volume: homogeneous of degree 1 in volume (the multiplier
-    # is a price ratio, hence invariant to a rescaling of the price legs, degree 0) (tests/indicators/
-    # test_accumulation_distribution.py::TestAccumulationDistributionProperties::test_volume_scale_homogeneity).
+    # is a price ratio, hence invariant to a rescaling of the price legs, degree 0)
     scale=(
         ScaleAxis(roles=("volume",), degree=1),
         ScaleAxis(roles=("high", "low", "close"), degree=0),

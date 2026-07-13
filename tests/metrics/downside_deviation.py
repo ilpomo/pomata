@@ -19,7 +19,7 @@ DOWNSIDE_DEVIATION = Spec(
         ({"threshold": -math.inf}, r"threshold must be a finite number"),
     ),
     oracle=downside_deviation_reference,
-    # Degree-1 homogeneous in the returns at threshold=0 (test_downside_deviation.py::test_scale_homogeneity).
+    # Degree-1 homogeneous in the returns at threshold=0
     scale=(ScaleAxis(roles=("returns",), degree=1),),
     golden_input={"returns": (0.02, -0.04, 0.01, -0.06, 0.03)},
     golden_output=(0.5119,),
@@ -28,22 +28,19 @@ DOWNSIDE_DEVIATION = Spec(
             label="single_row",
             inputs={"returns": (-0.02,)},
             expected=(0.3174901573277509,),
-            reason="a one-element downside series annualizes its shortfall RMS "
-            "(test_downside_deviation.py::test_single_row)",
+            reason="a one-element downside series annualizes its shortfall RMS ",
         ),
         SpecPin(
             label="no_downside_is_zero",
             inputs={"returns": (0.01, 0.02, 0.0, 0.03)},
             expected=(0.0,),
-            reason="returns all at or above the threshold have zero downside, so the deviation is 0 "
-            "(test_downside_deviation.py::test_no_downside_is_zero)",
+            reason="returns all at or above the threshold have zero downside, so the deviation is 0 ",
         ),
         SpecPin(
             label="threshold_nonzero",
             inputs={"returns": (0.012, -0.008, 0.02, -0.015, 0.005, 0.0, -0.02, 0.018)},
             expected=(0.24936118382779626,),
-            reason="a non-zero threshold shifts the shortfall "
-            "(test_downside_deviation.py::test_matches_reference_with_threshold)",
+            reason="a non-zero threshold shifts the shortfall ",
             params_override={"threshold": 0.01},
         ),
     ),

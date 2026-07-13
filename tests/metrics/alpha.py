@@ -30,8 +30,7 @@ ALPHA = Spec(
         ({"risk_free_rate": -math.inf}, r"risk_free_rate must be a finite number"),
     ),
     oracle=alpha_reference,
-    # Annualizes a return beyond a benchmark-explained baseline — neither scale-invariant nor homogeneous
-    # (tests/metrics/test_alpha.py module docstring).
+    # Annualizes a return beyond a benchmark-explained baseline — neither scale-invariant nor homogeneous.
     scale=ScaleExempt(
         reason="annualizes a return beyond a benchmark-explained baseline — neither scale-invariant nor homogeneous"
     ),
@@ -50,45 +49,40 @@ ALPHA = Spec(
                 "benchmark": (0.008, -0.01, None, -0.005, 0.018),
             },
             expected=(-0.47369237088902216,),
-            reason="an observation with a null in either leg is dropped, matching the reference over the retained pairs"
-            "(tests/metrics/test_alpha.py::TestAlphaEdge::test_null_misalignment_drops_pair)",
+            reason="an observation with a null in either leg is dropped, matching the reference over the retained "
+            "pairs",
         ),
         SpecPin(
             label="nan_poisons",
             inputs={"returns": (0.01, math.nan, 0.03, -0.01), "benchmark": (0.008, -0.01, 0.025, -0.005)},
             expected=(math.nan,),
-            reason="a NaN in either leg of a retained pair poisons the result to NaN "
-            "(tests/metrics/test_alpha.py::TestAlphaEdge::test_nan_poisons)",
+            reason="a NaN in either leg of a retained pair poisons the result to NaN",
         ),
         SpecPin(
             label="single_pair",
             inputs={"returns": (0.05,), "benchmark": (0.04,)},
             expected=(None,),
-            reason="a single complete pair yields null — the regression slope needs two observations "
-            "(tests/metrics/test_alpha.py::TestAlphaEdge::test_single_pair)",
+            reason="a single complete pair yields null — the regression slope needs two observations",
         ),
         SpecPin(
             label="constant_benchmark_0_1",
             inputs={"returns": (0.01, -0.02, 0.03), "benchmark": (0.1, 0.1, 0.1)},
             expected=(math.nan,),
             reason="a constant benchmark makes the embedded beta NaN, which propagates to alpha — the exact-zero "
-            "core of the near-constant regime the old suite's well-spread filter excluded (the cov/var slope is "
-            "robust down to a benchmark spread the fuzz cannot reach, so no filter is declared) "
-            "(tests/metrics/test_alpha.py::TestAlphaEdge::test_constant_benchmark_is_nan)",
+            "core of the near-constant regime; no conditioning filter is declared: the cov/var slope is robust "
+            "down to a benchmark spread the fuzz cannot reach",
         ),
         SpecPin(
             label="constant_benchmark_one_third",
             inputs={"returns": (0.01, -0.02, 0.03), "benchmark": (1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0)},
             expected=(math.nan,),
-            reason="the same guard at a constant not exactly representable in float "
-            "(tests/metrics/test_alpha.py::TestAlphaEdge::test_constant_benchmark_is_nan)",
+            reason="the same guard at a constant not exactly representable in float",
         ),
         SpecPin(
             label="constant_benchmark_many_digits",
             inputs={"returns": (0.01, -0.02, 0.03), "benchmark": (0.123456789, 0.123456789, 0.123456789)},
             expected=(math.nan,),
-            reason="the same guard at a third, many-digit constant magnitude "
-            "(tests/metrics/test_alpha.py::TestAlphaEdge::test_constant_benchmark_is_nan)",
+            reason="the same guard at a third, many-digit constant magnitude",
         ),
     ),
 )

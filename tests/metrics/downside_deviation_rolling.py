@@ -30,23 +30,21 @@ DOWNSIDE_DEVIATION_ROLLING = Spec(
             label="no_downside_window_is_zero",
             inputs={"returns": (0.01, 0.02, 0.03, 0.04)},
             expected=(None, None, 0.0, 0.0),
-            reason="a window with every return at or above the threshold has zero shortfall "
-            "(test_downside_deviation_rolling.py::test_no_downside_window_is_zero)",
+            reason="a window with every return at or above the threshold has zero shortfall",
         ),
         SpecPin(
             label="window_equals_length",
             inputs={"returns": (0.01, -0.02, 0.03)},
             expected=(None, None, 0.18330302779823363),
-            reason="when the window equals the series length only the last row is defined "
-            "(test_downside_deviation_rolling.py::test_window_equals_length)",
+            reason="when the window equals the series length only the last row is defined",
         ),
         SpecPin(
             label="constant_downside_window_matches_reference",
             inputs={"returns": (-0.01, -0.01, -0.01)},
             expected=(None, None, 0.15874507866387544),
-            reason="a bit-constant all-downside window — the near-constant regime the old suite's well-spread "
-            "filter excluded: the shortfall RMS sums non-negative squares with NO mean subtraction, so there is no "
-            "cancellation to round apart and impl and oracle agree to the ULP; no filter is declared",
+            reason="a bit-constant all-downside window — the near-constant regime; no conditioning filter is "
+            "declared: the shortfall RMS sums non-negative squares with NO mean subtraction, so there is no "
+            "cancellation to round apart and impl and oracle agree to the ULP",
         ),
     ),
 )

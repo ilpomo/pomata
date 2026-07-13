@@ -4,7 +4,7 @@ import math
 
 import polars as pl
 from tests.metrics.oracles import sharpe_ratio_rolling_reference
-from tests.support import RELATIVE_TOLERANCE_SCALE, windows_well_spread
+from tests.support import RELATIVE_TOLERANCE_ROLLING_ORACLE, windows_well_spread
 from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import sharpe_ratio_rolling
@@ -36,9 +36,9 @@ SHARPE_RATIO_ROLLING = Spec(
     ),
     oracle=sharpe_ratio_rolling_reference,
     conditioning=_windows_well_spread,
-    oracle_rel_tol=RELATIVE_TOLERANCE_SCALE,
+    oracle_rel_tol=RELATIVE_TOLERANCE_ROLLING_ORACLE,
     # A ratio of a rolling mean to a rolling standard deviation at zero risk-free rate is scale-invariant, degree 0
-    # (by analogy to the reducing sharpe_ratio; the old rolling suite carries no scale test).
+    # (by analogy to the reducing sharpe_ratio).
     scale=(ScaleAxis(roles=("returns",), degree=0),),
     golden_input={"returns": (0.03, -0.01, 0.02, -0.015, 0.025, -0.005, 0.02)},
     golden_output=(None, None, 10.1678, -1.3977, 7.2837, 1.271, 13.1689),
@@ -48,8 +48,7 @@ SHARPE_RATIO_ROLLING = Spec(
             inputs={"returns": (0.5, 0.5, 0.5, 0.5)},
             expected=(None, None, math.inf, math.inf),
             reason="a constant window has zero dispersion with a positive mean, so the ratio is +inf — the exact "
-            "core of the near-constant regime the conditioning filter excludes from the property tiers "
-            "(test_sharpe_ratio_rolling.py::test_zero_volatility_is_inf)",
+            "core of the near-constant regime the conditioning filter excludes from the property tiers",
             params_override={"window": 3},
             covers_conditioning=True,
         ),
@@ -57,8 +56,7 @@ SHARPE_RATIO_ROLLING = Spec(
             label="window_equals_length",
             inputs={"returns": (0.01, -0.02, 0.03, -0.01, 0.02)},
             expected=(None, None, None, None, 4.593220484431882),
-            reason="when the window equals the series length only the last row is defined "
-            "(test_sharpe_ratio_rolling.py::test_window_equals_length)",
+            reason="when the window equals the series length only the last row is defined",
             params_override={"window": 5},
         ),
         SpecPin(
@@ -76,9 +74,8 @@ SHARPE_RATIO_ROLLING = Spec(
             ),
             reason="a window whose excess returns are all exactly zero degenerates to 0/0 -> NaN even after larger "
             "values slid out: the exact rolling mean pins the numerator to zero, so the incremental running-sum "
-            "residue cannot ride above the exactly-zero dispersion as a spurious inf — found by the mutation audit "
-            "(reverting the numerator to the native rolling mean survived the suite without this pin); the residue "
-            "is bit-sensitive, so the prefix must reach the kernel with exactly these bits",
+            "residue cannot ride above the exactly-zero dispersion as a spurious inf; the residue is bit-sensitive, "
+            "so the prefix must reach the kernel with exactly these bits",
             params_override={"window": 4},
         ),
     ),

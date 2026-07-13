@@ -17,8 +17,7 @@ CHAIKIN_MONEY_FLOW = Spec(
     raises=(({"window": 0}, r"window must be >= 1"),),
     oracle=chaikin_money_flow_reference,
     # The rolling money-flow volume over the rolling volume, a bounded ratio that is scale-INVARIANT in the price legs
-    # and in volume independently, degree 0 (tests/indicators/test_chaikin_money_flow.py::test_price_scale_invariance /
-    # test_volume_scale_invariance).
+    # and in volume independently, degree 0.
     scale=(
         ScaleAxis(roles=("high", "low", "close"), degree=0),
         ScaleAxis(roles=("volume",), degree=0),
@@ -42,8 +41,7 @@ CHAIKIN_MONEY_FLOW = Spec(
             },
             params_override={"window": 2},
             expected=(None, math.nan, math.nan),
-            reason="a window whose total volume is zero divides by zero, the IEEE-754 0/0 == NaN (tests/indicators/"
-            "test_chaikin_money_flow.py::TestChaikinMoneyFlowEdge::test_zero_total_volume_is_nan)",
+            reason="a window whose total volume is zero divides by zero, the IEEE-754 0/0 == NaN",
         ),
         SpecPin(
             label="zero_volume_after_large_volume_is_nan",
@@ -56,9 +54,7 @@ CHAIKIN_MONEY_FLOW = Spec(
             params_override={"window": 3},
             expected=(None, None, 0.0, 0.25, 0.2, 0.0, math.nan),
             reason="an all-zero-volume window still yields NaN after a large 1e16 volume has slid out: the rolling sum "
-            "retains a sub-ULP residual on exit, but the exact all-zero detection pins the final window to NaN "
-            "(tests/indicators/test_chaikin_money_flow.py::TestChaikinMoneyFlowEdge"
-            "::test_zero_volume_after_large_volume_is_nan)",
+            "retains a sub-ULP residual on exit, but the exact all-zero detection pins the final window to NaN",
         ),
     ),
 )

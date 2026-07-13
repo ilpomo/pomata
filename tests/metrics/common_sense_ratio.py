@@ -14,7 +14,7 @@ COMMON_SENSE_RATIO = Spec(
     params={},
     shape=Shape.REDUCING,
     oracle=common_sense_ratio_reference,
-    # A product of two scale-invariant factors (test_common_sense_ratio.py::test_scale_invariance).
+    # A product of two scale-invariant factors
     scale=(ScaleAxis(roles=("returns",), degree=0),),
     golden_input={"returns": (0.03, -0.01, 0.02, -0.015, 0.01, 0.005, -0.02)},
     golden_output=(2.1081,),
@@ -24,15 +24,13 @@ COMMON_SENSE_RATIO = Spec(
             label="single_row_all_loss",
             inputs={"returns": (-0.02,)},
             expected=(0.0,),
-            reason="a one-element loss has profit factor 0 and tail ratio 1, so the product is 0 "
-            "(test_common_sense_ratio.py::test_single_row)",
+            reason="a one-element loss has profit factor 0 and tail ratio 1, so the product is 0 ",
         ),
         SpecPin(
             label="no_losses_is_inf",
             inputs={"returns": (0.01, 0.02, 0.03)},
             expected=(math.inf,),
-            reason="an all-positive series has an infinite profit factor and a finite positive tail ratio, so +inf "
-            "(test_common_sense_ratio.py::test_no_losses_is_inf)",
+            reason="an all-positive series has an infinite profit factor and a finite positive tail ratio, so +inf ",
         ),
     ),
 )

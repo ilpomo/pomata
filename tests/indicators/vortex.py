@@ -16,8 +16,7 @@ VORTEX = Spec(
     warmup={"plus": 14, "minus": 14},
     raises=(({"window": 0}, r"window must be >= 1"),),
     oracle=vortex_reference,
-    # Each line is a ratio of a rolling vortex movement to the rolling true range, scale-INVARIANT, degree 0
-    # (tests/indicators/test_vortex.py::TestVortexProperties::test_scale_invariance).
+    # Each line is a ratio of a rolling vortex movement to the rolling true range, scale-INVARIANT, degree 0.
     scale=(ScaleAxis(roles=("high", "low", "close"), degree={"plus": 0, "minus": 0}),),
     golden_params={"window": 2},
     golden_input={
@@ -36,7 +35,7 @@ VORTEX = Spec(
             params_override={"window": 1},
             expected={"plus": (None, 1.2, 1.2), "minus": (None, 0.4, 0.0)},
             reason="window=1 reduces each line to a single bar's vortex movement over its true range, the first bar "
-            "warm-up (no prior bar) (tests/indicators/test_vortex.py::TestVortexEdge::test_window_one)",
+            "warm-up (no prior bar)",
         ),
         SpecPin(
             label="flat_window_is_nan",
@@ -47,8 +46,7 @@ VORTEX = Spec(
                 "minus": (None, None, math.nan, math.nan, math.nan, math.nan),
             },
             reason="a flat window has zero summed true range and zero summed movement, so both lines are the "
-            "indeterminate 0/0 == NaN after warm-up (tests/indicators/test_vortex.py::TestVortexEdge"
-            "::test_flat_window_is_nan)",
+            "indeterminate 0/0 == NaN after warm-up",
         ),
     ),
 )

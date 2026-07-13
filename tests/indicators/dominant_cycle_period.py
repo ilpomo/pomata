@@ -7,7 +7,7 @@ from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import dominant_cycle_period
 
-# A clean 20-bar-period carrier: 40 bars leave 8 emitted values past the 32-bar settling warm-up (the old golden).
+# A clean 20-bar-period carrier: 40 bars leave 8 emitted values past the 32-bar settling warm-up.
 _SAMPLE = tuple(100.0 + 10.0 * math.sin(2 * math.pi * index / 20) for index in range(40))
 
 DOMINANT_CYCLE_PERIOD = Spec(
@@ -17,8 +17,7 @@ DOMINANT_CYCLE_PERIOD = Spec(
     shape=Shape.SERIES,
     warmup=32,
     oracle=dominant_cycle_period_reference,
-    # A cycle length in bars, clamped to [6, 50]: scale-INVARIANT, degree 0 (tests/indicators/
-    # test_dominant_cycle_period.py::TestDominantCyclePeriodProperties::test_scale_invariance).
+    # A cycle length in bars, clamped to [6, 50]: scale-INVARIANT, degree 0.
     scale=(ScaleAxis(roles=("expr",), degree=0),),
     golden_input={"expr": _SAMPLE},
     golden_output=(None,) * 32 + (19.0186, 19.3994, 19.7391, 20.051, 20.3271, 20.5471, 20.6936, 20.7611),
@@ -45,11 +44,11 @@ DOMINANT_CYCLE_PERIOD = Spec(
                 30.6807,
                 30.7567,
             ),
-            reason="the cycle-pipeline degenerate (a flat run) the old suite filtered out of the property tiers: the "
-            "period clamp and the AND-gated phase update damp the phasor residual before it reaches this output, so "
-            "impl and oracle agree there (measured worst relative deviation ~3.4e-15) and no conditioning filter is "
-            "declared — the corner stays witnessed by this fixed case instead, rounded because the degenerate "
-            "pipeline settles on libm-dependent fixed points that differ across OS math libraries",
+            reason="the cycle-pipeline degenerate (a flat run): the period clamp and the AND-gated phase update damp "
+            "the phasor residual before it reaches this output, so impl and oracle agree there (measured worst "
+            "relative deviation ~3.4e-15) and no conditioning filter is declared — the corner stays witnessed by "
+            "this fixed case, rounded because the degenerate pipeline settles on libm-dependent fixed points that "
+            "differ across OS math libraries",
             round_to=4,
         ),
     ),

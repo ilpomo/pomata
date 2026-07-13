@@ -21,7 +21,7 @@ RSI_STOCHASTIC = Spec(
     ),
     oracle=rsi_stochastic_reference,
     # The underlying RSI is scale-invariant, so both lines inherit it verbatim, degree 0
-    # (tests/indicators/test_rsi_stochastic.py::test_scale_invariance).
+    #
     scale=(ScaleAxis(roles=("wave",), degree={"k": 0, "d": 0}),),
     golden_params={"window_rsi": 3, "window_k": 3, "window_d": 2},
     golden_input={"wave": (50.0, 51.0, 50.5, 52.0, 51.5, 53.0, 52.0, 54.0, 53.5, 55.0)},
@@ -39,7 +39,7 @@ RSI_STOCHASTIC = Spec(
                 "d": (None, None, None, math.nan, math.nan),
             },
             reason="a monotone run gives an exactly-flat RSI, so the %K channel normalization is the 0/0 degenerate "
-            "NaN (test_rsi_stochastic.py::TestRsiStochasticEdge::test_flat_window_is_nan)",
+            "NaN",
         ),
     ),
 )

@@ -21,8 +21,7 @@ AROON_OSCILLATOR = Spec(
     warmup=5,
     raises=(({"window": 0}, r"window must be >= 1"),),
     oracle=aroon_oscillator_reference,
-    # The difference of two position-based lines, scale-INVARIANT, degree 0 (tests/indicators/test_aroon_oscillator.py
-    # ::test_scale_invariance).
+    # The difference of two position-based lines, scale-INVARIANT, degree 0.
     scale=(ScaleAxis(roles=("high", "low"), degree=0),),
     component_expr=_aroon_oscillator_component,
     golden_params={"window": 3},
@@ -40,8 +39,7 @@ AROON_OSCILLATOR = Spec(
             },
             params_override={"window": 1},
             expected=(None, 100.0, 100.0, -100.0, 100.0, -100.0, 100.0, -100.0, 100.0, -100.0),
-            reason="the window=1 degenerate branch of the old correctness sweep, never reached by the fixed-window "
-            "generic rungs (test_aroon_oscillator.py::TestAroonOscillatorCorrectness::test_matches_reference)",
+            reason="the window=1 degenerate branch, never reached by the fixed-window generic rungs",
         ),
     ),
 )

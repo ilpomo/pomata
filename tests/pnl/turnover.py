@@ -13,8 +13,7 @@ TURNOVER = Spec(
     params={},
     shape=Shape.SERIES,
     oracle=turnover_reference,
-    # The absolute weight change |w_t - w_{t-1}| is degree-1 homogeneous (tests/pnl/test_turnover.py
-    # ::test_scale_homogeneity).
+    # The absolute weight change |w_t - w_{t-1}| is degree-1 homogeneous.
     scale=(ScaleAxis(roles=("weight",), degree=1),),
     golden_input={"weight": (0.5, 1.0, -0.5, -0.5, 0.0)},
     golden_output=(0.5, 0.5, 1.5, 0.0, 0.5),
@@ -23,23 +22,21 @@ TURNOVER = Spec(
             label="single_row",
             inputs={"weight": (0.7,)},
             expected=(0.7,),
-            reason="a one-element series resolves to |weight_0| = 0.7 (the entry trade off a flat start), not null "
-            "(tests/pnl/test_turnover.py::test_single_row)",
+            reason="a one-element series resolves to |weight_0| = 0.7 (the entry trade off a flat start), not null",
         ),
         SpecPin(
             label="null_takes_precedence_over_nan",
             inputs={"weight": (0.5, None, math.nan, 1.0)},
             expected=(0.5, None, None, math.nan),
             reason="the difference row where a NaN weight meets the previous row's null yields null (null wins), while "
-            "the next difference off the NaN is NaN (tests/pnl/test_turnover.py::test_null_takes_precedence_over_nan)",
+            "the next difference off the NaN is NaN",
         ),
         SpecPin(
             label="consecutive_infinities_make_nan",
             inputs={"weight": (math.inf, math.inf, 1.0, -math.inf)},
             expected=(math.inf, math.nan, math.inf, math.inf),
             reason="a single inf carries |inf| forward, while two consecutive equal-sign infinities make inf - inf = "
-            "NaN; the property tiers set allow_infinity=False (tests/pnl/test_turnover.py"
-            "::test_consecutive_infinities_make_nan)",
+            "NaN; the property tiers set allow_infinity=False",
         ),
     ),
 )

@@ -5,15 +5,14 @@ from collections.abc import Sequence
 
 import polars as pl
 from tests.metrics.oracles import treynor_ratio_rolling_reference
-from tests.support import RELATIVE_TOLERANCE_SCALE
+from tests.support import RELATIVE_TOLERANCE_ROLLING_ORACLE
 from tests.support.spec import ScaleExempt, Shape, Spec, SpecPin
 
 from pomata.metrics import treynor_ratio_rolling
 
-# Spec-local conditioning floors: the shared cuts (variance 1e-2, beta 5e-2) rejected ~5-6 orders of magnitude of
-# well-behaved windows on each axis. The graduated probes measured impl-vs-oracle agreement holding down to 1e-6 on
-# BOTH axes (benchmark var_rel and |beta|) with the first breach at ~1e-8, so 1e-5 keeps a 10x margin above the
-# last verified-agreeing point on each axis.
+# Spec-local conditioning floors. Measured: impl-vs-oracle agreement holds down to 1e-6 on BOTH axes (benchmark
+# var_rel and |beta|) with the first breach at ~1e-8, so 1e-5 keeps a 10x margin above the last verified-agreeing
+# point on each axis.
 _VARIANCE_FLOOR = 1e-5
 _BETA_FLOOR = 1e-5
 
@@ -72,7 +71,7 @@ TREYNOR_RATIO_ROLLING = Spec(
     ),
     oracle=treynor_ratio_rolling_reference,
     conditioning=_treynor_conditioning,
-    oracle_rel_tol=RELATIVE_TOLERANCE_SCALE,
+    oracle_rel_tol=RELATIVE_TOLERANCE_ROLLING_ORACLE,
     # An annualized excess return over a rolling slope — neither scale-homogeneous nor scale-invariant, mirroring the
     # reducing treynor_ratio twin (verified numerically).
     scale=ScaleExempt(
@@ -89,8 +88,7 @@ TREYNOR_RATIO_ROLLING = Spec(
             label="null_in_constant_benchmark_window",
             inputs={"returns": (0.02, None, 0.03, 0.01, 0.02), "benchmark": (0.1, 0.1, 0.1, 0.1, 0.1)},
             expected=(None, None, None, None, math.nan),
-            reason="a null in a window yields null (pairwise-complete gate) before the constant-benchmark NaN branch "
-            "(tests/metrics/test_treynor_ratio_rolling.py::test_null_in_constant_benchmark_window_is_null)",
+            reason="a null in a window yields null (pairwise-complete gate) before the constant-benchmark NaN branch",
             params_override={"window": 3},
         ),
         SpecPin(
@@ -98,8 +96,7 @@ TREYNOR_RATIO_ROLLING = Spec(
             inputs={"returns": (0.01, -0.02, 0.03, -0.01), "benchmark": (0.1, 0.1, 0.1, 0.1)},
             expected=(None, None, math.nan, math.nan),
             reason="a window whose benchmark is exactly constant makes the embedded slope NaN — the exact core of "
-            "the near-constant regime the filter's variance clause excludes from the property tiers "
-            "(tests/metrics/test_treynor_ratio_rolling.py::test_constant_benchmark_window_is_nan)",
+            "the near-constant regime the filter's variance clause excludes from the property tiers",
             params_override={"window": 3},
             covers_conditioning=True,
         ),
@@ -108,8 +105,7 @@ TREYNOR_RATIO_ROLLING = Spec(
             inputs={"returns": (3.0, 3.0, 1.0, 1.0), "benchmark": (1.0, -1.0, 1.0, -1.0)},
             expected=(None, None, None, math.inf),
             reason="a zero-beta window with a positive excess return gives +inf, reported not clipped — the exact "
-            "core of the vanishing-slope regime the filter's beta clause excludes from the property tiers "
-            "(tests/metrics/test_treynor_ratio_rolling.py::test_zero_beta_window_is_inf)",
+            "core of the vanishing-slope regime the filter's beta clause excludes from the property tiers",
             params_override={"window": 4},
             covers_conditioning=True,
         ),
@@ -117,16 +113,14 @@ TREYNOR_RATIO_ROLLING = Spec(
             label="window_equals_length",
             inputs={"returns": (0.01, -0.02, 0.03, -0.01, 0.02), "benchmark": (0.008, -0.015, 0.025, -0.008, 0.018)},
             expected=(None, None, None, None, 1.2350516405135523),
-            reason="window equals series length, so only the last row is defined "
-            "(tests/metrics/test_treynor_ratio_rolling.py::test_window_equals_length)",
+            reason="window equals series length, so only the last row is defined",
             params_override={"window": 5},
         ),
         SpecPin(
             label="matches_reference_with_risk_free_rate",
             inputs={"returns": (0.01, -0.02, 0.03, -0.01, 0.02), "benchmark": (0.008, -0.015, 0.025, -0.008, 0.018)},
             expected=(None, None, 1.324869757686746, -0.015994608829144833, 2.7922196417697887),
-            reason="a non-default risk-free rate shifts every window's excess, otherwise untested by any generic rung "
-            "(tests/metrics/test_treynor_ratio_rolling.py::test_matches_reference_with_risk_free_rate)",
+            reason="a non-default risk-free rate shifts every window's excess, otherwise untested by any generic rung",
             params_override={"window": 3, "risk_free_rate": 0.02},
         ),
     ),

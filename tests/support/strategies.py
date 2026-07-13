@@ -4,8 +4,8 @@ Shared Hypothesis element strategies for the indicator test ladder, plus the sha
 Each element strategy draws a single element; tests wrap them in ``st.lists(...)`` to build a series. They are the
 canonical, one-home inputs for the property tiers — the missing-data tier, the scaling tier, and the positive-price
 (OHLC) tier — so the same ``null`` / ``NaN`` / magnitude regimes are exercised identically across every indicator.
-The cycle-cluster helpers (:func:`spans_even_lag_repeat`, :func:`two_segment_missing_data`) instead build a whole
-series at once, since their guarantees are about the run as a whole.
+The cycle-cluster predicate (:func:`spans_even_lag_run`) instead reads a whole series at once, since its
+guarantee is about a sustained run.
 """
 
 import math
@@ -77,52 +77,6 @@ def missing_data_floats(min_magnitude: float = 0.0) -> st.SearchStrategy[float |
     if min_magnitude > 0.0:
         finite = finite.filter(lambda value: abs(value) >= min_magnitude)
     return st.one_of(st.none(), st.just(math.nan), finite)
-
-
-def positive_missing_data(high: float = 1e4) -> st.SearchStrategy[float | None]:
-    """
-    A Hypothesis strategy drawing positive finite floats in ``[1.0, high]`` freely interleaved with ``None`` and
-    ``NaN``.
-
-    The positive-price counterpart of :func:`missing_data_floats`, for indicators defined on strictly positive inputs
-    (``high`` / ``low`` / ``close`` / ``volume``): it mixes Polars ``null``, ``float('nan')``, and finite values bounded
-    away from zero, so the interior ``null`` / ``NaN`` paths are exercised on realistic price-like magnitudes against
-    the naive oracle.
-
-    Args:
-        high: The upper bound of the drawn finite values; they are drawn from ``[1.0, high]``.
-
-    Returns:
-        A strategy producing ``None``, ``float('nan')``, or a finite ``float`` in ``[1.0, high]``.
-    """
-    return st.one_of(
-        st.none(),
-        st.just(math.nan),
-        st.floats(min_value=1.0, max_value=high, allow_nan=False, allow_infinity=False),
-    )
-
-
-def spans_even_lag_repeat(series: Sequence[float | None]) -> bool:
-    """
-    Whether ``series`` contains two equal values two bars apart (``x[i] == x[i - 2]``) — the cycle-pipeline degenerate.
-
-    The shared flat-run guard for the seven Hilbert-transform cycle indicators' agreement tiers. Ehlers' six-tap
-    quadrature filter reads the four-bar smooth at EVEN lags (taps at 0, 2, 4, 6), so its in-phase component collapses
-    to a pure cancellation residual whenever the smooth repeats across an even lag — which happens for a flat run
-    (``a, a, a, ...``) AND for a period-two alternation (``a, b, a, b, ...``), since the smooth there is equal two bars
-    apart. On that residual the implementation's explicit FIR and the oracle's compensated ``sum()`` round to opposite
-    sides of zero, flipping the ``inphase != 0`` phasor branch and so the phase that fixes every downstream line; the
-    two transcriptions cannot be expected to agree across that discontinuity. The naive ``earlier != later``
-    guard misses it (an alternation passes that check yet hits the same branch), so the agreement tiers filter on this
-    predicate instead: a series with no even-lag repeat reaches the degenerate nowhere, and only such inputs are drawn.
-
-    Args:
-        series: The candidate price series (the finite list a property tier would feed the indicator).
-
-    Returns:
-        ``True`` if some value equals the value two positions earlier (an even-lag repeat is present), else ``False``.
-    """
-    return any(series[index] == series[index - 2] for index in range(2, len(series)))
 
 
 def spans_even_lag_run(series: Sequence[float | None], min_run: int = 6) -> bool:
@@ -279,41 +233,6 @@ def windows_well_conditioned(values: Sequence[float | None], window: int, floor:
         if variance <= scale * scale * floor:
             return False
     return True
-
-
-@st.composite
-def two_segment_missing_data(draw: st.DrawFn, warmup: int, high: float = 1e4, tail: int = 16) -> list[float | None]:
-    """
-    A guaranteed-finite prefix LONGER than ``warmup`` followed by a missing-data tail, for the cycle-cluster fuzz tier.
-
-    The shared missing-data strategy for the seven Hilbert-transform cycle indicators. Their recurrence latches the
-    entire output to ``null`` at the first ``null`` / ``NaN`` (a gap it cannot bridge), and the warm-up is long (32 or
-    63 bars), so drawing every element from :func:`positive_missing_data` almost never clears the warm-up before a
-    missing value appears: a defined output row needs a long run of consecutive finite draws, so the tier degenerates
-    to comparing all-``null`` against all-``null`` and checks no numeric value. Splitting the draw into two segments — a
-    finite prefix of ``warmup + 1 .. warmup + tail`` positive bars (so defined output is always emitted), then a tail
-    of ``tail`` rows from :func:`positive_missing_data` (so the defined values actually meet ``null`` / ``NaN``) —
-    restores the intended power while preserving the latch behavior the edge tier pins deterministically. The prefix is
-    drawn to contain no even-lag repeat (see :func:`spans_even_lag_repeat`), the same flat-run guard the agreement tiers
-    use, so the defined region is well-conditioned and a spurious branch-flip never masquerades as a missing-data bug.
-
-    Args:
-        draw: The Hypothesis draw function (injected by ``@composite``).
-        warmup: The indicator's leading-``null`` run; the finite prefix is drawn strictly longer than this.
-        high: The upper bound of the finite prefix values; they are drawn from ``[1.0, high]`` (default ``1e4``).
-        tail: The number of missing-data rows appended after the prefix, and the prefix's defined-row span (default 16).
-
-    Returns:
-        A list whose first ``warmup + 1 .. warmup + tail`` rows are finite positive floats with no even-lag repeat,
-        followed by ``tail`` rows drawn from :func:`positive_missing_data`.
-    """
-    defined = draw(st.integers(min_value=warmup + 1, max_value=warmup + tail))
-    finite = st.floats(min_value=1.0, max_value=high, allow_nan=False, allow_infinity=False)
-    prefix = draw(
-        st.lists(finite, min_size=defined, max_size=defined).filter(lambda series: not spans_even_lag_repeat(series))
-    )
-    suffix = draw(st.lists(positive_missing_data(high), min_size=tail, max_size=tail))
-    return [*prefix, *suffix]
 
 
 # Coherent OHLC bars. A bar must be coherent -- ``low <= open, close <= high`` -- because any indicator that divides by

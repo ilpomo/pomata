@@ -18,7 +18,7 @@ CAGR = Spec(
     ),
     oracle=cagr_reference,
     # A growth factor normalized to a unit start, annualized by a fractional power — neither scale-invariant nor
-    # homogeneous (tests/metrics/test_cagr.py sizing note).
+    # homogeneous
     scale=ScaleExempt(
         reason="a growth factor normalized to a unit start, annualized by a fractional power — neither "
         "scale-invariant nor homogeneous"
@@ -31,8 +31,7 @@ CAGR = Spec(
             label="single_period_annualizes",
             inputs={"equity_curve": (1.01,)},
             expected=(1.01**4 - 1,),
-            reason="a single observation annualizes its growth over one period (final ** periods_per_year - 1) "
-            "(tests/metrics/test_cagr.py::test_single_period_annualizes)",
+            reason="a single observation annualizes its growth over one period (final ** periods_per_year - 1) ",
             params_override={"periods_per_year": 4},
         ),
         SpecPin(
@@ -40,14 +39,13 @@ CAGR = Spec(
             inputs={"equity_curve": (1.0, 0.5, -0.2)},
             expected=(math.nan,),
             reason="a negative terminal equity is out of the fractional-power domain; the factory's <= 0 guard "
-            "returns a loud NaN (tests/metrics/test_cagr.py::test_non_positive_terminal_equity_is_nan)",
+            "returns a loud NaN",
         ),
         SpecPin(
             label="non_positive_terminal_equity_zero",
             inputs={"equity_curve": (1.0, 0.5, 0.0)},
             expected=(math.nan,),
-            reason="a zero terminal equity is out of domain and the factory returns NaN by the same guard "
-            "(tests/metrics/test_cagr.py::test_non_positive_terminal_equity_is_nan)",
+            reason="a zero terminal equity is out of domain and the factory returns NaN by the same guard ",
         ),
     ),
 )

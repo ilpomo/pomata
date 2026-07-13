@@ -15,8 +15,7 @@ VWAP = Spec(
     warmup=None,
     oracle=vwap_reference,
     # The running volume-weighted typical price: homogeneous of degree 1 in the price legs and invariant to a common
-    # rescaling of volume, degree 0 (tests/indicators/test_vwap.py::TestVwapProperties::test_price_scale_homogeneity /
-    # test_volume_scale_invariance).
+    # rescaling of volume, degree 0.
     scale=(
         ScaleAxis(roles=("high", "low", "close"), degree=1),
         ScaleAxis(roles=("volume",), degree=0),
@@ -39,7 +38,7 @@ VWAP = Spec(
             },
             expected=(math.nan, 10.0, 10.5),
             reason="a zero cumulative volume at the first bar is the 0/0 degenerate (NaN); once volume accrues the "
-            "running average recovers (test_vwap.py::TestVwapEdge::test_zero_volume)",
+            "running average recovers",
         ),
     ),
 )

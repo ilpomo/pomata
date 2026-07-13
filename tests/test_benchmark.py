@@ -12,8 +12,8 @@ runs it. The pytest-benchmark timings give performance visibility (and a baselin
 scaling check guards against an accidental super-linear regression — an O(n) kernel slipping to O(n^2) — which the
 absolute timings alone would not reveal. Every public function is covered, so a regression is caught wherever it lands;
 of them only the two Python-kernel recursions (kama, parabolic_sar) are slower than vectorized (Rust under Polars) and
-would gain from a future native kernel. The cycle functions (mama, the Hilbert pipeline) carry no special sizing here,
-exactly as the old per-family suites timed them: the same 100k / 1M frames as every other function.
+would gain from a future native kernel. The cycle functions (mama, the Hilbert pipeline) carry no special sizing here:
+the same 100k / 1M frames as every other function.
 """
 
 import os

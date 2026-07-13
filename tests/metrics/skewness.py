@@ -28,7 +28,7 @@ SKEWNESS = Spec(
     shape=Shape.REDUCING,
     oracle=skewness_reference,
     conditioning=_well_spread,
-    # A standardized moment is scale-invariant, degree 0 (test_skewness.py::test_scale_invariance).
+    # A standardized moment is scale-invariant, degree 0
     scale=(ScaleAxis(roles=("returns",), degree=0),),
     golden_input={"returns": (0.01, -0.02, 0.015, -0.03, 0.005, -0.01, 0.02)},
     golden_output=(-0.384,),
@@ -37,8 +37,7 @@ SKEWNESS = Spec(
             label="single_row",
             inputs={"returns": (0.05,)},
             expected=(math.nan,),
-            reason="one observation has zero variance, so the standardized third moment is 0/0, i.e. NaN "
-            "(test_skewness.py::test_single_row)",
+            reason="one observation has zero variance, so the standardized third moment is 0/0, i.e. NaN ",
         ),
         SpecPin(
             label="constant_is_nan",
@@ -46,15 +45,14 @@ SKEWNESS = Spec(
             expected=(math.nan,),
             reason="a constant series has zero variance, so the standardized moment is 0/0, i.e. NaN — the exact "
             "core of the near-constant regime the conditioning filter excludes from the property tiers "
-            "(test_skewness.py::test_constant_is_nan)",
+            "",
             covers_conditioning=True,
         ),
         SpecPin(
             label="subnormal_magnitude_is_nan",
             inputs={"returns": (0.0, 1e-160, 2e-160)},
             expected=(math.nan,),
-            reason="a subnormal-magnitude series has m2**1.5 underflow to zero, yielding NaN "
-            "(test_skewness.py::test_subnormal_magnitude_is_nan)",
+            reason="a subnormal-magnitude series has m2**1.5 underflow to zero, yielding NaN ",
         ),
     ),
 )

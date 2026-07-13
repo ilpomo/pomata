@@ -53,9 +53,10 @@ Every public function is a pure `pl.Expr` factory, and ships with:
 - a Google-style docstring: a plain-language summary, the formula in LaTeX, `Args`/`Returns`/`Raises`, a `Note`
   on null/NaN/warm-up behavior, a `References` section, and a runnable `Examples` block;
 - a naive reference implementation used as an independent oracle in the tests;
-- a test module covering the contract (schema, lazy/eager parity, `.over` independence), edge cases
-  (null/NaN/warm-up/single row), correctness (versus the oracle and frozen golden-master numbers), and
-  properties (bounds, scale-homogeneity, behavior under missing data);
+- a declarative spec — one frozen-dataclass file under `tests/<family>/<name>.py`, registered by an explicit
+  import in `tests/all_specs.py` — whose declared facts the shared ladder checks across every tier (contract,
+  edge, correctness versus the oracle and a frozen golden master, and properties: scale behavior, bounds,
+  behavior under missing data);
 - 100% branch coverage;
 - a line in the family catalog (`README.md`'s collapsible list and the `docs/families/*.md` page — both are
   parity-checked against `__all__` by `tests/test_docs_surface.py`).

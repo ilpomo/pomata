@@ -19,7 +19,7 @@ CONDITIONAL_VALUE_AT_RISK = Spec(
         ({"confidence": 1.5}, r"confidence must be in the open interval"),
     ),
     oracle=conditional_value_at_risk_reference,
-    # A tail mean of returns scales linearly (test_conditional_value_at_risk.py::test_scale_homogeneity).
+    # A tail mean of returns scales linearly
     scale=(ScaleAxis(roles=("returns",), degree=1),),
     golden_input={"returns": (0.03, -0.05, 0.02, -0.08, 0.01, -0.06, 0.04, -0.02)},
     golden_output=(-0.07,),
@@ -29,8 +29,7 @@ CONDITIONAL_VALUE_AT_RISK = Spec(
             label="single_row",
             inputs={"returns": (-0.02,)},
             expected=(-0.02,),
-            reason="for a single observation the whole shortfall slice is that element "
-            "(test_conditional_value_at_risk.py::test_single_row)",
+            reason="for a single observation the whole shortfall slice is that element ",
         ),
         SpecPin(
             label="fractional_weight_golden",
@@ -38,7 +37,7 @@ CONDITIONAL_VALUE_AT_RISK = Spec(
             expected=(-0.08666666666666666,),
             reason="the Rockafellar-Uryasev fractional boundary weight at confidence=0.7 averages the worst in full "
             "and the second-worst at weight 0.5 "
-            "(test_conditional_value_at_risk.py::test_fractional_weight_golden)",
+            "",
             params_override={"confidence": 0.7},
         ),
     ),

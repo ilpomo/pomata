@@ -32,8 +32,7 @@ ULTIMATE_OSCILLATOR = Spec(
         ),
     ),
     oracle=ultimate_oscillator_reference,
-    # A bounded ratio in [0, 100], scale-INVARIANT, degree 0 (tests/indicators/test_ultimate_oscillator.py
-    # ::test_scale_invariance).
+    # A bounded ratio in [0, 100], scale-INVARIANT, degree 0.
     scale=(ScaleAxis(roles=("high", "low", "close"), degree=0),),
     golden_params={"window_short": 2, "window_medium": 3, "window_long": 4},
     golden_input={"high": _HLC_HIGH, "low": _HLC_LOW, "close": _HLC_CLOSE},
@@ -55,24 +54,21 @@ ULTIMATE_OSCILLATOR = Spec(
                 75.0,
                 50.0,
             ),
-            reason="equal windows are accepted (not raised) and the minimum window=1 is fully defined from row 0 "
-            "(test_ultimate_oscillator.py::test_misordered_windows_raise, the accepted equal-window branch)",
+            reason="equal windows are accepted (not raised) and the minimum window=1 is fully defined from row 0",
         ),
         SpecPin(
             label="flat_window_is_nan",
             inputs={"high": (10.0, 10.0, 10.0), "low": (10.0, 10.0, 10.0), "close": (10.0, 10.0, 10.0)},
             params_override={"window_short": 1, "window_medium": 1, "window_long": 2},
             expected=(None, math.nan, math.nan),
-            reason="the 0/0 degenerate on a flat well-formed series, detected via residual-free rolling maxima "
-            "(test_ultimate_oscillator.py::test_flat_window_is_nan)",
+            reason="the 0/0 degenerate on a flat well-formed series, detected via residual-free rolling maxima",
         ),
         SpecPin(
             label="flat_window_is_nan_at_large_magnitude",
             inputs={"high": (1e9, 1e9, 1e9), "low": (1e9, 1e9, 1e9), "close": (1e9, 1e9, 1e9)},
             params_override={"window_short": 1, "window_medium": 1, "window_long": 2},
             expected=(None, math.nan, math.nan),
-            reason="the exact-flat guard is residual-free at scale, yielding NaN rather than a falsely-saturated value "
-            "(test_ultimate_oscillator.py::test_flat_window_is_nan_at_large_magnitude)",
+            reason="the exact-flat guard is residual-free at scale, yielding NaN rather than a falsely-saturated value",
         ),
     ),
 )

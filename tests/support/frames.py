@@ -62,29 +62,6 @@ def materialize(
     return frame.select(expr.alias("y"))["y"].to_list()
 
 
-def materialize_struct(
-    columns: Mapping[str, Sequence[float | None]],
-    expr: pl.Expr,
-    fields: tuple[str, ...],
-) -> dict[str, list[float | None]]:
-    """
-    Materialize a multi-output (struct) indicator expression and return one list per struct field.
-
-    Like :func:`materialize`, but ``expr`` returns a ``pl.struct``; each named field is read out with
-    ``.struct.field(...)`` into its own list, so the result mirrors a naive oracle's dict-of-lists output.
-
-    Args:
-        columns: The named input columns; each is coerced to ``Float64``.
-        expr: The struct-valued indicator expression to evaluate.
-        fields: The struct field names to extract, in the indicator's canonical order.
-
-    Returns:
-        A dict mapping each field in ``fields`` to its materialized list, all the same length as the inputs.
-    """
-    frame = pl.DataFrame({name: pl.Series(name, values, dtype=pl.Float64) for name, values in columns.items()})
-    return {field: frame.select(expr.struct.field(field).alias("y"))["y"].to_list() for field in fields}
-
-
 def count_leading_nulls(values: Sequence[float | None]) -> int:
     """
     The length of the leading ``None`` (warm-up) run, stopping at the first non-null value.

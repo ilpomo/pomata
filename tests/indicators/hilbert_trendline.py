@@ -7,7 +7,7 @@ from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import hilbert_trendline
 
-# A 0.5/bar trend plus a clean 20-bar cycle: 80 bars leave 17 emitted values past the 63-bar warm-up (the old golden).
+# A 0.5/bar trend plus a clean 20-bar cycle: 80 bars leave 17 emitted values past the 63-bar warm-up.
 _SAMPLE = tuple(100.0 + 0.5 * index + 10.0 * math.sin(2 * math.pi * index / 20) for index in range(80))
 
 HILBERT_TRENDLINE = Spec(
@@ -17,8 +17,7 @@ HILBERT_TRENDLINE = Spec(
     shape=Shape.SERIES,
     warmup=63,
     oracle=hilbert_trendline_reference,
-    # The trendline rides the price scale, homogeneous of degree 1 (tests/indicators/test_hilbert_trendline.py
-    # ::TestHilbertTrendlineProperties::test_scale_homogeneity).
+    # The trendline rides the price scale, homogeneous of degree 1.
     scale=(ScaleAxis(roles=("expr",), degree=1),),
     golden_input={"expr": _SAMPLE},
     golden_output=(None,) * 63
@@ -46,11 +45,10 @@ HILBERT_TRENDLINE = Spec(
             label="flat_run_is_the_constant",
             inputs={"expr": (100.0,) * 80},
             expected=(None,) * 63 + (100.0,) * 17,
-            reason="the cycle-pipeline degenerate (a flat run) the old suite filtered out of the property tiers: the "
-            "trendline reads a downstream EWMA of the price, so the phasor's cancellation residual never reaches "
-            "this output — impl and oracle are bit-identical here (measured deviation exactly 0.0; the old filter's "
-            "copy-pasted branch-flip reason did not hold for this indicator) — no conditioning filter is declared "
-            "and the corner stays witnessed by this fixed case instead",
+            reason="the cycle-pipeline degenerate (a flat run): the trendline reads a downstream EWMA of the price, "
+            "so the phasor's cancellation residual never reaches this output — impl and oracle are bit-identical "
+            "here (measured deviation exactly 0.0) — no conditioning filter is declared and the corner stays "
+            "witnessed by this fixed case",
         ),
     ),
 )

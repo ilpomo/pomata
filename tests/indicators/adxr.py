@@ -16,7 +16,7 @@ ADXR = Spec(
     raises=(({"window": 0}, r"window must be >= 1"),),
     oracle=adxr_reference,
     # The mean of the current ADX and the ADX one window back, bounded in [0, 100] and scale-INVARIANT, degree 0
-    # (tests/indicators/test_adxr.py::TestAdxrProperties::test_scale_invariance).
+    #
     scale=(ScaleAxis(roles=("high", "low", "close"), degree=0),),
     golden_params={"window": 2},
     golden_input={
@@ -44,8 +44,7 @@ ADXR = Spec(
                 math.nan,
             ),
             reason="a fully flat window makes the underlying dx the indeterminate 0/0, which poisons the Wilder "
-            "smoothing recursion and the averaging of the current and one-window-back adx (tests/indicators/"
-            "test_adxr.py::TestAdxrEdge::test_flat_window_is_nan)",
+            "smoothing recursion and the averaging of the current and one-window-back adx",
         ),
     ),
 )

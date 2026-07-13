@@ -19,8 +19,7 @@ COST_PROPORTIONAL = Spec(
         ({"rate": -math.inf}, r"rate must be a finite number >= 0"),
     ),
     oracle=cost_proportional_reference,
-    # Degree-1 homogeneous in the weight (it scales turnover by a fixed rate) (tests/pnl/test_cost_proportional.py
-    # ::test_scale_homogeneity).
+    # Degree-1 homogeneous in the weight (it scales turnover by a fixed rate).
     scale=(ScaleAxis(roles=("weight",), degree=1),),
     golden_input={"weight": (0.5, 1.0, -0.5, -0.5, 0.0)},
     golden_output=(0.0005, 0.0005, 0.0015, 0.0, 0.0005),
@@ -29,24 +28,21 @@ COST_PROPORTIONAL = Spec(
             label="single_row",
             inputs={"weight": (0.5,)},
             expected=(0.0005,),
-            reason="a one-element series resolves to |weight| * rate = 0.5 * 0.001 = 0.0005 on the entry trade "
-            "(tests/pnl/test_cost_proportional.py::test_single_row)",
+            reason="a one-element series resolves to |weight| * rate = 0.5 * 0.001 = 0.0005 on the entry trade",
         ),
         SpecPin(
             label="null_takes_precedence_over_nan",
             inputs={"weight": (0.5, None, math.nan, 1.0)},
             expected=(0.0005, None, None, math.nan),
             reason="the turnover row where a NaN weight meets the previous row's null yields null (null wins), while "
-            "the next turnover off the NaN is NaN (tests/pnl/test_cost_proportional.py"
-            "::test_null_takes_precedence_over_nan)",
+            "the next turnover off the NaN is NaN",
         ),
         SpecPin(
             label="consecutive_infinities_make_nan",
             inputs={"weight": (math.inf, math.inf, 1.0, -math.inf)},
             expected=(math.inf, math.nan, math.inf, math.inf),
             reason="two consecutive equal-sign infinities make inf - inf = NaN turnover at the second bar; the "
-            "property tiers set allow_infinity=False (tests/pnl/test_cost_proportional.py"
-            "::test_consecutive_infinities_make_nan)",
+            "property tiers set allow_infinity=False",
         ),
     ),
 )

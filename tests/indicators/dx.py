@@ -16,7 +16,7 @@ DX = Spec(
     raises=(({"window": 0}, r"window must be >= 1"),),
     oracle=dx_reference,
     # The normalized spread of the two directional indicators, bounded in [0, 100] and scale-INVARIANT, degree 0
-    # (tests/indicators/test_dx.py::TestDxProperties::test_scale_invariance).
+    #
     scale=(ScaleAxis(roles=("high", "low", "close"), degree=0),),
     golden_params={"window": 2},
     golden_input={
@@ -32,7 +32,7 @@ DX = Spec(
             params_override={"window": 3},
             expected=(None, None, math.nan, math.nan, math.nan, math.nan, math.nan, math.nan),
             reason="a fully flat window has no movement either way, so both directional indicators are NaN and the "
-            "indeterminate 0/0 spread propagates (tests/indicators/test_dx.py::TestDxEdge::test_flat_window_is_nan)",
+            "indeterminate 0/0 spread propagates",
         ),
     ),
 )

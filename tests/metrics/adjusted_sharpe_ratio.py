@@ -41,7 +41,7 @@ ADJUSTED_SHARPE_RATIO = Spec(
     ),
     oracle=adjusted_sharpe_ratio_reference,
     conditioning=_well_spread,
-    # Scale-invariant at risk_free_rate=0, degree 0 (test_adjusted_sharpe_ratio.py::test_scale_invariance).
+    # Scale-invariant at risk_free_rate=0, degree 0
     scale=(ScaleAxis(roles=("returns",), degree=0),),
     golden_input={"returns": (0.03, -0.02, 0.04, -0.03, 0.02, -0.01, 0.025, -0.015)},
     golden_output=(2.992,),
@@ -51,8 +51,7 @@ ADJUSTED_SHARPE_RATIO = Spec(
             label="single_row",
             inputs={"returns": (0.05,)},
             expected=(None,),
-            reason="a one-element series yields null (the sample Sharpe ratio needs two observations) "
-            "(test_adjusted_sharpe_ratio.py::test_single_row)",
+            reason="a one-element series yields null (the sample Sharpe ratio needs two observations) ",
         ),
         SpecPin(
             label="zero_volatility",
@@ -60,7 +59,7 @@ ADJUSTED_SHARPE_RATIO = Spec(
             expected=(math.nan,),
             reason="a constant series has undefined moments, so the result is NaN — the exact core of the "
             "near-constant regime the conditioning filter excludes from the property tiers "
-            "(test_adjusted_sharpe_ratio.py::test_zero_volatility_is_nan)",
+            "",
             covers_conditioning=True,
         ),
     ),

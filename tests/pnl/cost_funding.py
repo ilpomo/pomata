@@ -13,8 +13,7 @@ COST_FUNDING = Spec(
     params={},
     shape=Shape.SERIES,
     oracle=cost_funding_reference,
-    # Degree-1 homogeneous in the position; the old suite tests the quantity axis as representative of the symmetric
-    # product (tests/pnl/test_cost_funding.py::test_scale_homogeneity_in_quantity).
+    # Degree-1 homogeneous in the position; the quantity axis stands in for the symmetric product.
     scale=(ScaleAxis(roles=("quantity",), degree=1),),
     golden_input={
         "quantity": (10.0, 10.0, -5.0, -5.0, 20.0),
@@ -28,15 +27,13 @@ COST_FUNDING = Spec(
             label="single_row",
             inputs={"quantity": (10.0,), "price": (100.0,), "funding_rate": (0.0001,)},
             expected=(0.1,),
-            reason="a one-row series resolves to the product 10 * 100 * 0.0001 = 0.1 (tests/pnl/test_cost_funding.py"
-            "::test_single_row)",
+            reason="a one-row series resolves to the product 10 * 100 * 0.0001 = 0.1",
         ),
         SpecPin(
             label="null_takes_precedence_over_nan",
             inputs={"quantity": (None, 10.0), "price": (math.nan, 100.0), "funding_rate": (0.0001, 0.0001)},
             expected=(None, 0.1),
-            reason="a null in one column against a NaN in another of the same row yields null (null wins over NaN) "
-            "(tests/pnl/test_cost_funding.py::test_null_takes_precedence_over_nan)",
+            reason="a null in one column against a NaN in another of the same row yields null (null wins over NaN)",
         ),
         SpecPin(
             label="sign_follows_quantity_and_rate",
@@ -47,8 +44,7 @@ COST_FUNDING = Spec(
             },
             expected=(0.1, -0.05, -0.1, 0.05),
             reason="the sign(quantity) * sign(funding_rate) convention over the full 2x2 matrix; the fuzz quantity is "
-            "positive-only, so the short branch is otherwise untested (tests/pnl/test_cost_funding.py"
-            "::test_sign_follows_quantity_and_rate)",
+            "positive-only, so the short branch is otherwise untested",
         ),
         SpecPin(
             label="zero_rate_is_free",
@@ -58,8 +54,7 @@ COST_FUNDING = Spec(
                 "funding_rate": (0.0, 0.0, 0.0),
             },
             expected=(0.0, 0.0, 0.0),
-            reason="an off-funding bar (funding_rate = 0) costs nothing (tests/pnl/test_cost_funding.py"
-            "::test_zero_rate_is_free)",
+            reason="an off-funding bar (funding_rate = 0) costs nothing",
         ),
     ),
 )

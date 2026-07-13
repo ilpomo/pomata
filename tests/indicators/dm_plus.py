@@ -15,13 +15,12 @@ DM_PLUS = Spec(
     warmup=1,
     raises=(({"window": 0}, r"window must be >= 1"),),
     oracle=dm_plus_reference,
-    # A price-difference smoothed by a Wilder rma, homogeneous of degree 1 (tests/indicators/test_dm_plus.py
-    # ::TestDmPlusProperties::test_scale_homogeneity).
+    # A price-difference smoothed by a Wilder rma, homogeneous of degree 1.
     scale=(ScaleAxis(roles=("high", "low"), degree=1),),
     all_null=Deviant(
         expected=(None,) + (0.0,) * 11,
         reason="a null high or low leaves the raw +DM at 0 (the up-move guard is unsatisfied), which the Wilder rma "
-        "smooths to 0 past the one-row warm-up (tests/indicators/test_dm_plus.py::TestDmPlusEdge::test_all_null)",
+        "smooths to 0 past the one-row warm-up",
     ),
     flow_deviation="the up-move guard turns a fully-missing bar into 0 movement, so a full-bar null / NaN is absorbed "
     "and the rma recurrence continues at 0 (never a null trace or a latch), while a single-column NaN on the high leg "
@@ -40,7 +39,7 @@ DM_PLUS = Spec(
             },
             expected=(None, 0.5, 0.75, 0.375, 0.1875, 0.09375, 0.296875, 0.1484375),
             reason="an interior null makes the raw +DM 0 there and the rma carries its state across the gap (no null "
-            "trace) (test_dm_plus.py::TestDmPlusEdge::test_null_bridged)",
+            "trace)",
         ),
         SpecPin(
             label="nan_on_high_leg_latches",
@@ -49,8 +48,7 @@ DM_PLUS = Spec(
                 "low": (9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5),
             },
             expected=(None, 0.5, 0.75, 0.375, 0.4375, math.nan, math.nan, math.nan),
-            reason="a NaN on the high leg (the up-move driver) poisons the raw +DM and latches the rma forever "
-            "(test_dm_plus.py::TestDmPlusEdge::test_nan_latches)",
+            reason="a NaN on the high leg (the up-move driver) poisons the raw +DM and latches the rma forever",
         ),
     ),
 )

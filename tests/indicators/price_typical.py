@@ -14,8 +14,7 @@ PRICE_TYPICAL = Spec(
     shape=Shape.SERIES,
     warmup=None,
     oracle=price_typical_reference,
-    # The mean of high/low/close scales linearly with them together, degree 1 (tests/indicators/test_price_typical.py
-    # ::TestPriceTypicalProperties::test_scale_homogeneity).
+    # The mean of high/low/close scales linearly with them together, degree 1.
     scale=(ScaleAxis(roles=("high", "low", "close"), degree=1),),
     golden_input={
         "high": (11.0, 12.0, 13.0, 12.5, 14.0),
@@ -28,8 +27,7 @@ PRICE_TYPICAL = Spec(
             label="null_precedence_null_high_nan_low",
             inputs={"high": (11.0, None), "low": (9.0, math.nan), "close": (10.0, 11.5)},
             expected=(10.0, None),
-            reason="a null in high combined with a NaN in low on the same row yields null — null wins over NaN "
-            "(test_price_typical.py::TestPriceTypicalEdge::test_null_takes_precedence_over_nan)",
+            reason="a null in high combined with a NaN in low on the same row yields null — null wins over NaN",
         ),
     ),
 )

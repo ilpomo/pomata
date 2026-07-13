@@ -16,7 +16,7 @@ CALMAR_RATIO = Spec(
     raises=(({"periods_per_year": 0}, r"periods_per_year must be >= 1"),),
     oracle=calmar_ratio_reference,
     # A normalized growth-factor curve run through CAGR over a scale-invariant drawdown magnitude — neither
-    # homogeneous nor invariant (tests/metrics/test_calmar_ratio.py module docstring).
+    # homogeneous nor invariant
     scale=ScaleExempt(
         reason="a normalized growth-factor curve run through CAGR over a scale-invariant drawdown magnitude — "
         "neither homogeneous nor invariant"
@@ -32,15 +32,13 @@ CALMAR_RATIO = Spec(
             label="single_row",
             inputs={"equity_curve": (1.0,)},
             expected=(math.nan,),
-            reason="a one-element series has zero growth and zero drawdown, so the ratio is 0/0, i.e. NaN "
-            "(tests/metrics/test_calmar_ratio.py::TestCalmarRatioEdge::test_single_row)",
+            reason="a one-element series has zero growth and zero drawdown, so the ratio is 0/0, i.e. NaN ",
         ),
         SpecPin(
             label="no_drawdown_is_inf",
             inputs={"equity_curve": (1.0, 1.1, 1.21)},
             expected=(math.inf,),
-            reason="a monotonically rising curve has zero maximum drawdown with positive growth, so the ratio is +inf "
-            "(tests/metrics/test_calmar_ratio.py::TestCalmarRatioEdge::test_no_drawdown_is_inf)",
+            reason="a monotonically rising curve has zero maximum drawdown with positive growth, so the ratio is +inf ",
             params_override={"periods_per_year": 1},
         ),
     ),

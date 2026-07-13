@@ -27,9 +27,9 @@ def _no_sustained_even_lag_run(frame: pl.DataFrame) -> bool:
     sustained flat run or period-two alternation drives the in-phase component to a cancellation residual the impl's
     explicit FIR and the oracle's compensated sum round apart, flipping the phasor branch. Measured boundary (impl vs
     oracle on the golden carrier): a trailing alternation agrees exactly through 13 bars and jumps to a 1.23e-2
-    relative deviation at 14, while an ISOLATED even-lag tie — the bulk of what the old single-pair predicate
-    rejected — never deviates past pure FP noise (~1e-14), so only the sustained run is excluded. Only the finite bars
-    can reach it, so filtering them keeps the missing-data tier from rejecting on interior null / NaN.
+    relative deviation at 14, while an ISOLATED even-lag tie never deviates past pure FP noise (~1e-14), so only the
+    sustained run is excluded. Only the finite bars can reach it, so filtering them keeps the missing-data tier from
+    rejecting on interior null / NaN.
     """
     finite = [value for value in frame.to_series(0).to_list() if value is not None and math.isfinite(value)]
     return not spans_even_lag_run(finite)
@@ -52,8 +52,7 @@ MAMA = Spec(
     oracle=mama_reference,
     oracle_adapter=_mama_oracle,
     conditioning=_no_sustained_even_lag_run,
-    # Both lines ride the price scale, so they scale linearly with the bars (tests/indicators/test_mama.py:312
-    # test_scale_homogeneity).
+    # Both lines ride the price scale, so they scale linearly with the bars.
     scale=(ScaleAxis(roles=("expr",), degree={"mama": 1, "fama": 1}),),
     golden_input={"expr": _SAMPLE},
     golden_output={

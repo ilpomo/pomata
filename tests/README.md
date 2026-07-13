@@ -33,9 +33,10 @@ functions** parametrized over the specs they apply to. There is no metaprogrammi
   validation counterexample, per scale axis).
 - **The engine** — `tests/support/spec.py`: the frozen data types and the small engine the rungs delegate to
   (the deterministic probe frame, the expression builder, the lane readers, the oracle bridge, the fuzz strategies,
-  the sizing helpers). It is the one module with the `disallow_any_explicit` deroga. The fuzz vocabulary covers the
-  single-input shape, the coherent high/low bar, and the multi-input pnl shapes (each column drawn independently from
-  its role's domain); an unlisted shape raises, so the closed vocabulary can never silently under-test a new function.
+  the sizing helpers). It is the one module exempted from `disallow_any_explicit`. The fuzz vocabulary covers the
+  single-input shapes, the coherent OHLC-family bars, the strictly-positive equity-curve growth path, and the
+  multi-input shapes (the pnl frames and the returns/benchmark pair, each column drawn independently from its
+  role's domain); an unlisted shape raises, so the closed vocabulary can never silently under-test a new function.
 
 ## The axes are declared fields, not a class hierarchy
 
@@ -44,7 +45,7 @@ ladder each axis is a **declared field** or a **derived fact**, and a rung gates
 
 - **shape** — `Shape.REDUCING` (43) · `Shape.SERIES` (95) · `Shape.STRUCT` (15): what one probe row observes. A
   struct declares its ordered `fields`, and every struct-aware rung reads **all** of them (never only the first).
-- **windowed** — `warmup is not None` (75): the exact leading-null count under `params` — an `int` for a series, a
+- **windowed** — `warmup is not None` (86): the exact leading-null count under `params` — an `int` for a series, a
   per-field mapping for a struct (always, even when every line shares the count: the form is fixed by the shape, so
   a reader never guesses which lanes a number covers). A reduction and an unwindowed transform declare
   `warmup=None`.
@@ -68,6 +69,8 @@ ladder each axis is a **declared field** or a **derived fact**, and a rung gates
 | `golden_params` / `golden_round` | optional | the golden's own params and its rounding |
 | `lands_on` | optional | landing column when it is not the first input |
 | `flow_horizon` | optional | rows past a missing bar the flow must have played out by |
+| `flow_deviation` | optional | a written reason the interior-missing flow is input-dependent: non-empty exempts the spec from the two flow rungs, and its flow is pinned as crafted cases instead |
+| `oracle_rel_tol` / `oracle_abs_tol` | optional | a per-spec oracle-agreement band, declared only where a one-pass rolling form cannot meet the tight default against its two-pass oracle |
 | `oracle_adapter` | optional | a frame->result callable when the oracle is not the factory's signature-mirror |
 | `conditioning` | optional | a Hypothesis `assume` filter for the property tier — allowed only together with a pin that carries `covers_conditioning=True` (see below) |
 | `all_null` | optional | a `Deviant(expected, reason)` when the all-null answer is not all-null |
@@ -122,7 +125,8 @@ Contract — `returns_expr`, `output_lands_on_declared_column`, `shape_matches_d
 concatenates; `assert_matches`, never a bit-equality), `bare_string_raises_type_error`.
 Edge — `invalid_params_raise` (per counterexample), `all_null_input` (honoring an `all_null` `Deviant`),
 `single_row`, `empty`, `interior_null_flow` / `interior_nan_flow` (the policy-dispatched flow, tail guards
-included), `warmup_null_count` (windowed subset, per field for a struct), `window_exceeds_length` (windowed subset,
+included; a spec declaring a `flow_deviation` is exempt and pins its flow as crafted cases instead),
+`warmup_null_count` (windowed subset, per field for a struct), `window_exceeds_length` (windowed subset,
 per lane: a frame no longer than a lane's warm-up emits nothing on that lane), `no_lookahead` (non-reducing subset: a
 prefix of the frame gives the prefix of the full output).
 Correctness — `matches_reference`, `golden_master` (rounded expression-side), `pinned_cases` (per `SpecPin`: the
@@ -141,8 +145,11 @@ lines, then read the spec row the id names.
 
 ## The registry-derived sweeps and the source-and-docs guards
 
-Beyond the ladder, a small set of root-level modules holds every claim that is not per-function-contract shaped.
-The first three derive their cases from the spec registry, so a new function is swept in the moment its spec lands:
+Beyond the ladder, a small set of modules holds every claim that is not per-function-contract shaped: the
+registry-derived sweeps (their cases come from `ALL_SPECS`, so a new function is swept in the moment its spec
+lands), the per-family `test_bespoke.py` modules (the Hypothesis-quantified claims the spec language cannot carry —
+metamorphic identities and large-magnitude properties, as ordinary `@given` tests), the `tests/support/tests/`
+unit tests of the harness itself, and the source-and-docs guards:
 
 - `test_dtype.py` — every output lane comes back `Float64` from a `Float32` or `Int64` input.
 - `test_typing.py` — every public factory declares its return type as exactly `pl.Expr`.

@@ -19,8 +19,7 @@ SHARPE_RATIO = Spec(
         ({"risk_free_rate": -math.inf}, r"risk_free_rate must be a finite number"),
     ),
     oracle=sharpe_ratio_reference,
-    # A ratio of a mean to a standard deviation at a zero risk-free rate: scale-invariant, degree 0 (tests/metrics/
-    # test_sharpe_ratio.py:181 test_scale_invariance).
+    # A ratio of a mean to a standard deviation at a zero risk-free rate: scale-invariant, degree 0
     scale=(ScaleAxis(roles=("returns",), degree=0),),
     golden_input={"returns": (0.03, -0.01, 0.02, -0.015, 0.01, 0.005, -0.02)},
     golden_output=(2.4285,),
@@ -29,23 +28,21 @@ SHARPE_RATIO = Spec(
             label="single_row",
             inputs={"returns": (0.05,)},
             expected=(None,),
-            reason="one observation has no sample dispersion, so the ratio is null (tests/metrics/test_sharpe_ratio.py"
-            "::test_single_row)",
+            reason="one observation has no sample dispersion, so the ratio is null",
         ),
         SpecPin(
             label="zero_volatility",
             inputs={"returns": (0.01, 0.01, 0.01, 0.01)},
             expected=(math.inf,),
-            reason="a constant series has zero dispersion with a positive mean, so the ratio is +inf "
-            "(tests/metrics/test_sharpe_ratio.py::test_zero_volatility_is_inf)",
+            reason="a constant series has zero dispersion with a positive mean, so the ratio is +inf",
         ),
         SpecPin(
             label="zero_excess_is_nan",
             inputs={"returns": (0.0, 0.0, 0.0, 0.0)},
             expected=(math.nan,),
             reason="an all-zero series at a zero risk-free rate has zero mean AND zero dispersion, so the ratio is "
-            "the 0/0 NaN — the exact-zero core of the near-constant regime the old suite's well-spread filter "
-            "excluded (a first-moment ratio needs no such filter: the fuzz never rounds impl and oracle apart)",
+            "the 0/0 NaN — the exact-zero core of the near-constant regime; no conditioning filter is declared, "
+            "since a first-moment ratio needs none: the fuzz never rounds impl and oracle apart",
         ),
     ),
 )

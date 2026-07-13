@@ -20,8 +20,7 @@ FISHER_TRANSFORM = Spec(
     # missing bar for that decay to fall inside the reference tolerance.
     flow_horizon=60,
     oracle=fisher_transform_reference,
-    # A rolling-channel normalization, scale-INVARIANT, degree 0 (tests/indicators/test_fisher_transform.py
-    # ::TestFisherTransformProperties::test_scale_invariance).
+    # A rolling-channel normalization, scale-INVARIANT, degree 0.
     scale=(ScaleAxis(roles=("high", "low"), degree={"fisher": 0, "signal": 0}),),
     golden_params={"window": 2},
     golden_input={"high": (2.0, 4.0, 3.0), "low": (0.0, 2.0, 1.0)},
@@ -36,7 +35,7 @@ FISHER_TRANSFORM = Spec(
             params_override={"window": 1},
             expected={"fisher": (math.nan,), "signal": (None,)},
             reason="window=1 is flat by construction (max == min), so fisher is NaN from the first row while signal "
-            "is still warm-up null (test_fisher_transform.py::TestFisherTransformEdge::test_single_row)",
+            "is still warm-up null",
         ),
         SpecPin(
             label="flat_window_is_nan",
@@ -47,8 +46,7 @@ FISHER_TRANSFORM = Spec(
                 "signal": (None, None, None, math.nan, math.nan, math.nan),
             },
             reason="a constant series has max == min over every window: the channel normalization is 0/0 NaN, which "
-            "bridges through the recursion "
-            "(test_fisher_transform.py::TestFisherTransformEdge::test_flat_window_is_nan)",
+            "bridges through the recursion",
         ),
     ),
 )

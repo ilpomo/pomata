@@ -13,8 +13,7 @@ LINEAR_REGRESSION_SLOPE = Spec(
     warmup=13,
     raises=(({"window": 1}, r"window must be >= 2"),),
     oracle=linear_regression_slope_reference,
-    # The slope of the window's least-squares line (per-bar rise), homogeneous of degree 1 (tests/indicators/
-    # test_linear_regression_slope.py::TestLinearRegressionSlopeProperties::test_scale_homogeneity).
+    # The slope of the window's least-squares line (per-bar rise), homogeneous of degree 1
     scale=(ScaleAxis(roles=("expr",), degree=1),),
     golden_params={"window": 3},
     golden_input={"expr": (10.0, 11.0, 13.0, 12.0, 14.0, 13.0, 15.0)},

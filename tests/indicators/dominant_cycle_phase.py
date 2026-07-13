@@ -9,7 +9,7 @@ from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import dominant_cycle_phase
 
-# A clean 20-bar-period carrier: 80 bars leave 17 emitted values past the 63-bar settling warm-up (the old golden).
+# A clean 20-bar-period carrier: 80 bars leave 17 emitted values past the 63-bar settling warm-up.
 _SAMPLE = tuple(100.0 + 10.0 * math.sin(2 * math.pi * index / 20) for index in range(80))
 
 
@@ -18,12 +18,12 @@ def _no_sustained_even_lag_run(frame: pl.DataFrame) -> bool:
     Reject a SUSTAINED even-lag run — the regime where the phase branch genuinely flips a residual apart. Measured
     boundary (impl vs oracle, hand-graduated flat and alternation families): an exact flat run deviates ~3.6e-2 and
     an exact alternation turns dangerous only once its relative amplitude shrinks below ~1e-2 — both are full-length
-    even-lag runs, rejected here — while an ISOLATED even-lag tie inside a well-spread series (the bulk of what the
-    old single-pair predicate rejected, ~27% of all draws) never crosses the property band (worst ~4.5e-14). The
-    near-degenerate band the run predicate cannot see (a NEAR-flat drift with relative spread below ~4e-6, or a NEAR
-    alternation at tiny amplitude, deviating past 1e-10 without any exact tie) is unreachable by the property tiers'
-    independent per-element draws, whose relative spread is O(1) by construction. Only the finite bars can reach the
-    degenerate, so filtering them keeps the missing-data tier from rejecting on interior null / NaN.
+    even-lag runs, rejected here — while an ISOLATED even-lag tie inside a well-spread series never crosses the
+    property band (worst ~4.5e-14). The near-degenerate band the run predicate cannot see (a NEAR-flat drift with
+    relative spread below ~4e-6, or a NEAR alternation at tiny amplitude, deviating past 1e-10 without any exact
+    tie) is unreachable by the property tiers' independent per-element draws, whose relative spread is O(1) by
+    construction. Only the finite bars can reach the degenerate, so filtering them keeps the missing-data tier from
+    rejecting on interior null / NaN.
     """
     finite = [value for value in frame.to_series(0).to_list() if value is not None and math.isfinite(value)]
     return not spans_even_lag_run(finite)
@@ -37,8 +37,7 @@ DOMINANT_CYCLE_PHASE = Spec(
     warmup=63,
     oracle=dominant_cycle_phase_reference,
     conditioning=_no_sustained_even_lag_run,
-    # A phase in degrees: scale-INVARIANT, degree 0 (tests/indicators/test_dominant_cycle_phase.py
-    # ::TestDominantCyclePhaseProperties::test_scale_invariance).
+    # A phase in degrees: scale-INVARIANT, degree 0.
     scale=(ScaleAxis(roles=("expr",), degree=0),),
     golden_input={"expr": _SAMPLE},
     golden_output=(None,) * 63

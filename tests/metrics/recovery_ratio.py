@@ -15,7 +15,7 @@ RECOVERY_RATIO = Spec(
     shape=Shape.REDUCING,
     oracle=recovery_ratio_reference,
     # A normalized growth-factor total return over a scale-invariant max-drawdown magnitude — neither invariant nor
-    # homogeneous (tests/metrics/test_recovery_ratio.py module docstring; no dedicated old scale test).
+    # homogeneous
     scale=ScaleExempt(
         reason="a normalized growth-factor total return over a scale-invariant max-drawdown magnitude — neither "
         "invariant nor homogeneous"
@@ -28,23 +28,20 @@ RECOVERY_RATIO = Spec(
             label="single_row",
             inputs={"equity_curve": (1.0,)},
             expected=(math.nan,),
-            reason="a one-element series has zero growth and zero drawdown, so the ratio is 0/0, i.e. NaN "
-            "(tests/metrics/test_recovery_ratio.py::test_single_row)",
+            reason="a one-element series has zero growth and zero drawdown, so the ratio is 0/0, i.e. NaN",
         ),
         SpecPin(
             label="no_drawdown_is_inf",
             inputs={"equity_curve": (1.0, 1.1, 1.21)},
             expected=(math.inf,),
-            reason="a monotonically rising curve has zero maximum drawdown with positive growth, so the ratio is +inf "
-            "(tests/metrics/test_recovery_ratio.py::test_no_drawdown_is_inf)",
+            reason="a monotonically rising curve has zero maximum drawdown with positive growth, so the ratio is +inf",
         ),
         SpecPin(
             label="losing_curve_is_negative",
             inputs={"equity_curve": (1.0, 0.9, 0.95, 0.7)},
             expected=(-1.0,),
             reason="a curve ending below its start reports a negative recovery factor: the total-return numerator "
-            "keeps its sign over the drawdown magnitude "
-            "(tests/metrics/test_recovery_ratio.py::test_losing_curve_is_negative)",
+            "keeps its sign over the drawdown magnitude",
         ),
     ),
 )

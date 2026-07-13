@@ -15,10 +15,10 @@ def _windows_well_spread(frame: pl.DataFrame) -> bool:
     Reject a near-flat window: where the changes over a window are tiny relative to the accumulated series magnitude,
     the implementation's one-pass rolling gain/loss sums lose the window's contribution to a sub-ULP residual (and its
     residual-free flat guard may fire ``NaN`` outright), while the naive oracle recomputes the window fresh — the two
-    round to opposite sides of the 0/0 boundary there. JUSTIFIED by measurement: the empirical audit found zero
-    impl-vs-oracle failures on every admitted draw and real disagreement starting right at the predicate's own
-    boundary, so the cut sits where the hazard actually is. The exact-flat corners are fixed by the ``flat_window`` /
-    ``flat_tail`` pins; the fuzz stays on genuinely-moving windows, matching the old suite's conditioning idiom.
+    round to opposite sides of the 0/0 boundary there. Measured: zero impl-vs-oracle failures on every admitted
+    draw, with real disagreement starting right at the predicate's own boundary, so the cut sits where the hazard
+    actually is. The exact-flat corners are fixed by the ``flat_window`` / ``flat_tail`` pins; the fuzz stays on
+    genuinely-moving windows.
     """
     return windows_well_spread(frame.to_series(0).to_list(), 3)
 
@@ -33,7 +33,7 @@ CHANDE_MOMENTUM_OSCILLATOR = Spec(
     oracle=chande_momentum_oscillator_reference,
     conditioning=_windows_well_spread,
     # A normalized gain/loss ratio, scale-INVARIANT, degree 0
-    # (tests/indicators/test_chande_momentum_oscillator.py::test_scale_invariance).
+    #
     scale=(ScaleAxis(roles=("price",), degree=0),),
     golden_input={"price": (10.0, 11.0, 12.0, 11.0, 13.0, 14.0, 13.0, 15.0)},
     golden_output=(None, None, None, 33.3333, 50.0, 50.0, 50.0, 50.0),
@@ -43,8 +43,7 @@ CHANDE_MOMENTUM_OSCILLATOR = Spec(
             inputs={"price": (10.0, 10.0, 10.0, 10.0, 10.0)},
             expected=(None, None, None, math.nan, math.nan),
             reason="an all-flat window (every change exactly zero) is the 0/0 degenerate, returned as NaN — the "
-            "exact core of the near-flat regime the conditioning filter excludes from the property tiers "
-            "(test_chande_momentum_oscillator.py::test_flat_window_is_nan)",
+            "exact core of the near-flat regime the conditioning filter excludes from the property tiers",
             covers_conditioning=True,
         ),
         SpecPin(
@@ -106,21 +105,19 @@ CHANDE_MOMENTUM_OSCILLATOR = Spec(
             ),
             reason="the residual-free flat guard must not over-fire: windows straddling the flat transition still "
             "resolve to the streaming quotient until the window is entirely inside the flat tail, where it is the 0/0 "
-            "degenerate (test_chande_momentum_oscillator.py::test_flat_tail_after_movement_is_nan)",
+            "degenerate",
         ),
         SpecPin(
             label="saturates_up",
             inputs={"price": (10.0, 11.0, 12.0, 13.0, 14.0)},
             expected=(None, None, None, 100.0, 100.0),
-            reason="an all-up window (zero loss) saturates at exactly +100 "
-            "(test_chande_momentum_oscillator.py::test_saturates_at_plus_minus_100)",
+            reason="an all-up window (zero loss) saturates at exactly +100",
         ),
         SpecPin(
             label="saturates_down",
             inputs={"price": (14.0, 13.0, 12.0, 11.0, 10.0)},
             expected=(None, None, None, -100.0, -100.0),
-            reason="an all-down window (zero gain) saturates at exactly -100 "
-            "(test_chande_momentum_oscillator.py::test_saturates_at_plus_minus_100)",
+            reason="an all-down window (zero gain) saturates at exactly -100",
         ),
     ),
 )

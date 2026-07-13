@@ -28,7 +28,7 @@ SUPERTREND = Spec(
     ),
     oracle=supertrend_reference,
     # line is a degree-1 price level, direction a degree-0 invariant flag: the per-field degrees state the split
-    # homogeneity claim the old suite tested (tests/indicators/test_supertrend.py::test_scale_homogeneity).
+    # homogeneity claim.
     scale=(ScaleAxis(roles=("high", "low", "close"), degree={"line": 1, "direction": 0}),),
     golden_params={"window": 3, "multiplier": 2.0},
     golden_input={"high": _GOLDEN_HIGH, "low": _GOLDEN_LOW, "close": _GOLDEN_CLOSE},
@@ -50,7 +50,7 @@ SUPERTREND = Spec(
                 "direction": (None, -1.0, -1.0, -1.0, -1.0),
             },
             reason="a constant high==low==close run has zero ATR, so both bands collapse onto the midpoint and the "
-            "line tracks it with direction -1 forever (test_supertrend.py::test_flat_series)",
+            "line tracks it with direction -1 forever",
         ),
         SpecPin(
             label="single_row_window_one_seeds_long",
@@ -58,15 +58,14 @@ SUPERTREND = Spec(
             params_override={"window": 1},
             expected={"line": (3.0,), "direction": (1.0,)},
             reason="window=1 defines the bar (ATR is the true range); close > lower seeds the trend long and the line "
-            "reads the lower band (test_supertrend.py::test_single_row)",
+            "reads the lower band",
         ),
         SpecPin(
             label="lower_band_exact_touch_stays_up",
             inputs={"high": (11.0, 13.0, 12.5), "low": (9.0, 11.0, 10.5), "close": (10.5, 12.0, 11.375)},
             params_override={"window": 1, "multiplier": 0.25},
             expected={"line": (9.5, 11.375, 11.375), "direction": (1.0, 1.0, 1.0)},
-            reason="a flip requires a strict break, so a close exactly on the carried band holds the trend "
-            "(test_supertrend.py::test_lower_band_exact_touch_stays_up)",
+            reason="a flip requires a strict break, so a close exactly on the carried band holds the trend",
         ),
         SpecPin(
             label="downtrend_seed_nondefault_multiplier_golden",
@@ -81,7 +80,7 @@ SUPERTREND = Spec(
                 "direction": (None, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 1.0),
             },
             reason="a second frozen reference exercising every branch (seed long, flip short, flip back long) at a "
-            "non-default multiplier (test_supertrend.py::test_golden_master_downtrend_seed_nondefault_multiplier)",
+            "non-default multiplier",
         ),
         SpecPin(
             label="large_magnitude_micro_scale",
@@ -104,8 +103,7 @@ SUPERTREND = Spec(
                 ),
                 "direction": (None, None, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0),
             },
-            reason="the small-magnitude extreme of the old scale sweep: the golden scaled by 1e-6 stays exact "
-            "(test_supertrend.py::test_matches_reference_at_large_magnitude)",
+            reason="the golden scaled by 1e-6 stays exact, the small-magnitude extreme of the numeric range",
         ),
         SpecPin(
             label="large_magnitude_macro_scale",
@@ -128,8 +126,7 @@ SUPERTREND = Spec(
                 ),
                 "direction": (None, None, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0),
             },
-            reason="the large-magnitude extreme of the old scale sweep, pinned against a regression to inf/NaN "
-            "(test_supertrend.py::test_matches_reference_at_large_magnitude)",
+            reason="the golden scaled by 1e9, pinned against a regression to inf/NaN at the large-magnitude extreme",
         ),
     ),
 )

@@ -21,7 +21,7 @@ ULCER_PERFORMANCE_RATIO = Spec(
     ),
     oracle=ulcer_performance_ratio_reference,
     # A normalized growth-factor curve run through CAGR over a scale-invariant ulcer index — neither invariant nor
-    # homogeneous (tests/metrics/test_ulcer_performance_ratio.py module docstring).
+    # homogeneous
     scale=ScaleExempt(
         reason="a normalized growth-factor curve run through CAGR over a scale-invariant ulcer index — neither "
         "invariant nor homogeneous"
@@ -37,15 +37,14 @@ ULCER_PERFORMANCE_RATIO = Spec(
             label="single_row",
             inputs={"equity_curve": (1.0,)},
             expected=(math.nan,),
-            reason="one observation has zero excess growth and a zero ulcer index, so the ratio is 0/0, i.e. NaN "
-            "(tests/metrics/test_ulcer_performance_ratio.py::test_single_row)",
+            reason="one observation has zero excess growth and a zero ulcer index, so the ratio is 0/0, i.e. NaN ",
         ),
         SpecPin(
             label="no_drawdown_is_inf",
             inputs={"equity_curve": (1.0, 1.1, 1.21)},
             expected=(math.inf,),
             reason="a monotonically rising curve has a zero ulcer index with positive excess growth, so the ratio "
-            "is +inf (tests/metrics/test_ulcer_performance_ratio.py::test_no_drawdown_is_inf)",
+            "is +inf",
             params_override={"periods_per_year": 1},
         ),
     ),

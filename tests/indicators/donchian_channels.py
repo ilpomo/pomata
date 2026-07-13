@@ -15,8 +15,7 @@ DONCHIAN_CHANNELS = Spec(
     lands_on="low",
     raises=(({"window": 0}, r"window must be >= 1"),),
     oracle=donchian_channels_reference,
-    # Every band is a price extreme (or their mean), homogeneous of degree 1 (tests/indicators/
-    # test_donchian_channels.py::TestDonchianChannelsProperties::test_scale_homogeneity).
+    # Every band is a price extreme (or their mean), homogeneous of degree 1
     scale=(ScaleAxis(roles=("high", "low"), degree={"lower": 1, "middle": 1, "upper": 1}),),
     golden_params={"window": 3},
     golden_input={
@@ -39,7 +38,7 @@ DONCHIAN_CHANNELS = Spec(
                 "upper": (11.0, 12.0, 13.0),
             },
             reason="window=1 makes the upper/lower channel the bar's own high/low and the middle their mean, with no "
-            "warm-up (test_donchian_channels.py::TestDonchianChannelsEdge::test_window_one)",
+            "warm-up",
         ),
     ),
 )

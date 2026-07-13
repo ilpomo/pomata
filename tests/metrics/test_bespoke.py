@@ -1,12 +1,12 @@
 """
 The metrics residue the declarative spec cannot carry: the large-magnitude reference tier of the degree-1-homogeneous
-dispersion / quantile metrics, and the cross-function metamorphic relations between two public metrics, ported as
+dispersion / quantile metrics, and the cross-function metamorphic relations between two public metrics, expressed as
 ordinary property tests (the mirror of ``tests/pnl/test_bespoke.py``).
 
 A :class:`~tests.support.spec.SpecPin` is a fixed crafted case and a :class:`~tests.support.spec.ScaleAxis` is
 an exact homogeneity ratio at one ``k``; neither expresses a Hypothesis-quantified claim, and a relation *between two
-public metrics* (an inequality, a self-identity, a bounded range) has no declarative slot at all. These claims survive
-from the old metrics suite and live here as ordinary ``@given`` tests, named for the old-suite tests they port:
+public metrics* (an inequality, a self-identity, a bounded range) has no declarative slot at all. These claims live
+here as ordinary ``@given`` tests:
 
 - ``test_matches_reference_at_large_magnitude`` — every degree-1-homogeneous dispersion / quantile metric keeps oracle
   agreement when its returns are pushed to extreme magnitude (a numeric-stability tier, distinct from the exact-ratio
@@ -65,9 +65,9 @@ from pomata.metrics import (
 # Large magnitude — the numeric-stability tier of every degree-1-homogeneous dispersion / quantile metric
 # ======================================================================================================================
 
-# The specs whose old suite carried a ``test_matches_reference_at_large_magnitude`` tier: every returns-homogeneous
-# dispersion or quantile metric (so the value genuinely rides the input scale). The scale-invariant siblings (skewness,
-# kurtosis, stability, the ratios) had no such tier and are excluded.
+# The specs that carry the large-magnitude tier: every returns-homogeneous dispersion or quantile metric (so the
+# value genuinely rides the input scale). The scale-invariant siblings (skewness, kurtosis, stability, the ratios)
+# carry no such tier and are excluded.
 LARGE_MAGNITUDE_SPECS: tuple[Spec, ...] = (
     CONDITIONAL_VALUE_AT_RISK,
     DOWNSIDE_DEVIATION,
@@ -88,7 +88,7 @@ def test_matches_reference_at_large_magnitude(spec: Spec, data: st.DataObject, s
     if spec.conditioning is not None:
         assume(spec.conditioning(frame))
     scaled = frame.select([pl.col(role) * scale for role in spec.inputs])
-    # The old suite sized the absolute band to the scaled input, annualized where the metric is (downside_deviation /
+    # The absolute band is sized to the scaled input, annualized where the metric is (downside_deviation /
     # volatility carry ``periods_per_year``); the VaR family and cvar leave ``periods`` at one.
     periods = int(spec.params.get("periods_per_year", 1))
     abs_tol = streaming_abs_tol(scaled[spec.inputs[0]].to_list(), periods=periods)
@@ -133,7 +133,6 @@ def _has_substantial_loss(returns: Sequence[float | None]) -> bool:
 @given(equity=st.lists(_EQUITY, min_size=1, max_size=_SERIES_MAX), confidence=_CONFIDENCE)
 def test_conditional_drawdown_at_least_max_drawdown(equity: list[float], confidence: float) -> None:
     """Verifies the tail mean of the worst drawdowns never falls below the single worst drawdown."""
-    # test_conditional_drawdown_at_risk.py::TestConditionalDrawdownAtRiskProperties::test_at_least_max_drawdown
     tail_mean = apply_expr(equity, conditional_drawdown_at_risk(pl.col(COLUMN_X), confidence=confidence))[0]
     worst = apply_expr(equity, max_drawdown(pl.col(COLUMN_X)))[0]
     assert tail_mean is not None
@@ -144,7 +143,6 @@ def test_conditional_drawdown_at_least_max_drawdown(equity: list[float], confide
 @given(returns=st.lists(subnormal_safe_floats(bound=1e3), min_size=1, max_size=_SERIES_MAX), confidence=_CONFIDENCE)
 def test_conditional_value_at_most_value_at_risk(returns: list[float], confidence: float) -> None:
     """Verifies the expected shortfall never exceeds the value-at-risk quantile it averages beyond."""
-    # test_conditional_value_at_risk.py::TestConditionalValueAtRiskProperties::test_at_most_value_at_risk
     shortfall = apply_expr(returns, conditional_value_at_risk(pl.col(COLUMN_X), confidence=confidence))[0]
     quantile = apply_expr(returns, value_at_risk(pl.col(COLUMN_X), confidence=confidence))[0]
     assert shortfall is not None
@@ -155,7 +153,6 @@ def test_conditional_value_at_most_value_at_risk(returns: list[float], confidenc
 @given(case=st.lists(_PAIR, min_size=1, max_size=_SERIES_MAX), periods=_PERIODS)
 def test_capture_upside_self_capture_is_one(case: list[tuple[float, float]], periods: int) -> None:
     """Verifies a portfolio identical to its benchmark captures exactly one of its upside."""
-    # test_capture_upside_ratio.py::TestCaptureUpsideRatioProperties::test_self_capture_is_one
     returns, _ = split_pairs(case)
     assume(_has_substantial_gain(returns))
     assert_matches(
@@ -171,7 +168,6 @@ def test_capture_upside_self_capture_is_one(case: list[tuple[float, float]], per
 @given(case=st.lists(_PAIR, min_size=1, max_size=_SERIES_MAX), periods=_PERIODS)
 def test_capture_downside_self_capture_is_one(case: list[tuple[float, float]], periods: int) -> None:
     """Verifies a portfolio identical to its benchmark captures exactly one of its downside."""
-    # test_capture_downside_ratio.py::TestCaptureDownsideRatioProperties::test_self_capture_is_one
     returns, _ = split_pairs(case)
     assume(_has_substantial_loss(returns))
     assert_matches(
@@ -187,7 +183,6 @@ def test_capture_downside_self_capture_is_one(case: list[tuple[float, float]], p
 @given(growth=st.lists(_GROWTH, min_size=1, max_size=_SERIES_MAX))
 def test_cagr_equals_total_return_over_one_year(growth: list[float]) -> None:
     """Verifies annualizing over exactly one year (``periods_per_year == N``) makes the cagr equal the total return."""
-    # test_cagr.py::TestCagrProperties::test_cagr_equals_total_return_over_one_year
     cagr_value = apply_expr(growth, cagr(pl.col(COLUMN_X), periods_per_year=len(growth)))[0]
     total = apply_expr(growth, total_return(pl.col(COLUMN_X)))[0]
     assert cagr_value is not None
@@ -198,7 +193,6 @@ def test_cagr_equals_total_return_over_one_year(growth: list[float]) -> None:
 @given(returns=st.lists(standardized_moment_floats(bound=1e3), min_size=2, max_size=_SERIES_MAX))
 def test_probabilistic_sharpe_ratio_within_unit_interval(returns: list[float]) -> None:
     """Verifies a defined probabilistic Sharpe ratio is a probability in ``[0, 1]``."""
-    # test_probabilistic_sharpe_ratio.py::TestProbabilisticSharpeRatioProperties::test_within_unit_interval
     assume(well_spread(returns))
     result = apply_expr(returns, probabilistic_sharpe_ratio(pl.col(COLUMN_X), periods_per_year=252))[0]
     if result is not None and not math.isnan(result):
@@ -208,7 +202,6 @@ def test_probabilistic_sharpe_ratio_within_unit_interval(returns: list[float]) -
 @given(returns=st.lists(_POSITIVE_RETURNS, min_size=2, max_size=_SERIES_MAX))
 def test_stability_within_unit_interval(returns: list[float]) -> None:
     """Verifies a defined stability is a coefficient of determination in ``[0, 1]``."""
-    # test_stability.py::TestStabilityProperties::test_within_unit_interval
     result = apply_expr(returns, stability(pl.col(COLUMN_X)))[0]
     if result is not None and not math.isnan(result):
         assert -ABSOLUTE_TOLERANCE_REFERENCE <= result <= 1.0 + ABSOLUTE_TOLERANCE_REFERENCE
