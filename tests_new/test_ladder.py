@@ -56,6 +56,10 @@ from pomata._policy import NanPolicy, NullPolicy
 # --- applicability subsets: pure filters on declared fields, with per-case ids ---
 
 NON_REDUCING_SPECS = [spec for spec in ALL_SPECS if spec.shape is not Shape.REDUCING]
+# The flow rungs assert the declared policy by poisoning every input column at one bar; a function whose missing-bar
+# flow is input-dependent (a directional-movement guard, see ``Spec.flow_deviation``) cannot be held by a single
+# policy, so it declares the deviation and its flow is pinned and fuzzed instead.
+FLOW_SPECS = [spec for spec in ALL_SPECS if not spec.flow_deviation]
 
 
 def _raises_cases() -> tuple[list[tuple[Spec, Mapping[str, SPEC_SCALAR], str]], list[str]]:
@@ -250,13 +254,13 @@ def test_empty(spec: Spec) -> None:
         assert out.height == 0
 
 
-@pytest.mark.parametrize("spec", ALL_SPECS, ids=spec_id)
+@pytest.mark.parametrize("spec", FLOW_SPECS, ids=spec_id)
 def test_interior_null_flow(spec: Spec) -> None:
     """Verifies an interior missing bar plays out exactly as the declared null policy states."""
     _assert_flow(spec, nan=False)
 
 
-@pytest.mark.parametrize("spec", ALL_SPECS, ids=spec_id)
+@pytest.mark.parametrize("spec", FLOW_SPECS, ids=spec_id)
 def test_interior_nan_flow(spec: Spec) -> None:
     """Verifies an interior NaN bar plays out exactly as the declared NaN policy states."""
     _assert_flow(spec, nan=True)
