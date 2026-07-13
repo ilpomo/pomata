@@ -69,5 +69,25 @@ SORTINO_RATIO_ROLLING = Spec(
             "downside floor the old suite's filter cut at, so that filter was dead code and is not declared; the "
             "ratio matches the oracle to the ULP even here",
         ),
+        SpecPin(
+            label="flat_zero_excess_window_by_slide_is_nan",
+            inputs={"returns": (-0.3233, -0.6457, 0.0, 0.4404, 0.0, 0.0, 0.0, 0.0)},
+            expected=(
+                None,
+                None,
+                None,
+                -5.810192520420878,
+                -2.5236460159279557,
+                math.inf,
+                math.inf,
+                math.nan,
+            ),
+            reason="a window whose excess returns are all exactly zero degenerates to 0/0 -> NaN even after larger "
+            "values slid out: the exact rolling mean pins the numerator to zero, so the incremental running-sum "
+            "residue cannot ride above the exactly-zero downside deviation as a spurious inf — found by the "
+            "mutation audit (the old suite's twin case used derived bits that never leave a residue, so only this "
+            "bit-exact prefix bites); the two interior +inf rows are genuine no-downside windows with positive mean",
+            params_override={"window": 4},
+        ),
     ),
 )
