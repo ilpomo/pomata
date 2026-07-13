@@ -7,7 +7,7 @@ signature order, the byte-identical ``TypeError`` line, the family Note opener (
 null/NaN vocabulary agreeing with the declared policy, the canonical Returns opener per output shape, and
 byte-identical Args prose for every shared parameter (with the sanctioned per-role deviants pinned by name). None of
 this is reachable by ruff's pydocstyle shell checks or the doctest gate, so it is proven here, from the source, the
-same way ``tests/test_grammar.py`` proves the suite's grammar.
+same way the spec ladder proves the suite's own declarations at import.
 """
 
 import inspect
@@ -17,11 +17,11 @@ from types import ModuleType
 import polars as pl
 import pytest
 from tests.support import COLUMN_X, synthesize_call
-from tests.support.policies import POLICIES, NanPolicy
 
 import pomata.indicators
 import pomata.metrics
 import pomata.pnl
+from pomata._policy import POLICIES, NanPolicy
 
 _FAMILIES = {"indicators": pomata.indicators, "pnl": pomata.pnl, "metrics": pomata.metrics}
 _SECTIONS = ("Args", "Returns", "Raises", "Note", "See Also", "References", "Examples")
@@ -120,7 +120,7 @@ def _args_entries(doc: str) -> list[tuple[str, str]]:
 
 
 def _shape(name: str) -> str:
-    """The output shape observed from a probe, exactly as the contracts suite observes it."""
+    """The output shape observed from a probe, exactly as the spec engine observes it."""
     factory = getattr(_module_of(name), name)
     positional, keywords = synthesize_call(factory)
     frame = pl.DataFrame({COLUMN_X: pl.Series([float(value) for value in range(1, 9)], dtype=pl.Float64)})

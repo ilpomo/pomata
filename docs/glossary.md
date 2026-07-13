@@ -42,12 +42,13 @@ the trust pages, and `CORRECTNESS.md`.
 : A function's declared, machine-verified behavior for an interior missing value (`null`) or an interior `NaN` —
   for `null`: skipped, absorbed, propagated, in-window-nulled, bridged, or latched; for `NaN`: poisoned, propagated,
   or latched. The vocabulary and the per-function declaration live in the package's policy registry
-  (`src/pomata/_policy.py`); the proof lives in the test suite (`tests/test_policies.py`); the API
-  docstrings state each function's pair in prose.
+  (`src/pomata/_policy.py`); the proof lives in the test suite's policy-dispatched flow rungs
+  (`tests/test_ladder.py`); the API docstrings state each function's pair in prose.
 
 **rung / ladder**
-: One named test in the canonical four-tier layout every per-function test file follows (Contract → Edge →
-  Correctness → Properties). The order and the one-rung-one-name law are enforced by `tests/test_grammar.py`.
+: One generic test function in the canonical four-tier layout (Contract → Edge → Correctness → Properties),
+  parametrized over every function it applies to (`tests/test_ladder.py`): one rung = one guarantee, checked
+  identically across the whole public surface by construction.
 
 **conditioning**
 : How much a statistic amplifies floating-point rounding on a degenerate input (a near-constant window, a vanishing
