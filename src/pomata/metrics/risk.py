@@ -93,9 +93,9 @@ def _rolling_moment(
         if series.len() == 0:
             return pl.Series(series.name, [], dtype=pl.Float64)
         if kind == "skew":
-            native = series.rolling_skew(window_size=window, bias=True)
+            native = series.rolling_skew(window, bias=True)
         else:
-            native = series.rolling_kurtosis(window_size=window, fisher=True, bias=True)
+            native = series.rolling_kurtosis(window, fisher=True, bias=True)
         values = series.to_list()
         result = native.to_list()
         # Sliding maximum of |x| over the trailing window via a monotonic deque (O(n)); prefix_scale tracks the
@@ -139,9 +139,9 @@ def _rolling_moment(
     # window -- a window constant only by sliding -- so guard both explicitly, mirroring volatility_rolling.
     return (
         pl.when(rolling_has_nan(expr, window))
-        .then(pl.lit(float("nan")))
+        .then(float("nan"))
         .when(rolling_is_constant(expr, window))
-        .then(pl.lit(float("nan")))
+        .then(float("nan"))
         .otherwise(moment)
         .name.keep()
     )
@@ -306,7 +306,7 @@ def conditional_value_at_risk(
     shortfall = (weight * returns).sum() / weight.sum()
     # An empty (or all-null) series has ``weight.sum() == 0``; report ``null`` rather than the ``0 / 0`` NaN.
     shortfall = pl.when(count == 0).then(pl.lit(None, dtype=pl.Float64)).otherwise(shortfall)
-    return pl.when(returns.is_nan().any()).then(pl.lit(float("nan"))).otherwise(shortfall).name.keep()
+    return pl.when(returns.is_nan().any()).then(float("nan")).otherwise(shortfall).name.keep()
 
 
 def downside_deviation(
@@ -904,7 +904,7 @@ def payoff_ratio(
     average_win = returns.filter(returns > 0.0).mean()
     average_loss = returns.filter(returns < 0.0).mean()
     ratio = average_win / -average_loss
-    return pl.when(returns.is_nan().any()).then(pl.lit(float("nan"))).otherwise(ratio).name.keep()
+    return pl.when(returns.is_nan().any()).then(float("nan")).otherwise(ratio).name.keep()
 
 
 def profit_factor(
@@ -1368,7 +1368,7 @@ def tail_ratio(
     right_tail = returns.quantile(0.95, interpolation="linear")
     left_tail = returns.quantile(0.05, interpolation="linear")
     ratio = (right_tail / left_tail).abs()
-    return pl.when(returns.is_nan().any()).then(pl.lit(float("nan"))).otherwise(ratio).name.keep()
+    return pl.when(returns.is_nan().any()).then(float("nan")).otherwise(ratio).name.keep()
 
 
 def tail_ratio_rolling(
@@ -1466,7 +1466,7 @@ def tail_ratio_rolling(
     right_tail = returns.rolling_quantile(0.95, interpolation="linear", window_size=window, min_samples=window)
     left_tail = returns.rolling_quantile(0.05, interpolation="linear", window_size=window, min_samples=window)
     ratio = (right_tail / left_tail).abs()
-    return pl.when(rolling_has_nan(returns, window)).then(pl.lit(float("nan"))).otherwise(ratio).name.keep()
+    return pl.when(rolling_has_nan(returns, window)).then(float("nan")).otherwise(ratio).name.keep()
 
 
 def value_at_risk(
@@ -1555,7 +1555,7 @@ def value_at_risk(
     returns = float64_expr(returns)
     validate_confidence(confidence)
     quantile = returns.quantile(1.0 - confidence, interpolation="linear")
-    return pl.when(returns.is_nan().any()).then(pl.lit(float("nan"))).otherwise(quantile).name.keep()
+    return pl.when(returns.is_nan().any()).then(float("nan")).otherwise(quantile).name.keep()
 
 
 def value_at_risk_modified(
@@ -1688,9 +1688,9 @@ def value_at_risk_modified(
     estimate = returns.mean() + z_cornish_fisher * returns.std(ddof=1)
     return (
         pl.when(slope <= 0.0)
-        .then(pl.lit(float("nan")))
+        .then(float("nan"))
         .when(z_cornish_fisher * z < 0.0)
-        .then(pl.lit(float("nan")))
+        .then(float("nan"))
         .otherwise(estimate)
         .name.keep()
     )
@@ -1881,7 +1881,7 @@ def value_at_risk_rolling(
     quantile = returns.rolling_quantile(
         1.0 - confidence, interpolation="linear", window_size=window, min_samples=window
     )
-    return pl.when(rolling_has_nan(returns, window)).then(pl.lit(float("nan"))).otherwise(quantile).name.keep()
+    return pl.when(rolling_has_nan(returns, window)).then(float("nan")).otherwise(quantile).name.keep()
 
 
 def volatility(
@@ -2069,9 +2069,9 @@ def volatility_rolling(
     # a much larger value exits the window, so guard it explicitly. The NaN check comes first: a NaN window stays NaN.
     return (
         pl.when(rolling_has_nan(returns, window))
-        .then(pl.lit(float("nan")))
+        .then(float("nan"))
         .when(rolling_is_constant(returns, window))
-        .then(pl.lit(0.0))
+        .then(0.0)
         .otherwise(dispersion)
         .name.keep()
     )
@@ -2168,4 +2168,4 @@ def win_rate(
     wins = (returns > 0.0).sum()
     decisive = (returns != 0.0).sum()
     ratio = pl.when(decisive == 0).then(None).otherwise(wins / decisive)
-    return pl.when(returns.is_nan().any()).then(pl.lit(float("nan"))).otherwise(ratio).name.keep()
+    return pl.when(returns.is_nan().any()).then(float("nan")).otherwise(ratio).name.keep()

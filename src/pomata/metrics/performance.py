@@ -109,9 +109,9 @@ def cagr(
     # integer-valued exponents, NaN otherwise) — so out of domain is a loud NaN, never a plausible wrong number.
     return (
         pl.when(equity_curve.is_nan().any())
-        .then(pl.lit(float("nan")))
+        .then(float("nan"))
         .when(defined.last() <= 0.0)
-        .then(pl.lit(float("nan")))
+        .then(float("nan"))
         .otherwise(growth)
         .name.keep()
     )
@@ -203,10 +203,7 @@ def cagr_rolling(
     # Domain: the fractional power is defined only on a positive endpoint ratio (see cagr) — a window whose equity
     # crossed or touched zero has no geometric growth rate, so that window is a loud NaN.
     return (
-        pl.when(ratio <= 0.0)
-        .then(pl.lit(float("nan")))
-        .otherwise(ratio ** (periods_per_year / (window - 1)) - 1.0)
-        .name.keep()
+        pl.when(ratio <= 0.0).then(float("nan")).otherwise(ratio ** (periods_per_year / (window - 1)) - 1.0).name.keep()
     )
 
 
@@ -314,11 +311,11 @@ def stability(
         # The NaN poison is checked before the two-point count guard, so a lone NaN poisons instead of returning
         # null — the same boundary precedence as the cagr / total_return siblings.
         pl.when(returns.is_nan().any())
-        .then(pl.lit(float("nan")))
+        .then(float("nan"))
         .when(defined.len() < _MINIMUM_REGRESSION_POINTS)
         .then(None)
         .when(cumulative_log.n_unique() <= 1)
-        .then(pl.lit(float("nan")))
+        .then(float("nan"))
         .otherwise(r_squared)
         .name.keep()
     )
@@ -399,7 +396,7 @@ def total_return(
     """
     equity_curve = float64_expr(equity_curve)
     growth = equity_curve.drop_nulls().last() - 1
-    return pl.when(equity_curve.is_nan().any()).then(pl.lit(float("nan"))).otherwise(growth).name.keep()
+    return pl.when(equity_curve.is_nan().any()).then(float("nan")).otherwise(growth).name.keep()
 
 
 def total_return_rolling(

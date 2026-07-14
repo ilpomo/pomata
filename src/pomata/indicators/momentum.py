@@ -241,21 +241,15 @@ def aroon(
     # Polars has no rolling arg-max: the most recent bar whose value equals the window extreme is the smallest shift for
     # which the shifted value equals the rolling extreme (ties resolve to the most recent). A NaN window yields NaN.
     periods_since_high = pl.min_horizontal(
-        [
-            pl.when(high.shift(offset) == rolling_high).then(pl.lit(float(offset))).otherwise(None)
-            for offset in range(span)
-        ]
+        [pl.when(high.shift(offset) == rolling_high).then(float(offset)).otherwise(None) for offset in range(span)]
     )
     periods_since_low = pl.min_horizontal(
-        [
-            pl.when(low.shift(offset) == rolling_low).then(pl.lit(float(offset))).otherwise(None)
-            for offset in range(span)
-        ]
+        [pl.when(low.shift(offset) == rolling_low).then(float(offset)).otherwise(None) for offset in range(span)]
     )
     up_value = 100.0 * (window - periods_since_high) / window
     down_value = 100.0 * (window - periods_since_low) / window
-    up = pl.when(rolling_high.is_nan()).then(pl.lit(float("nan"))).otherwise(up_value)
-    down = pl.when(rolling_low.is_nan()).then(pl.lit(float("nan"))).otherwise(down_value)
+    up = pl.when(rolling_high.is_nan()).then(float("nan")).otherwise(up_value)
+    down = pl.when(rolling_low.is_nan()).then(float("nan")).otherwise(down_value)
     return (pl.struct(up=up, down=down)).name.keep()
 
 
@@ -2016,6 +2010,6 @@ def williams_r(
     low = float64_expr(low)
     close = float64_expr(close)
     validate_window(window)
-    highest_high = high.rolling_max(window_size=window)
-    lowest_low = low.rolling_min(window_size=window)
+    highest_high = high.rolling_max(window)
+    lowest_low = low.rolling_min(window)
     return (-100.0 * (highest_high - close) / (highest_high - lowest_low)).name.keep()

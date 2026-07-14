@@ -537,9 +537,9 @@ def standard_deviation_rolling(
     # NaN check comes first: Polars groups NaN == NaN as equal, so the constant check alone would pin a NaN window.
     return (
         pl.when(rolling_has_nan(expr, window))
-        .then(pl.lit(float("nan")))
+        .then(float("nan"))
         .when(rolling_is_constant(expr, window))
-        .then(pl.lit(0.0))
+        .then(0.0)
         .otherwise(dispersion)
         .name.keep()
     )
@@ -825,9 +825,9 @@ def variance_rolling(
     # check comes first: Polars groups NaN == NaN as equal, so the constant check alone would pin a NaN window.
     return (
         pl.when(rolling_has_nan(expr, window))
-        .then(pl.lit(float("nan")))
+        .then(float("nan"))
         .when(rolling_is_constant(expr, window))
-        .then(pl.lit(0.0))
+        .then(0.0)
         .otherwise(dispersion)
         .name.keep()
     )
