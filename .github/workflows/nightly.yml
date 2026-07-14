@@ -32,9 +32,9 @@ env:
   UV_NO_SYNC: "1"
 
 jobs:
-  # Performance benchmarks and complexity-scaling checks. A failure here means a real super-linear regression landed
-  # on main (or a noisy timing) -- it blocks nothing, but it shows red so the regression is visible. The job stays
-  # serial (no -n): parallelism would corrupt the timings.
+  # Performance benchmarks and complexity-scaling checks. A failure here means a regression past a function's
+  # declared cost degree landed on main (or a noisy timing) -- it blocks nothing, but it shows red so the regression
+  # is visible. The job stays serial (no -n): parallelism would corrupt the timings.
   benchmark:
     runs-on: ubuntu-latest
     timeout-minutes: 15

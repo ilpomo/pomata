@@ -257,12 +257,21 @@ a defect, not a detail.
 
 ### Benchmark size: derived from measurement stability
 
-Timing has its own sizing. A throughput measurement is meaningful only where the per-row cost dominates the fixed
-overhead of dispatching the expression — `c * S` well above a roughly constant `overhead`, i.e. `S >> overhead / c`.
-Because the slow recursions have a large `c`, they reach a stable read in *fewer* rows, not more; a million rows on a
-kernel that already takes over a second per evaluation buys no extra precision, only minutes. The complexity guard needs
-only a single decade: a 10x increase in rows multiplies a linear cost by 10 and a quadratic one by 100, so one 10x step
-separates them with a wide margin and an additive floor absorbs the overhead-bound cheap cases.
+Timing has its own sizing, and — like every size in this document — it is the minimum the test's own discrimination
+inequality demands, not a round number. The cost model is `t(n) = c * n^k + h`: `k` is the polynomial cost degree
+each spec declares (`cost_degree`; `1` is the family norm, and logarithmic factors ride within a degree — one timed
+decade cannot resolve them and no contract claims them), and `h` is the function's own fixed per-call cost, measured
+on a frame far below every window rather than assumed. The scaling guard then walks a quantized ladder (1k, 10k,
+100k rows) and certifies the smallest base whose measured cost clears `4h` — which pins the scaling signal at
+`s = c * n^k / h >= 3`. At that signal, with the min-of-three estimator's noise bounded at 25% and the worst
+log-factor inflation of `4/3` over one decade, an honest degree-`k` kernel measures at most `2.22 * 10^k` and a
+degree-`k+1` regression at least `4.5 * 10^k`: the enforced bound of `3 * 10^k` (plus the model's own `4h` constant
+term, which also absorbs the rare kernel too cheap to certify on any rung) sits between the two with at least a 35%
+margin on both sides. The derivation lives with the constants in `tests/support/benchmarks.py`. Because the slow
+recursions have a large `c`, they certify in *fewer* rows, not more — a sequential kernel that costs over a second
+per evaluation at a million rows proves its degree in thousands — so the tier's wall clock is bounded per function
+whatever the kernel weighs and grows only linearly with the registry. The throughput reading, which certifies
+nothing and exists for visibility and run-over-run comparison, stays on one fixed 100k-row frame for every function.
 
 ## By family
 

@@ -2,8 +2,9 @@
 The consolidated test-support surface: the shared low-level helpers plus the spec framework the rungs delegate to.
 
 The stateless helpers — one concern per module: :mod:`tests.support.asserts` (compare a result against an oracle),
-:mod:`tests.support.bars` (transpose generated bars into columns), :mod:`tests.support.benchmarks` (time an
-expression for the benchmark tier), :mod:`tests.support.columns` (canonical column-name constants),
+:mod:`tests.support.bars` (transpose generated bars into columns), :mod:`tests.support.benchmarks` (timing helpers
+and the derived sizing constants for the benchmark tier), :mod:`tests.support.columns` (canonical column-name
+constants),
 :mod:`tests.support.frames` (materialize inputs into a frame and evaluate an expression),
 :mod:`tests.support.strategies` (Hypothesis input generators),
 :mod:`tests.support.synthesis` (signature-driven call synthesis for the public factories),
@@ -15,7 +16,7 @@ every test imports from one place. They are plain functions rather than pytest f
 
 from tests.support.asserts import assert_matches, assert_scale_homogeneous
 from tests.support.bars import split_pairs, split_quads, split_triples
-from tests.support.benchmarks import fastest_eval
+from tests.support.benchmarks import SCALING_OVERHEAD_MULTIPLE, fastest_eval, scaling_threshold
 from tests.support.columns import BENCHMARK, CLOSE, COLUMN_X, HIGH, LOW, RETURNS
 from tests.support.frames import apply_expr, count_leading_nulls, materialize
 from tests.support.spec import (
@@ -95,6 +96,7 @@ __all__ = (
     "RELATIVE_TOLERANCE_ROLLING_ORACLE",
     "RELATIVE_TOLERANCE_SCALE",
     "RETURNS",
+    "SCALING_OVERHEAD_MULTIPLE",
     "SPEC_LANE",
     "SPEC_SCALAR",
     "SUBNORMAL_FLOOR",
@@ -130,6 +132,7 @@ __all__ = (
     "probe_frame",
     "probe_length",
     "reference_lanes",
+    "scaling_threshold",
     "spans_even_lag_run",
     "spec_id",
     "split_pairs",
