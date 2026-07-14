@@ -311,10 +311,12 @@ def stability(
     # whose square would otherwise escape the bound by a floating-point ulp.
     r_squared = (pl.corr(index, cumulative_log) ** 2).clip(upper_bound=1.0)
     return (
-        pl.when(defined.len() < _MINIMUM_REGRESSION_POINTS)
-        .then(None)
-        .when(returns.is_nan().any())
+        # The NaN poison is checked before the two-point count guard, so a lone NaN poisons instead of returning
+        # null — the same boundary precedence as the cagr / total_return siblings.
+        pl.when(returns.is_nan().any())
         .then(pl.lit(float("nan")))
+        .when(defined.len() < _MINIMUM_REGRESSION_POINTS)
+        .then(None)
         .when(cumulative_log.n_unique() <= 1)
         .then(pl.lit(float("nan")))
         .otherwise(r_squared)
