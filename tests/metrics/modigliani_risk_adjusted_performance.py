@@ -1,10 +1,10 @@
-"""Spec for ``pomata.metrics.modigliani_risk_adjusted_performance`` — reducing, M-squared, scale-exempt."""
+"""Spec for ``pomata.metrics.modigliani_risk_adjusted_performance`` — reducing, M-squared, degree-1 at rf=0."""
 
 import math
 
 import polars as pl
 from tests.metrics.oracles import modigliani_risk_adjusted_performance_reference
-from tests.support.spec import ScaleExempt, Shape, Spec, SpecPin
+from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import modigliani_risk_adjusted_performance, sharpe_ratio, volatility
 
@@ -28,10 +28,10 @@ MODIGLIANI_RISK_ADJUSTED_PERFORMANCE = Spec(
         ({"risk_free_rate": -math.inf}, r"risk_free_rate must be a finite number"),
     ),
     oracle=modigliani_risk_adjusted_performance_reference,
-    # An annualized return rescaled to benchmark risk — neither scale-invariant nor homogeneous.
-    scale=ScaleExempt(
-        reason="an annualized return rescaled to benchmark risk — neither scale-invariant nor homogeneous"
-    ),
+    # Degree-1 homogeneous in a joint returns/benchmark rescale at risk_free_rate=0 (the spec's params): M-squared is
+    # then sharpe(returns) * volatility(benchmark), a degree-0 ratio times a degree-1 dispersion — the same
+    # default-scoped axis convention as downside_deviation's "at threshold=0". A non-zero rate breaks it.
+    scale=(ScaleAxis(roles=("returns", "benchmark"), degree=1),),
     golden_input={
         "returns": (0.012, -0.008, 0.02, -0.015, 0.005, 0.0, -0.02, 0.018),
         "benchmark": (0.01, -0.006, 0.018, -0.012, 0.004, 0.002, -0.018, 0.015),
