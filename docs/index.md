@@ -54,7 +54,7 @@ report = (
 ```
 
 The indicator feeds the signal, the signal feeds the PnL, the PnL feeds the metrics — every arrow is a `pl.Expr`, so
-it all fuses into one Polars query (eager or lazy, a single series or a multi-asset panel via `.over`).
+it all fuses into one Polars query (eager or lazy, a single series or a multi-asset {term}`panel` via `.over`).
 
 The `.shift(1)` is the whole no-look-ahead story: a signal computed at the close acts on the next bar, by construction.
 

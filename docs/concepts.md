@@ -18,18 +18,21 @@ frame.with_columns(macd=macd_line)                                # run it where
 One naming rule follows from this: **the output column keeps the root name of the expression's first column leaf** —
 for every single-input function that is simply the input's own column (`rsi(pl.col("close"), 14)` lands on `close`,
 and in a `with_columns` it *replaces* that column unless you name it). For a multi-input function the landing column
-is fixed but not always the first argument: eleven land elsewhere (`accumulation_distribution`,
-`accumulation_distribution_oscillator`, `chaikin_money_flow`, `keltner_channels`, `stochastic_fast`,
-`stochastic_slow`, `ultimate_oscillator`, and `balance_of_power` land on `close`; `di_minus`, `dm_minus`, and
-`donchian_channels` land on `low`), so **alias the result of any multi-input call**. To name an output, alias the
+is fixed but not always the first argument: eleven land elsewhere ({py:func}`~pomata.indicators.accumulation_distribution`,
+{py:func}`~pomata.indicators.accumulation_distribution_oscillator`, {py:func}`~pomata.indicators.chaikin_money_flow`,
+{py:func}`~pomata.indicators.keltner_channels`, {py:func}`~pomata.indicators.stochastic_fast`,
+{py:func}`~pomata.indicators.stochastic_slow`, {py:func}`~pomata.indicators.ultimate_oscillator`, and
+{py:func}`~pomata.indicators.balance_of_power` land on `close`; {py:func}`~pomata.indicators.di_minus`,
+{py:func}`~pomata.indicators.dm_minus`, and {py:func}`~pomata.indicators.donchian_channels` land on `low`), so
+**alias the result of any multi-input call**. To name an output, alias the
 **returned expression**, never the input: `rsi(pl.col("close"), 14).alias("rsi_14")` — an alias on the input is
 deliberately ignored (`name.keep` restores the root), so it can never silently land the result on an unexpected
 column, and the test suite pins every function's landing column so none can drift.
 
 ## 2. `.over` for multi-asset panels
 
-A panel of many tickers is one DataFrame and one query: wrap the call in `.over(...)` and each group is reduced
-independently — windows and recursions never bleed across a boundary.
+A {term}`panel` of many tickers is one DataFrame and one query: wrap the call in `.over(...)` and each group is
+reduced independently — windows and recursions never bleed across a boundary.
 
 ```{doctest}
 >>> import polars as pl
@@ -60,11 +63,11 @@ shape: (9, 3)
 └────────┴───────┴───────┘
 ```
 
-Ticker `GOOG` starts its own warm-up (`None`) instead of inheriting `AAPL`'s tail.
+Ticker `GOOG` starts its own {term}`warm-up` (`None`) instead of inheriting `AAPL`'s tail.
 
 One performance note: a handful of sequential functions run a Python kernel per evaluation — among the indicators
 the Ehlers cycle family, KAMA, the parabolic SAR, SuperTrend, the Fisher Transform, and the seeded EMA family; among
-the metrics the rolling skewness / kurtosis and `probabilistic_sharpe_ratio`'s normal CDF — and reusing such an
+the metrics the rolling skewness / kurtosis and {py:func}`~pomata.metrics.probabilistic_sharpe_ratio`'s normal CDF — and reusing such an
 expression textually re-runs it: Polars' subexpression caching does not reach inside `.over(...)`. Assign the
 expression to a column once and derive from the column when composing several outputs from the same expensive input.
 

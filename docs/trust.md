@@ -2,13 +2,14 @@
 
 Most libraries ask you to trust their output. `pomata` proves it. The premise is simple and a little obsessive:
 **every function is written twice.** The shipped version is tuned to vectorize in Polars; a second, deliberately
-naive *oracle* re-derives the same published formula and shares no code with it. The two must agree — on a fixed
-series, on frozen golden-master numbers, and on thousands of randomly fuzzed inputs — or the build is red.
+naive {term}`oracle` re-derives the same published formula and shares no code with it. The two must agree — on a fixed
+series, on frozen {term}`golden-master <golden master>` numbers, and on thousands of randomly fuzzed inputs — or the
+build is red.
 
 The same method covers all three families — indicators, PnL, and metrics — but holds each to the standard that
 actually catches its bugs. Indicators must be right *to the digit*: they reproduce a fixed formula, so there is one
 correct number, and even a public reference — TA-Lib — to check it against. PnL and metrics are simpler arithmetic
-whose failures live at the edges — a `null`, a `NaN`, a zero denominator, a warm-up — not in the fifteenth digit. So
+whose failures live at the edges — a `null`, a `NaN`, a zero denominator, a {term}`warm-up` — not in the fifteenth digit. So
 the proof below splits in two: indicators to the last figure, PnL and metrics at the boundaries.
 
 ## What every function survives
@@ -104,7 +105,7 @@ never worse than fourteen figures:
   - `1e-14`
 ```
 
-The differential tier (non-gating) compares the **58 of 75** indicators with a TA-Lib counterpart against it
+The {term}`differential tier` (non-gating) compares the **58 of 75** indicators with a TA-Lib counterpart against it
 **bar-for-bar, from the first defined value**. A documented minority is compared only on the converged tail — always
 with a reason its warm-up differs from TA-Lib's (Wilder's first True Range, the independent MACD/Chaikin EMAs, the
 Ehlers Hilbert pipeline's long warm-up, the Parabolic SAR cold start) — never a steady-state disagreement. The other 17
@@ -126,7 +127,7 @@ machine applies — independent oracle, four-tier ladder, golden masters — but
 ## The tolerance ladder
 
 Every band is named and lives in one file (`tests/support/tolerances.py`), sized to the worst residual the statistic's
-conditioning predicts — not a round number:
+{term}`conditioning` predicts — not a round number:
 
 ```{list-table}
 :header-rows: 1
