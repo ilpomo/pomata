@@ -8,32 +8,22 @@ silently loosen or tighten the property tiers, and the ladder's ordering encodes
 import math
 
 from tests.support import (
-    ABSOLUTE_TOLERANCE_EXACT,
     ABSOLUTE_TOLERANCE_PROPERTY,
     ABSOLUTE_TOLERANCE_REFERENCE,
     ABSOLUTE_TOLERANCE_ROLLING_ORACLE,
     ABSOLUTE_TOLERANCE_STREAMING,
     EXACT_TOLERANCE_FACTOR,
-    RELATIVE_TOLERANCE_EXACT,
     RELATIVE_TOLERANCE_PROPERTY,
     RELATIVE_TOLERANCE_REFERENCE,
-    RELATIVE_TOLERANCE_ROLLING_ORACLE,
     RELATIVE_TOLERANCE_SCALE,
     input_scale,
+    tolerances,
 )
 
-ALL_TOLERANCES = (
-    ABSOLUTE_TOLERANCE_EXACT,
-    ABSOLUTE_TOLERANCE_PROPERTY,
-    ABSOLUTE_TOLERANCE_REFERENCE,
-    ABSOLUTE_TOLERANCE_ROLLING_ORACLE,
-    ABSOLUTE_TOLERANCE_STREAMING,
-    EXACT_TOLERANCE_FACTOR,
-    RELATIVE_TOLERANCE_EXACT,
-    RELATIVE_TOLERANCE_PROPERTY,
-    RELATIVE_TOLERANCE_REFERENCE,
-    RELATIVE_TOLERANCE_ROLLING_ORACLE,
-    RELATIVE_TOLERANCE_SCALE,
+# Derived from the module (every UPPER-cased float), the same enumeration ``test_spec_coverage``'s named-band check
+# reads: a new tolerance constant is swept in the moment it lands, so the positivity check can never skip one.
+ALL_TOLERANCES: tuple[float, ...] = tuple(
+    value for name, value in vars(tolerances).items() if isinstance(value, float) and name.isupper()
 )
 
 
