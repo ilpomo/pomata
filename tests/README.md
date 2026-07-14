@@ -70,7 +70,7 @@ ladder each axis is a **declared field** or a **derived fact**, and a rung gates
 | `lands_on` | optional | landing column when it is not the first input |
 | `flow_horizon` | optional | rows past a missing bar the flow must have played out by |
 | `flow_deviation` | optional | a written reason the interior-missing flow is input-dependent: non-empty exempts the spec from the two flow rungs, and its flow is pinned as crafted cases instead |
-| `oracle_rel_tol` / `oracle_abs_tol` | optional | a per-spec oracle-agreement band, declared per computational family (the one-pass rolling forms, whose streaming sums round away from the two-pass oracle, and the standardized rolling moments' absolute floor) — always a named constant from `tests/support/tolerances.py`, never a literal |
+| `oracle_rel_tol` / `oracle_abs_tol` | optional | a per-spec oracle-agreement band, declared per computational family (the one-pass streaming forms — rolling sums and exponential recurrences — whose accumulation rounds away from the two-pass oracle, and the standardized rolling moments' absolute floor) — always a named constant from `tests/support/tolerances.py`, never a literal |
 | `cost_degree` | optional | the kernel's polynomial cost degree in the row count (`1` is the family norm; log factors ride within a degree) — the benchmark tier's scaling guard derives its per-function bound from it |
 | `oracle_adapter` | optional | a frame->result callable when the oracle is not the factory's signature-mirror |
 | `conditioning` | optional | a Hypothesis `assume` filter for the property tier — allowed only together with a pin that carries `covers_conditioning=True` (see below) |
@@ -91,10 +91,10 @@ are checked against the spec at construction, and labels must be unique.
 exactly where a bug could hide unobserved — so a spec may declare one only if at least one pin carries
 `covers_conditioning=True` and demonstrates, on a concrete input from that regime, what the function actually
 returns there (checked in `__post_init__`, so an uncovered filter cannot even be imported). The reverse also
-holds: a `covers_conditioning=True` pin on a spec with no filter is rejected as stale. Every filter's docstring
-states the *measured* boundary it was calibrated against, and every threshold narrowed from a shared constant is a
-spec-local constant with the measurement in a comment — the shared constants themselves (`well_spread` 1e-9,
-`windows_well_spread` 1e-9, `CONDITIONING_FLOOR` 1e-2) are never retuned per spec.
+holds: a `covers_conditioning=True` pin on a spec with no filter is rejected as stale. Every filter states the
+*measured* boundary it was calibrated against — in its docstring when it rides a shared cut, or in the spec-local
+constant's comment when it narrows a shared threshold into one — and the shared constants themselves (`well_spread`
+1e-9, `windows_well_spread` 1e-9, `CONDITIONING_FLOOR` 1e-2) are never retuned per spec.
 
 Derived, never declared: `name` (from the factory), `family` (from `__all__`), `null_policy` / `nan_policy`
 (from the registry), `spec_id` (the pytest id).
@@ -175,7 +175,9 @@ unit tests of the harness itself, and the source-and-docs guards:
 - **tier** — an informal grouping of rungs by strength: contract (types and shapes), edge (fixed corner inputs),
   correctness (oracle and golden agreement), properties (Hypothesis-generated inputs).
 - **oracle** — the naive, obviously-correct reimplementation of a function (plain Python, two-pass, no streaming
-  tricks) that the fast Polars implementation is compared against.
+  tricks) that the fast Polars implementation is compared against. For the irreducibly-sequential indicators (the
+  Ehlers cycle cluster, the parabolic SAR, KAMA, the Fisher transform, SuperTrend) the oracle is a structural mirror
+  that confirms internal consistency; `CORRECTNESS.md` documents the second witness each rests on instead.
 - **golden master** — one frozen input with its frozen, hand-verified output; a change in behavior shows up as a
   golden mismatch even if impl and oracle drift together.
 - **pin (fixed case)** — one crafted input mapped to its exact expected output, with a written reason. The data
