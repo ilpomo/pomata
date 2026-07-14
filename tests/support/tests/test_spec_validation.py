@@ -92,6 +92,21 @@ class TestConditionalRequirements:
                 golden_output=(1.0,),
             )
 
+    def test_cost_degree_below_one_is_rejected(self) -> None:
+        """Verifies a declared polynomial cost degree below one dies at construction."""
+        with pytest.raises(ValueError, match=r"cost_degree must be >= 1"):
+            Spec(
+                factory=sma,
+                inputs=("expr",),
+                params={},
+                shape=Shape.SERIES,
+                scale=ScaleExempt(reason="x"),
+                oracle=_oracle,
+                golden_input={"expr": (1.0,)},
+                golden_output=(1.0,),
+                cost_degree=0,
+            )
+
     def test_empty_scale_tuple_is_rejected(self) -> None:
         """Verifies an empty scale tuple dies at construction — the exemption must be a reasoned ``ScaleExempt``."""
         with pytest.raises(ValueError, match=r"empty scale tuple is never allowed"):

@@ -78,8 +78,9 @@ _SPEC_ROLE_BUILDERS: dict[str, Callable[[int], list[float]]] = {
     # varied, well-defined baseline instead (rsi_stochastic).
     "wave": lambda n: [100.0 + 10.0 * math.sin(0.7 * float(i)) for i in range(n)],
     "price": lambda n: [float(i) + 10.0 for i in range(n)],
-    # A strictly-positive compounding path whose step is small enough that the benchmark tier's 100k / 1M-row frames
-    # stay far below the float64 ceiling (1.0001 ** n overflows only past ~7.1M rows; 1.02 ** n blows up at ~35.7k).
+    # A strictly-positive compounding path whose step is small enough that the benchmark tier's frames (up to 1M
+    # rows) stay far below the float64 ceiling (1.0001 ** n overflows only past ~7.1M rows; 1.02 ** n blows up at
+    # ~35.7k).
     "equity_curve": lambda n: [100.0 * (1.0001 ** float(i)) for i in range(n)],
     "returns": lambda n: [0.01 if i % 2 == 0 else -0.005 for i in range(n)],
     "benchmark": lambda n: [0.008 if i % 2 == 0 else -0.004 for i in range(n)],
@@ -211,6 +212,11 @@ class Spec:
     # two-pass oracle. ``None`` uses the tier default.
     oracle_rel_tol: float | None = None
     oracle_abs_tol: float | None = None
+    # The kernel's polynomial cost degree in the ROW COUNT: ``t(n) ~ c * n**cost_degree`` (logarithmic factors ride
+    # within a degree — one timed decade cannot resolve them, and no contract claims them). The scaling guard derives
+    # its per-function bound from this declaration; ``1`` is the family norm and no current spec deviates. Distinct
+    # from a :class:`ScaleAxis` ``degree``, which is homogeneity in the input VALUES, not cost in the row count.
+    cost_degree: int = 1
 
     def __post_init__(self) -> None:
         """Conditional requirements, checked loudly at construction (import time) — the one obvious place they live."""
@@ -219,6 +225,9 @@ class Spec:
         self._check_warmup()
         if self.params and not self.raises:
             msg = f"{self.name}: declares params but no raises counterexamples — the validation rung would be a no-op"
+            raise ValueError(msg)
+        if self.cost_degree < 1:
+            msg = f"{self.name}: cost_degree must be >= 1, got {self.cost_degree}"
             raise ValueError(msg)
         self._check_scale()
         self._check_golden()
