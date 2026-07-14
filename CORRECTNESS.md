@@ -48,14 +48,17 @@ pass and confirms internal consistency, not independence — and we say so rathe
 - **KAMA** — the efficiency ratio and adaptive smoothing constant are derived independently, but the recurrence they
   drive is one-shape with the implementation;
 - **the parabolic SAR** — a path-dependent stop-and-reverse state machine the oracle must replay branch for branch;
+- **the Fisher transform** — the value-smoothing and transform recursions are one-shape with the implementation's
+  kernel (the same 0.33 / 0.67 filters);
+- **SuperTrend** — the final-band ratchet and flip recursion the oracle must replay branch for branch;
 - **the Hilbert-transform cycle cluster** (the dominant-cycle period and phase, the phasor, the trendline, the sine
   wave, the trend flag, and MAMA) — the FIR and quadrature stages are independent, but the adaptive dominant-cycle
   period feeds back into its own measurement and the stages built on it.
 
 Their second witness is elsewhere: the parabolic SAR is anchored to golden masters hand-computed from Wilder's published
-rules — including the seeding and reversal branches the recurrence cannot reach by symmetry — while KAMA and the cycle
-cluster are pinned to frozen golden masters that catch any drift and are checked against TA-Lib in the non-gating
-differential tier.
+rules — including the seeding and reversal branches the recurrence cannot reach by symmetry — while the others are
+pinned to frozen golden masters that catch any drift; KAMA and the cycle cluster are additionally checked against
+TA-Lib in the non-gating differential tier (the Fisher transform and SuperTrend have no TA-Lib twin).
 
 ### A laddered test suite
 
@@ -111,8 +114,8 @@ Why `1e-10`, and why it is "safe no matter what" for this library:
   rounding between the streaming implementation and the two-pass oracle lands around `1e-15`. `1e-10` is five orders
   above that: tight enough to reject any real coding error, loose enough that a last-bit difference never flakes.
 - **It is verified, not asserted.** The property tier holds every indicator to `1e-10` over the full random fuzz
-  domain (the one documented exception: a one-pass rolling moment meets its two-pass oracle at a stated per-spec
-  band, declared on the spec itself),
+  domain (the documented exception: the one-pass rolling family — thirteen indicators whose sliding sums round
+  differently from a fresh two-pass recompute — meets its oracle at the per-family band each spec declares),
   and that bound is the enforced guarantee. The realized *headroom* under it is recomputable from a clean clone with
   `scripts/calibrate_tolerances.py`, which fuzzes a representative well-conditioned set across multiple seeds and reports
   the worst relative residual — it lands around `1e-14` (a handful of `float64` noise-floor ULPs), about four orders
@@ -133,8 +136,10 @@ unconditional — the Chande momentum oscillator, the money flow index, Chaikin 
 out-of-domain input degrades in precision rather than escaping the range.
 
 Three places close this limit outright rather than documenting it. The rolling skewness and kurtosis recompute any
-window at residue risk exactly (a fresh two-pass mean-centered moment wherever a value two-plus orders of magnitude
-above the window's own scale has already slid out), so one bad tick can no longer poison every later window. The
+window at residue risk exactly (a fresh two-pass mean-centered moment wherever a value more than one order of
+magnitude above the window's own scale has already slid out — the stale-residue defect of the native incremental
+kernels, [pola-rs/polars#28290](https://github.com/pola-rs/polars/issues/28290), fixed upstream in #28309), so one
+bad tick can no longer poison every later window. The
 reducing dispersions pin an exactly-constant series to exactly zero, so the ratios built on them (Sharpe and its
 family, the information ratio's tracking error) degenerate to the documented signed infinity instead of a
 residue-driven huge finite. And the rolling dispersions — the annualized rolling volatility, the rolling variance and

@@ -12,7 +12,8 @@ def information_ratio_rolling_reference(
     returns: Sequence[float | None], benchmark: Sequence[float | None], window: int, periods_per_year: int
 ) -> list[float | None]:
     """
-    The reducing reference applied to each trailing returns/benchmark window (warm-up / any-null windows are ``None``).
+    Naive rolling information ratio: the reducing reference applied to each trailing returns/benchmark window
+    (warm-up / any-null windows are ``None``).
     """
     return rolling_reference_pair(
         lambda window_returns, window_benchmark: information_ratio_reference(

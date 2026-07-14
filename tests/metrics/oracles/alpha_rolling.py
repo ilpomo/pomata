@@ -16,7 +16,8 @@ def alpha_rolling_reference(
     risk_free_rate: float = 0.0,
 ) -> list[float | None]:
     """
-    The reducing reference applied to each trailing returns/benchmark window (warm-up / any-null windows are ``None``).
+    Naive rolling annualized alpha: the reducing reference applied to each trailing returns/benchmark window
+    (warm-up / any-null windows are ``None``).
     """
     return rolling_reference_pair(
         lambda window_returns, window_benchmark: alpha_reference(

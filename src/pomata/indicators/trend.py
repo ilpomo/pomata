@@ -146,7 +146,8 @@ def parabolic_sar(
         **Edge-case behavior:**
 
         - **Null** — a ``null`` ``high`` or ``low`` yields ``null`` at that row and is skipped; the running trend state
-          bridges the gap and resumes on the next complete bar.
+          bridges the gap and resumes on the next complete bar, and because the stop recurrence contracts, later rows
+          reconverge to the clean series' values — the declared ``PROPAGATES`` flow, not a lasting drift.
         - **NaN** — a ``NaN`` ``high`` or ``low`` yields ``NaN`` at that row and is skipped, exactly like a ``null``:
           the raw high/low feed the kernel directly with no recurrence for a ``NaN`` to latch onto, so the running
           trend state bridges the gap and resumes on the next complete bar.
@@ -321,7 +322,8 @@ def supertrend(
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
-        ValueError: If ``window < 1`` or ``multiplier`` is not a finite number ``> 0``.
+        ValueError: If ``window < 1`` or ``multiplier`` is not a finite number ``> 0`` (i.e. ``<= 0``, ``NaN``, or
+            ``±inf``).
 
     Note:
         **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on

@@ -171,7 +171,7 @@ def drawdown(
 
     Examples:
         >>> import polars as pl
-        >>> from pomata.metrics.drawdown import drawdown
+        >>> from pomata.metrics import drawdown
         >>> frame = pl.DataFrame({"equity": [1.0, 1.1, 1.05, 1.2, 0.9, 1.0]})
         >>> frame.select(drawdown(pl.col("equity")).round(4).alias("d"))["d"].to_list()
         [0.0, 0.0, -0.0455, 0.0, -0.25, -0.1667]

@@ -1,7 +1,7 @@
 # Glossary
 
 The house vocabulary, in one place. Every term below is used with exactly this meaning across the API docstrings,
-the trust pages, and `CORRECTNESS.md`.
+the trust pages, and [`CORRECTNESS.md`](https://github.com/ilpomo/pomata/blob/main/CORRECTNESS.md).
 
 **warm-up**
 : The leading rows a function returns as `null` because its window or recursion has not yet seen enough data. Always
@@ -53,4 +53,4 @@ the trust pages, and `CORRECTNESS.md`.
 **conditioning**
 : How much a statistic amplifies floating-point rounding on a degenerate input (a near-constant window, a vanishing
   denominator). Tolerances are sized to each statistic's conditioning, and the genuinely ill-conditioned regimes are
-  documented limits, not hidden ones — see `CORRECTNESS.md`.
+  documented limits, not hidden ones — see [`CORRECTNESS.md`](https://github.com/ilpomo/pomata/blob/main/CORRECTNESS.md).
