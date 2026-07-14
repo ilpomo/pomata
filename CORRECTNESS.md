@@ -326,9 +326,9 @@ We prove, and you can re-run:
 - that the suite covers the whole public surface by construction (the spec/`__all__` bijection fails any collection
   that misses a function) and that every input regime excluded from the random tier is still witnessed by a fixed
   case with a written, measured reason;
-- that the suite bites: its fixed cases include, by construction, the counterexample of every defect the suite
-  has caught and of every surviving mutant from a systematic one-line mutation screen of the source — each pinned
-  with its measured reason, so the catalog that once got past a weaker check is re-run on every build.
+- that the suite bites: its fixed cases pin the dangerous corners of the input domain — the indeterminate forms and
+  signed zeros, the saturations and boundary windows, the sliding-window residue regimes — each with a written,
+  measured reason, re-run on every build.
 
 We do **not** claim the absence of all bugs, or correctness on inputs outside the documented domain. One limit is worth
 naming plainly: for the irreducibly-sequential indicators (KAMA, the parabolic SAR, the Hilbert cycle cluster) the oracle

@@ -44,8 +44,8 @@ number is chosen, not guessed — and enforced:
   implementation and the two-pass oracle lands around `1e-15`. `1e-10` is five orders above that — tight enough to
   reject any real coding error, loose enough that a last-bit difference never flakes the suite.
 - **It is verified, not asserted.** The property tier holds every indicator to `1e-10` across the full random domain
-  — except the one-pass rolling family (thirteen indicators whose sliding sums round differently from a fresh
-  two-pass recompute), held to the per-family `1e-6` band each spec declares.
+  — except the one-pass rolling family (thirteen indicators whose sliding-window sums and exponential recurrences
+  round differently from a fresh two-pass recompute), held to the per-family `1e-6` band each spec declares.
   In practice the agreement is *far* tighter: about **half the outputs match the oracle to the last bit** (a relative
   difference of exactly zero), and the rest land at the noise floor — typically thirteen to fifteen figures, never
   fewer than the promised ten.
@@ -57,7 +57,9 @@ statistic loses precision only when an entire window collapses onto the float-pr
 that recently passed through it — it takes a deliberately adversarial series (a price dropping seven orders of
 magnitude bar-to-bar) to build that pattern. It is documented on the affected indicators, and the oscillators whose
 bound is unconditional — Chande Momentum Oscillator, Money Flow Index, Chaikin Money Flow — are clamped to that bound rather than
-papered over.
+papered over. For the indicators with no public reference, oracle agreement demonstrates internal consistency between
+two independent transcriptions of the same published formula — not correctness of the formula against an external
+authority.
 :::
 
 ### The receipt: against the public reference
@@ -148,6 +150,9 @@ Every band is named and lives in one file (`tests/support/tolerances.py`), sized
 * - rolling-vs-oracle
   - `1e-6`
   - a one-pass rolling statistic against its recompute-per-window two-pass oracle, declared per spec
+* - rolling-moment floor
+  - `1e-7`
+  - the standardized rolling moments (skewness / kurtosis) against their two-pass oracle — an absolute floor, per spec
 * - streaming
   - `1e-3`
   - a streaming statistic evaluated at an extreme magnitude
