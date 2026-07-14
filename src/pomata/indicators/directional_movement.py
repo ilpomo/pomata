@@ -979,9 +979,10 @@ def vortex(
     minus_quotient = minus_per_bar.rolling_sum(window) / range_sum
     # The genuine 0/0 degenerate (a flat window: zero summed true range AND zero summed movement) is detected
     # residual-free via the rolling maxima and returned as NaN deterministically, per line. A non-zero movement over a
-    # zero true range -- reachable only with impossible bars (a close outside the high-low range) -- is left to IEEE-754
-    # as inf. The near-flat residual is reported as-is, not clipped: VI+ is unbounded above, so there is no range
-    # to clip to (beyond a sane dynamic range the streaming quotient degrades -- see CORRECTNESS.md).
+    # zero true range is left to IEEE-754 as inf -- coherent bars reach it too (the movement legs read the PRIOR bar's
+    # low/high, so a window-long flat run pinned at a wide bar's close sums zero range but non-zero movement), not
+    # only impossible ones. The near-flat residual is reported as-is, not clipped: VI+ is unbounded above, so there
+    # is no range to clip to (beyond a sane dynamic range the streaming quotient degrades -- see CORRECTNESS.md).
     range_flat = range_per_bar.rolling_max(window) == 0
     plus_flat = range_flat & (plus_per_bar.rolling_max(window) == 0)
     minus_flat = range_flat & (minus_per_bar.rolling_max(window) == 0)

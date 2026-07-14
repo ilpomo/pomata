@@ -3,8 +3,8 @@ Shared empirical-quantile helper for the tail-risk oracles.
 
 The type-7 (linear-interpolation) quantile is the de-facto Python default -- it is what ``numpy.percentile``, pandas'
 ``Series.quantile``, and Polars' ``Expr.quantile(interpolation="linear")`` all compute -- so recomputing it here from
-the textbook formula gives the tail-risk oracles (value-at-risk, conditional value-at-risk, tail ratio) one independent
-definition to share.
+the textbook formula gives the tail-risk oracles that read a quantile (value-at-risk, tail ratio) one independent
+definition to share (the conditional value-at-risk oracle averages its tail directly and does not consume it).
 """
 
 import math

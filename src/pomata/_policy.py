@@ -17,7 +17,8 @@ class NullPolicy(Enum):
 
     SKIPPED = "skipped"  # excluded from the reduction; the result is as if the null were absent
     ABSORBED = "absorbed"  # the pointwise computation skips the null candidate entirely; no output row is nulled
-    PROPAGATES = "propagates"  # nulls at most its own output row and a one-bar lag (a pointwise map)
+    PROPAGATES = "propagates"  # nulls at most its own output row and a one-bar lag (a pointwise map, or a
+    # contracting recursion whose later rows reconverge to the clean series — parabolic_sar)
     IN_WINDOW_IS_NULL = "in_window_is_null"  # nulls every window that overlaps it, then recovers
     BRIDGED = "bridged"  # a recursion steps over it (state carries), so later rows recover
     LATCHES = "latches"  # contaminates every subsequent row

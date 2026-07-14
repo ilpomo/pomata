@@ -306,7 +306,8 @@ def bollinger_bands(
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
-        ValueError: If ``window < 1``, or if ``multiplier`` is not a finite number ``> 0``.
+        ValueError: If ``window < 1``, or if ``multiplier`` is not a finite number ``> 0`` (i.e. ``<= 0``, ``NaN``, or
+            ``±inf``).
 
     Note:
         **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on

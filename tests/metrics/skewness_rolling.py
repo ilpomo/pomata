@@ -15,9 +15,11 @@ def _windows_well_conditioned(frame: pl.DataFrame) -> bool:
     Reject a near-constant CURRENT window: the standardized moment is a 0/0 the one- and two-pass paths resolve
     apart, the same genuine degeneracy the reducing skewness filters. This predicate cannot see failures rooted in
     a PAST window — a stale residue in the incremental kernel's running sums after a large value exits the buffer
-    (the same leak as kurtosis_rolling, one power lower: ratio**3) — which the kernel recomputes exactly; that
-    regime is witnessed by the moderate_outlier_exit pin below, so the filter's stated reason matches what it
-    actually guards.
+    (the native kernels' own defect, pola-rs/polars#28290, fixed upstream in #28309; the same leak as
+    kurtosis_rolling, one power lower: ratio**3) — which the kernel recomputes exactly for exits more than one order
+    of magnitude above the window's scale; a smaller exit onto a window whose spread sits under the conditioning
+    floor is the untested tail of that upstream defect. The guarded regime is witnessed by the moderate_outlier_exit
+    pin below.
     """
     return windows_well_conditioned(frame.to_series(0).to_list(), 4)
 

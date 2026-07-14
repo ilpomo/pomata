@@ -42,7 +42,9 @@ number is chosen, not guessed — and enforced:
 - **It sits far above the noise floor.** A `float64` holds ~16 figures; honest rounding between the streaming
   implementation and the two-pass oracle lands around `1e-15`. `1e-10` is five orders above that — tight enough to
   reject any real coding error, loose enough that a last-bit difference never flakes the suite.
-- **It is verified, not asserted.** The property tier holds every indicator to `1e-10` across the full random domain.
+- **It is verified, not asserted.** The property tier holds every indicator to `1e-10` across the full random domain
+  — except the one-pass rolling family (thirteen indicators whose sliding sums round differently from a fresh
+  two-pass recompute), held to the per-family `1e-6` band each spec declares.
   In practice the agreement is *far* tighter: about **half the outputs match the oracle to the last bit** (a relative
   difference of exactly zero), and the rest land at the noise floor — typically thirteen to fifteen figures, never
   fewer than the promised ten.
@@ -142,10 +144,16 @@ conditioning predicts — not a round number:
 * - scale
   - `1e-6`
   - degree-1 / degree-2 homogeneity under rescaling
+* - rolling-vs-oracle
+  - `1e-6`
+  - a one-pass rolling statistic against its recompute-per-window two-pass oracle, declared per spec
 * - streaming
   - `1e-3`
   - a streaming statistic evaluated at an extreme magnitude
 ```
+
+Two magnitude-relative factors complete the ladder, sizing an absolute floor to the data (`input_scale ** degree *
+factor`) where a fixed band would be wrong at the extremes — see `tests/support/tolerances.py` for their derivation.
 
 ## Re-run it yourself
 

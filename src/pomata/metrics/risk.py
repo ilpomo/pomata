@@ -104,7 +104,12 @@ def _rolling_moment(
         # ~2^-52 * ratio^k for the k-th moment: at the kurtosis' k = 4, a ratio of 1e2 already leaves ~2e-8 — above
         # the 1e-9 absolute band the suite guarantees for these O(1) outputs — so the trigger sits at 1e1, keeping
         # ~2e-12 (three orders of margin) at the boundary. Flagged windows are recomputed exactly; clean series never
-        # leave the native fast path.
+        # leave the native fast path. The residue class is the native kernels' own stale-accumulator defect
+        # (pola-rs/polars#28290, fixed upstream in #28309): once the polars floor includes that fix, this recompute
+        # pass can be dropped. Below the trigger, an exit of at most one order of magnitude onto a window whose own
+        # spread has collapsed under the suite's conditioning floor can still leave a wrong finite moment — that
+        # regime is the tail of the same upstream defect, sits outside the fuzz-tested domain, and is inherited, not
+        # guarded, here.
         deque_indices: deque[int] = deque()
         prefix_scale = 0.0
         for index, value in enumerate(values):
