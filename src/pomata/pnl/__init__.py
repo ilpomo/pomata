@@ -15,9 +15,9 @@ One question (what is my P&L?), answered by TWO flows; pick the one that matches
   ``pnl_gross`` -> (subtract composable costs) -> ``pnl_net`` -> ``cumulative_pnl`` (the additive currency total).
 
 Decision rule: think in **weights + returns** -> the ``returns_*`` flow; think in **quantities + prices** -> the
-``pnl_*`` flow. The split is by unit (a fraction vs a currency amount), which is also the flow. Either flow ends in the
-series the metrics family reads directly: the return flow's ``returns_net`` / ``equity_curve``, the cash flow's
-``pnl_net`` / ``cumulative_pnl``.
+``pnl_*`` flow. The split is by unit (a fraction vs a currency amount), which is also the flow. The return flow ends in
+exactly the series the metrics family consumes — ``returns_net`` / ``equity_curve`` — while the cash flow ends in the
+currency series to book and inspect: ``pnl_net`` / ``cumulative_pnl``.
 
 Every function is a free-standing ``pl.Expr`` factory: compose it in ``select`` / ``with_columns``, eager or lazy, on a
 single series or a long panel via ``.over(...)``. To express a cost or convert PnL to your account currency, just

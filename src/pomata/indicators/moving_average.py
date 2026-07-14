@@ -380,7 +380,7 @@ def hma(
     validate_window(window, minimum=2)
     # Period reductions round half UP (floor(x + 0.5)), not Python's round (half-to-even); they differ on the
     # half-period for odd windows. Composed from ``wma``, not a weighted ``rolling_mean``, whose kernel panics on null
-    # inputs ("weights not yet supported...", polars 1.41.2) and would break null propagation.
+    # inputs across the supported polars range ("weights not yet supported...") and would break null propagation.
     half_window = math.floor(window / 2 + 0.5)
     smoothing_window = math.floor(math.sqrt(window) + 0.5)
     raw_expr = 2 * wma(expr, half_window) - wma(expr, window)
@@ -630,8 +630,8 @@ def rma(
     expr = float64_expr(expr)
     validate_window(window)
     if window == 1:
-        # alpha=1 => identity; avoids ewm catastrophic cancellation on tiny values (``expr`` is already ``Float64``
-        # from ``float64_expr`` above).
+        # alpha=1 => identity; short-circuits the seeded map_batches kernel for the trivial case (``expr`` is already
+        # ``Float64`` from ``float64_expr`` above).
         return (expr).name.keep()
     return (_seeded_recursive_mean(expr, 1.0 / window, window)).name.keep()
 
@@ -1247,7 +1247,7 @@ def wma(
     expr = float64_expr(expr)
     validate_window(window)
     # Shifted, linearly-weighted terms over the constant weight sum n(n+1)/2 — not `rolling_mean(weights=)`, whose
-    # kernel panics on null inputs ("weights not yet supported...", polars 1.41.2).
+    # kernel panics on null inputs across the supported polars range ("weights not yet supported...").
     # The shift form propagates null/NaN like the SMA and is numerically identical on clean data.
     weight_total = window * (window + 1) / 2
     weighted_terms = expr * window

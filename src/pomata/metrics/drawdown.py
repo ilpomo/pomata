@@ -43,8 +43,8 @@ def conditional_drawdown_at_risk(
 
     Args:
         equity_curve: Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive.
-        confidence: The tail confidence level in the open interval ``(0, 1)`` (canonically ``0.95``); the mean is taken
-            over the worst ``1 - confidence`` of drawdowns.
+        confidence: The tail confidence level (canonically ``0.95``); the mean is taken over the worst
+            ``1 - confidence`` of drawdowns. Must be in the open interval ``(0, 1)``.
 
     Returns:
         A single ``Float64`` value: the conditional drawdown at risk (one value in ``select``, one per group under

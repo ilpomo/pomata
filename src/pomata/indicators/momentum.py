@@ -1554,7 +1554,8 @@ def rsi_stochastic(
         **Composition:**
 
         Built from :func:`rsi` (whose recursive Wilder seeding it inherits — see that function's ``Seeding`` note),
-        then the %K range ratio, then the :func:`sma` of %K, so every stage's warm-up and null / NaN handling stacks.
+        then the %K range ratio, then the :func:`sma` of %K, so every stage's warm-up and ``null`` / ``NaN`` handling
+        stacks.
 
         **Edge-case behavior:**
 
