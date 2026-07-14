@@ -29,6 +29,13 @@ STABILITY = Spec(
             reason="one observation has no dispersion; the regression needs two points",
         ),
         SpecPin(
+            label="lone_nan_poisons",
+            inputs={"returns": (math.nan,)},
+            expected=(math.nan,),
+            reason="a NaN poisons the result even when it is the only observation — the poison guard wins over the "
+            "two-point count guard, exactly as in the cagr / total_return siblings",
+        ),
+        SpecPin(
             label="constant_is_one",
             inputs={"returns": (0.01, 0.01, 0.01, 0.01)},
             expected=(1.0,),

@@ -12,15 +12,16 @@ def stability_reference(returns: Sequence[float | None]) -> float | None:
 
     The coefficient of determination of an ordinary-least-squares fit of the cumulative log returns on time, recomputed
     from scratch as the oracle for :func:`pomata.metrics.stability` (``R**2 = corr(t, cumulative_log)**2``). ``None``
-    returns are skipped and the time index runs over the retained observations; with fewer than two the result is
-    ``None``; a ``nan`` anywhere, or a return at or below ``-1`` (undefined log), poisons the result to ``nan``; a
-    perfectly flat cumulative path gives ``nan``.
+    returns are skipped and the time index runs over the retained observations; a ``nan`` anywhere poisons the result
+    to ``nan``, even as the only observation (the poison wins over the count guard, as in the cagr / total_return
+    siblings); with fewer than two the result is ``None``; a return at or below ``-1`` (undefined log) poisons the
+    result to ``nan``; a perfectly flat cumulative path gives ``nan``.
     """
     observations = [value for value in returns if value is not None]
-    if len(observations) < 2:
-        return None
     if any(math.isnan(value) for value in observations):
         return math.nan
+    if len(observations) < 2:
+        return None
     if any(value <= -1.0 for value in observations):
         return math.nan
     cumulative: list[float] = []
