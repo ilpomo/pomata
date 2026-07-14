@@ -32,12 +32,12 @@ MODIGLIANI_RISK_ADJUSTED_PERFORMANCE = Spec(
     # then sharpe(returns) * volatility(benchmark), a degree-0 ratio times a degree-1 dispersion — the same
     # default-scoped axis convention as downside_deviation's "at threshold=0". A non-zero rate breaks it.
     scale=(ScaleAxis(roles=("returns", "benchmark"), degree=1),),
+    golden_params={"risk_free_rate": 0.02},
     golden_input={
         "returns": (0.012, -0.008, 0.02, -0.015, 0.005, 0.0, -0.02, 0.018),
         "benchmark": (0.01, -0.006, 0.018, -0.012, 0.004, 0.002, -0.018, 0.015),
     },
     golden_output=(0.3274,),
-    golden_params={"risk_free_rate": 0.02},
     component_expr=_modigliani_component,
     pins=(
         SpecPin(

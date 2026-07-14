@@ -76,12 +76,12 @@ TREYNOR_RATIO_ROLLING = Spec(
     # the linear annualization is degree-1 over a degree-0 rolling slope, per window — mirroring the reducing twin's
     # default-scoped axis (downside_deviation's "at threshold=0" convention). A non-zero rate breaks it.
     scale=(ScaleAxis(roles=("returns", "benchmark"), degree=1),),
+    golden_params={"window": 4, "periods_per_year": 252},
     golden_input={
         "returns": (0.02, -0.01, 0.03, -0.02, 0.015, 0.005, -0.01, 0.02),
         "benchmark": (0.015, -0.008, 0.025, -0.015, 0.01, 0.004, -0.012, 0.018),
     },
     golden_output=(None, None, None, 0.9993, 0.7483, 1.4938, -0.5003, 1.8295),
-    golden_params={"window": 4, "periods_per_year": 252},
     pins=(
         SpecPin(
             label="null_in_constant_benchmark_window",

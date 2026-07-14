@@ -20,12 +20,12 @@ PERCENTAGE_PRICE_OSCILLATOR = Spec(
         ({"window_fast": 5, "window_slow": 3}, r"windows must be ordered window_fast <= window_slow"),
     ),
     oracle=percentage_price_oscillator_reference,
-    # PPO normalizes the EMA difference by the slow EMA, so it is scale-INVARIANT, degree 0
-    #
-    scale=(ScaleAxis(roles=("price",), degree=0),),
     # A one-pass EMA ratio against a two-pass oracle: a magnitude-proportional band.
     oracle_rel_tol=RELATIVE_TOLERANCE_ROLLING_ORACLE,
     oracle_abs_tol=ABSOLUTE_TOLERANCE_ROLLING_ORACLE,
+    # PPO normalizes the EMA difference by the slow EMA, so it is scale-INVARIANT, degree 0
+    #
+    scale=(ScaleAxis(roles=("price",), degree=0),),
     golden_params={"window_fast": 2, "window_slow": 3},
     golden_input={"price": (10.0, 11.0, 12.0, 11.0, 13.0, 14.0, 13.0, 15.0)},
     golden_output=(None, None, 4.5455, 1.5152, 3.2407, 3.5613, 1.1871, 2.7484),

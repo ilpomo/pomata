@@ -29,13 +29,12 @@ MACD = Spec(
         ({"window_fast": 26, "window_slow": 12}, r"windows must be ordered window_fast <= window_slow"),
     ),
     oracle=macd_reference,
-    # Every field is a difference/EMA of the price, homogeneous of degree 1.
-    scale=(ScaleAxis(roles=("expr",), degree={"macd": 1, "signal": 1, "histogram": 1}),),
-    component_expr=_macd_component,
     # A one-pass EMA difference against a two-pass oracle: a magnitude-proportional band, matching every other
     # one-pass family.
     oracle_rel_tol=RELATIVE_TOLERANCE_ROLLING_ORACLE,
     oracle_abs_tol=ABSOLUTE_TOLERANCE_ROLLING_ORACLE,
+    # Every field is a difference/EMA of the price, homogeneous of degree 1.
+    scale=(ScaleAxis(roles=("expr",), degree={"macd": 1, "signal": 1, "histogram": 1}),),
     golden_params={"window_fast": 2, "window_slow": 3, "window_signal": 2},
     golden_input={"expr": (10.0, 11.0, 12.0, 11.0, 13.0, 14.0, 13.0, 15.0)},
     golden_output={
@@ -43,6 +42,7 @@ MACD = Spec(
         "signal": (None, None, None, 0.3333, 0.3704, 0.4321, 0.2469, 0.3388),
         "histogram": (None, None, None, -0.1667, 0.0185, 0.0309, -0.0926, 0.046),
     },
+    component_expr=_macd_component,
     pins=(
         SpecPin(
             label="fast_equals_slow_is_zero",

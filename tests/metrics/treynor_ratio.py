@@ -69,12 +69,12 @@ TREYNOR_RATIO = Spec(
     # annualization mean(r) * P is degree-1 and the slope cov/var is degree-0, so the quotient rides the scale — the
     # same default-scoped axis convention as downside_deviation's "at threshold=0". A non-zero rate breaks it.
     scale=(ScaleAxis(roles=("returns", "benchmark"), degree=1),),
+    golden_params={"risk_free_rate": 0.02},
     golden_input={
         "returns": (0.012, -0.008, 0.02, -0.015, 0.005, 0.0, -0.02, 0.018),
         "benchmark": (0.01, -0.006, 0.018, -0.012, 0.004, 0.002, -0.018, 0.015),
     },
     golden_output=(0.3083,),
-    golden_params={"risk_free_rate": 0.02},
     component_expr=_treynor_component,
     pins=(
         SpecPin(

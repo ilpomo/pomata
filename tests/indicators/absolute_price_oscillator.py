@@ -18,11 +18,11 @@ ABSOLUTE_PRICE_OSCILLATOR = Spec(
         ({"window_fast": 5, "window_slow": 3}, r"windows must be ordered window_fast <= window_slow"),
     ),
     oracle=absolute_price_oscillator_reference,
-    # A difference of two EMAs, each linear in the price.
-    scale=(ScaleAxis(roles=("expr",), degree=1),),
     # A one-pass EMA difference against a two-pass oracle: a magnitude-proportional band.
     oracle_rel_tol=RELATIVE_TOLERANCE_ROLLING_ORACLE,
     oracle_abs_tol=ABSOLUTE_TOLERANCE_ROLLING_ORACLE,
+    # A difference of two EMAs, each linear in the price.
+    scale=(ScaleAxis(roles=("expr",), degree=1),),
     golden_input={"expr": (10.0, 11.0, 12.0, 11.0, 13.0, 14.0, 13.0, 15.0)},
     golden_output=(None, None, 0.5, 0.1667, 0.3889, 0.463, 0.1543, 0.3848),
     pins=(

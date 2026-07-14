@@ -26,9 +26,9 @@ ULCER_PERFORMANCE_RATIO = Spec(
         reason="a normalized growth-factor curve run through CAGR over a scale-invariant ulcer index — neither "
         "invariant nor homogeneous"
     ),
+    golden_params={"periods_per_year": 1},
     golden_input={"equity_curve": (1.1, 1.05, 1.2, 1.15, 1.3, 1.25, 1.4)},
     golden_output=(1.7927,),
-    golden_params={"periods_per_year": 1},
     component_expr=lambda: (
         (cagr(pl.col("equity_curve"), periods_per_year=252) - 0.0) / ulcer_index(pl.col("equity_curve"))
     ),
