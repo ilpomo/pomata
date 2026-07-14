@@ -48,19 +48,22 @@ jobs:
           fetch-depth: 2 # Codecov reads the parent commit for an accurate PR coverage comparison
           persist-credentials: false
       # Fail closed if the single uv pin drifts: the composite action's `version:` input and the uv-pre-commit hook rev
-      # must stay identical (Dependabot bumps the hook rev but cannot touch the action input).
+      # must stay identical (Dependabot bumps the hook rev but cannot touch the action input). The extraction captures
+      # the FULL dotted string and compares it whole: a truncating X.Y.Z prefix match would read 0.11.26.1 and 0.11.26
+      # as equal and wave the drift through.
       - name: "Guard: uv pin in step (composite action == pre-commit hook)"
         run: |
-          action_uv=$(grep -oE 'version: "[0-9.]+"' .github/actions/setup/action.yml | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
-          hook_uv=$(grep -A1 'astral-sh/uv-pre-commit' .pre-commit-config.yaml | grep -oE 'rev: [0-9.]+' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+          action_uv=$(grep -oE '^ +version: "[0-9]+(\.[0-9]+)*"' .github/actions/setup/action.yml | sed -E 's/.*"([0-9.]+)"/\1/')
+          hook_uv=$(grep -A1 'astral-sh/uv-pre-commit' .pre-commit-config.yaml | grep -oE 'rev: [0-9]+(\.[0-9]+)*' | sed 's/rev: //')
           [ -n "$action_uv" ] && [ "$action_uv" = "$hook_uv" ] || { echo "uv pin drift: action=$action_uv pre-commit=$hook_uv"; exit 1; }
       # Fail closed if the ruff pin drifts: the locked ruff (uv.lock) and the ruff-pre-commit hook rev must stay
       # identical -- Dependabot bumps them through two separate ecosystems (uv, pre-commit) that cannot see each other,
       # so without this guard the local hook and CI's ruff could lint different rule sets silently.
+      # Same full-string discipline as the uv guard above: anchored extraction, whole-value comparison.
       - name: "Guard: ruff pin in step (uv.lock == pre-commit hook)"
         run: |
-          lock_ruff=$(grep -A1 '^name = "ruff"$' uv.lock | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
-          hook_ruff=$(grep -A1 'astral-sh/ruff-pre-commit' .pre-commit-config.yaml | grep -oE 'rev: v[0-9.]+' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+          lock_ruff=$(grep -A1 '^name = "ruff"$' uv.lock | grep -oE '^version = "[0-9]+(\.[0-9]+)*"' | head -1 | sed -E 's/.*"([0-9.]+)"/\1/')
+          hook_ruff=$(grep -A1 'astral-sh/ruff-pre-commit' .pre-commit-config.yaml | grep -oE 'rev: v[0-9]+(\.[0-9]+)*' | sed 's/rev: v//')
           [ -n "$lock_ruff" ] && [ "$lock_ruff" = "$hook_ruff" ] || { echo "ruff pin drift: uv.lock=$lock_ruff pre-commit=$hook_ruff"; exit 1; }
       - name: "Setup: install uv"
         uses: ./.github/actions/setup

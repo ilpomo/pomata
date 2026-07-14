@@ -26,7 +26,8 @@ defaults:
   run:
     shell: bash
 
-# Skip uv's implicit per-run sync: each job's explicit `uv sync` installs exactly the lean group set.
+# Skip uv's implicit per-run sync: each dependency-installing job's explicit `uv sync` installs exactly the lean
+# group set (the zizmor job runs `uvx` alone and needs no project dependencies).
 env:
   UV_NO_SYNC: "1"
 
