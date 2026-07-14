@@ -78,7 +78,9 @@ _SPEC_ROLE_BUILDERS: dict[str, Callable[[int], list[float]]] = {
     # varied, well-defined baseline instead (rsi_stochastic).
     "wave": lambda n: [100.0 + 10.0 * math.sin(0.7 * float(i)) for i in range(n)],
     "price": lambda n: [float(i) + 10.0 for i in range(n)],
-    "equity_curve": lambda n: [100.0 * (1.02 ** float(i)) for i in range(n)],
+    # A strictly-positive compounding path whose step is small enough that the benchmark tier's 100k / 1M-row frames
+    # stay far below the float64 ceiling (1.0001 ** n overflows only past ~7.1M rows; 1.02 ** n blows up at ~35.7k).
+    "equity_curve": lambda n: [100.0 * (1.0001 ** float(i)) for i in range(n)],
     "returns": lambda n: [0.01 if i % 2 == 0 else -0.005 for i in range(n)],
     "benchmark": lambda n: [0.008 if i % 2 == 0 else -0.004 for i in range(n)],
     "asset_returns": lambda n: [0.01 if i % 2 == 0 else -0.005 for i in range(n)],
