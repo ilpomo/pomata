@@ -1,11 +1,11 @@
-"""Spec for ``pomata.metrics.treynor_ratio`` — reducing, annualized excess return per unit of beta, scale-exempt."""
+"""Spec for ``pomata.metrics.treynor_ratio`` — reducing, annualized excess return per unit of beta, degree-1 at rf=0."""
 
 import math
 from collections.abc import Sequence
 
 import polars as pl
 from tests.metrics.oracles import treynor_ratio_reference
-from tests.support.spec import ScaleExempt, Shape, Spec, SpecPin
+from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import beta, treynor_ratio
 
@@ -65,12 +65,10 @@ TREYNOR_RATIO = Spec(
     ),
     oracle=treynor_ratio_reference,
     conditioning=_treynor_conditioning,
-    # An annualized excess return divided by a regression slope — neither scale-homogeneous nor scale-invariant
-    #
-    scale=ScaleExempt(
-        reason="an annualized excess return divided by a regression slope — neither scale-homogeneous nor "
-        "scale-invariant"
-    ),
+    # Degree-1 homogeneous in a joint returns/benchmark rescale at risk_free_rate=0 (the spec's params): the linear
+    # annualization mean(r) * P is degree-1 and the slope cov/var is degree-0, so the quotient rides the scale — the
+    # same default-scoped axis convention as downside_deviation's "at threshold=0". A non-zero rate breaks it.
+    scale=(ScaleAxis(roles=("returns", "benchmark"), degree=1),),
     golden_input={
         "returns": (0.012, -0.008, 0.02, -0.015, 0.005, 0.0, -0.02, 0.018),
         "benchmark": (0.01, -0.006, 0.018, -0.012, 0.004, 0.002, -0.018, 0.015),

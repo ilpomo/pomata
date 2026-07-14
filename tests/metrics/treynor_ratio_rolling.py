@@ -1,4 +1,4 @@
-"""Spec for ``pomata.metrics.treynor_ratio_rolling`` — annualized excess return per rolling beta, scale-exempt."""
+"""Spec for ``pomata.metrics.treynor_ratio_rolling`` — annualized excess return per rolling beta, degree-1 at rf=0."""
 
 import math
 from collections.abc import Sequence
@@ -6,7 +6,7 @@ from collections.abc import Sequence
 import polars as pl
 from tests.metrics.oracles import treynor_ratio_rolling_reference
 from tests.support import RELATIVE_TOLERANCE_ROLLING_ORACLE
-from tests.support.spec import ScaleExempt, Shape, Spec, SpecPin
+from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import treynor_ratio_rolling
 
@@ -72,11 +72,10 @@ TREYNOR_RATIO_ROLLING = Spec(
     oracle=treynor_ratio_rolling_reference,
     conditioning=_treynor_conditioning,
     oracle_rel_tol=RELATIVE_TOLERANCE_ROLLING_ORACLE,
-    # An annualized excess return over a rolling slope — neither scale-homogeneous nor scale-invariant, mirroring the
-    # reducing treynor_ratio twin (verified numerically).
-    scale=ScaleExempt(
-        reason="an annualized excess return over a rolling slope — neither scale-homogeneous nor scale-invariant"
-    ),
+    # Degree-1 homogeneous in a joint returns/benchmark rescale at the default risk_free_rate=0 (the params omit it):
+    # the linear annualization is degree-1 over a degree-0 rolling slope, per window — mirroring the reducing twin's
+    # default-scoped axis (downside_deviation's "at threshold=0" convention). A non-zero rate breaks it.
+    scale=(ScaleAxis(roles=("returns", "benchmark"), degree=1),),
     golden_input={
         "returns": (0.02, -0.01, 0.03, -0.02, 0.015, 0.005, -0.01, 0.02),
         "benchmark": (0.015, -0.008, 0.025, -0.015, 0.01, 0.004, -0.012, 0.018),

@@ -85,7 +85,9 @@ _SPEC_ROLE_BUILDERS: dict[str, Callable[[int], list[float]]] = {
     "benchmark": lambda n: [0.008 if i % 2 == 0 else -0.004 for i in range(n)],
     "asset_returns": lambda n: [0.01 if i % 2 == 0 else -0.005 for i in range(n)],
     "weight": lambda n: [0.5 + 0.01 * float(i) for i in range(n)],
-    "quantity": lambda n: [10.0 + float(i % 3) for i in range(n)],
+    # Alternating long/short so the short-only branches (cost_borrow's max(-q, 0)) meet real shorts on the probe:
+    # an all-positive quantity would leave them identically zero and their scale axes vacuously green.
+    "quantity": lambda n: [(-1.0) ** i * (10.0 + float(i % 3)) for i in range(n)],
     "cost": lambda n: [0.1 for _ in range(n)],
     "dividend_per_share": lambda n: [0.05 for _ in range(n)],
     "returns_gross": lambda n: [0.01 if i % 2 == 0 else -0.005 for i in range(n)],
@@ -430,10 +432,12 @@ def _finite(low: float, high: float) -> st.SearchStrategy[float]:
 
 
 # Per-role element domains for the multi-input fuzz vocabulary: each column of an input frame is drawn independently
-# from the domain its role lives in — positive for a quantity or a price, a bounded weight, a modest return or funding
-# rate, a non-negative cost or dividend — so a multi-input factory meets its oracle on well-conditioned inputs.
+# from the domain its role lives in — a signed quantity (long and short), a positive price, a bounded weight, a modest
+# return or funding rate, a non-negative cost or dividend — so a multi-input factory meets its oracle on
+# well-conditioned inputs.
 _FUZZ_ELEMENT: dict[str, st.SearchStrategy[float]] = {
-    "quantity": _finite(1e-3, 1e6),
+    # Signed and bounded away from zero on both sides, so the short-only branches are fuzzed too.
+    "quantity": st.one_of(_finite(1e-3, 1e6), _finite(-1e6, -1e-3)),
     "price": _finite(1e-3, 1e6),
     "weight": _finite(-1.5, 1.5),
     "asset_returns": _finite(-0.5, 0.5),
