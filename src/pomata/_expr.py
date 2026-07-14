@@ -117,9 +117,12 @@ def rolling_mean_exact(
     Returns:
         The rolling mean, exact on bit-constant windows, ``null`` while the window is incomplete.
     """
+    # The constancy test inlines :func:`rolling_is_constant` (``rolling_max == rolling_min``, exact, same
+    # NaN-grouping caveat) so the window minimum is computed once and reused as the exact fill value.
+    low = expr.rolling_min(window, min_samples=window)
     return (
-        pl.when(rolling_is_constant(expr, window))
-        .then(expr.rolling_min(window, min_samples=window))
+        pl.when(expr.rolling_max(window, min_samples=window) == low)
+        .then(low)
         .otherwise(expr.rolling_mean(window, min_samples=window))
     )
 

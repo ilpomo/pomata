@@ -33,7 +33,7 @@ def _money_flow_volume(
     """
     high_low_range = high - low
     money_flow_multiplier = (
-        pl.when(high_low_range == 0).then(pl.lit(0.0)).otherwise(((close - low) - (high - close)) / high_low_range)
+        pl.when(high_low_range == 0).then(0.0).otherwise(((close - low) - (high - close)) / high_low_range)
     )
     return money_flow_multiplier * volume
 
@@ -440,8 +440,8 @@ def chaikin_money_flow(
     close = float64_expr(close)
     volume = float64_expr(volume)
     validate_window(window)
-    weighted_sum = _money_flow_volume(high, low, close, volume).rolling_sum(window_size=window)
-    raw = weighted_sum / volume.rolling_sum(window_size=window)
+    weighted_sum = _money_flow_volume(high, low, close, volume).rolling_sum(window)
+    raw = weighted_sum / volume.rolling_sum(window)
     # A window whose volume is all zero is the 0/0 degenerate: detect it exactly via the rolling maximum of the absolute
     # volume (which is exactly 0 only when every volume in the window is 0), so a sub-ULP residual left in the rolling
     # sum cannot fake a finite or infinite reading, and return NaN as documented. The ``& weighted_sum.is_not_null()``
@@ -449,7 +449,7 @@ def chaikin_money_flow(
     # volume's rolling maximum is still ``0``, so such a window stays ``null`` rather than taking the guard's ``NaN``.
     # The clip pins the bound: the ratio is mathematically in [-1, 1] (so is the multiplier), so past a sane dynamic
     # range a residual-dominated near-zero-volume window degrades but stays in range (see CORRECTNESS.md).
-    is_zero_volume = (volume.abs().rolling_max(window_size=window) == 0) & weighted_sum.is_not_null()
+    is_zero_volume = (volume.abs().rolling_max(window) == 0) & weighted_sum.is_not_null()
     return pl.when(is_zero_volume).then(float("nan")).otherwise(raw.clip(-1.0, 1.0)).name.keep()
 
 
@@ -606,23 +606,23 @@ def money_flow_index(
     change_is_nan = typical_change.is_nan()
     positive_flow = (
         pl.when(change_is_nan)
-        .then(pl.lit(float("nan")))
+        .then(float("nan"))
         .when(typical_change > 0.0)
         .then(raw_money_flow)
         .when(typical_change <= 0.0)
-        .then(pl.lit(0.0))
+        .then(0.0)
         .otherwise(None)
     )
     negative_flow = (
         pl.when(change_is_nan)
-        .then(pl.lit(float("nan")))
+        .then(float("nan"))
         .when(typical_change < 0.0)
         .then(raw_money_flow)
         .when(typical_change >= 0.0)
-        .then(pl.lit(0.0))
+        .then(0.0)
         .otherwise(None)
     )
-    money_ratio = positive_flow.rolling_sum(window_size=window) / negative_flow.rolling_sum(window_size=window)
+    money_ratio = positive_flow.rolling_sum(window) / negative_flow.rolling_sum(window)
     index = 100.0 - 100.0 / (1.0 + money_ratio)
     # Degenerate windows, detected exactly via residual-free rolling maxima of the CHANGES (never the incremental
     # flow sums, which can keep a sub-ULP residual after large flows slide out and fake a near-saturated reading):
@@ -632,9 +632,9 @@ def money_flow_index(
     # null-precedence and NaN-poisoning above are unchanged. The clip pins the [0, 100] bound for the mixed windows:
     # beyond a sane dynamic range a residual-dominated near-flat window degrades but stays in range rather than
     # escaping (see CORRECTNESS.md).
-    is_flat = typical_change.abs().rolling_max(window_size=window) == 0
-    no_negative_change = (-typical_change).clip(lower_bound=0.0).rolling_max(window_size=window) == 0
-    no_positive_change = typical_change.clip(lower_bound=0.0).rolling_max(window_size=window) == 0
+    is_flat = typical_change.abs().rolling_max(window) == 0
+    no_negative_change = (-typical_change).clip(lower_bound=0.0).rolling_max(window) == 0
+    no_positive_change = typical_change.clip(lower_bound=0.0).rolling_max(window) == 0
     # The saturation overrides require a finite quotient: a null / NaN volume keeps its lane's flow (and so the
     # index) null / NaN, the condition reads false, and the missing value falls through and propagates unchanged.
     return (

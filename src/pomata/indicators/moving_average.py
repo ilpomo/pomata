@@ -710,7 +710,7 @@ def sma(
     """
     expr = float64_expr(expr)
     validate_window(window)
-    return (expr.rolling_mean(window_size=window)).name.keep()
+    return (expr.rolling_mean(window)).name.keep()
 
 
 def t3(
@@ -1156,14 +1156,14 @@ def vwma(
     expr = float64_expr(expr)
     volume = float64_expr(volume)
     validate_window(window)
-    weighted_sum = (expr * volume).rolling_sum(window_size=window)
-    raw = weighted_sum / volume.rolling_sum(window_size=window)
+    weighted_sum = (expr * volume).rolling_sum(window)
+    raw = weighted_sum / volume.rolling_sum(window)
     # An all-zero-volume window is the 0/0 degenerate: detect it exactly via the rolling maximum of the absolute
     # volume (which is exactly 0 only when every volume in the window is 0), so a sub-ULP residual in the rolling-sum
     # numerator cannot fake a ±inf reading, and return NaN as documented. Gate on the weighted-sum being non-null so a
     # null in expr (which voids that sum) keeps null precedence: a window holding a null still propagates null through
     # the division.
-    is_zero_volume = (volume.abs().rolling_max(window_size=window) == 0) & weighted_sum.is_not_null()
+    is_zero_volume = (volume.abs().rolling_max(window) == 0) & weighted_sum.is_not_null()
     return pl.when(is_zero_volume).then(float("nan")).otherwise(raw).name.keep()
 
 

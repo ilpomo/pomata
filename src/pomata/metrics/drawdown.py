@@ -116,7 +116,7 @@ def conditional_drawdown_at_risk(
     tail_mean = (weight * declines).sum() / weight.sum()
     # An empty (or all-null) series has ``weight.sum() == 0``; report ``null`` rather than the ``0 / 0`` NaN.
     tail_mean = pl.when(count == 0).then(pl.lit(None, dtype=pl.Float64)).otherwise(tail_mean)
-    return pl.when(equity_curve.is_nan().any()).then(pl.lit(float("nan"))).otherwise(tail_mean).name.keep()
+    return pl.when(equity_curve.is_nan().any()).then(float("nan")).otherwise(tail_mean).name.keep()
 
 
 def drawdown(
@@ -351,7 +351,7 @@ def max_drawdown(
     """
     equity_curve = float64_expr(equity_curve)
     declines = drawdown(equity_curve)
-    return pl.when(equity_curve.is_nan().any()).then(pl.lit(float("nan"))).otherwise(declines.min()).name.keep()
+    return pl.when(equity_curve.is_nan().any()).then(float("nan")).otherwise(declines.min()).name.keep()
 
 
 def max_drawdown_duration(
@@ -430,7 +430,7 @@ def max_drawdown_duration(
     running = underwater.cum_sum()
     reset = pl.when(~underwater).then(running).otherwise(None).forward_fill()
     longest = (running - reset).max().cast(pl.Float64)
-    return pl.when(equity_curve.is_nan().any()).then(pl.lit(float("nan"))).otherwise(longest).name.keep()
+    return pl.when(equity_curve.is_nan().any()).then(float("nan")).otherwise(longest).name.keep()
 
 
 def pain_index(
