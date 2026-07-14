@@ -47,5 +47,13 @@ OMEGA_RATIO = Spec(
             expected=(math.nan,),
             reason="returns all exactly at the threshold give 0/0, so the ratio is NaN ",
         ),
+        SpecPin(
+            label="matches_reference_with_threshold",
+            inputs={"returns": (0.01, -0.02, 0.03, -0.01, 0.02)},
+            params_override={"threshold": 0.01},
+            expected=(0.6,),
+            reason="agreement at a non-default threshold — the shifted-gain/loss split every other tier leaves at "
+            "the 0.0 default, mirroring the rolling twin's pin",
+        ),
     ),
 )

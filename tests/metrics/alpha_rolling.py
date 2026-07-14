@@ -48,8 +48,8 @@ ALPHA_ROLLING = Spec(
         "returns": (0.02, -0.01, 0.03, -0.02, 0.015, 0.005, -0.01, 0.02),
         "benchmark": (0.015, -0.008, 0.025, -0.015, 0.01, 0.004, -0.012, 0.018),
     },
-    golden_params={"window": 4, "periods_per_year": 252},
     golden_output=(None, None, None, -0.0864, -0.0096, -0.0227, 0.4932, 0.7998),
+    golden_params={"window": 4, "periods_per_year": 252},
     pins=(
         SpecPin(
             label="null_in_window_is_null",

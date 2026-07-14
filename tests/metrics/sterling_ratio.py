@@ -43,5 +43,14 @@ STERLING_RATIO = Spec(
             "(the excess cushion keeps the denominator finite) "
             "",
         ),
+        SpecPin(
+            label="cushioned_no_drawdown_is_finite",
+            inputs={"equity_curve": (1.0, 1.1, 1.21)},
+            params_override={"periods_per_year": 1},
+            expected=(0.656022367666107,),
+            reason="a monotonically rising curve stays FINITE here — the excess cushion keeps the denominator "
+            "positive where the cushion-less burke / calmar / pain / recovery / ulcer_performance twins diverge "
+            "to +inf: sterling's distinguishing behavior, pinned like the twins pin theirs",
+        ),
     ),
 )

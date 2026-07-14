@@ -32,5 +32,21 @@ VARIANCE_EWMA = Spec(
             reason="an interior null ages the lag of 10 while contributing no term; at the last defined row the "
             "ignore_nulls=False weights reduce to 1:2:3:6, giving variance 107/144",
         ),
+        SpecPin(
+            label="golden_master_adjusted",
+            inputs={"price": (10.0, 11.0, 13.0, 12.0, 14.0)},
+            params_override={"window": 3, "adjust": True},
+            expected=(None, None, 1.4285714285714286, 0.6666666666666666, 1.3215400624349636),
+            reason="the frozen golden under adjust=True (the finite-window unbiased weighting), the second EWM-mode "
+            "branch a single canonical golden cannot carry — mirroring the ema family's adjusted pin",
+        ),
+        SpecPin(
+            label="sample_variance_bias_false",
+            inputs={"price": (10.0, 11.0, 13.0, 12.0, 14.0)},
+            params_override={"window": 3, "bias": False},
+            expected=(None, None, 2.7, 1.3095238095238095, 2.347058823529412),
+            reason="the debiased sample variance (bias=False), the second correctness branch a single biased golden "
+            "cannot carry — mirroring variance_rolling's ddof=1 pin",
+        ),
     ),
 )

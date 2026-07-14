@@ -17,6 +17,7 @@ ICHIMOKU = Spec(
         ({"window_kijun": 0, "window_tenkan": 1}, r"window_kijun must be >= 1"),
         ({"window_senkou": 0, "window_tenkan": 1, "window_kijun": 1}, r"window_senkou must be >= 1"),
         ({"window_kijun": 5}, r"windows must be ordered window_tenkan <= window_kijun <= window_senkou"),
+        ({"window_senkou": 10}, r"windows must be ordered window_tenkan <= window_kijun <= window_senkou"),
     ),
     oracle=ichimoku_reference,
     # Every line is a windowed high-low midpoint, so all four scale linearly with the bars
