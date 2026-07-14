@@ -23,9 +23,9 @@ CAGR = Spec(
         reason="a growth factor normalized to a unit start, annualized by a fractional power — neither "
         "scale-invariant nor homogeneous"
     ),
+    golden_params={"periods_per_year": 1},
     golden_input={"equity_curve": (1.1, 1.21)},
     golden_output=(0.1,),
-    golden_params={"periods_per_year": 1},
     pins=(
         SpecPin(
             label="single_period_annualizes",

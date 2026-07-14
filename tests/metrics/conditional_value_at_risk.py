@@ -21,9 +21,9 @@ CONDITIONAL_VALUE_AT_RISK = Spec(
     oracle=conditional_value_at_risk_reference,
     # A tail mean of returns scales linearly
     scale=(ScaleAxis(roles=("returns",), degree=1),),
+    golden_params={"confidence": 0.75},
     golden_input={"returns": (0.03, -0.05, 0.02, -0.08, 0.01, -0.06, 0.04, -0.02)},
     golden_output=(-0.07,),
-    golden_params={"confidence": 0.75},
     pins=(
         SpecPin(
             label="single_row",

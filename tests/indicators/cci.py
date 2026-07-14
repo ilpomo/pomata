@@ -16,11 +16,11 @@ CCI = Spec(
     warmup=19,
     raises=(({"window": 0}, r"window must be >= 1"),),
     oracle=cci_reference,
-    # A normalized deviation from the rolling mean, scale-INVARIANT, degree 0.
-    scale=(ScaleAxis(roles=("high", "low", "close"), degree=0),),
     # A one-pass rolling mean-absolute-deviation denominator against a two-pass oracle: a magnitude-proportional band.
     oracle_rel_tol=RELATIVE_TOLERANCE_ROLLING_ORACLE,
     oracle_abs_tol=ABSOLUTE_TOLERANCE_ROLLING_ORACLE,
+    # A normalized deviation from the rolling mean, scale-INVARIANT, degree 0.
+    scale=(ScaleAxis(roles=("high", "low", "close"), degree=0),),
     golden_params={"window": 3},
     golden_input={
         "high": (10.0, 12.0, 11.0, 13.0, 15.0, 14.0, 16.0, 18.0),

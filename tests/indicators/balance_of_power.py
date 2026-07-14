@@ -13,10 +13,10 @@ BALANCE_OF_POWER = Spec(
     params={},
     shape=Shape.SERIES,
     warmup=None,
+    lands_on="close",
     oracle=balance_of_power_reference,
     # A bounded ratio in [-1, 1], scale-INVARIANT, degree 0.
     scale=(ScaleAxis(roles=("open", "high", "low", "close"), degree=0),),
-    lands_on="close",
     golden_input={
         "open": (10.0, 10.0, 10.0),
         "high": (12.0, 12.0, 12.0),

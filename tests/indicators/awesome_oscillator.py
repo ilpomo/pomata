@@ -18,11 +18,11 @@ AWESOME_OSCILLATOR = Spec(
         ({"window_fast": 5, "window_slow": 3}, r"windows must be ordered window_fast <= window_slow"),
     ),
     oracle=awesome_oscillator_reference,
-    # A difference of two SMAs of the median price, homogeneous of degree 1.
-    scale=(ScaleAxis(roles=("high", "low"), degree=1),),
     # A one-pass rolling-mean difference against a two-pass oracle: a magnitude-proportional band.
     oracle_rel_tol=RELATIVE_TOLERANCE_ROLLING_ORACLE,
     oracle_abs_tol=ABSOLUTE_TOLERANCE_ROLLING_ORACLE,
+    # A difference of two SMAs of the median price, homogeneous of degree 1.
+    scale=(ScaleAxis(roles=("high", "low"), degree=1),),
     golden_params={"window_fast": 2, "window_slow": 3},
     golden_input={"high": (2.0, 4.0, 6.0, 8.0, 10.0), "low": (0.0, 2.0, 4.0, 6.0, 8.0)},
     golden_output=(None, None, 1.0, 1.0, 1.0),

@@ -14,12 +14,12 @@ TRIX = Spec(
     warmup=4,
     raises=(({"window": 0}, r"window must be >= 1"),),
     oracle=trix_reference,
-    # A percentage rate of change of a triple EMA, scale-INVARIANT, degree 0
-    #
-    scale=(ScaleAxis(roles=("price",), degree=0),),
     # A one-pass triple-EMA ratio against a two-pass oracle: a magnitude-proportional band.
     oracle_rel_tol=RELATIVE_TOLERANCE_ROLLING_ORACLE,
     oracle_abs_tol=ABSOLUTE_TOLERANCE_ROLLING_ORACLE,
+    # A percentage rate of change of a triple EMA, scale-INVARIANT, degree 0
+    #
+    scale=(ScaleAxis(roles=("price",), degree=0),),
     golden_input={"price": (10.0, 11.0, 12.0, 11.0, 13.0, 14.0, 13.0, 15.0)},
     golden_output=(None, None, None, None, 5.4718, 7.4466, 2.989, 5.4253),
     pins=(

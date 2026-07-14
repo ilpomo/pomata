@@ -26,9 +26,9 @@ PAIN_RATIO = Spec(
         reason="a normalized growth-factor curve (excess CAGR over the average-drawdown pain index) — neither "
         "homogeneous nor invariant"
     ),
+    golden_params={"periods_per_year": 1},
     golden_input={"equity_curve": (1.1, 1.05, 1.2, 1.15, 1.3, 1.25, 1.4)},
     golden_output=(2.7447,),
-    golden_params={"periods_per_year": 1},
     component_expr=lambda: (
         (cagr(pl.col("equity_curve"), periods_per_year=252) - 0.0) / pain_index(pl.col("equity_curve"))
     ),

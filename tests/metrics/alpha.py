@@ -34,12 +34,12 @@ ALPHA = Spec(
     scale=ScaleExempt(
         reason="annualizes a return beyond a benchmark-explained baseline — neither scale-invariant nor homogeneous"
     ),
+    golden_params={"risk_free_rate": 0.02},
     golden_input={
         "returns": (0.012, -0.008, 0.02, -0.015, 0.005, 0.0, -0.02, 0.018),
         "benchmark": (0.01, -0.006, 0.018, -0.012, 0.004, 0.002, -0.018, 0.015),
     },
     golden_output=(-0.0903,),
-    golden_params={"risk_free_rate": 0.02},
     component_expr=_alpha_component,
     pins=(
         SpecPin(

@@ -26,9 +26,9 @@ BURKE_RATIO = Spec(
         reason="a normalized growth factor (CAGR) over a scale-invariant drawdown energy — neither homogeneous "
         "nor invariant"
     ),
+    golden_params={"periods_per_year": 1},
     golden_input={"equity_curve": (1.1, 1.05, 1.2, 1.15, 1.3, 1.25, 1.4)},
     golden_output=(0.6776,),
-    golden_params={"periods_per_year": 1},
     component_expr=lambda: (
         (cagr(pl.col("equity_curve"), periods_per_year=252) - 0.0)
         / (drawdown(pl.col("equity_curve")) ** 2).sum().sqrt()
