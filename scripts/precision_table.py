@@ -7,7 +7,8 @@ Run from the repo root with the differential group (TA-Lib + NumPy) installed::
 
 The deterministic 400-bar series and the ``pomata`` / reference figures are owned and pinned by
 ``tests/test_precision_table.py``; this tool reuses that series, adds the TA-Lib (C reference) column, and
-prints the two blocks that appear in ``docs/trust.md``, so the headline figures can be refreshed from a single source.
+prints the two blocks that appear in ``docs/trust.md`` — each delta a relative residual against its column's
+reference — so the headline figures can be refreshed from a single source.
 """
 
 import sys
@@ -70,18 +71,22 @@ TALIB = {
 
 
 def _vs_oracle(name: str) -> str:
-    return "exact" if POMATA[name] == ORACLE[name] else f"{abs(POMATA[name] - ORACLE[name]):.0e}"
+    if POMATA[name] == ORACLE[name]:
+        return "exact"
+    return f"{abs(POMATA[name] - ORACLE[name]) / abs(ORACLE[name]):.0e}"
 
 
 def _vs_talib(name: str) -> str:
-    return f"{abs(POMATA[name] - TALIB[name]):.0e}"
+    if POMATA[name] == TALIB[name]:
+        return "exact"
+    return f"{abs(POMATA[name] - TALIB[name]) / abs(TALIB[name]):.0e}"
 
 
 def main() -> None:
     print("rsi(14), the final value of a 400-bar series:\n")
     print(f"    pomata      {POMATA['rsi(14)']!r}")
     print(f"    oracle      {ORACLE['rsi(14)']!r}   <- independent reimplementation")
-    print(f"    TA-Lib      {TALIB['rsi(14)']!r}   <- delta {_vs_talib('rsi(14)')}")
+    print(f"    TA-Lib      {TALIB['rsi(14)']!r}   <- relative delta {_vs_talib('rsi(14)')}")
     print()
     print("| indicator | pomata | vs reimplementation | vs TA-Lib |")
     print("| --- | --- | :-: | :-: |")
