@@ -70,7 +70,7 @@ ladder each axis is a **declared field** or a **derived fact**, and a rung gates
 | `lands_on` | optional | landing column when it is not the first input |
 | `flow_horizon` | optional | rows past a missing bar the flow must have played out by |
 | `flow_deviation` | optional | a written reason the interior-missing flow is input-dependent: non-empty exempts the spec from the two flow rungs, and its flow is pinned as crafted cases instead |
-| `oracle_rel_tol` / `oracle_abs_tol` | optional | a per-spec oracle-agreement band, declared only where a one-pass rolling form cannot meet the tight default against its two-pass oracle |
+| `oracle_rel_tol` / `oracle_abs_tol` | optional | a per-spec oracle-agreement band, declared per computational family (the one-pass rolling forms, whose streaming sums round away from the two-pass oracle, and the standardized rolling moments' absolute floor) — always a named constant from `tests/support/tolerances.py`, never a literal |
 | `oracle_adapter` | optional | a frame->result callable when the oracle is not the factory's signature-mirror |
 | `conditioning` | optional | a Hypothesis `assume` filter for the property tier — allowed only together with a pin that carries `covers_conditioning=True` (see below) |
 | `all_null` | optional | a `Deviant(expected, reason)` when the all-null answer is not all-null |

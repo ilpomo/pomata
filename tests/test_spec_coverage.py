@@ -1,7 +1,7 @@
 """
 Registry-derived sweeps of the declaration surface itself: the coverage facts a single spec cannot see.
 
-Four guards, all swept over ``ALL_SPECS`` so a new function is held to them the moment its spec lands. First, every
+Five guards, all swept over ``ALL_SPECS`` so a new function is held to them the moment its spec lands. First, every
 scalar parameter that carries a signature default must be exercised at a non-default value somewhere in the
 declarations — ``params``, ``golden_params``, or a pin's ``params_override`` — because every probe, golden, oracle
 comparison, and fuzz draw builds its call from those three sources: a defaulted knob no declaration varies is a live
@@ -13,7 +13,10 @@ must be genuinely exempt: rescaling the probe by 4 must NOT reproduce an integer
 values, or the exemption is hiding a derivable axis and silently skipping the scale rung (the gap that once hid the
 ``treynor`` pair's and ``modigliani``'s degree-1 axes at their zero-rate defaults). Fourth, a declared ``ScaleAxis``
 must be exercised on a non-trivial output: a probe whose every lane is zero or undefined turns the scale rung into
-``0 == 0`` (the gap that once left ``cost_borrow``'s short-only notional unverified under rescaling).
+``0 == 0`` (the gap that once left ``cost_borrow``'s short-only notional unverified under rescaling). Fifth, every
+per-spec oracle band must be a named constant of ``tests.support.tolerances``: a bare literal band carries no
+rationale and drifts silently (the gap that once left the rolling-moment pair's ``1e-7`` unexplained, six orders
+above its measured worst residual).
 
 Each ratchet below is frozen at its guard's introduction and may only shrink: an entry whose site gains coverage
 turns stale and fails loudly (the same fail-closed shape as ``test_docstrings``' pinned deviants), and a new
@@ -26,8 +29,26 @@ import math
 import polars as pl
 import pytest
 from tests.all_specs import ALL_SPECS
-from tests.support import RELATIVE_TOLERANCE_SCALE
+from tests.support import RELATIVE_TOLERANCE_SCALE, tolerances
 from tests.support.spec import ScaleExempt, Spec, actual_lanes, probe_frame, spec_id, widest_warmup
+
+# Every named band the tolerance module exports: the only values a per-spec oracle band may take.
+_NAMED_BANDS: frozenset[float] = frozenset(
+    value for name, value in vars(tolerances).items() if isinstance(value, float) and name.isupper()
+)
+
+
+@pytest.mark.parametrize("spec", ALL_SPECS, ids=spec_id)
+def test_every_declared_oracle_band_is_a_named_constant(spec: Spec) -> None:
+    """Verifies a per-spec oracle band carries a name (and so a rationale) from tests.support.tolerances."""
+    for field_name, declared in (("oracle_rel_tol", spec.oracle_rel_tol), ("oracle_abs_tol", spec.oracle_abs_tol)):
+        if declared is None:
+            continue
+        assert declared in _NAMED_BANDS, (
+            f"{spec.name}.{field_name} = {declared!r}: a bare literal band — declare it as a named constant in "
+            f"tests/support/tolerances.py with its measured rationale, and cite the name here"
+        )
+
 
 # Knobs with a signature default that no declaration varies yet, frozen at this guard's introduction: the scale /
 # smoothing constants of the sequential kernels (their golden masters run the canonical defaults), the risk-free-rate
