@@ -26,16 +26,16 @@ uv sync
 CI runs the gate below; run it locally before opening a pull request:
 
 ```bash
-uv run ruff check                                            # lint
-uv run ruff format --check                                   # formatting
-uv run mypy -p pomata -p tests                               # types (package + tests)
-uv run pyright                                               # types (pyright)
-uv run pyright --verifytypes pomata --ignoreexternal         # public type completeness
-uv run pyrefly check src/pomata                              # types (pyrefly)
-uv run pytest --doctest-modules src/pomata -q                # doctests
-uv run pytest --cov=pomata --cov-report=term-missing -n auto # tests + 100% branch coverage
-uv run sphinx-build -W -b html docs docs/_build/html         # docs build (warnings are errors; gates every PR)
-uv run sphinx-build -b doctest docs docs/_build/doctest      # docs-page doctests (gates every PR)
+uv run ruff check                                                              # lint
+uv run ruff format --check                                                     # formatting
+uv run mypy -p pomata -p tests                                                 # types (package + tests)
+uv run pyright                                                                 # types (pyright)
+uv run pyright --verifytypes pomata --ignoreexternal                           # public type completeness
+uv run pyrefly check src/pomata                                                # types (pyrefly)
+uv run pytest --doctest-modules src/pomata -q                                  # doctests
+uv run pytest --cov=pomata --cov-report=term-missing --cov-report=xml -n auto  # tests + 100% branch coverage
+uv run sphinx-build -W -b html docs docs/_build/html                           # docs build (warnings are errors; gates every PR)
+uv run sphinx-build -b doctest docs docs/_build/doctest                        # docs-page doctests (gates every PR)
 ```
 
 CI additionally runs `uv run ty check` as an advisory (non-gating) type check.
