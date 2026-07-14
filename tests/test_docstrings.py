@@ -222,3 +222,83 @@ def test_shared_param_prose_is_pinned(param: str) -> None:
     deviants = frozenset(name for name, text in texts.items() if text != modal)
     pinned = _SHARED_PARAMS[param]
     assert deviants == pinned, f"{param}: deviants {sorted(deviants)} != pinned {sorted(pinned)}"
+
+
+# The canonical Raises clause per shared-validator parameter, pinned whitespace-flattened: every docstring whose
+# Raises block names the parameter must carry one of its allowed fragments verbatim. One shared validator, one
+# phrasing — the ``risk_free_rate`` tuple admits the two sanctioned role variants (the ``< -1`` bound where the rate
+# is de-annualized through ``per_period_rate``; the combined finiteness clauses where it is only ``validate_finite``).
+_RAISES_FRAGMENTS: dict[str, tuple[str, ...]] = {
+    "confidence": ("``confidence`` is not in the open interval ``(0, 1)``",),
+    "fee": ("``fee`` is not a finite number ``>= 0`` (i.e. ``< 0``, ``NaN``, or ``±inf``)",),
+    "multiplier": ("``multiplier`` is not a finite number ``> 0`` (i.e. ``<= 0``, ``NaN``, or ``±inf``)",),
+    "rate": ("``rate`` is not a finite number ``>= 0`` (i.e. ``< 0``, ``NaN``, or ``±inf``)",),
+    "risk_free_rate": (
+        "``risk_free_rate`` is not finite or is ``< -1``",
+        "``risk_free_rate`` is not finite",
+        "``risk_free_rate`` or ``excess`` is not finite",
+    ),
+    "threshold": ("``threshold`` is not finite",),
+}
+
+
+def _flat_raises(name: str) -> str:
+    """The docstring's Raises block, whitespace-flattened, empty when the function declares none."""
+    doc = _doc(name)
+    if "\nRaises:\n" not in doc:
+        return ""
+    return _flat(doc.split("\nRaises:\n", 1)[1].split("\n\n", 1)[0])
+
+
+@pytest.mark.parametrize("param", sorted(_RAISES_FRAGMENTS))
+def test_shared_raises_prose_is_pinned(param: str) -> None:
+    """Every Raises block naming a shared-validator parameter carries its canonical clause verbatim."""
+    fragments = _RAISES_FRAGMENTS[param]
+    offenders = [
+        name
+        for name in _NAMES
+        if f"``{param}``" in _flat_raises(name) and not any(fragment in _flat_raises(name) for fragment in fragments)
+    ]
+    assert not offenders, f"{param}: non-canonical Raises clause in {offenders}"
+
+
+# The canonical Examples opening: ``>>> import polars as pl`` then the function's own family import, optionally
+# preceded by the stdlib import an example genuinely needs (the seven Hilbert-cycle functions import ``math``).
+# The one sanctioned alias is pinned: a healed (or new) alias is a red build.
+_EXAMPLES_ALIASED: frozenset[str] = frozenset({"modigliani_risk_adjusted_performance"})
+
+
+def _examples_import_header(name: str) -> list[str]:
+    """The leading ``>>>`` import statements of the Examples block, in order."""
+    block = _doc(name).split("\nExamples:\n", 1)[1]
+    header: list[str] = []
+    for line in block.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith(">>> "):
+            if header:
+                break
+            continue
+        statement = stripped[4:]
+        if statement.startswith(("import ", "from ")):
+            header.append(statement)
+        else:
+            break
+    return header
+
+
+@pytest.mark.parametrize("name", _NAMES)
+def test_examples_open_with_the_canonical_imports(name: str) -> None:
+    """The Examples block opens with the polars import then the function's own bare family import."""
+    header = _examples_import_header(name)
+    if header and re.fullmatch(r"import \w+", header[0]) and header[0] != "import polars as pl":
+        header = header[1:]  # a stdlib import the example needs may lead
+    family = _family_of(name)
+    expected_self = f"from pomata.{family} import {name}"
+    if name in _EXAMPLES_ALIASED:
+        assert len(header) == 2, f"{name}: header {header}"
+        assert header[0] == "import polars as pl", f"{name}: header {header}"
+        assert re.fullmatch(rf"{re.escape(expected_self)} as \w+", header[1]), (
+            f"{name}: pinned as aliased, got {header[1]!r}"
+        )
+    else:
+        assert header == ["import polars as pl", expected_self], f"{name}: header {header}"
