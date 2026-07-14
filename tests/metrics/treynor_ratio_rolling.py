@@ -81,8 +81,8 @@ TREYNOR_RATIO_ROLLING = Spec(
         "returns": (0.02, -0.01, 0.03, -0.02, 0.015, 0.005, -0.01, 0.02),
         "benchmark": (0.015, -0.008, 0.025, -0.015, 0.01, 0.004, -0.012, 0.018),
     },
-    golden_params={"window": 4, "periods_per_year": 252},
     golden_output=(None, None, None, 0.9993, 0.7483, 1.4938, -0.5003, 1.8295),
+    golden_params={"window": 4, "periods_per_year": 252},
     pins=(
         SpecPin(
             label="null_in_constant_benchmark_window",

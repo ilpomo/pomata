@@ -32,5 +32,21 @@ STANDARD_DEVIATION_EWMA = Spec(
             reason="an interior null ages the lag of 10 while contributing no term; at the last defined row the "
             "ignore_nulls=False weights reduce to 1:2:3:6, so the deviation is sqrt(107/144)",
         ),
+        SpecPin(
+            label="golden_master_adjusted",
+            inputs={"price": (10.0, 11.0, 13.0, 12.0, 14.0)},
+            params_override={"window": 3, "adjust": True},
+            expected=(None, None, 1.1952286093343936, 0.816496580927726, 1.1495825600777716),
+            reason="the frozen golden under adjust=True (the finite-window unbiased weighting), the second EWM-mode "
+            "branch a single canonical golden cannot carry — mirroring the ema family's adjusted pin",
+        ),
+        SpecPin(
+            label="sample_deviation_bias_false",
+            inputs={"price": (10.0, 11.0, 13.0, 12.0, 14.0)},
+            params_override={"window": 3, "bias": False},
+            expected=(None, None, 1.6431676725154984, 1.1443442705426587, 1.5320113653395042),
+            reason="the debiased sample deviation (bias=False), the second correctness branch a single biased golden "
+            "cannot carry — mirroring standard_deviation_rolling's ddof=1 pin",
+        ),
     ),
 )

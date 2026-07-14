@@ -46,5 +46,22 @@ DOWNSIDE_DEVIATION_ROLLING = Spec(
             "declared: the shortfall RMS sums non-negative squares with NO mean subtraction, so there is no "
             "cancellation to round apart and impl and oracle agree to the ULP",
         ),
+        SpecPin(
+            label="threshold_nonzero",
+            inputs={"returns": (0.012, -0.008, 0.02, -0.015, 0.005, 0.0, -0.02, 0.018)},
+            params_override={"threshold": 0.01},
+            expected=(
+                None,
+                None,
+                0.16497272501841026,
+                0.28234022030167794,
+                0.23366642891095848,
+                0.2509980079602227,
+                0.2934280150224242,
+                0.28982753492378877,
+            ),
+            reason="a non-zero threshold shifts the shortfall per window — the branch every other tier leaves at "
+            "the 0.0 default, mirroring the reducing twin's pin",
+        ),
     ),
 )

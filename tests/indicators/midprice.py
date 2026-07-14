@@ -1,7 +1,7 @@
 """Spec for ``pomata.indicators.midprice`` — the rolling high/low midprice of a bar series, window-nulling, degree-1."""
 
 from tests.indicators.oracles import midprice_reference
-from tests.support.spec import ScaleAxis, Shape, Spec
+from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import midprice
 
@@ -21,4 +21,14 @@ MIDPRICE = Spec(
         "low": (9.0, 10.0, 11.0, 11.0, 12.0),
     },
     golden_output=(None, None, 11.0, 11.5, 12.5),
+    pins=(
+        SpecPin(
+            label="window_one_is_price_median",
+            inputs={"high": (11.0, 12.0, 13.0), "low": (9.0, 10.0, 11.0)},
+            params_override={"window": 1},
+            expected=(10.0, 11.0, 12.0),
+            reason="window=1 makes the extremes the bar's own high and low, so the midprice reduces to the per-bar "
+            "price_median with no warm-up — the documented degenerate branch, mirroring midpoint's window=1 pin",
+        ),
+    ),
 )

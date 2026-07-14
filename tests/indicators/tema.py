@@ -1,5 +1,7 @@
 """Spec for ``pomata.indicators.tema`` — the triple EMA lag-correction, gap-bridging, NaN-latching, degree-1."""
 
+import math
+
 from tests.indicators.oracles import tema_reference
 from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
@@ -24,6 +26,14 @@ TEMA = Spec(
             expected=(None, None, None, None, 5.037037037037038),
             params_override={"window": 2},
             reason="the exact recovery value after an interior null bridges the cascade",
+        ),
+        SpecPin(
+            label="nan_latches",
+            inputs={"expr": (1.0, math.nan, 3.0, 4.0)},
+            expected=(None, None, None, math.nan),
+            params_override={"window": 2},
+            reason="a NaN latches into the cascade and poisons every value past the warm-up, mirroring the "
+            "ema / dema / t3 siblings' pin",
         ),
         SpecPin(
             label="window_one_identity",
