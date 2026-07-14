@@ -74,8 +74,8 @@ reference   85.20908701341023   ← independent reimplementation: identical, to 
 TA-Lib      85.20908701341024   ← fifteen figures identical; differs only at the float64 floor
 ```
 
-The same five indicators on the same series — reproducing the reference exactly or at the `float64` noise floor,
-never worse than fourteen figures:
+The same five indicators on the same series — each delta the relative residual against that column's reference —
+reproducing it exactly or at the `float64` noise floor, never worse than thirteen figures:
 
 ```{list-table}
 :header-rows: 1
@@ -88,23 +88,23 @@ never worse than fourteen figures:
 * - `sma(20)`
   - `105.15146076264764`
   - exact
-  - `1e-13`
+  - `1e-15`
 * - `ema(20)`
   - `107.7299930892346`
-  - `1e-13`
-  - `1e-14`
+  - `1e-15`
+  - `1e-16`
 * - `rsi(14)`
   - `85.20908701341023`
   - exact
-  - `1e-14`
+  - `2e-16`
 * - `atr(14)`
   - `1.904174462198776`
-  - `9e-16`
-  - `4e-15`
+  - `5e-16`
+  - `2e-15`
 * - `macd(12,26,9)`
   - `2.523444380829531`
-  - `1e-13`
-  - `1e-14`
+  - `5e-14`
+  - `6e-15`
 ```
 
 The {term}`differential tier` (non-gating) compares the **58 of 75** indicators with a TA-Lib counterpart against it
