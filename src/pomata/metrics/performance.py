@@ -153,7 +153,8 @@ def cagr_rolling(
         **Correctness** -- each window matches an independent reference oracle (the endpoint ratio annualized).
 
         **Domain** — the geometric growth rate is defined only on a positive endpoint ratio: a window whose equity
-        crossed or touched zero has no fractional-power growth, so that window is a loud ``NaN``.
+        crossed zero, or ends exactly on it, has no fractional-power growth, so that window is a loud ``NaN``; a
+        window starting exactly at zero blows the endpoint ratio to ``+inf``, reported not clipped.
 
         **Edge-case behavior:**
 
@@ -200,8 +201,9 @@ def cagr_rolling(
     validate_window(window, minimum=2)
     validate_periods_per_year(periods_per_year)
     ratio = equity_curve / equity_curve.shift(window - 1)
-    # Domain: the fractional power is defined only on a positive endpoint ratio (see cagr) — a window whose equity
-    # crossed or touched zero has no geometric growth rate, so that window is a loud NaN.
+    # Domain: the fractional power is defined only on a positive endpoint ratio (see cagr) — a crossed or exactly-zero
+    # end endpoint has no geometric growth rate (a loud NaN); a zero start endpoint blows the ratio to +inf, reported
+    # not clipped.
     return (
         pl.when(ratio <= 0.0).then(float("nan")).otherwise(ratio ** (periods_per_year / (window - 1)) - 1.0).name.keep()
     )

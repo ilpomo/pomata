@@ -820,7 +820,7 @@ def vwap(
           bar together (a ``null`` price input drops its volume from the denominator too), so the bar is a clean
           missing observation, not a denominator-only contribution.
         - **NaN** — a ``NaN`` in any input poisons the cumulative sum from its row onward (it cannot be subtracted
-          out) — unless a ``null`` sits on the same row: the null masks the whole row out of both sums first, so
+          out) — unless a ``null`` sits on the same row: the ``null`` masks the whole row out of both sums first, so
           nothing is poisoned (``null`` takes precedence over ``NaN``, here as everywhere).
         - **Partitioning** — see Anchoring above; ``.over(...)`` is the intended use, not an afterthought.
 

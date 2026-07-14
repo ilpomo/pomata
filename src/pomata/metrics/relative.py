@@ -301,6 +301,11 @@ def alpha_rolling(
         **Correctness** -- each window matches an independent reference oracle (the reducing :func:`alpha` over the
         window).
 
+        **Conditioning** — a near-flat (non-bit-identical) benchmark window sits at the float-conditioning limit
+        ``CORRECTNESS.md`` documents: the one-pass rolling covariance behind the embedded slope and an exact two-pass
+        recomputation can round a vanishing benchmark variance apart without bound there. The bit-flat window is
+        guarded exactly (``NaN``); real market windows are far from the regime.
+
         **Edge-case behavior:**
 
         - **Null** — a window with a ``null`` in either leg yields ``null`` (it must hold ``window`` complete pairs).
@@ -1053,6 +1058,11 @@ def information_ratio_rolling(
         **Correctness** -- each window matches an independent reference oracle (the reducing :func:`information_ratio`
         over the window).
 
+        **Conditioning** — a near-flat (non-bit-identical) active-return window sits at the float-conditioning limit
+        ``CORRECTNESS.md`` documents: the one-pass rolling tracking error and an exact two-pass recomputation can
+        round a vanishing denominator apart without bound there. The bit-flat window is pinned exactly (a zero
+        tracking error, the documented ``+/-inf`` / ``NaN``); real market windows are far from the regime.
+
         **Edge-case behavior:**
 
         - **Null** — a window with a ``null`` in either leg yields ``null`` (it must hold ``window`` complete pairs).
@@ -1394,6 +1404,11 @@ def treynor_ratio_rolling(
     Note:
         **Correctness** -- each window matches an independent reference oracle (the reducing :func:`treynor_ratio` over
         the window).
+
+        **Conditioning** — a near-flat (non-bit-identical) benchmark window sits at the float-conditioning limit
+        ``CORRECTNESS.md`` documents: the one-pass rolling slope and an exact two-pass recomputation can round a
+        vanishing benchmark variance — and with it the ``beta`` divisor — apart without bound there. The bit-flat
+        window is guarded exactly (``NaN``); real market windows are far from the regime.
 
         **Edge-case behavior:**
 

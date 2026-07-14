@@ -115,9 +115,10 @@ def parabolic_sar(
         high: High-price series (e.g. ``pl.col("high")``).
         low: Low-price series (e.g. ``pl.col("low")``).
         acceleration: Starting acceleration factor, and its per-extreme increment (canonical default ``0.02``,
-            Wilder's step). A fraction in ``(0, 1]``, and never
+            Wilder's step). Must be in the half-open interval ``(0, 1]``, and never
             above ``maximum`` (so the factor is capped from the seed onward, not only on the increment path).
-        maximum: Cap on the acceleration factor. A fraction in ``(0, 1]``, and at least ``acceleration``.
+        maximum: Cap on the acceleration factor. Must be in the half-open interval ``(0, 1]``, and at least
+            ``acceleration``.
 
     Returns:
         The Parabolic SAR for each row, the same length as the inputs. Row ``0`` is ``null`` (the trend is seeded from

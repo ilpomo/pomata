@@ -79,13 +79,13 @@ def atr(
 
         **Edge-case behavior:**
 
-        - **Null** — null handling follows ``pl.max_horizontal``: a ``null`` in a single ``high``, ``low``, or
+        - **Null** — ``null`` handling follows ``pl.max_horizontal``: a ``null`` in a single ``high``, ``low``, or
           ``close`` input drops only the candidate terms that reference it, leaving the true range as the maximum of the
           remaining non-null terms. The roles are not interchangeable: a ``null`` ``high`` removes the ``high - low``
           and ``|high - close_prev|`` terms (leaving ``|low - close_prev|``), a ``null`` ``low`` removes ``high - low``
           and ``|low - close_prev|`` (leaving ``|high - close_prev|``), and a ``null`` ``close`` only blanks the two gap
           terms of the *next* bar (whose previous close is then ``null``). The true range is therefore ``null`` only
-          when every candidate term is ``null`` (e.g. the first bar with both ``high`` and ``low`` null); a ``null``
+          when every candidate term is ``null`` (e.g. the first bar with both ``high`` and ``low`` ``null``); a ``null``
           true range yields ``null`` at that row while the Wilder recursion preserves its state and bridges the gap.
         - **NaN** — a ``NaN`` in any active term poisons that true range and then the recursion, latching ``NaN`` for
           every subsequent value (except at ``window == 1``, where the smoothing is the identity and no recursion
@@ -198,7 +198,7 @@ def atr_normalized(
         **Edge-case behavior:**
 
         - **Null** — a ``null`` ATR or a ``null`` ``close`` at a row yields ``null`` there (the ATR inherits
-          :func:`atr`'s per-term null handling).
+          :func:`atr`'s per-term ``null`` handling).
         - **NaN** — a ``NaN`` ATR or ``close`` yields ``NaN``; a ``NaN`` inside the ATR's recursion latches, exactly
           as documented for :func:`atr`.
         - **Zero close** — where ``close`` is ``0`` the ratio follows IEEE-754 (``+/-inf`` for a non-zero ATR, ``NaN``
@@ -431,7 +431,7 @@ def true_range(
 
         **Edge-case behavior:**
 
-        - **Null** — null handling follows ``pl.max_horizontal``, which **skips** ``null`` candidates rather than
+        - **Null** — ``null`` handling follows ``pl.max_horizontal``, which **skips** ``null`` candidates rather than
           propagating them: a ``null`` in ``high`` or ``low`` (or a ``null`` previous ``close``) simply drops that
           candidate, so the row still resolves from whichever distances remain. The result is ``null`` only when all
           three candidates are ``null``: with a defined previous ``close`` that means ``high`` and ``low`` are both

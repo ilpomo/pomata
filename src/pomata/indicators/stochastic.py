@@ -81,7 +81,8 @@ def stochastic_fast(
 
         **Composition:**
 
-        %D is the :func:`sma` of %K, so it inherits that warm-up and the null / NaN handling on top of %K's own.
+        %D is the :func:`sma` of %K, so it inherits that warm-up and the ``null`` / ``NaN`` handling on top of %K's
+        own.
 
         **Edge-case behavior:**
 
@@ -217,7 +218,7 @@ def stochastic_slow(
         **Composition:**
 
         The slow %K is the :func:`sma` of the raw %K, and %D is the :func:`sma` of the slow %K, so each averaging
-        inherits the warm-up and null / NaN handling on top of the raw %K's own.
+        inherits the warm-up and ``null`` / ``NaN`` handling on top of the raw %K's own.
 
         **Edge-case behavior:**
 

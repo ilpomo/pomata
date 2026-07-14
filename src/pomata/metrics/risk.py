@@ -216,8 +216,8 @@ def conditional_value_at_risk(
 
     Args:
         returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
-        confidence: The tail confidence level in the open interval ``(0, 1)`` (canonically ``0.95``); the shortfall is
-            averaged over the worst ``1 - confidence`` of returns.
+        confidence: The tail confidence level (canonically ``0.95``); the shortfall is averaged over the worst
+            ``1 - confidence`` of returns. Must be in the open interval ``(0, 1)``.
 
     Returns:
         A single ``Float64`` value: the expected shortfall (one value in ``select``, one per group under ``.over``).
@@ -1490,8 +1490,8 @@ def value_at_risk(
 
     Args:
         returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
-        confidence: The tail confidence level in the open interval ``(0, 1)`` (canonically ``0.95``); the quantile taken
-            is ``1 - confidence``.
+        confidence: The tail confidence level (canonically ``0.95``); the quantile taken is ``1 - confidence``. Must be
+            in the open interval ``(0, 1)``.
 
     Returns:
         A single ``Float64`` value: the historical value-at-risk (one value in ``select``, one per group under
@@ -1580,7 +1580,7 @@ def value_at_risk_modified(
 
     Args:
         returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
-        confidence: The tail confidence level in the open interval ``(0, 1)`` (canonically ``0.95``).
+        confidence: The tail confidence level (canonically ``0.95``). Must be in the open interval ``(0, 1)``.
 
     Returns:
         A single ``Float64`` value: the modified value-at-risk (one value in ``select``, one per group under ``.over``).
@@ -1717,7 +1717,7 @@ def value_at_risk_parametric(
 
     Args:
         returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
-        confidence: The tail confidence level in the open interval ``(0, 1)`` (canonically ``0.95``).
+        confidence: The tail confidence level (canonically ``0.95``). Must be in the open interval ``(0, 1)``.
 
     Returns:
         A single ``Float64`` value: the parametric value-at-risk (one value in ``select``, one per group under
@@ -1802,8 +1802,8 @@ def value_at_risk_rolling(
     Args:
         returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         window: Number of observations in the moving window. Must be ``>= 1``.
-        confidence: The tail confidence level in the open interval ``(0, 1)`` (canonically ``0.95``); the quantile
-            taken is ``1 - confidence``.
+        confidence: The tail confidence level (canonically ``0.95``); the quantile taken is ``1 - confidence``. Must be
+            in the open interval ``(0, 1)``.
 
     Returns:
         The rolling value-at-risk for each row, the same length as the input. The first ``window - 1`` rows are ``null``
