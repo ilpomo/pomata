@@ -4,7 +4,11 @@ import math
 
 import polars as pl
 from tests.metrics.oracles import kurtosis_rolling_reference
-from tests.support import RELATIVE_TOLERANCE_ROLLING_ORACLE, windows_well_conditioned
+from tests.support import (
+    ABSOLUTE_TOLERANCE_ROLLING_MOMENT,
+    RELATIVE_TOLERANCE_ROLLING_ORACLE,
+    windows_well_conditioned,
+)
 from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import kurtosis_rolling
@@ -34,7 +38,7 @@ KURTOSIS_ROLLING = Spec(
     oracle=kurtosis_rolling_reference,
     conditioning=_windows_well_conditioned,
     oracle_rel_tol=RELATIVE_TOLERANCE_ROLLING_ORACLE,
-    oracle_abs_tol=1e-7,
+    oracle_abs_tol=ABSOLUTE_TOLERANCE_ROLLING_MOMENT,
     # A standardized moment per window is scale-invariant, degree 0 (by analogy to the reducing kurtosis).
     scale=(ScaleAxis(roles=("returns",), degree=0),),
     golden_input={"returns": (0.01, -0.02, 0.03, -0.01, 0.02, 0.0, -0.015)},

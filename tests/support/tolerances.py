@@ -31,6 +31,11 @@ Tiers (smallest band first):
   accumulate rounding differently across window slides, so the per-window agreement band is wider than the
   reference tier's; a spec declares it explicitly (``oracle_rel_tol`` / ``oracle_abs_tol``) only where its rolling
   form needs it, and the well-conditioned reductions stay on the default tight band.
+- **Rolling-moment absolute floor** — the standardized rolling moments (the skewness / kurtosis pair) against their
+  fresh two-pass oracle: the ``m_k / m_2^(k/2)`` quotient amplifies both paths' rounding as the window's spread
+  approaches the conditioning floor. Measured worst |impl - oracle| across a 4,000-frame boundary-stressed sweep:
+  ``3.7e-11`` (skewness) / ``2.3e-9`` (kurtosis), so the ``1e-7`` floor keeps ~1.5 orders of margin over the worst
+  case while staying 10x inside the plain rolling band.
 - **Streaming-at-magnitude** — a streaming statistic vs a two-pass oracle at extreme magnitude, where catastrophic
   cancellation forces a loose absolute term; the large-magnitude bespoke tests use :func:`input_scale` to size it to
   the data, or ``ABSOLUTE_TOLERANCE_STREAMING`` for the fixed large-magnitude case.
@@ -70,6 +75,7 @@ ABSOLUTE_TOLERANCE_PROPERTY = 1e-9
 RELATIVE_TOLERANCE_SCALE = 1e-6
 RELATIVE_TOLERANCE_ROLLING_ORACLE = 1e-6
 ABSOLUTE_TOLERANCE_ROLLING_ORACLE = 1e-6
+ABSOLUTE_TOLERANCE_ROLLING_MOMENT = 1e-7
 ABSOLUTE_TOLERANCE_STREAMING = 1e-3
 EXACT_TOLERANCE_FACTOR = 1e-9
 STREAMING_TOLERANCE_FACTOR = 1e-6
