@@ -17,6 +17,7 @@ from pomata._expr import (
     rolling_mean_exact,
     validate_finite,
     validate_periods_per_year,
+    validate_positive,
     validate_window,
 )
 from pomata.metrics.drawdown import drawdown, max_drawdown, pain_index, ulcer_index
@@ -1411,7 +1412,8 @@ def sterling_ratio(
         equity_curve: Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
         risk_free_rate: The annualized risk-free rate subtracted from the growth (default ``0.0``). Must be finite.
-        excess: The fixed cushion added to the average drawdown denominator (default ``0.10``). Must be finite.
+        excess: The fixed cushion added to the average drawdown denominator (default ``0.10``). Must be a finite
+            number ``>= 0``.
 
     Returns:
         A single ``Float64`` value: the Sterling ratio (one value in ``select``, one per group under ``.over``).
@@ -1419,7 +1421,8 @@ def sterling_ratio(
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
-        ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` or ``excess`` is not finite.
+        ValueError: If ``periods_per_year < 1``, if ``risk_free_rate`` is not finite, or if ``excess`` is not a
+            finite number ``>= 0``.
 
     Note:
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
@@ -1473,7 +1476,7 @@ def sterling_ratio(
     equity_curve = float64_expr(equity_curve)
     validate_periods_per_year(periods_per_year)
     validate_finite(risk_free_rate, "risk_free_rate")
-    validate_finite(excess, "excess")
+    validate_positive(excess, "excess", allow_zero=True)
     return (
         (cagr(equity_curve, periods_per_year=periods_per_year) - risk_free_rate) / (pain_index(equity_curve) + excess)
     ).name.keep()

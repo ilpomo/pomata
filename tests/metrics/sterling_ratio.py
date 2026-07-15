@@ -21,6 +21,7 @@ STERLING_RATIO = Spec(
         ({"excess": math.nan}, r"excess must be a finite number"),
         ({"excess": math.inf}, r"excess must be a finite number"),
         ({"excess": -math.inf}, r"excess must be a finite number"),
+        ({"excess": -0.1}, r"excess must be a finite number >= 0"),
     ),
     oracle=sterling_ratio_reference,
     # A normalized growth factor over a scale-invariant average drawdown — neither homogeneous nor invariant
