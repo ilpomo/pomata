@@ -49,18 +49,18 @@ def linear_regression(
 
     Note:
         **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; ``CORRECTNESS.md`` gives the method and the float-conditioning
-        limit beyond it.
+        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
+        float-conditioning limit beyond it.
 
         It is homogeneous of degree ``1`` in ``expr`` (a fitted price scales with the price). For a perfectly linear
         input the endpoint reproduces the series exactly.
 
         **Edge-case behavior:**
 
-        - **Null** — a window containing a ``null`` yields ``null``.
-        - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN``.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the window never spans series
-          boundaries, e.g. ``linear_regression(pl.col("close"), 14).over("ticker")``.
+        - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
+        - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
+        - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries, e.g.
+          ``linear_regression(pl.col("close"), 14).over("ticker")``.
 
     See Also:
         - :func:`linear_regression_slope`: The slope of the same fitted line.
@@ -127,8 +127,8 @@ def linear_regression_angle(
 
     Note:
         **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; ``CORRECTNESS.md`` gives the method and the float-conditioning
-        limit beyond it.
+        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
+        float-conditioning limit beyond it.
 
         Unlike the other regression outputs, the angle is **not** homogeneous in ``expr``: the arctangent is non-linear,
         so scaling the input does not scale the angle: amplifying it steepens the angle toward :math:`\pm 90`,
@@ -137,10 +137,10 @@ def linear_regression_angle(
 
         **Edge-case behavior:**
 
-        - **Null** — a window containing a ``null`` yields ``null``.
-        - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN``.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the window never spans series
-          boundaries, e.g. ``linear_regression_angle(pl.col("close"), 14).over("ticker")``.
+        - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
+        - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
+        - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries, e.g.
+          ``linear_regression_angle(pl.col("close"), 14).over("ticker")``.
 
     See Also:
         - :func:`linear_regression_slope`: The slope this takes the arctangent of.
@@ -209,17 +209,17 @@ def linear_regression_intercept(
 
     Note:
         **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; ``CORRECTNESS.md`` gives the method and the float-conditioning
-        limit beyond it.
+        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
+        float-conditioning limit beyond it.
 
         It is homogeneous of degree ``1`` in ``expr`` (a fitted price scales with the price).
 
         **Edge-case behavior:**
 
-        - **Null** — a window containing a ``null`` yields ``null``.
-        - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN``.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the window never spans series
-          boundaries, e.g. ``linear_regression_intercept(pl.col("close"), 14).over("ticker")``.
+        - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
+        - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
+        - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries, e.g.
+          ``linear_regression_intercept(pl.col("close"), 14).over("ticker")``.
 
     See Also:
         - :func:`linear_regression`: The same line evaluated at the most recent bar instead of the oldest.
@@ -291,18 +291,18 @@ def linear_regression_slope(
 
     Note:
         **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; ``CORRECTNESS.md`` gives the method and the float-conditioning
-        limit beyond it.
+        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
+        float-conditioning limit beyond it.
 
         It is homogeneous of degree ``1`` in ``expr`` (the rise scales with the price while the run is fixed). For a
         perfectly linear input it returns the exact constant slope.
 
         **Edge-case behavior:**
 
-        - **Null** — a window containing a ``null`` yields ``null``.
-        - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN``.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the window never spans series
-          boundaries, e.g. ``linear_regression_slope(pl.col("close"), 14).over("ticker")``.
+        - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
+        - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
+        - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries, e.g.
+          ``linear_regression_slope(pl.col("close"), 14).over("ticker")``.
 
     See Also:
         - :func:`linear_regression`: The fitted line's value at the most recent bar.
@@ -387,18 +387,20 @@ def standard_deviation_ewma(
 
     Note:
         **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; ``CORRECTNESS.md`` gives the method and the float-conditioning
-        limit beyond it.
+        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
+        float-conditioning limit beyond it.
 
         It is homogeneous of degree ``1`` in ``expr`` (a spread in the input's own units).
 
         **Edge-case behavior:**
 
-        - **Null** — a leading ``null`` run stays ``null`` and does not consume warm-up; an interior ``null`` yields
-          ``null`` at that row while the weights decay across the gap (``ignore_nulls=False``).
-        - **NaN** — a ``NaN`` poisons the recursion and yields ``NaN`` for every subsequent non-null row.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursion re-seeds per
-          series, e.g. ``standard_deviation_ewma(pl.col("close"), 20).over("ticker")``.
+        - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
+          ``null`` at that position while the recursion continues across the gap (a leading run consumes no warm-up,
+          and an interior gap decays the carried weight across it, per Polars' ``ignore_nulls=False`` convention).
+        - **NaN** — a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null
+          position.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on
+          its own history, e.g. ``standard_deviation_ewma(pl.col("close"), 20).over("ticker")``.
 
     See Also:
         - :func:`variance_ewma`: The square of this, of which it is the root.
@@ -476,8 +478,8 @@ def standard_deviation_rolling(
 
     Note:
         **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; ``CORRECTNESS.md`` gives the method and the float-conditioning
-        limit beyond it.
+        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
+        float-conditioning limit beyond it.
 
         **Degrees of freedom:**
 
@@ -488,12 +490,12 @@ def standard_deviation_rolling(
 
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
-        - **Constant window** — a window of equal values has zero spread, so the result is exactly ``0`` — pinned
-          explicitly, even where a much larger value has just left the window and the incremental rolling kernel
-          would otherwise leave a cancellation residue.
+        - **Degenerate denominator** — a window of equal values has zero spread, so the result is exactly ``0`` —
+          pinned explicitly, even where a much larger value has just left the window and the incremental rolling
+          kernel would otherwise leave a cancellation residue.
         - **window == 1** — a single value has no spread, so the result is ``0`` with the default ``ddof = 0``.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the window never spans series
-          boundaries, e.g. ``standard_deviation_rolling(pl.col("close"), 20).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries, e.g.
+          ``standard_deviation_rolling(pl.col("close"), 20).over("ticker")``.
 
     See Also:
         - :func:`variance_rolling`: The square of this, of which it is the root.
@@ -576,18 +578,18 @@ def time_series_forecast(
 
     Note:
         **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; ``CORRECTNESS.md`` gives the method and the float-conditioning
-        limit beyond it.
+        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
+        float-conditioning limit beyond it.
 
         It is homogeneous of degree ``1`` in ``expr`` (a projected price scales with the price). For a perfectly linear
         input the forecast equals the next value of the line exactly.
 
         **Edge-case behavior:**
 
-        - **Null** — a window containing a ``null`` yields ``null``.
-        - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN``.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the window never spans series
-          boundaries, e.g. ``time_series_forecast(pl.col("close"), 14).over("ticker")``.
+        - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
+        - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
+        - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries, e.g.
+          ``time_series_forecast(pl.col("close"), 14).over("ticker")``.
 
     See Also:
         - :func:`linear_regression`: The same line evaluated at the current bar rather than one ahead.
@@ -669,8 +671,8 @@ def variance_ewma(
 
     Note:
         **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; ``CORRECTNESS.md`` gives the method and the float-conditioning
-        limit beyond it.
+        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
+        float-conditioning limit beyond it.
 
         ``window`` must be ``>= 2``: a single observation yields a well-defined ``0`` under the default ``bias=True``,
         but divides by zero under the unbiased ``bias=False`` correction, so a minimum of ``2`` is enforced uniformly
@@ -679,11 +681,13 @@ def variance_ewma(
 
         **Edge-case behavior:**
 
-        - **Null** — a leading ``null`` run stays ``null`` and does not consume warm-up; an interior ``null`` yields
-          ``null`` at that row while the weights decay across the gap (``ignore_nulls=False``).
-        - **NaN** — a ``NaN`` poisons the recursion and yields ``NaN`` for every subsequent non-null row.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursion re-seeds per
-          series, e.g. ``variance_ewma(pl.col("close"), 20).over("ticker")``.
+        - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
+          ``null`` at that position while the recursion continues across the gap (a leading run consumes no warm-up,
+          and an interior gap decays the carried weight across it, per Polars' ``ignore_nulls=False`` convention).
+        - **NaN** — a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null
+          position.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on
+          its own history, e.g. ``variance_ewma(pl.col("close"), 20).over("ticker")``.
 
     See Also:
         - :func:`standard_deviation_ewma`: Its square root, in the input's own units.
@@ -761,8 +765,8 @@ def variance_rolling(
 
     Note:
         **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; ``CORRECTNESS.md`` gives the method and the float-conditioning
-        limit beyond it.
+        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
+        float-conditioning limit beyond it.
 
         **Degrees of freedom:**
 
@@ -776,12 +780,12 @@ def variance_rolling(
 
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
-        - **Constant window** — a window of equal values has zero dispersion, so the result is exactly ``0`` — pinned
-          explicitly, even where a much larger value has just left the window and the incremental rolling kernel
-          would otherwise leave a cancellation residue.
+        - **Degenerate denominator** — a window of equal values has zero dispersion, so the result is exactly ``0`` —
+          pinned explicitly, even where a much larger value has just left the window and the incremental rolling
+          kernel would otherwise leave a cancellation residue.
         - **window == 1** — a single value has no spread, so the result is ``0`` with the default ``ddof = 0``.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the window never spans series
-          boundaries, e.g. ``variance_rolling(pl.col("close"), 20).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries, e.g.
+          ``variance_rolling(pl.col("close"), 20).over("ticker")``.
 
     See Also:
         - :func:`standard_deviation_rolling`: Its square root, in the input's own units.
