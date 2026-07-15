@@ -196,9 +196,12 @@ def alpha(
 
         - **Null** — an observation is used only where both legs are present; a ``null`` in either drops that pair.
         - **NaN** — a ``NaN`` in either leg of a retained pair propagates, yielding ``NaN``.
-        - **Fewer than two pairs** — the regression slope is undefined, so the result is ``null``.
-        - **Constant benchmark** — a zero-variance benchmark makes :func:`beta` ``NaN``, which propagates here.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel, e.g.
+        - **Insufficient sample** — fewer than two complete pairs leaves the regression slope undefined, so the result
+          is ``null``.
+        - **Degenerate denominator** — a zero-variance benchmark makes :func:`beta` ``NaN`` (a ``0 / 0``), which
+          propagates here.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history, e.g.
           ``alpha(pl.col("returns"), pl.col("benchmark"), periods_per_year=252).over("ticker")``.
 
     See Also:
@@ -301,16 +304,16 @@ def alpha_rolling(
         **Correctness** -- each window matches an independent reference oracle (the reducing :func:`alpha` over the
         window).
 
-        **Conditioning** — a near-flat (non-bit-identical) benchmark window sits at the float-conditioning limit
-        ``CORRECTNESS.md`` documents: the one-pass rolling covariance behind the embedded slope and an exact two-pass
-        recomputation can round a vanishing benchmark variance apart without bound there. The bit-flat window is
-        guarded exactly (``NaN``); real market windows are far from the regime.
-
         **Edge-case behavior:**
 
-        - **Null** — a window with a ``null`` in either leg yields ``null`` (it must hold ``window`` complete pairs).
-        - **NaN** — a ``NaN`` in either leg of the window propagates, yielding ``NaN``.
-        - **Constant benchmark** — a zero-variance window benchmark makes the slope ``NaN``, which propagates here.
+        - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
+        - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
+        - **Degenerate denominator** — a zero-variance window benchmark makes the slope ``NaN`` (a ``0 / 0``), which
+          propagates here.
+        - **Stability** — a near-flat (non-bit-identical) benchmark window sits at the float-conditioning limit
+          ``CORRECTNESS.md`` documents: the one-pass rolling covariance behind the embedded slope and an exact two-pass
+          recomputation can round a vanishing benchmark variance apart without bound there. The bit-flat window is
+          guarded exactly (``NaN``); real market windows are far from the regime.
         - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries.
 
     See Also:
@@ -417,10 +420,12 @@ def beta(
 
         - **Null** — an observation is used only where both legs are present; a ``null`` in either drops that pair.
         - **NaN** — a ``NaN`` in either leg of a retained pair propagates, yielding ``NaN``.
-        - **Fewer than two pairs** — the regression slope is undefined, so the result is ``null``.
-        - **Constant benchmark** — a zero-variance benchmark gives ``0 / 0``, reported as ``NaN`` rather than clipped.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel, e.g.
-          ``beta(pl.col("returns"), pl.col("benchmark")).over("ticker")``.
+        - **Insufficient sample** — fewer than two complete pairs leaves the regression slope undefined, so the result
+          is ``null``.
+        - **Degenerate denominator** — a zero-variance benchmark leaves the slope undefined, so the result is a
+          ``0 / 0``, i.e. ``NaN``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history, e.g. ``beta(pl.col("returns"), pl.col("benchmark")).over("ticker")``.
 
     See Also:
         - :func:`alpha`: The benchmark-relative return that nets out beta-explained performance.
@@ -514,16 +519,16 @@ def beta_rolling(
         **Correctness** -- each window matches an independent reference oracle (the reducing :func:`beta` over the
         window).
 
-        **Conditioning** — a near-flat (non-bit-identical) benchmark window sits at the float-conditioning limit
-        ``CORRECTNESS.md`` documents: the one-pass rolling covariance and an exact two-pass recomputation can round a
-        vanishing denominator apart without bound there. The bit-flat window is guarded exactly (``NaN``); real
-        market windows are far from the regime.
-
         **Edge-case behavior:**
 
-        - **Null** — a window with a ``null`` in either leg yields ``null`` (it must hold ``window`` complete pairs).
-        - **NaN** — a ``NaN`` in either leg of the window propagates, yielding ``NaN``.
-        - **Constant benchmark** — a zero-variance window benchmark gives ``0 / 0``, reported as ``NaN``.
+        - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
+        - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
+        - **Degenerate denominator** — a zero-variance window benchmark leaves the slope undefined, so the result is a
+          ``0 / 0``, i.e. ``NaN``.
+        - **Stability** — a near-flat (non-bit-identical) benchmark window sits at the float-conditioning limit
+          ``CORRECTNESS.md`` documents: the one-pass rolling covariance and an exact two-pass recomputation can round a
+          vanishing denominator apart without bound there. The bit-flat window is guarded exactly (``NaN``); real
+          market windows are far from the regime.
         - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries.
 
     See Also:
@@ -617,19 +622,15 @@ def capture_downside_ratio(
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
         case (missing data and boundaries) is given a defined behavior.
 
-        **Domain** — the compounded (geometric) leg growth is defined only while every selected gross return
-        ``1 + r`` stays positive: a selected return at or below ``-1`` (a wiped-out leg) makes the result a loud
-        ``NaN``.
-
         **Edge-case behavior:**
 
         - **Null** — an observation is used only where both legs are present; a ``null`` in either drops that pair.
         - **NaN** — a ``NaN`` in either leg of a retained pair propagates, yielding ``NaN``.
-        - **No down-market periods** — with no negative-benchmark period the ratio is undefined, so the result is
-          ``null``.
-        - **Zero benchmark loss** — a zero annualized benchmark loss gives ``+/-inf`` (or ``NaN``), reported rather than
-          clipped.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel, e.g.
+        - **Domain** — the compounded (geometric) leg growth is defined only while every selected gross return
+          ``1 + r`` stays positive; a selected return at or below ``-1`` wipes that leg out of domain, so the result is
+          a loud ``NaN`` — never a plausible wrong number.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history, e.g.
           ``capture_downside_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252).over("ticker")``.
 
     See Also:
@@ -727,19 +728,15 @@ def capture_ratio(
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
         case (missing data and boundaries) is given a defined behavior.
 
-        **Domain** — the compounded (geometric) leg growth is defined only while every selected gross return
-        ``1 + r`` stays positive: a selected return at or below ``-1`` (a wiped-out leg) makes the result a loud
-        ``NaN``.
-
         **Edge-case behavior:**
 
         - **Null** — an observation is used only where both legs are present; a ``null`` in either drops that pair.
         - **NaN** — a ``NaN`` in either leg of a retained pair propagates, yielding ``NaN``.
-        - **Missing a market regime** — with no up-market or no down-market period a capture ratio is undefined, so the
-          result is ``null``.
-        - **Zero downside capture** — a zero downside capture gives ``+/-inf`` (or ``NaN``), reported rather than
-          clipped.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel, e.g.
+        - **Domain** — the compounded (geometric) leg growth is defined only while every selected gross return
+          ``1 + r`` stays positive; a selected return at or below ``-1`` wipes that leg out of domain, so the result is
+          a loud ``NaN`` — never a plausible wrong number.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history, e.g.
           ``capture_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252).over("ticker")``.
 
     See Also:
@@ -835,19 +832,15 @@ def capture_upside_ratio(
         **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
         case (missing data and boundaries) is given a defined behavior.
 
-        **Domain** — the compounded (geometric) leg growth is defined only while every selected gross return
-        ``1 + r`` stays positive: a selected return at or below ``-1`` (a wiped-out leg) makes the result a loud
-        ``NaN``.
-
         **Edge-case behavior:**
 
         - **Null** — an observation is used only where both legs are present; a ``null`` in either drops that pair.
         - **NaN** — a ``NaN`` in either leg of a retained pair propagates, yielding ``NaN``.
-        - **No up-market periods** — with no positive-benchmark period the ratio is undefined, so the result is
-          ``null``.
-        - **Zero benchmark gain** — a zero annualized benchmark gain gives ``+/-inf`` (or ``NaN``), reported rather than
-          clipped.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel, e.g.
+        - **Domain** — the compounded (geometric) leg growth is defined only while every selected gross return
+          ``1 + r`` stays positive; a selected return at or below ``-1`` wipes that leg out of domain, so the result is
+          a loud ``NaN`` — never a plausible wrong number.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history, e.g.
           ``capture_upside_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252).over("ticker")``.
 
     See Also:
@@ -950,10 +943,12 @@ def information_ratio(
 
         - **Null** — an observation is used only where both legs are present; a ``null`` in either drops that pair.
         - **NaN** — a ``NaN`` in either leg of a retained pair propagates, yielding ``NaN``.
-        - **Fewer than two pairs** — the sample tracking error is undefined, so the result is ``null``.
-        - **Zero tracking error** — a constant active series gives ``+/-inf`` (or ``NaN`` when the mean active is also
-          zero), reported rather than clipped.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel, e.g.
+        - **Insufficient sample** — fewer than two complete pairs leaves the sample tracking error undefined, so the
+          result is ``null``.
+        - **Degenerate denominator** — a constant active series has zero tracking error, so the result is ``+/-inf`` —
+          reported, not clipped (or ``NaN`` when the mean active is also zero, the ``0 / 0``).
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history, e.g.
           ``information_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252).over("ticker")``.
 
     See Also:
@@ -1058,16 +1053,16 @@ def information_ratio_rolling(
         **Correctness** -- each window matches an independent reference oracle (the reducing :func:`information_ratio`
         over the window).
 
-        **Conditioning** — a near-flat (non-bit-identical) active-return window sits at the float-conditioning limit
-        ``CORRECTNESS.md`` documents: the one-pass rolling tracking error and an exact two-pass recomputation can
-        round a vanishing denominator apart without bound there. The bit-flat window is pinned exactly (a zero
-        tracking error, the documented ``+/-inf`` / ``NaN``); real market windows are far from the regime.
-
         **Edge-case behavior:**
 
-        - **Null** — a window with a ``null`` in either leg yields ``null`` (it must hold ``window`` complete pairs).
-        - **NaN** — a ``NaN`` in either leg of the window propagates, yielding ``NaN``.
-        - **Zero tracking error** — a constant active window gives ``+/-inf`` (or ``NaN``), reported not clipped.
+        - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
+        - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
+        - **Degenerate denominator** — a constant active window has zero tracking error, so the result is ``+/-inf`` —
+          reported, not clipped (or ``NaN`` when the mean active is also zero).
+        - **Stability** — a near-flat (non-bit-identical) active-return window sits at the float-conditioning limit
+          ``CORRECTNESS.md`` documents: the one-pass rolling tracking error and an exact two-pass recomputation can
+          round a vanishing denominator apart without bound there. The bit-flat window is pinned exactly (a zero
+          tracking error, the documented ``+/-inf`` / ``NaN``); real market windows are far from the regime.
         - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries.
 
     See Also:
@@ -1186,9 +1181,12 @@ def modigliani_risk_adjusted_performance(
 
         - **Null** — an observation is used only where both legs are present; a ``null`` in either drops that pair.
         - **NaN** — a ``NaN`` in either leg of a retained pair propagates, yielding ``NaN``.
-        - **Fewer than two pairs** — the Sharpe ratio and benchmark volatility are undefined, so the result is ``null``.
-        - **Zero portfolio volatility** — a constant portfolio gives an infinite Sharpe ratio, which propagates here.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel, e.g.
+        - **Insufficient sample** — fewer than two complete pairs leaves the embedded Sharpe ratio and benchmark
+          volatility undefined, so the result is ``null``.
+        - **Degenerate denominator** — a constant portfolio has zero volatility, so its :func:`sharpe_ratio` is
+          infinite and the result is ``+/-inf`` — reported, not clipped.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history, e.g.
           ``modigliani_risk_adjusted_performance(pl.col("r"), pl.col("b"), periods_per_year=252).over("ticker")``.
 
     See Also:
@@ -1293,11 +1291,16 @@ def treynor_ratio(
 
         - **Null** — an observation is used only where both legs are present; a ``null`` in either drops that pair.
         - **NaN** — a ``NaN`` in either leg of a retained pair propagates, yielding ``NaN``.
-        - **Fewer than two pairs** — the regression slope is undefined, so the result is ``null``.
-        - **Zero beta** — a zero systematic risk gives ``+/-inf`` (or ``NaN`` when the excess return is also zero),
-          reported rather than clipped.
-        - **Constant benchmark** — a zero-variance benchmark makes :func:`beta` ``NaN``, which propagates here.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel, e.g.
+        - **Insufficient sample** — fewer than two complete pairs leaves the regression slope undefined, so the result
+          is ``null``.
+        - **Degenerate denominator** — a zero beta gives ``+/-inf`` — reported, not clipped (or ``NaN`` when the excess
+          return is also zero); a zero-variance benchmark instead makes :func:`beta` ``NaN``, which propagates here.
+        - **Stability** — a beta bounded away from zero is the one regime the excess-over-beta quotient genuinely
+          needs: as the slope vanishes the division amplifies rounding without bound, so a near-zero beta sits at the
+          float-conditioning limit ``CORRECTNESS.md`` documents. The exact zero-beta case is guarded (``+/-inf``); real
+          market betas are far from the regime.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history, e.g.
           ``treynor_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252).over("ticker")``.
 
     See Also:
@@ -1405,17 +1408,16 @@ def treynor_ratio_rolling(
         **Correctness** -- each window matches an independent reference oracle (the reducing :func:`treynor_ratio` over
         the window).
 
-        **Conditioning** — a near-flat (non-bit-identical) benchmark window sits at the float-conditioning limit
-        ``CORRECTNESS.md`` documents: the one-pass rolling slope and an exact two-pass recomputation can round a
-        vanishing benchmark variance — and with it the ``beta`` divisor — apart without bound there. The bit-flat
-        window is guarded exactly (``NaN``); real market windows are far from the regime.
-
         **Edge-case behavior:**
 
-        - **Null** — a window with a ``null`` in either leg yields ``null`` (it must hold ``window`` complete pairs).
-        - **NaN** — a ``NaN`` in either leg of the window propagates, yielding ``NaN``.
-        - **Zero beta** — a window whose slope is zero gives ``+/-inf`` (or ``NaN``), reported rather than clipped.
-        - **Constant benchmark** — a zero-variance window benchmark makes the slope ``NaN``, which propagates here.
+        - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
+        - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
+        - **Degenerate denominator** — a window whose slope is zero gives ``+/-inf`` — reported, not clipped (or
+          ``NaN``); a zero-variance benchmark window instead makes the slope ``NaN``, which propagates here.
+        - **Stability** — a near-flat (non-bit-identical) benchmark window sits at the float-conditioning limit
+          ``CORRECTNESS.md`` documents: the one-pass rolling slope and an exact two-pass recomputation can round a
+          vanishing benchmark variance — and with it the ``beta`` divisor — apart without bound there. The bit-flat
+          window is guarded exactly (``NaN``); real market windows are far from the regime.
         - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries.
 
     See Also:
