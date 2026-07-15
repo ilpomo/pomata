@@ -107,3 +107,29 @@ jobs:
         uses: ./.github/actions/setup
       - name: "Audit: zizmor over the workflows"
         run: uvx zizmor@1.26.1 .
+
+  # Prove the shipped source distribution is self-verifying: build the sdist, unpack it, and run the full suite from
+  # inside the tarball. The pyproject sdist allowlist is hand-maintained, twine's metadata check never installs the
+  # archive, and every CI job tests the git checkout — so a file the allowlist forgets (a doc the shipped tests read,
+  # a support module) would otherwise surface only after publish. Red here means the sdist is not self-verifying.
+  sdist:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: "Setup: checkout"
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0 # hatch-vcs stamps the sdist version from the tag history
+          persist-credentials: false
+      - name: "Setup: install uv"
+        uses: ./.github/actions/setup
+      - name: "Build: source distribution"
+        run: uv build --sdist
+      - name: "Tests: full suite from inside the sdist"
+        env:
+          HYPOTHESIS_PROFILE: ci
+        run: |
+          tar xzf dist/pomata-*.tar.gz -C "$RUNNER_TEMP"
+          cd "$RUNNER_TEMP"/pomata-*/
+          uv sync --locked --no-default-groups --group test
+          uv run --no-sync pytest -n auto
