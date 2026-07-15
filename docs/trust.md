@@ -123,8 +123,10 @@ machine applies — independent oracle, four-tier ladder, golden masters — but
   for **every** degenerate input — `null`, `NaN`, `0`, `±inf`, warm-up.
 - **Metrics** — the annualization identities; scale-equivariance (a Sharpe Ratio is invariant to leverage); closed-form
   checks (the Sharpe Ratio of constant returns, the drawdown of a monotone series); and a defined behavior for every
-  degenerate input — a `null` is skipped, a non-null `NaN` poisons the result, a degenerate denominator is reported as
-  `±inf`/`NaN`, never silently clipped.
+  degenerate input — for the reducing (scalar) metrics a `null` is skipped and a non-null `NaN` poisons the result,
+  while the rolling and running (series-shaped) metrics follow the windowed policy (a `null` nulls the windows that
+  overlap it, a `NaN` propagates and then recovers); a degenerate denominator is reported as `±inf`/`NaN`, never
+  silently clipped.
 
 ## The tolerance ladder
 
