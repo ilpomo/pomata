@@ -189,9 +189,9 @@ shape: (9, 4)
 
 ## Performance & Risk Metrics
 
-60 metric `pl.Expr` — 43 reduce the whole history into the figure you report, and every windowed form ships a
-series-valued rolling twin (plus the row-wise `drawdown`):
-Sharpe, Sortino, Calmar, drawdown, VaR/CVaR, capture, benchmark-relative, and a rolling twin for every windowed form. A
+60 metric `pl.Expr` — 43 reduce the whole history into the figure you report (Sharpe, Sortino, Calmar, VaR/CVaR,
+capture, benchmark-relative, and more), and 17 are their series-valued rolling and running twins, the row-wise
+`drawdown` among them. A
 `null` is skipped; a non-null `NaN` poisons the result loudly, rather than passing a plausible lie downstream:
 
 ```python
