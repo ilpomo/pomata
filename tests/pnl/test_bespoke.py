@@ -54,9 +54,11 @@ from pomata.pnl import cumulative_pnl, equity_curve, returns_log
 # Large magnitude — the numeric-stability tier of every degree-1-homogeneous pnl function
 # ======================================================================================================================
 
-# The specs that carry the large-magnitude tier: every function homogeneous of non-zero degree (so the value
-# genuinely rides the input scale). The scale-invariant siblings (cost_fixed, returns_simple, returns_log) and the
-# nonlinear compounding equity_curve carry no such tier and are excluded.
+# The specs that carry the large-magnitude tier: the linear pnl and cost kernels, homogeneous of non-zero degree in
+# their inputs (so the value genuinely rides the input scale), plus pnl_gross_inverse — its reciprocal legs cancel a
+# joint quantity/price rescale (net degree 0), and the tier stresses its tiny-reciprocal-times-huge-quantity
+# accumulation at extreme magnitudes instead. The scale-invariant siblings (cost_fixed, returns_simple, returns_log)
+# and the nonlinear compounding equity_curve carry no such tier and are excluded.
 LARGE_MAGNITUDE_SPECS: tuple[Spec, ...] = (
     COST_BORROW,
     COST_FUNDING,

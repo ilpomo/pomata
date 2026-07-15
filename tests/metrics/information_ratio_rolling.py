@@ -38,6 +38,7 @@ INFORMATION_RATIO_ROLLING = Spec(
     ),
     oracle=information_ratio_rolling_reference,
     conditioning=_active_windows_conditioned,
+    # A one-pass rolling active mean over tracking error against a recompute-per-window two-pass oracle.
     oracle_rel_tol=RELATIVE_TOLERANCE_ROLLING_ORACLE,
     # A mean of the active series over its rolling standard deviation: a joint rescale of both legs by k leaves the
     # ratio unchanged (verified numerically).

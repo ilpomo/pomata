@@ -36,6 +36,7 @@ SHARPE_RATIO_ROLLING = Spec(
     ),
     oracle=sharpe_ratio_rolling_reference,
     conditioning=_windows_well_spread,
+    # A one-pass rolling mean over dispersion against a recompute-per-window two-pass oracle.
     oracle_rel_tol=RELATIVE_TOLERANCE_ROLLING_ORACLE,
     # A ratio of a rolling mean to a rolling standard deviation at zero risk-free rate is scale-invariant, degree 0
     # (by analogy to the reducing sharpe_ratio).

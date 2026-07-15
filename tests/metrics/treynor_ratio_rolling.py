@@ -71,6 +71,7 @@ TREYNOR_RATIO_ROLLING = Spec(
     ),
     oracle=treynor_ratio_rolling_reference,
     conditioning=_treynor_conditioning,
+    # A one-pass rolling beta denominator against a recompute-per-window two-pass oracle.
     oracle_rel_tol=RELATIVE_TOLERANCE_ROLLING_ORACLE,
     # Degree-1 homogeneous in a joint returns/benchmark rescale at the default risk_free_rate=0 (the params omit it):
     # the linear annualization is degree-1 over a degree-0 rolling slope, per window — mirroring the reducing twin's

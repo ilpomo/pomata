@@ -37,6 +37,7 @@ ALPHA_ROLLING = Spec(
     ),
     oracle=alpha_rolling_reference,
     conditioning=_windows_well_conditioned,
+    # A one-pass rolling covariance / variance regression against a recompute-per-window two-pass oracle.
     oracle_rel_tol=RELATIVE_TOLERANCE_ROLLING_ORACLE,
     # Annualizes an excess leg against a fixed per-period risk-free constant — not scale-invariant, by the same
     # reasoning as the reducing alpha (verified numerically).

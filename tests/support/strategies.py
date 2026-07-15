@@ -110,26 +110,18 @@ def spans_even_lag_run(series: Sequence[float | None], min_run: int = 6) -> bool
 
 def subnormal_safe_floats(bound: float = 1e3) -> st.SearchStrategy[float]:
     """
-    Finite floats in ``[-bound, bound]`` whose magnitude is floored at ``SUBNORMAL_FLOOR``, for any indicator whose
-    property tiers compare a one-pass streaming form against a two-pass oracle and would diverge on a
-    subnormal-magnitude input by a pure floating-point artifact rather than a bug.
+    Finite floats in ``[-bound, bound]`` whose magnitude is floored at ``SUBNORMAL_FLOOR``, for a bespoke property
+    test that draws over an unrestricted magnitude domain and checks its result against a magnitude-relative
+    tolerance (:func:`tests.support.tolerances.streaming_abs_tol`), which would otherwise collapse toward zero on a
+    subnormal-magnitude draw and fail on a pure floating-point artifact rather than a bug — currently the
+    value-at-risk / conditional-value-at-risk boundedness properties in ``tests/metrics/test_bespoke.py``.
 
-    Two indicator families need this floor, for the same underlying reason -- a quantity derived from a tiny input
-    underflows into the subnormal range, where the streaming implementation and the two-pass oracle round apart:
-
-    - **Squaring indicators** (variance, standard deviation, Bollinger bands) compute ``v ** 2``; a draw with
-      ``|v| ~ 1e-162`` gives ``v ** 2 ~ 3e-324``, below ``DBL_MIN ~ 2.2e-308``, so the square loses almost all of its
-      precision and the one-pass streaming variance drifts from the two-pass oracle by far more than any tolerance.
-    - **Recursive EWM means** (ema, rma, dema, tema, t3) are checked against ``input_scale(values) *
-      EXACT_TOLERANCE_FACTOR``; at a subnormal-magnitude ``window`` that abs-tol collapses to exactly ``0.0`` while the
-      recursion and the two-pass oracle round one ULP apart -- a deterministic failure on data that is mathematically
-      fine. The degenerate all-zero ``window`` is pinned as a fixed case instead.
-
-    Flooring ``|v|`` at ``SUBNORMAL_FLOOR`` keeps ``v ** 2`` (and the scaled ``(k * v) ** 2`` with ``|k| >= 1e-2``)
-    comfortably inside the normal range and keeps ``input_scale`` above the subnormal threshold, while still spanning
-    a wide magnitude. Use it for EVERY random draw such a claim consumes, not only the rescaled one: the underflow
-    can surface wherever a tiny value is drawn. For draws that mix missing values, pass
-    ``min_magnitude=SUBNORMAL_FLOOR`` to :func:`missing_data_floats` for the same reason.
+    The ladder's own declarative specs do not need it: the squaring indicators (variance, standard deviation,
+    Bollinger bands) draw their property tiers from a bounded, strictly-positive price domain that never approaches
+    the subnormal range even squared, and the recursive EWM means (ema, rma, dema, tema, t3) are compared at a fixed
+    property tolerance that absorbs subnormal-scale rounding noise; the degenerate all-zero window is pinned as a
+    fixed case. For draws that mix missing values, pass ``min_magnitude=SUBNORMAL_FLOOR`` to
+    :func:`missing_data_floats` for the same reason.
 
     Args:
         bound: The symmetric magnitude bound; values are drawn from ``[-bound, bound]``.
@@ -167,6 +159,16 @@ def standardized_moment_floats(bound: float = 1e3) -> st.SearchStrategy[float]:
     )
 
 
+def _population_variance_and_scale(finite: Sequence[float]) -> tuple[float, float]:
+    """
+    The population variance of ``finite`` and its magnitude scale (the largest absolute value) — the shared core of
+    the spread predicates below.
+    """
+    mean = sum(finite) / len(finite)
+    variance = sum((value - mean) ** 2 for value in finite) / len(finite)
+    return variance, max(abs(value) for value in finite)
+
+
 def well_spread(values: Sequence[float | None]) -> bool:
     """
     Whether the finite values have genuine spread (variance well above rounding noise), so that a standardized moment
@@ -189,9 +191,7 @@ def well_spread(values: Sequence[float | None]) -> bool:
     finite = [value for value in values if value is not None and not math.isnan(value)]
     if len(finite) < 2:
         return True
-    mean = sum(finite) / len(finite)
-    variance = sum((value - mean) ** 2 for value in finite) / len(finite)
-    scale = max(abs(value) for value in finite)
+    variance, scale = _population_variance_and_scale(finite)
     return variance > scale * scale * 1e-9
 
 
@@ -223,9 +223,8 @@ def windows_well_conditioned(values: Sequence[float | None], window: int, floor:
         ]
         if len(finite) < 2:
             continue
-        mean = sum(finite) / len(finite)
-        variance = sum((value - mean) ** 2 for value in finite) / len(finite)
-        scale = max(abs(value) for value in finite) or 1.0
+        variance, scale = _population_variance_and_scale(finite)
+        scale = scale or 1.0
         if variance <= scale * scale * floor:
             return False
     return True
@@ -264,7 +263,7 @@ def _within(low: float, high: float, fraction: float) -> float:
     return min(high, low + fraction * (high - low))
 
 
-def _apply_missing(value: float, choice: int) -> float | None:
+def apply_missing(value: float, choice: int) -> float | None:
     """
     Keep ``value`` (``0``), drop it to ``None`` (``1``), or replace it with ``NaN`` (``2``).
     """
@@ -330,7 +329,7 @@ def coherent_ohlc(max_price: float = 1e3) -> st.SearchStrategy[tuple[float, floa
 def _assemble_hl_missing(raw: tuple[float, float, int, int]) -> tuple[float | None, float | None]:
     price_a, price_b, keep_high, keep_low = raw
     low, high = _low_high(price_a, price_b)
-    return (_apply_missing(high, keep_high), _apply_missing(low, keep_low))
+    return (apply_missing(high, keep_high), apply_missing(low, keep_low))
 
 
 def coherent_hl_with_missing(max_price: float = 1e4) -> st.SearchStrategy[tuple[float | None, float | None]]:
@@ -346,7 +345,7 @@ def _assemble_hlc_missing(
     price_a, price_b, close_fraction, keep_high, keep_low, keep_close = raw
     low, high = _low_high(price_a, price_b)
     close = _within(low, high, close_fraction)
-    return (_apply_missing(high, keep_high), _apply_missing(low, keep_low), _apply_missing(close, keep_close))
+    return (apply_missing(high, keep_high), apply_missing(low, keep_low), apply_missing(close, keep_close))
 
 
 def coherent_hlc_with_missing(
@@ -367,10 +366,10 @@ def _assemble_hlcv_missing(
     low, high = _low_high(price_a, price_b)
     close = _within(low, high, close_fraction)
     return (
-        _apply_missing(high, keep_high),
-        _apply_missing(low, keep_low),
-        _apply_missing(close, keep_close),
-        _apply_missing(volume, keep_volume),
+        apply_missing(high, keep_high),
+        apply_missing(low, keep_low),
+        apply_missing(close, keep_close),
+        apply_missing(volume, keep_volume),
     )
 
 
@@ -393,10 +392,10 @@ def _assemble_ohlc_missing(
     open_value = _within(low, high, open_fraction)
     close = _within(low, high, close_fraction)
     return (
-        _apply_missing(open_value, keep_open),
-        _apply_missing(high, keep_high),
-        _apply_missing(low, keep_low),
-        _apply_missing(close, keep_close),
+        apply_missing(open_value, keep_open),
+        apply_missing(high, keep_high),
+        apply_missing(low, keep_low),
+        apply_missing(close, keep_close),
     )
 
 

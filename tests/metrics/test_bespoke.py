@@ -65,10 +65,12 @@ from pomata.metrics import (
 # Large magnitude — the numeric-stability tier of every degree-1-homogeneous dispersion / quantile metric
 # ======================================================================================================================
 
-# The specs that carry the large-magnitude tier: every REDUCING returns-homogeneous dispersion or quantile metric
-# (so the value genuinely rides the input scale); their rolling twins share the same kernels per window, so the
-# reducing sweep carries the claim. The scale-invariant siblings (skewness, kurtosis, stability, the ratios)
-# carry no such tier and are excluded.
+# The specs that carry the large-magnitude tier: the REDUCING dispersion and quantile metrics — degree-1 in the
+# returns, so the value genuinely rides the input scale, and their one-pass kernels are where extreme magnitudes
+# stress the accumulation; their rolling twins share the same kernels per window, so the reducing sweep carries the
+# claim. Everything else stays out: the scale-invariant metrics (skewness, kurtosis, stability, the bounded ratios)
+# have no magnitude to stress, and the degree-1 performance measures (treynor_ratio,
+# modigliani_risk_adjusted_performance) are not dispersion / quantile kernels.
 LARGE_MAGNITUDE_SPECS: tuple[Spec, ...] = (
     CONDITIONAL_VALUE_AT_RISK,
     DOWNSIDE_DEVIATION,
