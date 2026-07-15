@@ -36,11 +36,11 @@ KURTOSIS_ROLLING = Spec(
     warmup=3,
     raises=(({"window": 1}, r"window must be >= 2"),),
     oracle=kurtosis_rolling_reference,
-    conditioning=_windows_well_conditioned,
     # A one-pass standardized fourth moment against a fresh two-pass oracle; the moment floor sizes the abs band.
     oracle_rel_tol=RELATIVE_TOLERANCE_ROLLING_ORACLE,
     oracle_abs_tol=ABSOLUTE_TOLERANCE_ROLLING_MOMENT,
     # A standardized moment per window is scale-invariant, degree 0 (by analogy to the reducing kurtosis).
+    conditioning=_windows_well_conditioned,
     scale=(ScaleAxis(roles=("returns",), degree=0),),
     golden_input={"returns": (0.01, -0.02, 0.03, -0.01, 0.02, 0.0, -0.015)},
     golden_output=(None, None, None, -1.4266, -1.7785, -1.64, -1.099),

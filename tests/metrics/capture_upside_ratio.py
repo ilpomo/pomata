@@ -55,8 +55,7 @@ CAPTURE_UPSIDE_RATIO = Spec(
             expected=(1.8838761627776746,),
             reason="an exactly-flat benchmark day (0.0) belongs to NEITHER market leg: the up-market subset takes "
             "strictly positive benchmark periods only — letting the flat day leak into the upside leg would "
-            "distort this scalar to ~19.67, and the fuzz domain is bounded away from zero, so only this pin "
-            "holds the boundary",
+            "distort this scalar to ~19.67; the boundary is held by this fixed case",
         ),
     ),
 )

@@ -36,11 +36,11 @@ ALPHA_ROLLING = Spec(
         ({"risk_free_rate": -math.inf}, r"risk_free_rate must be a finite number"),
     ),
     oracle=alpha_rolling_reference,
-    conditioning=_windows_well_conditioned,
     # A one-pass rolling covariance / variance regression against a recompute-per-window two-pass oracle.
     oracle_rel_tol=RELATIVE_TOLERANCE_ROLLING_ORACLE,
     # Annualizes an excess leg against a fixed per-period risk-free constant — not scale-invariant, by the same
     # reasoning as the reducing alpha (verified numerically).
+    conditioning=_windows_well_conditioned,
     scale=ScaleExempt(
         reason="annualizes an excess leg against a fixed per-period risk-free constant — neither scale-homogeneous "
         "nor scale-invariant"

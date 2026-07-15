@@ -37,11 +37,11 @@ INFORMATION_RATIO_ROLLING = Spec(
         ({"periods_per_year": 0}, r"periods_per_year must be >= 1"),
     ),
     oracle=information_ratio_rolling_reference,
-    conditioning=_active_windows_conditioned,
     # A one-pass rolling active mean over tracking error against a recompute-per-window two-pass oracle.
     oracle_rel_tol=RELATIVE_TOLERANCE_ROLLING_ORACLE,
     # A mean of the active series over its rolling standard deviation: a joint rescale of both legs by k leaves the
     # ratio unchanged (verified numerically).
+    conditioning=_active_windows_conditioned,
     scale=(ScaleAxis(roles=("returns", "benchmark"), degree=0),),
     golden_input={
         "returns": (0.02, -0.01, 0.03, -0.02, 0.015, 0.005, -0.01, 0.02),
