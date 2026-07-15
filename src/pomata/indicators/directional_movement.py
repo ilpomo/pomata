@@ -1,5 +1,5 @@
 """
-Directional movement indicators — the Wilder DMI / ADX system.
+Directional movement indicators — the Wilder DMI / ADX system and the Vortex oscillator.
 """
 
 import polars as pl

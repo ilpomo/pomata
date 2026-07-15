@@ -14,9 +14,10 @@ section lists exactly what it checks.
 
 ## My output is all `null` (or null for far longer than I expected)
 
-That is the {term}`warm-up`. A window of length `n` cannot produce a value until it has seen `n` observations, so the first
-`n - 1` rows are `null` — and the chained averages stack that up: `dema` warms up over `2 * (n - 1)` rows, `t3` over
-`6 * (n - 1)`, the cycle indicators over 32 or 63 rows depending on the measure. If the *whole* column is `null`, your series is shorter than the
+That is the {term}`warm-up`. A plain single-pass window of length `n` cannot produce a value until it has seen `n`
+observations, so the first `n - 1` rows are `null` — and other shapes owe more: the chained averages stack it up
+(`dema` warms up over `2 * (n - 1)` rows, `t3` over `6 * (n - 1)`, the cycle indicators over 32 or 63 rows depending
+on the measure), and an indicator built on a difference needs one extra raw bar. If the *whole* column is `null`, your series is shorter than the
 warm-up the function owes. This is not a bug and it is not negotiable: seeding a window with a fabricated value would
 be a lie that compounds downstream. Each function documents its exact warm-up length.
 
@@ -37,7 +38,8 @@ frame.with_columns(sma=sma(pl.col("close"), 20).over("ticker"))
 ```
 
 The same applies to the `.shift(1)` on your signal and to anything else with memory: if it spans bars, it needs the
-`.over`. Sort by ticker then time first, so the groups are contiguous.
+`.over`. What matters is that each ticker's own rows are already in time order — sorting by ticker then time is a
+simple way to guarantee that (`.over` itself does not require the groups to be contiguous blocks).
 
 ## A whole metric came back `NaN`
 

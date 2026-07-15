@@ -66,7 +66,7 @@ jobs:
           # 3. A breaking marker requires the `breaking` label, so the release notes' leading section can
           #    never miss one. Only explicit markers count -- a `!` in the title, a bold **BREAKING**, or
           #    the conventional-commits BREAKING(-| )CHANGE footer -- so prose that merely mentions the
-          #    word (e.g. this very rule described in a PR body) does not trip the guard.
+          #    bare word does not trip the guard (the exact marker strings always do, wherever they appear).
           if [[ -n "$bang" ]] || grep -qE '\*\*BREAKING\*\*|BREAKING CHANGE|BREAKING-CHANGE' <<< "$body"; then
             has_label breaking || fail "title/body marks this PR breaking but the 'breaking' label is missing"
           fi

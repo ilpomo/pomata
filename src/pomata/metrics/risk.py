@@ -245,7 +245,7 @@ def conditional_value_at_risk(
     See Also:
         - :func:`value_at_risk`: The tail cutoff quantile; this coherent average of the tail is always at least as deep.
         - :func:`conditional_drawdown_at_risk`: The same tail-averaging applied to the drawdown curve.
-        - :func:`value_at_risk_parametric`: A parametric alternative to this historical tail estimate.
+        - :func:`value_at_risk_parametric`: The parametric cutoff this estimate averages the tail beyond.
 
     References:
         - Rockafellar, R. T. & Uryasev, S. (2000). "Optimization of Conditional Value-at-Risk." *Journal of Risk*, 2(3),
@@ -725,8 +725,8 @@ def kurtosis_rolling(
         \mathrm{Kurt}_t = \frac{m_{4,t}}{m_{2,t}^{2}} - 3, \qquad n = \text{window},
 
     where :math:`m_{k,t}` is the ``k``-th central moment over the window, from Polars' native mean-centered rolling
-    kurtosis (numerically stable on a near-constant window, with a bit-constant window forced to ``NaN`` and the
-    empty-series case guarded).
+    kurtosis (numerically stable on a near-constant window no larger value has just exited, with a bit-constant
+    window forced to ``NaN`` and the empty-series case guarded).
 
     Args:
         returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
@@ -749,6 +749,11 @@ def kurtosis_rolling(
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
         - **Zero variance** — a constant window has an undefined kurtosis (``0 / 0``), yielding ``NaN``.
+        - **Outlier exit** — the native kernel carries running sums, so a value leaving the window can leave a stale
+          residue behind: an exit more than one order of magnitude above the window's scale is recomputed exactly,
+          while a smaller exit onto a window whose own spread has collapsed can amplify that residue through the
+          near-zero variance into a wrong finite value — reported, not clipped (the tail of pola-rs/polars#28290,
+          fixed upstream in #28309).
         - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries.
 
     See Also:
@@ -1207,8 +1212,8 @@ def skewness_rolling(
         \mathrm{Skew}_t = \frac{m_{3,t}}{m_{2,t}^{3/2}}, \qquad n = \text{window},
 
     where :math:`m_{k,t}` is the ``k``-th central moment over the window, from Polars' native mean-centered rolling
-    skewness (numerically stable on a near-constant window, with a bit-constant window forced to ``NaN`` and the
-    empty-series case guarded).
+    skewness (numerically stable on a near-constant window no larger value has just exited, with a bit-constant
+    window forced to ``NaN`` and the empty-series case guarded).
 
     Args:
         returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
@@ -1231,6 +1236,11 @@ def skewness_rolling(
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
         - **Zero variance** — a constant window has an undefined skewness (``0 / 0``), yielding ``NaN``.
+        - **Outlier exit** — the native kernel carries running sums, so a value leaving the window can leave a stale
+          residue behind: an exit more than one order of magnitude above the window's scale is recomputed exactly,
+          while a smaller exit onto a window whose own spread has collapsed can amplify that residue through the
+          near-zero variance into a wrong finite value — reported, not clipped (the tail of pola-rs/polars#28290,
+          fixed upstream in #28309).
         - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries.
 
     See Also:

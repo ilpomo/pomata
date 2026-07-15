@@ -1,6 +1,7 @@
 """
-Pins the precision figures published in ``docs/trust.md`` to the suite, so they cannot silently drift or become
-unreproducible.
+Pins the precision figures published in ``docs/trust.md`` to the suite — each published value at the reference band
+and each residual cell at its printed magnitude — so a drift in the shipped kernels shows up red instead of leaving
+stale prose.
 
 Builds the deterministic 400-bar OHLC series the trust page quotes (closed-form, no RNG, so the figures regenerate from
 a fresh clone), and for every indicator in the table checks two things: the final value still equals the published
