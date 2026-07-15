@@ -29,7 +29,7 @@ from tests.indicators.oracles import (
     rsi_reference,
     sma_reference,
 )
-from tests.test_precision_table import CLOSE, HIGH, LOW
+from tests.test_precision_table import CLOSE, HIGH, LOW, residual_cell
 
 _frame = pl.DataFrame({"high": HIGH, "low": LOW, "close": CLOSE})
 _close, _high, _low = np.asarray(CLOSE), np.asarray(HIGH), np.asarray(LOW)
@@ -71,15 +71,11 @@ TALIB = {
 
 
 def _vs_oracle(name: str) -> str:
-    if POMATA[name] == ORACLE[name]:
-        return "exact"
-    return f"{abs(POMATA[name] - ORACLE[name]) / abs(ORACLE[name]):.0e}"
+    return residual_cell(POMATA[name], ORACLE[name])
 
 
 def _vs_talib(name: str) -> str:
-    if POMATA[name] == TALIB[name]:
-        return "exact"
-    return f"{abs(POMATA[name] - TALIB[name]) / abs(TALIB[name]):.0e}"
+    return residual_cell(POMATA[name], TALIB[name])
 
 
 def main() -> None:
