@@ -114,8 +114,9 @@ Why `1e-10`, and why it is "safe no matter what" for this library:
   rounding between the streaming implementation and the two-pass oracle lands around `1e-15`. `1e-10` is five orders
   above that: tight enough to reject any real coding error, loose enough that a last-bit difference never flakes.
 - **It is verified, not asserted.** The property tier holds every indicator to `1e-10` over the full random fuzz
-  domain (the documented exception: the one-pass rolling family — thirteen indicators whose sliding sums round
-  differently from a fresh two-pass recompute — meets its oracle at the per-family band each spec declares),
+  domain (the documented exception: the one-pass rolling family — twenty-two functions, thirteen indicators and nine
+  rolling metrics, whose one-pass forms round differently from a fresh two-pass recompute — meets its oracle at the
+  per-family band each spec declares),
   and that bound is the enforced guarantee. The realized *headroom* under it is recomputable from a clean clone with
   `scripts/calibrate_tolerances.py`, which fuzzes a representative well-conditioned set across multiple seeds and reports
   the worst relative residual — it lands around `1e-14` (a handful of `float64` noise-floor ULPs), about four orders
@@ -140,9 +141,11 @@ window at residue risk exactly (a fresh two-pass mean-centered moment wherever a
 magnitude above the window's own scale has already slid out — the stale-residue defect of the native incremental
 kernels, [pola-rs/polars#28290](https://github.com/pola-rs/polars/issues/28290), fixed upstream in #28309), so one
 bad tick can no longer poison every later window. The
-reducing dispersions pin an exactly-constant series to exactly zero, so the ratios built on them (Sharpe and its
-family, the information ratio's tracking error) degenerate to the documented signed infinity instead of a
-residue-driven huge finite. And the rolling dispersions — the annualized rolling volatility, the rolling variance and
+reducing dispersions pin an exactly-constant series to exactly zero, so the first-moment ratios built on them (the
+Sharpe and Sortino ratios, the information ratio's tracking error, and the M-squared that composes them) degenerate
+to the documented signed infinity instead of a residue-driven huge finite, while the higher-moment variants (the
+adjusted and probabilistic Sharpe ratios) degenerate to the documented `NaN` — their moment corrections are `0/0`
+there. And the rolling dispersions — the annualized rolling volatility, the rolling variance and
 standard deviation, and the Bollinger bands built on them — pin a bit-constant window to exactly zero, so a departed
 outlier's residue in the incremental kernel can never be reported as spread. The windowed win / loss ratios (the Chande momentum oscillator, the rolling omega) keep
 the documented dynamic-range limit above instead: their sliding sums are guarded exactly at the bit-constant edge and
@@ -152,8 +155,11 @@ market series.
 A related caveat applies wherever an output cancels toward zero, not only to one family: the squaring statistics
 (variance, standard deviation, Bollinger bands) as their near-constant-window output approaches zero, and equally any
 mean or sum (an SMA over a window straddling large values of either sign, the price transforms) at a near-zero result.
-A relative error is amplified as the denominator vanishes, so the agreement there is held to an absolute floor sized to
-the input magnitude rather than the bare relative `1e-10`. The relative bound is the guarantee everywhere the output is
+A relative error is amplified as the denominator vanishes, so the agreement there is held to a fixed absolute floor
+rather than the bare relative `1e-10`: the rolling and EWM squaring statistics to their declared `1e-6` band, the
+means and price transforms to the property tier's default `1e-9` floor. (Sizing a band to the input magnitude —
+`input_scale ** degree * factor` — is a separate mechanism, used by the large-magnitude bespoke tests for volatility,
+downside deviation, and the value-at-risk family.) The relative bound is the guarantee everywhere the output is
 meaningfully non-zero — which is everywhere real market data lands.
 
 ## How big a test has to be — and why exactly that big
@@ -241,17 +247,20 @@ When the implementation and the oracle agree they still round differently, and h
 statistic's *conditioning*, not on a round number. Each tolerance is a named constant whose value is the worst-case
 implementation-vs-oracle residual the statistic's conditioning predicts on degenerate inputs, plus a margin:
 
-- **degree-2, two-pass** (variance): the two forms differ by about half a ULP at worst — a tight band.
-- **degree-1, square-root-amplified** (standard deviation, the EWMA / MACD signal): the square root blows the relative
-  error up as the variance approaches zero, worst residual about `1e-8` — a looser band (std is looser than variance,
-  precisely for this reason).
+- **degree-2, one-pass rolling** (the rolling and EWM variance): the streaming form drifts from its
+  recompute-per-window two-pass oracle across window slides, so it meets the same rolling-oracle band (`1e-6`) as
+  every other one-pass moment family.
+- **degree-1, one-pass rolling** (the rolling and EWM standard deviation, the MACD's EMA-based signal line): the same
+  rolling-oracle band (`1e-6`) against the two-pass oracle; separately, the large-magnitude bespoke tier stresses
+  volatility and downside deviation where the square root genuinely amplifies the relative error as the windowed
+  variance approaches zero.
 - **degree-1, well-conditioned** (the recursive, windowed, and stateless means): the residual is at most a few ULP — a
   tight band.
 - **scale-invariant** (a bounded ratio, a cycle period, a `0/1` flag): the output is `O(1)` at any input magnitude, so
   the band is *absolute* — sizing an `O(1)` value to the input magnitude is meaningless.
 
-A magnitude-dependent band is sized to the data (`input_scale ** degree * factor`), not fixed, so it is right at every
-scale. Where one indicator legitimately departs — a difference of large terms that cancels, a band that would underflow
+The large-magnitude bespoke tier's bands are sized to the data (`input_scale ** degree * factor`), not fixed, so they
+are right at every scale. Where one indicator legitimately departs — a difference of large terms that cancels, a band that would underflow
 at a subnormal input — the departure carries a one-line comment saying why. A bare, unexplained tolerance is treated as
 a defect, not a detail.
 
@@ -261,7 +270,8 @@ Timing has its own sizing, and — like every size in this document — it is th
 inequality demands, not a round number. The cost model is `t(n) = c * n^k + h`: `k` is the polynomial cost degree
 each spec declares (`cost_degree`; `1` is the family norm, and logarithmic factors ride within a degree — one timed
 decade cannot resolve them and no contract claims them), and `h` is the function's own fixed per-call cost, measured
-on a frame far below every window rather than assumed. The scaling guard then walks a quantized ladder (1k, 10k,
+on a small fixed frame (eight rows — below most windows, and dominated by per-call dispatch even for the shortest
+ones) rather than assumed. The scaling guard then walks a quantized ladder (1k, 10k,
 100k rows) and certifies the smallest base whose measured cost clears `4h` — which pins the scaling signal at
 `s = c * n^k / h >= 3`. At that signal, with the min-of-three estimator's noise bounded at 25% and the worst
 log-factor inflation of `4/3` over one decade, an honest degree-`k` kernel measures at most `2.22 * 10^k` and a
@@ -312,6 +322,25 @@ defined, documented behavior for every degenerate input (`null` skipped, a non-n
 degenerate denominator reported as `±inf` / `NaN`, never clipped).
 
 </details>
+
+## Deliberate conventions
+
+A few behaviors look like inconsistencies until the domain reason is on the table; each is tested exactly as
+implemented, and its docstring states it:
+
+- **Burke ratio, per-bar denominator.** `burke_ratio` sums the squared *per-bar* drawdown series rather than the
+  classic per-episode declines of Burke (1994): every underwater bar contributes, so deeper *and longer* drawdowns
+  are both penalized. The figure is not comparable to a per-episode Burke from another library.
+- **EWM dispersions, `window >= 2`.** `standard_deviation_ewma` and `variance_ewma` reject a window of one while
+  their rolling twins accept `window=1, ddof=0`: the EWM form's debiasing degenerates at a single observation
+  (`bias=False` has no defined value there), and a runtime flag cannot carry a `ddof`-style bound.
+- **Parabolic SAR, intrabar order.** Within a bar the extreme point and acceleration factor update before the
+  reversal check, so a bar that both makes a new extreme and crosses the stop reverses onto that bar's fresh extreme.
+  Wilder's text does not fix this order; the golden masters pin the chosen one, including the seeding and reversal
+  branches.
+- **TA-Lib divergences.** ADXR's averaging lag, the Chande momentum oscillator's smoothing, and OBV's origin follow
+  the charting authorities rather than TA-Lib and are held out of the differential on purpose (see the differential
+  section above).
 
 ## What we claim, precisely
 
