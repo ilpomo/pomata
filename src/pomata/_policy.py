@@ -32,7 +32,7 @@ class NanPolicy(Enum):
     LATCHES = "latches"  # a recursion carries it forward forever
 
 
-# One row per public function: its declared ``(null_policy, nan_policy)``. Proven against actual behaviour by the
+# One row per public function: its declared ``(null_policy, nan_policy)``. Proven against actual behavior by the
 # test ladder's flow rungs, and kept in exact correspondence with the public surface by the suite's guards (a spec
 # without a registry row cannot even be constructed).
 POLICIES: dict[str, tuple[NullPolicy, NanPolicy]] = {

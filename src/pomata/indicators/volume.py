@@ -464,7 +464,7 @@ def money_flow_index(
     Money Flow Index (MFI), also known as the volume-weighted Relative Strength Index.
 
     A bounded ``[0, 100]`` momentum oscillator (Quong & Soudack, 1989) that grades buying versus selling pressure by
-    weighting each bar's typical price by its traded volume. It is the volume-aware analogue of the RSI: where the RSI
+    weighting each bar's typical price by its traded volume. It is the volume-aware analog of the RSI: where the RSI
     accumulates price gains and losses, the MFI accumulates the *raw money flow* (typical price times volume) on up-days
     versus down-days. With :math:`n = \text{window}`, typical price :math:`\mathrm{TP}_t = (H_t + L_t + C_t) / 3` and
     raw money flow :math:`\mathrm{RMF}_t = \mathrm{TP}_t \cdot V_t`:
@@ -516,7 +516,7 @@ def money_flow_index(
         - **NaN** — a ``NaN`` in any input contaminates the affected money flow and yields ``NaN`` for every window that
           contains it. A ``NaN`` typical price makes both its own change and the next one undefined in sign, so each is
           poisoned into the positive *and* the negative money flow as ``NaN``, voiding every window that reaches either
-          change (the same two-position taint as the ``null`` analogue, but surfaced as ``NaN`` rather than ``null``).
+          change (the same two-position taint as the ``null`` analog, but surfaced as ``NaN`` rather than ``null``).
           One carve-out mirrors the flat-bar convention: on a bar whose typical price exactly equals the previous one,
           the flow is ``0`` by definition regardless of volume, so a ``null`` or ``NaN`` volume there is absorbed into
           the zero flow rather than voiding the window.
@@ -529,7 +529,7 @@ def money_flow_index(
           ``money_flow_index(pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), 14).over("ticker")``.
 
     See Also:
-        - :func:`rsi`: The price-only analogue (no volume weighting).
+        - :func:`rsi`: The price-only analog (no volume weighting).
         - :func:`chaikin_money_flow`: Another volume-weighted money-flow oscillator.
         - :func:`price_typical`: The per-bar typical price this weights by volume.
 
@@ -600,7 +600,7 @@ def money_flow_index(
     raw_money_flow = typical_price * volume
     typical_change = typical_price.diff()
     # A NaN typical change is undefined in sign: route it to NaN in *both* flows so it poisons every window reaching the
-    # successor change, matching the null analogue (which voids its own and the following change). Without this guard
+    # successor change, matching the null analog (which voids its own and the following change). Without this guard
     # Polars' total order (``NaN > 0`` is ``True``) would route the NaN change into the positive flow at its finite raw
     # money flow, faking a fully-positive bar after a NaN typical price.
     change_is_nan = typical_change.is_nan()
@@ -827,7 +827,7 @@ def vwap(
     See Also:
         - :func:`vwma`: The windowed volume-weighted moving average, for a rolling rather than anchored weight.
         - :func:`price_typical`: The per-bar price this weights.
-        - :func:`sma`: The equal-weighted moving average, the volume-blind analogue.
+        - :func:`sma`: The equal-weighted moving average, the volume-blind analog.
 
     References:
         - Berkowitz, S. A., Logue, D. E., & Noser, E. A. (1988). "The Total Cost of Transactions on the NYSE." *The

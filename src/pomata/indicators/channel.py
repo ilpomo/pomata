@@ -485,7 +485,7 @@ def midprice(
     Midprice over a window — the mean of the highest high and the lowest low in the trailing window.
 
     The center of the price range a bar series has covered: halfway between the rolling maximum of ``high`` and the
-    rolling minimum of ``low``. It is the two-input analogue of :func:`midpoint`, reading a bar's extremes rather than
+    rolling minimum of ``low``. It is the two-input analog of :func:`midpoint`, reading a bar's extremes rather than
     a single series:
 
     .. math::

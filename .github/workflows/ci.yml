@@ -65,6 +65,13 @@ jobs:
           lock_ruff=$(grep -A1 '^name = "ruff"$' uv.lock | grep -oE '^version = "[0-9]+(\.[0-9]+)*"' | head -1 | sed -E 's/.*"([0-9.]+)"/\1/')
           hook_ruff=$(grep -A1 'astral-sh/ruff-pre-commit' .pre-commit-config.yaml | grep -oE 'rev: v[0-9]+(\.[0-9]+)*' | sed 's/rev: v//')
           [ -n "$lock_ruff" ] && [ "$lock_ruff" = "$hook_ruff" ] || { echo "ruff pin drift: uv.lock=$lock_ruff pre-commit=$hook_ruff"; exit 1; }
+      # Fail closed if the codespell pin drifts: same dual-ecosystem risk (uv.lock vs the codespell hook rev), same
+      # full-string discipline as the two guards above.
+      - name: "Guard: codespell pin in step (uv.lock == pre-commit hook)"
+        run: |
+          lock_cs=$(grep -A1 '^name = "codespell"$' uv.lock | grep -oE '^version = "[0-9]+(\.[0-9]+)*"' | head -1 | sed -E 's/.*"([0-9.]+)"/\1/')
+          hook_cs=$(grep -A1 'codespell-project/codespell' .pre-commit-config.yaml | grep -oE 'rev: v[0-9]+(\.[0-9]+)*' | sed 's/rev: v//')
+          [ -n "$lock_cs" ] && [ "$lock_cs" = "$hook_cs" ] || { echo "codespell pin drift: uv.lock=$lock_cs pre-commit=$hook_cs"; exit 1; }
       - name: "Setup: install uv"
         uses: ./.github/actions/setup
       # Lean install: --no-default-groups drops the `dev` umbrella (and thus `docs`); the project stays editable-installed
@@ -76,6 +83,10 @@ jobs:
         run: uv run ruff check
       - name: "Lint: ruff format"
         run: uv run ruff format --check
+      # US English throughout, in code and prose (CONTRIBUTING.md): the en-GB dictionary in [tool.codespell] catches
+      # the British variants; the reasoned ignore list lives there too.
+      - name: "Lint: codespell (US English)"
+        run: uv run codespell
       - name: "Types: mypy (package + tests)"
         run: uv run mypy -p pomata -p tests
       - name: "Types: pyright"
@@ -149,7 +160,7 @@ jobs:
   # branch protection can require `gate` instead of per-leg names that churn whenever the matrix changes. always() so it
   # still runs (and reports the failure) when a needed job fails; the draft clause keeps it skipped on a draft, exactly
   # like the jobs it gates -- a draft shows a gray, un-run gate, and GitHub blocks merging a draft regardless. It fails
-  # unless BOTH gating jobs genuinely succeeded (a skipped or cancelled job is not a pass).
+  # unless BOTH gating jobs genuinely succeeded (a skipped or canceled job is not a pass).
   gate:
     needs: [quality, test]
     if: always() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)

@@ -390,7 +390,7 @@ def true_range(
     True Range (TR), also known as Wilder's True Range.
 
     The single-bar volatility primitive J. Welles Wilder introduced as the building block of the Average True Range and
-    the Directional Movement system. It generalises the bar's high-low spread to account for gaps relative to the prior
+    the Directional Movement system. It generalizes the bar's high-low spread to account for gaps relative to the prior
     close, taking the largest of three distances:
 
     .. math::

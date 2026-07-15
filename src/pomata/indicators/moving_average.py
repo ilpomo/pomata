@@ -239,7 +239,7 @@ def ema(
     See Also:
         - :func:`rma`: Wilder's variant, with smoothing factor ``1 / window``.
         - :func:`dema`: A lag-reduced average built from two chained EMAs.
-        - :func:`sma`: The equal-weight simple average this is the exponential analogue of.
+        - :func:`sma`: The equal-weight simple average this is the exponential analog of.
 
     References:
         - Roberts, S. W. (1959). "Control Chart Tests Based on Geometric Moving Averages." *Technometrics*, 1(3),
@@ -675,8 +675,8 @@ def sma(
           boundaries, e.g. ``sma(pl.col("close"), 20).over("ticker")``.
 
     See Also:
-        - :func:`ema`: The exponentially-weighted analogue, more responsive to recent values.
-        - :func:`wma`: The linearly-weighted analogue.
+        - :func:`ema`: The exponentially-weighted analog, more responsive to recent values.
+        - :func:`wma`: The linearly-weighted analog.
         - :func:`trima`: The triangular average, a simple average of a simple average.
 
     References:
@@ -1211,9 +1211,9 @@ def wma(
           boundaries, e.g. ``wma(pl.col("close"), 20).over("ticker")``.
 
     See Also:
-        - :func:`sma`: The unweighted analogue.
+        - :func:`sma`: The unweighted analog.
         - :func:`hma`: A low-lag average built by composing weighted means.
-        - :func:`ema`: The exponentially-weighted analogue.
+        - :func:`ema`: The exponentially-weighted analog.
 
     References:
         - https://en.wikipedia.org/wiki/Moving_average#Weighted_moving_average

@@ -1453,7 +1453,7 @@ def rsi(
 
     See Also:
         - :func:`rma`: Wilder's moving average that smooths the gains and losses RSI is built on.
-        - :func:`money_flow_index`: The volume-weighted analogue — the same oscillator on raw money flow.
+        - :func:`money_flow_index`: The volume-weighted analog — the same oscillator on raw money flow.
         - :func:`chande_momentum_oscillator`: The unsmoothed sibling that sums gains and losses over a fixed window.
 
     References:
@@ -1789,7 +1789,7 @@ def ultimate_oscillator(
           boundaries, e.g. ``ultimate_oscillator(pl.col("high"), pl.col("low"), pl.col("close")).over("ticker")``.
 
     See Also:
-        - :func:`rsi`: The single-period momentum oscillator this generalises across three.
+        - :func:`rsi`: The single-period momentum oscillator this generalizes across three.
         - :func:`williams_r`: Another high-low-range momentum oscillator.
         - :func:`true_range`: The per-bar true range the buying pressure is normalized by.
 

@@ -191,7 +191,7 @@ class Spec:
     # A reason a function's interior-missing-bar flow is input-dependent and so cannot be expressed by the shared
     # policy rung: a directional-movement guard turns a fully-missing bar into neutral 0 movement (a full-bar null /
     # NaN is absorbed and the recursion continues at 0), while a single-column NaN on the driving leg still latches —
-    # two behaviours one declared policy cannot hold. Non-empty exempts the function from the two flow rungs; its flow
+    # two behaviors one declared policy cannot hold. Non-empty exempts the function from the two flow rungs; its flow
     # is pinned as crafted cases and covered by the missing-data property tier instead. Empty = the flow rungs apply.
     flow_deviation: str = ""
     # A deviation stated as data: an oracle whose signature is not a mirror of the factory's (different kwarg names)
