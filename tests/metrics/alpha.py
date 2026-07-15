@@ -69,8 +69,9 @@ ALPHA = Spec(
             inputs={"returns": (0.01, -0.02, 0.03), "benchmark": (0.1, 0.1, 0.1)},
             expected=(math.nan,),
             reason="a constant benchmark makes the embedded beta NaN, which propagates to alpha — the exact-zero "
-            "core of the near-constant regime; no conditioning filter is declared: the cov/var slope is robust "
-            "down to a benchmark spread the fuzz cannot reach",
+            "core of the near-constant regime; no conditioning filter is declared: the embedded cov/var slope "
+            "matches the oracle within one ULP even at ULP-adjacent benchmark spreads (measured down to a 1e-15 "
+            "spread on base 0.1)",
         ),
         SpecPin(
             label="constant_benchmark_one_third",

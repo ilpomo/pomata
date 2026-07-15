@@ -12,7 +12,6 @@ for the series; ``scripts/precision_table.py`` imports it to regenerate the full
 
 import math
 
-import numpy as np
 import polars as pl
 import pytest
 from tests.indicators.oracles import atr_reference, ema_reference, macd_reference, rsi_reference, sma_reference
@@ -132,6 +131,7 @@ class TestPrecisionResiduals:
         Verifies the recomputed pomata-vs-TA-Lib residual still formats to the published ``vs TA-Lib`` cell.
         """
         talib = pytest.importorskip("talib")
+        np = pytest.importorskip("numpy")
         close, high, low = np.asarray(CLOSE), np.asarray(HIGH), np.asarray(LOW)
         talib_last: dict[str, float] = {
             "sma(20)": float(talib.SMA(close, 20)[-1]),

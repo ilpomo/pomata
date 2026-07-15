@@ -114,7 +114,7 @@ Why `1e-10`, and why it is "safe no matter what" for this library:
   rounding between the streaming implementation and the two-pass oracle lands around `1e-15`. `1e-10` is five orders
   above that: tight enough to reject any real coding error, loose enough that a last-bit difference never flakes.
 - **It is verified, not asserted.** The property tier holds every indicator to `1e-10` over the full random fuzz
-  domain (the documented exception: the one-pass rolling family — twenty-two functions, thirteen indicators and nine
+  domain (the documented exception: the one-pass rolling family — twenty functions, twelve indicators and eight
   rolling metrics, whose one-pass forms round differently from a fresh two-pass recompute — meets its oracle at the
   per-family band each spec declares),
   and that bound is the enforced guarantee. The realized *headroom* under it is recomputable from a clean clone with

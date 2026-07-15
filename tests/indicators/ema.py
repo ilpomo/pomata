@@ -45,8 +45,8 @@ EMA = Spec(
             label="all_zero_series_is_zero",
             inputs={"expr": (0.0, 0.0, 0.0, 0.0)},
             expected=(None, None, 0.0, 0.0),
-            reason="the degenerate all-zero window stays exactly at zero; the case the subnormal-floor note keeps "
-            "out of the property fuzz",
+            reason="an all-zero series is the exact fixed point of the recurrence: every blend of zeros is 0.0 "
+            "bit-exact, with no rounding residue after warm-up",
         ),
         SpecPin(
             label="interior_null_bridged",

@@ -22,7 +22,7 @@ SORTINO_RATIO_ROLLING = Spec(
         ({"risk_free_rate": -math.inf}, r"risk_free_rate must be a finite number"),
     ),
     oracle=sortino_ratio_rolling_reference,
-    # A one-pass rolling downside deviation against a recompute-per-window two-pass oracle.
+    # A one-pass rolling mean over downside deviation against a recompute-per-window two-pass oracle.
     oracle_rel_tol=RELATIVE_TOLERANCE_ROLLING_ORACLE,
     # A ratio of a rolling mean to a rolling downside deviation is scale-invariant (by analogy to the reducing sortino).
     scale=(ScaleAxis(roles=("returns",), degree=0),),

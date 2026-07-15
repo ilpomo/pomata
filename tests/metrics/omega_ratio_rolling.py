@@ -5,7 +5,6 @@ scale-invariant.
 import math
 
 from tests.metrics.oracles import omega_ratio_rolling_reference
-from tests.support import RELATIVE_TOLERANCE_ROLLING_ORACLE
 from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import omega_ratio_rolling
@@ -23,8 +22,6 @@ OMEGA_RATIO_ROLLING = Spec(
         ({"threshold": -math.inf}, r"threshold must be a finite number"),
     ),
     oracle=omega_ratio_rolling_reference,
-    # A one-pass rolling gain / loss partition against a recompute-per-window two-pass oracle.
-    oracle_rel_tol=RELATIVE_TOLERANCE_ROLLING_ORACLE,
     # A ratio of a rolling mean gain to a rolling mean loss is scale-invariant (by analogy to the reducing omega).
     scale=(ScaleAxis(roles=("returns",), degree=0),),
     golden_input={"returns": (0.01, -0.02, 0.03, -0.01, 0.02, 0.0, -0.015)},

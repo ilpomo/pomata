@@ -39,7 +39,8 @@ AROON_OSCILLATOR = Spec(
             },
             params_override={"window": 1},
             expected=(None, 100.0, 100.0, -100.0, 100.0, -100.0, 100.0, -100.0, 100.0, -100.0),
-            reason="the window=1 degenerate branch, never reached by the fixed-window generic rungs",
+            reason="window=1 collapses the Aroon lookback to the last two bars, so a strictly alternating series "
+            "saturates the oscillator at plus or minus 100 from the second row on",
         ),
     ),
 )

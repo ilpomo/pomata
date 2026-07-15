@@ -3,7 +3,6 @@
 import math
 
 from tests.indicators.oracles import vwma_reference
-from tests.support import ABSOLUTE_TOLERANCE_ROLLING_ORACLE, RELATIVE_TOLERANCE_ROLLING_ORACLE
 from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import vwma
@@ -16,9 +15,6 @@ VWMA = Spec(
     warmup=2,
     raises=(({"window": 0}, r"window must be >= 1"),),
     oracle=vwma_reference,
-    # A one-pass rolling volume-weighted sum against a two-pass oracle: a magnitude-proportional band.
-    oracle_rel_tol=RELATIVE_TOLERANCE_ROLLING_ORACLE,
-    oracle_abs_tol=ABSOLUTE_TOLERANCE_ROLLING_ORACLE,
     # Degree-1 homogeneous in price (a convex combination of the window's prices) and invariant to a positive common
     # rescaling of volume
     scale=(

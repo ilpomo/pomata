@@ -41,7 +41,10 @@ _HARNESS_CAPABILITY_CLAIMS: tuple[str, ...] = (
     r"\bpositive-only\b[^;—]*\b(?:fuzz|probe)\b",
     r"\bthe\s+probe\b[^;—]*\balways\s+positive\b",
     r"\botherwise\s+untested\b",
-    r"\bkeeps?\s+out\s+of\s+the\s+property\s+tier\b",
+    r"\buntested\s+by\b",
+    r"\bnever\s+reached\s+by\b",
+    r"\b(?:fuzz|probe)\b[^;—]*\bcannot\b",
+    r"\bkeeps?\s+out\s+of\s+the\s+property\s+(?:tier|fuzz)\b",
 )
 _CLAIM_PATTERN = re.compile("|".join(_HARNESS_CAPABILITY_CLAIMS), re.IGNORECASE)
 

@@ -17,7 +17,9 @@ from pomata.metrics import skewness_rolling
 def _windows_well_conditioned(frame: pl.DataFrame) -> bool:
     """
     Reject a near-constant CURRENT window: the standardized moment is a 0/0 the one- and two-pass paths resolve
-    apart, the same genuine degeneracy the reducing skewness filters. This predicate cannot see failures rooted in
+    apart, the same genuine degeneracy the reducing skewness filters (its measured clean-window onset sits at a
+    relative variance near 5e-19, far below the shared cut, which is sized against the kernel's below-trigger exit
+    residue instead). This predicate cannot see failures rooted in
     a PAST window — a stale residue in the incremental kernel's running sums after a large value exits the buffer
     (the native kernels' own defect, pola-rs/polars#28290, fixed upstream in #28309; the same leak as
     kurtosis_rolling, one power lower: ratio**3) — which the kernel recomputes exactly for exits more than one order

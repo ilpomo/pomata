@@ -166,8 +166,8 @@ MONEY_FLOW_INDEX = Spec(
             },
             params_override={"window": 2},
             expected=(None, None, math.nan, math.nan),
-            reason="an all-NaN input is untested by the all-null rung; the first two rows stay null (flow[0] is always "
-            "null), then NaN",
+            reason="an all-NaN input exercises the NaN leg of the flow partition: the first two rows stay null "
+            "(flow[0] is always null), then NaN propagates",
         ),
         SpecPin(
             label="leading_null_defers_warmup",

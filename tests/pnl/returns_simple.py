@@ -38,14 +38,12 @@ RETURNS_SIMPLE = Spec(
             inputs={"price": (-0.0, 10.0)},
             expected=(None, -math.inf),
             reason="a -0.0 previous price flips the sign of the infinite return: a positive change over -0.0 is -inf",
-            signed=True,
         ),
         SpecPin(
             label="negative_zero_negative_change",
             inputs={"price": (-0.0, -10.0)},
             expected=(None, math.inf),
             reason="the counterpart: a negative change over -0.0 is +inf",
-            signed=True,
         ),
         SpecPin(
             label="consecutive_infinities",

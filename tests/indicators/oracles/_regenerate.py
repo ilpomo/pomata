@@ -20,7 +20,7 @@ def regenerate() -> int:
     Rewrite the package's ``__init__.py`` from the ``*_reference`` functions found in it, returning the count.
     """
     init = ORACLES / "__init__.py"
-    old = init.read_text()
+    old = init.read_text(encoding="utf-8")
     preamble = old[: old.index("from tests.indicators.oracles.")].rstrip() + "\n"
     entries: list[tuple[str, str]] = []
     for path in sorted(ORACLES.glob("*.py")):
@@ -28,7 +28,7 @@ def regenerate() -> int:
             continue
         entries.extend(
             (path.stem, node.name)
-            for node in ast.parse(path.read_text()).body
+            for node in ast.parse(path.read_text(encoding="utf-8")).body
             if isinstance(node, ast.FunctionDef) and node.name.endswith("_reference")
         )
     # One from-import per module with its names grouped and sorted (isort-clean), the parenthesized one-name-per-line
