@@ -510,3 +510,69 @@ def test_matches_component_definition(spec: Spec) -> None:
             rel_tol=RELATIVE_TOLERANCE_PROPERTY,
             abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
         )
+
+
+@pytest.mark.parametrize("spec", ALL_SPECS, ids=spec_id)
+def test_streaming_engine_parity(spec: Spec) -> None:
+    """
+    Verifies the streaming engine collects to the eager result — the third execution mode. Like the ``.over`` rung,
+    this is a kind-aware match at the reference band, never a bit-equality: the streaming engine's chunked
+    accumulation legitimately reorders a rolling or reducing sum by an ULP (measured worst case ``~2e-16`` relative
+    on the probe), which is engine scheduling, not arithmetic.
+    """
+    frame = probe_frame(spec.inputs, probe_length(spec))
+    eager = frame.select(build_expr(spec).alias("out"))
+    streamed = frame.lazy().select(build_expr(spec).alias("out")).collect(engine="streaming")
+    for lane_eager, lane_streamed in zip(lane_series(eager), lane_series(streamed), strict=True):
+        assert_matches(
+            lane_streamed.to_list(),
+            lane_eager.to_list(),
+            rel_tol=RELATIVE_TOLERANCE_REFERENCE,
+            abs_tol=ABSOLUTE_TOLERANCE_REFERENCE,
+        )
+
+
+@pytest.mark.parametrize("spec", ALL_SPECS, ids=spec_id)
+def test_float32_input_parity(spec: Spec) -> None:
+    """
+    Verifies a ``Float32`` input computes exactly what the oracle computes on the same rounded values: the
+    ``float64_expr`` up-cast changes the dtype, never the arithmetic.
+    """
+    frame32 = probe_frame(spec.inputs, widest_warmup(spec) + 12).cast(pl.Float32)
+    frame64 = frame32.cast(pl.Float64)
+    expected = reference_lanes(spec, frame64)
+    actual = actual_lanes(spec, frame32)
+    assert sorted(actual) == sorted(expected)
+    rel = spec.oracle_rel_tol if spec.oracle_rel_tol is not None else RELATIVE_TOLERANCE_REFERENCE
+    abs_ = spec.oracle_abs_tol if spec.oracle_abs_tol is not None else ABSOLUTE_TOLERANCE_REFERENCE
+    for name, values in expected.items():
+        assert_matches(actual[name], values, rel_tol=rel, abs_tol=abs_)
+
+
+@pytest.mark.parametrize("spec", ALL_SPECS, ids=spec_id)
+def test_over_interleaved_partitions(spec: Spec) -> None:
+    """
+    Verifies ``.over`` on interleaved groups (a, b, a, b, …) reproduces each series computed alone — the partition
+    guarantee must not depend on the groups arriving as contiguous blocks.
+    """
+    length = probe_length(spec)
+    first = probe_frame(spec.inputs, length)
+    second = probe_frame(spec.inputs, length).select(pl.all() * 3.0)
+    interleaved = (
+        pl.concat([first.with_row_index(), second.with_row_index()])
+        .with_columns(pl.Series("group", ["a"] * length + ["b"] * length))
+        .sort("index", maintain_order=True)
+        .drop("index")
+    )
+    grouped = interleaved.select(build_expr(spec).over("group").alias("out"), pl.col("group"))
+    alone = {
+        "a": lane_series(first.select(build_expr(spec).alias("out"))),
+        "b": lane_series(second.select(build_expr(spec).alias("out"))),
+    }
+    for group in ("a", "b"):
+        part = grouped.filter(pl.col("group") == group).drop("group")
+        for lane_grouped, lane_alone in zip(lane_series(part), alone[group], strict=True):
+            if spec.shape is Shape.REDUCING:
+                assert_matches(lane_grouped.to_list(), lane_alone.to_list() * length)
+            else:
+                assert_matches(lane_grouped.to_list(), lane_alone.to_list())
