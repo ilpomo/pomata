@@ -101,9 +101,10 @@ def _rolling_moment(
         # Sliding maximum of |x| over the trailing window via a monotonic deque (O(n)); prefix_scale tracks the
         # largest magnitude the incremental sums have ever absorbed. The residue the sums keep after that value
         # exits scales like ulp(prefix^k) against a window moment of order window_scale^k, i.e. a relative error of
-        # ~2^-52 * ratio^k for the k-th moment: at the kurtosis' k = 4, a ratio of 1e2 already leaves ~2e-8 — above
-        # the 1e-9 absolute band the suite guarantees for these O(1) outputs — so the trigger sits at 1e1, keeping
-        # ~2e-12 (three orders of margin) at the boundary. Flagged windows are recomputed exactly; clean series never
+        # ~2^-52 * ratio^k for the k-th moment: at the kurtosis' k = 4, a ratio of 1e2 already leaves ~2e-8 — a
+        # visible bite out of the 1e-7 absolute band the suite holds these standardized moments to — so the trigger
+        # sits at 1e1; the worst boundary residue is ~2e-9, well inside that band. Flagged windows are recomputed
+        # exactly; clean series never
         # leave the native fast path. The residue class is the native kernels' own stale-accumulator defect
         # (pola-rs/polars#28290, fixed upstream in #28309): once the polars floor includes that fix, this recompute
         # pass can be dropped. Below the trigger, an exit of at most one order of magnitude onto a window whose own
@@ -1580,7 +1581,8 @@ def value_at_risk_modified(
 
     Args:
         returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
-        confidence: The tail confidence level (canonically ``0.95``). Must be in the open interval ``(0, 1)``.
+        confidence: The tail confidence level (canonically ``0.95``); the quantile taken is ``1 - confidence``. Must
+            be in the open interval ``(0, 1)``.
 
     Returns:
         A single ``Float64`` value: the modified value-at-risk (one value in ``select``, one per group under ``.over``).
@@ -1717,7 +1719,8 @@ def value_at_risk_parametric(
 
     Args:
         returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
-        confidence: The tail confidence level (canonically ``0.95``). Must be in the open interval ``(0, 1)``.
+        confidence: The tail confidence level (canonically ``0.95``); the quantile taken is ``1 - confidence``. Must
+            be in the open interval ``(0, 1)``.
 
     Returns:
         A single ``Float64`` value: the parametric value-at-risk (one value in ``select``, one per group under
