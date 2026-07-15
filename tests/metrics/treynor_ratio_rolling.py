@@ -70,12 +70,12 @@ TREYNOR_RATIO_ROLLING = Spec(
         ({"risk_free_rate": -math.inf}, r"risk_free_rate must be a finite number"),
     ),
     oracle=treynor_ratio_rolling_reference,
-    conditioning=_treynor_conditioning,
     # A one-pass rolling beta denominator against a recompute-per-window two-pass oracle.
     oracle_rel_tol=RELATIVE_TOLERANCE_ROLLING_ORACLE,
     # Degree-1 homogeneous in a joint returns/benchmark rescale at the default risk_free_rate=0 (the params omit it):
     # the linear annualization is degree-1 over a degree-0 rolling slope, per window — mirroring the reducing twin's
     # default-scoped axis (downside_deviation's "at threshold=0" convention). A non-zero rate breaks it.
+    conditioning=_treynor_conditioning,
     scale=(ScaleAxis(roles=("returns", "benchmark"), degree=1),),
     golden_params={"window": 4, "periods_per_year": 252},
     golden_input={
@@ -120,7 +120,8 @@ TREYNOR_RATIO_ROLLING = Spec(
             label="matches_reference_with_risk_free_rate",
             inputs={"returns": (0.01, -0.02, 0.03, -0.01, 0.02), "benchmark": (0.008, -0.015, 0.025, -0.008, 0.018)},
             expected=(None, None, 1.324869757686746, -0.015994608829144833, 2.7922196417697887),
-            reason="a non-default risk-free rate shifts every window's excess, otherwise untested by any generic rung",
+            reason="a non-default risk-free rate shifts every window's excess return through the geometric "
+            "per-period conversion — the rate leg pinned on hand-checked values",
             params_override={"window": 3, "risk_free_rate": 0.02},
         ),
     ),

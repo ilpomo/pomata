@@ -59,8 +59,8 @@ PNL_GROSS_INVERSE = Spec(
             label="domain_boundaries",
             inputs={"quantity": (1.0, 1.0, 1.0, 1.0), "price": (100.0, 0.0, 50.0, -50.0)},
             expected=(None, -math.inf, math.inf, 0.04),
-            reason="the IEEE reciprocal boundaries: a zero current price makes the bar -inf, a zero previous price "
-            "makes the next bar +inf, a negative price is finite; the fuzz price is positive-only",
+            reason="the IEEE reciprocal boundaries pinned as data: a zero current price makes the bar -inf, a zero "
+            "previous price makes the next bar +inf, a negative price stays finite",
         ),
         SpecPin(
             label="notional_multiplier_100",

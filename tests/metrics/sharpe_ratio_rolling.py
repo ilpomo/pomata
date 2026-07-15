@@ -35,11 +35,11 @@ SHARPE_RATIO_ROLLING = Spec(
         ({"risk_free_rate": -math.inf}, r"risk_free_rate must be a finite number"),
     ),
     oracle=sharpe_ratio_rolling_reference,
-    conditioning=_windows_well_spread,
     # A one-pass rolling mean over dispersion against a recompute-per-window two-pass oracle.
     oracle_rel_tol=RELATIVE_TOLERANCE_ROLLING_ORACLE,
     # A ratio of a rolling mean to a rolling standard deviation at zero risk-free rate is scale-invariant, degree 0
     # (by analogy to the reducing sharpe_ratio).
+    conditioning=_windows_well_spread,
     scale=(ScaleAxis(roles=("returns",), degree=0),),
     golden_input={"returns": (0.03, -0.01, 0.02, -0.015, 0.025, -0.005, 0.02)},
     golden_output=(None, None, 10.1678, -1.3977, 7.2837, 1.271, 13.1689),
