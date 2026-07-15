@@ -17,7 +17,9 @@ def sharpe_ratio_reference(
     scratch as the oracle for :func:`pomata.metrics.sharpe_ratio`. ``None`` returns are skipped; with fewer than two
     observations the result is ``None`` (the undefined sample standard deviation takes precedence); otherwise a ``nan``
     anywhere poisons the result to ``nan``. Zero dispersion gives ``+/-inf`` (or ``nan`` when the mean excess is also
-    zero), matching the implementation's division.
+    zero), matching the implementation's division; an exactly-constant excess series is detected via ``min == max``
+    rather than the two-pass deviation (whose float residual is not reliably zero for every constant), matching the
+    implementation's exact zero-dispersion pin.
     """
     observations = [value for value in returns if value is not None]
     if len(observations) < 2:
@@ -26,6 +28,8 @@ def sharpe_ratio_reference(
         return math.nan
     rf_period = math.pow(1.0 + risk_free_rate, 1.0 / periods_per_year) - 1.0
     excess = [value - rf_period for value in observations]
+    if max(excess) == min(excess):
+        return math.nan if excess[0] == 0.0 else math.copysign(math.inf, excess[0])
     count = len(excess)
     mean_excess = sum(excess) / count
     deviation = math.sqrt(sum((value - mean_excess) ** 2 for value in excess) / (count - 1))

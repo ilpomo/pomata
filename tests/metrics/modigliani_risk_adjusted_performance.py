@@ -50,9 +50,10 @@ MODIGLIANI_RISK_ADJUSTED_PERFORMANCE = Spec(
             label="constant_portfolio_is_inf",
             inputs={"returns": (0.01, 0.01, 0.01), "benchmark": (0.02, -0.01, 0.03)},
             expected=(math.inf,),
-            reason="a constant portfolio has zero dispersion, so the embedded Sharpe is +inf, which propagates to "
-            "+inf — the exact-zero core of the near-constant regime; both onsets (zero portfolio dispersion, an "
-            "unbounded embedded Sharpe) are unreachable by the fuzz, so no conditioning filter is declared",
+            reason="a constant portfolio has zero dispersion by the exact pin, so the embedded Sharpe is +inf, "
+            "which propagates to +inf; no conditioning filter is declared: the composed oracle mirrors the same "
+            "exact min == max constancy detection on both legs, so the two sides agree in kind on every constant "
+            "series",
         ),
     ),
 )

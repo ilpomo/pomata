@@ -41,8 +41,9 @@ SHARPE_RATIO = Spec(
             inputs={"returns": (0.0, 0.0, 0.0, 0.0)},
             expected=(math.nan,),
             reason="an all-zero series at a zero risk-free rate has zero mean AND zero dispersion, so the ratio is "
-            "the 0/0 NaN — the exact-zero core of the near-constant regime; no conditioning filter is declared, "
-            "since a first-moment ratio needs none: the fuzz never rounds impl and oracle apart",
+            "the 0/0 NaN — the exact-zero core of the constant regime; no conditioning filter is declared: the "
+            "oracle detects an exactly-constant excess via min == max, mirroring the kernel's exact "
+            "zero-dispersion pin, so the two sides agree in kind on every constant series",
         ),
     ),
 )
