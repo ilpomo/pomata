@@ -57,5 +57,12 @@ COST_BORROW = Spec(
             reason="a hand-checked mixed long/short/flat series: the short branch max(-quantity, 0) charges exactly "
             "the short bars while longs and flats stay at exactly zero",
         ),
+        SpecPin(
+            label="infinite_short_notional_charges_inf",
+            inputs={"quantity": (math.inf, -2.0, -math.inf), "price": (10.0, math.inf, 20.0)},
+            expected=(0.0, math.inf, math.inf),
+            reason="an infinite long is free to hold (only the short branch pays borrow) while an infinite short "
+            "notional charges an infinite fee; the property tiers set allow_infinity=False",
+        ),
     ),
 )

@@ -1,7 +1,7 @@
 """
 Registry-derived sweeps of the declaration surface itself: the coverage facts a single spec cannot see.
 
-Five guards, all swept over ``ALL_SPECS`` so a new function is held to them the moment its spec lands. First, every
+Six guards, all swept over ``ALL_SPECS`` so a new function is held to them the moment its spec lands. First, every
 scalar parameter that carries a signature default must be exercised at a non-default value somewhere in the
 declarations — ``params``, ``golden_params``, or a pin's ``params_override`` — because every probe, golden, oracle
 comparison, and fuzz draw builds its call from those three sources: a defaulted knob no declaration varies is a live
@@ -16,7 +16,9 @@ must be exercised on a non-trivial output: a probe whose every lane is zero or u
 ``0 == 0`` (the gap that once left ``cost_borrow``'s short-only notional unverified under rescaling). Fifth, every
 per-spec oracle band must be a named constant of ``tests.support.tolerances``: a bare literal band carries no
 rationale and drifts silently (the gap that once left the rolling-moment pair's ``1e-7`` unexplained, six orders
-above its measured worst residual).
+above its measured worst residual). Sixth, every pnl declaration must pin at least one infinite input: the shared
+fuzz generators set ``allow_infinity=False``, so a pin is the only tier that can witness the family's documented
+IEEE cascade under ``+/-inf`` — without one, that behavior is an untested claim.
 
 Each ratchet below is frozen at its guard's introduction and may only shrink: an entry whose site gains coverage
 turns stale and fails loudly (the same fail-closed shape as ``test_docstrings``' pinned deviants), and a new
@@ -31,6 +33,8 @@ import pytest
 from tests.all_specs import ALL_SPECS
 from tests.support import RELATIVE_TOLERANCE_SCALE, tolerances
 from tests.support.spec import ScaleExempt, Spec, actual_lanes, probe_frame, spec_id, widest_warmup
+
+from pomata import pnl
 
 # Every named band the tolerance module exports: the only values a per-spec oracle band may take.
 _NAMED_BANDS: frozenset[float] = frozenset(
@@ -213,3 +217,21 @@ def test_scale_probe_output_is_not_all_zero(spec: Spec) -> None:
             f"compares 0 with 0 and verifies nothing — give the probe a branch-exercising path or extend "
             f"_ZERO_ON_THE_PROBE with a written reason"
         )
+
+
+# The pnl family: the one family whose docstrings document an IEEE cascade under infinite inputs, so each of its
+# specs must witness that cascade with a pin (the shared generators never draw an infinity).
+_PNL_SPECS: tuple[Spec, ...] = tuple(spec for spec in ALL_SPECS if spec.name in pnl.__all__)
+
+
+@pytest.mark.parametrize("spec", _PNL_SPECS, ids=spec_id)
+def test_every_pnl_spec_pins_a_non_finite_input(spec: Spec) -> None:
+    """Verifies every pnl declaration feeds an infinity through at least one pin, so the IEEE cascade is tested."""
+    fed_infinity = any(
+        any(value is not None and math.isinf(value) for values in pin.inputs.values() for value in values)
+        for pin in spec.pins
+    )
+    assert fed_infinity, (
+        f"{spec.name}: no pin carries an infinite input — the documented +/-inf behavior is an untested claim; "
+        f"add a pin feeding math.inf/-math.inf with its measured expected lanes"
+    )

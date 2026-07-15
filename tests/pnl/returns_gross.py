@@ -33,5 +33,12 @@ RETURNS_GROSS = Spec(
             expected=(None, 0.02),
             reason="a null in one input against a NaN in the other at the same row yields null (null wins over NaN)",
         ),
+        SpecPin(
+            label="infinite_legs_sign_the_return",
+            inputs={"weight": (math.inf, -1.0, -math.inf), "asset_returns": (0.1, math.inf, -0.2)},
+            expected=(math.inf, -math.inf, math.inf),
+            reason="the gross return keeps the sign of weight * asset_returns even at infinite magnitude; the "
+            "property tiers set allow_infinity=False",
+        ),
     ),
 )

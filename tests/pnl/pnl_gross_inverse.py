@@ -79,5 +79,13 @@ PNL_GROSS_INVERSE = Spec(
             "rounding step), also subsuming the multiplier-scaling property",
             params_override={"multiplier": 100.0},
         ),
+        SpecPin(
+            label="infinite_legs_propagate",
+            inputs={"quantity": (1.0, -math.inf, 2.0), "price": (math.inf, 20.0, 5.0)},
+            expected=(None, math.inf, -0.30000000000000004),
+            reason="an infinite entry price contributes 1 / inf = 0 to the inverse difference and an infinite short "
+            "quantity drives the payoff to +inf, while the finite tail row is unaffected; the property tiers set "
+            "allow_infinity=False",
+        ),
     ),
 )

@@ -56,5 +56,16 @@ COST_FUNDING = Spec(
             expected=(0.0, 0.0, 0.0),
             reason="an off-funding bar (funding_rate = 0) costs nothing",
         ),
+        SpecPin(
+            label="infinite_notional_signs_the_carry",
+            inputs={
+                "quantity": (math.inf, -2.0, -math.inf),
+                "price": (10.0, math.inf, 20.0),
+                "funding_rate": (0.01, 0.02, -0.01),
+            },
+            expected=(math.inf, -math.inf, math.inf),
+            reason="the carry keeps the sign of quantity * price * rate even at infinite magnitude; the property "
+            "tiers set allow_infinity=False",
+        ),
     ),
 )
