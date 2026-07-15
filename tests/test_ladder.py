@@ -40,6 +40,7 @@ from tests.support.spec import (
     Spec,
     SpecPin,
     actual_lanes,
+    bit_constant_frames,
     build_expr,
     flat,
     fuzz_frames,
@@ -458,6 +459,37 @@ def test_matches_reference_under_missing_data(spec: Spec, data: st.DataObject) -
     if spec.conditioning is not None:
         assume(spec.conditioning(frame))
     _assert_reference(spec, frame, RELATIVE_TOLERANCE_PROPERTY, ABSOLUTE_TOLERANCE_PROPERTY)
+
+
+def _value_kind(value: float | None) -> str:
+    """The comparison kind of one lane value: ``null``, ``NaN``, a signed infinity, or a finite float."""
+    if value is None:
+        return "null"
+    if math.isnan(value):
+        return "nan"
+    if math.isinf(value):
+        return "+inf" if value > 0 else "-inf"
+    return "finite"
+
+
+@pytest.mark.parametrize("spec", ALL_SPECS, ids=spec_id)
+def test_matches_reference_on_bit_constant_input(spec: Spec) -> None:
+    """
+    Verifies impl and oracle agree in KIND (null / NaN / ±inf / finite) on bit-constant inputs — the regime where the
+    shipped kernels pin a zero dispersion to exactly zero while a naive two-pass mean can keep a rounding residue and
+    report a residue-driven huge finite instead. A spec's ``conditioning`` filter (witnessed by its
+    ``covers_conditioning`` pin) scopes this rung exactly as it scopes the property tiers.
+    """
+    for frame in bit_constant_frames(spec):
+        if spec.conditioning is not None and not spec.conditioning(frame):
+            continue
+        expected = reference_lanes(spec, frame)
+        actual = actual_lanes(spec, frame)
+        assert sorted(actual) == sorted(expected)
+        for name, values in expected.items():
+            kinds_actual = [_value_kind(value) for value in actual[name]]
+            kinds_expected = [_value_kind(value) for value in values]
+            assert kinds_actual == kinds_expected, f"{name}: kind mismatch on a bit-constant input frame"
 
 
 @pytest.mark.parametrize("spec", COMPONENT_SPECS, ids=spec_id)

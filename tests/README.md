@@ -134,8 +134,10 @@ Correctness — `matches_reference`, `golden_master` (rounded expression-side), 
 crafted frame maps to the crafted lanes, signed pins comparing the sign too).
 Properties — `scale` (per `ScaleAxis`: scale only that axis's roles by a power of two, degree as declared),
 `matches_reference_for_any_input` and `matches_reference_under_missing_data` (`@given(st.data())` inside
-`@parametrize`, honoring a spec's `conditioning`), `matches_component_definition` (specs with `component_expr`: the
-factory reproduces its recomposition from public functions, lane by lane, on the probe frame).
+`@parametrize`, honoring a spec's `conditioning`), `matches_reference_on_bit_constant_input` (impl and oracle agree
+in kind — null / NaN / ±inf / finite — on a deterministic battery of bit-constant frames, the exact-zero-pinning
+regime; a spec's `conditioning` scopes it exactly as it scopes the fuzz), `matches_component_definition` (specs with
+`component_expr`: the factory reproduces its recomposition from public functions, lane by lane, on the probe frame).
 
 ## Sub-parametrized ids
 

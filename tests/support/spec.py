@@ -197,8 +197,8 @@ class Spec:
     # supplies a frame->result callable here. ``None`` means "mirror the signature" (positional inputs, params kwargs).
     oracle_adapter: "Callable[[Spec, pl.DataFrame], object] | None" = None
     # An optional Hypothesis filter on a fuzzed frame, applied through ``assume`` in the property tier (e.g. mama's
-    # even-lag guard, sharpe's well-spread guard) — the input regimes where the impl and the oracle cannot be expected
-    # to agree, excluded as data rather than silently in a rung.
+    # even-lag guard, the standardized moments' well-spread guard) — the input regimes where the impl and the oracle
+    # cannot be expected to agree, excluded as data rather than silently in a rung.
     conditioning: "Callable[[pl.DataFrame], bool] | None" = None
     # The documented answer to an all-null input; ``None`` means the answer is all-null (the ordinary case).
     all_null: Deviant | None = None
@@ -621,3 +621,58 @@ def fuzz_frames(spec: Spec, *, missing: bool) -> st.SearchStrategy[pl.DataFrame]
         return _independent_frame(spec.inputs, length, missing=missing)
     msg = f"{spec.name}: no fuzz strategy for inputs {spec.inputs}"  # extend when a spec introduces a new input shape
     raise TypeError(msg)
+
+
+# The bit-constant battery: every column one repeated constant — the exact regime where the shipped kernels pin a
+# zero dispersion to exactly zero (the float-residue closures of CORRECTNESS.md) while a naive two-pass mean can keep
+# a rounding residue. The constants are values whose k-copy Python mean rounds AWAY from the constant at some series
+# lengths (three copies of 0.8 average to 0.8000000000000001; a power of two would divide back exactly at every
+# length and never exercise the regime), and the lengths sweep the warm-up neighborhood because that rounding is
+# length-dependent (seven copies of 0.8 average back exactly; three do not).
+BIT_CONSTANT_VALUES: tuple[float, ...] = (0.8, 0.3, 0.7, 0.1)
+BIT_CONSTANT_EXTRA_LENGTHS: tuple[int, ...] = (2, 3, 4, 8)
+
+# The OHLC-family roles a bit-constant assignment must keep coherent (``low <= open, close <= high``): an incoherent
+# constant bar would be out-of-domain input (see tests/support/strategies.py), not a regime the rung may probe.
+_BAR_PRICE_ROLES: frozenset[str] = frozenset({"open", "high", "low", "close"})
+
+
+def _coherent_bar_assignment(roles: tuple[str, ...], values: dict[str, float]) -> dict[str, float]:
+    """
+    Reassign the price legs of a bar-shaped role set by rank — high the largest, low the smallest — so the constant
+    bar stays coherent; non-bar roles keep their drawn constant.
+    """
+    price_roles = [role for role in roles if role in _BAR_PRICE_ROLES]
+    if len(price_roles) < 2:
+        return values
+    ranked = sorted((values[role] for role in price_roles), reverse=True)
+    values["high"] = ranked[0]
+    values["low"] = ranked[-1]
+    interior = [role for role in price_roles if role not in ("high", "low")]
+    values.update(zip(interior, ranked[1:-1], strict=True))
+    return values
+
+
+def bit_constant_frames(spec: Spec) -> list[pl.DataFrame]:
+    """
+    The spec's bit-constant probe frames: constants rotated across roles (distinct per role, bar-coherent), lengths
+    swept around the warm-up, each also in a leading-null variant.
+    """
+    frames: list[pl.DataFrame] = []
+    lengths = sorted({max(2, widest_warmup(spec) + extra) for extra in BIT_CONSTANT_EXTRA_LENGTHS})
+    for shift in range(len(BIT_CONSTANT_VALUES)):
+        assigned = {
+            role: BIT_CONSTANT_VALUES[(index + shift) % len(BIT_CONSTANT_VALUES)]
+            for index, role in enumerate(spec.inputs)
+        }
+        assigned = _coherent_bar_assignment(spec.inputs, assigned)
+        for length in lengths:
+            for leading_null in (False, True):
+                columns: dict[str, pl.Series] = {}
+                for role in spec.inputs:
+                    values: list[float | None] = [assigned[role]] * length
+                    if leading_null:
+                        values[0] = None
+                    columns[role] = pl.Series(values, dtype=pl.Float64)
+                frames.append(pl.DataFrame(columns))
+    return frames

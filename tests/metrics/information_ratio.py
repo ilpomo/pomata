@@ -40,9 +40,9 @@ INFORMATION_RATIO = Spec(
             inputs={"returns": (0.01, 0.02, 0.03), "benchmark": (0.01, 0.02, 0.03)},
             expected=(math.nan,),
             reason="identical legs give an exactly-zero active series: zero mean over zero tracking error is the "
-            "0/0 NaN, resolved by the exact dispersion guard — the exact-zero core of the near-constant regime; "
-            "no conditioning filter is declared: a first-moment ratio needs none, and the fuzz never rounds impl "
-            "and oracle apart",
+            "0/0 NaN, resolved by the exact dispersion guard on both sides — the oracle detects a constant active "
+            "series via min == max, mirroring the kernel's exact zero-dispersion pin; no conditioning filter is "
+            "declared",
         ),
     ),
 )
