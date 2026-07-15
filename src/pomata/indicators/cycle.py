@@ -490,7 +490,7 @@ def hilbert_trendline(
     expr: pl.Expr,
 ) -> pl.Expr:
     r"""
-    Hilbert Transform Instantaneous Trendline — the price averaged over one dominant cycle, cancelling the swing.
+    Hilbert Transform Instantaneous Trendline — the price averaged over one dominant cycle, canceling the swing.
 
     Ehlers' instantaneous trendline: the price averaged over exactly one dominant cycle (a self-adjusting moving
     average), then smoothed. Because it spans a whole cycle, the cyclic component cancels and only the trend remains.

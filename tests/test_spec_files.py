@@ -83,7 +83,7 @@ _SNAKE_CASE = re.compile(r"[a-z0-9]+(_[a-z0-9]+)*")
 
 
 def _declared_reasons(spec: Spec) -> list[tuple[str, str]]:
-    """Every free-text reason a spec declares, labelled by where it lives."""
+    """Every free-text reason a spec declares, labeled by where it lives."""
     reasons = [(f"pin {pin.label!r}", pin.reason) for pin in spec.pins]
     if isinstance(spec.scale, ScaleExempt):
         reasons.append(("scale exemption", spec.scale.reason))

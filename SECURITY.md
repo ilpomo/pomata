@@ -18,5 +18,5 @@ Use GitHub's private vulnerability reporting: open the repository's **Security**
 vulnerability**, or go directly to <https://github.com/ilpomo/pomata/security/advisories/new>.
 
 Include enough detail to reproduce the issue: a minimal example, the affected version, and your platform. You can
-expect an acknowledgement within a few days; once a fix is released the advisory is published, with credit to the
+expect an acknowledgment within a few days; once a fix is released the advisory is published, with credit to the
 reporter unless anonymity is requested.

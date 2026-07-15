@@ -68,6 +68,7 @@ docs = [
     "sphinx-copybutton>=0.5.2",
 ]
 lint = [
+    "codespell>=2.4.2",
     "ruff>=0.15.20",
 ]
 test = [
@@ -99,6 +100,15 @@ show_missing = true
 [tool.coverage.run]
 branch = true
 source = ["pomata"]
+
+# US English throughout, in code and prose (CONTRIBUTING.md): the en-GB dictionary catches the British variants the
+# spell dictionaries alone would wave through. The ignore list is reasoned, never a blanket: ``retuned`` is the
+# correct English word the tolerance rules use, ``Pezier`` is the adjusted-Sharpe author's surname, ``TE`` is the
+# triple-EMA abbreviation in the TRIX formula block.
+[tool.codespell]
+builtin = "clear,rare,en-GB_to_en-US"
+ignore-words-list = "retuned,pezier,te"
+skip = "./.git,./.venv,./dist,./docs/_build,./uv.lock,./.hypothesis,./.pytest_cache,./.ruff_cache,./AUDIT.md,./MAPPING.md,./CLAUDE.md,./.claude"  # the tail entries are local-only working notes, kept out of git via .git/info/exclude
 
 [tool.hatch.build.targets.sdist]
 # Explicit allowlist: the source distribution ships only the project files needed to build, test, and verify from
