@@ -37,6 +37,7 @@ SKEWNESS_ROLLING = Spec(
     raises=(({"window": 1}, r"window must be >= 2"),),
     oracle=skewness_rolling_reference,
     conditioning=_windows_well_conditioned,
+    # A one-pass standardized third moment against a fresh two-pass oracle; the moment floor sizes the abs band.
     oracle_rel_tol=RELATIVE_TOLERANCE_ROLLING_ORACLE,
     oracle_abs_tol=ABSOLUTE_TOLERANCE_ROLLING_MOMENT,
     # A standardized moment per window is scale-invariant, degree 0 (by analogy to the reducing skewness).

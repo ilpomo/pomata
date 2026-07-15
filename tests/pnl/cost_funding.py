@@ -43,8 +43,8 @@ COST_FUNDING = Spec(
                 "funding_rate": (0.0001, 0.0001, -0.0001, -0.0001),
             },
             expected=(0.1, -0.05, -0.1, 0.05),
-            reason="the sign(quantity) * sign(funding_rate) convention over the full 2x2 matrix; the fuzz quantity is "
-            "positive-only, so the short branch is otherwise untested",
+            reason="the sign(quantity) * sign(funding_rate) convention pinned over the full 2x2 sign matrix on "
+            "hand-checked values",
         ),
         SpecPin(
             label="zero_rate_is_free",

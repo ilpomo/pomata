@@ -54,8 +54,8 @@ COST_BORROW = Spec(
                 "price": (10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0),
             },
             expected=(0.0, 0.055, 0.06, 0.026, 0.028, 0.0, 0.128, 0.0),
-            reason="the short branch max(-quantity, 0) is never reached by the probe frame (quantity is always "
-            "positive there), so its correctness is pinned on a mixed long/short/flat series",
+            reason="a hand-checked mixed long/short/flat series: the short branch max(-quantity, 0) charges exactly "
+            "the short bars while longs and flats stay at exactly zero",
         ),
     ),
 )

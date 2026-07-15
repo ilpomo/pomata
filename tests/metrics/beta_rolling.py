@@ -30,6 +30,7 @@ BETA_ROLLING = Spec(
     raises=(({"window": 1}, r"window must be >= 2"),),
     oracle=beta_rolling_reference,
     conditioning=_windows_well_conditioned,
+    # A one-pass rolling covariance / variance regression against a recompute-per-window two-pass oracle.
     oracle_rel_tol=RELATIVE_TOLERANCE_ROLLING_ORACLE,
     # A slope (cov/var, both legs same units) is scale-invariant under a joint rescale of both legs (verified
     # numerically).

@@ -23,6 +23,7 @@ OMEGA_RATIO_ROLLING = Spec(
         ({"threshold": -math.inf}, r"threshold must be a finite number"),
     ),
     oracle=omega_ratio_rolling_reference,
+    # A one-pass rolling gain / loss partition against a recompute-per-window two-pass oracle.
     oracle_rel_tol=RELATIVE_TOLERANCE_ROLLING_ORACLE,
     # A ratio of a rolling mean gain to a rolling mean loss is scale-invariant (by analogy to the reducing omega).
     scale=(ScaleAxis(roles=("returns",), degree=0),),

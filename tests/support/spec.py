@@ -25,6 +25,7 @@ import polars as pl
 from hypothesis import strategies as st
 from tests.support.bars import split_pairs, split_quads, split_triples
 from tests.support.strategies import (
+    apply_missing,
     coherent_hl,
     coherent_hl_with_missing,
     coherent_hlc,
@@ -420,7 +421,7 @@ def widest_warmup(spec: Spec) -> int:
 
 
 def widest_window(spec: Spec) -> int:
-    """The widest ``window*`` integer parameter (1 when the function has none) — half of the flow horizon."""
+    """The widest ``window*`` integer parameter (1 when the function has none) — a term of the default flow horizon."""
     windows = [value for key, value in spec.params.items() if key.startswith("window") and isinstance(value, int)]
     return max(windows) if windows else 1
 
@@ -494,15 +495,6 @@ def _cumulative_growth(steps: list[float]) -> list[float]:
     return path
 
 
-def _punch_missing(value: float, choice: int) -> float | None:
-    """Keep ``value`` (``0``), drop it to ``null`` (``1``), or replace it with ``NaN`` (``2``) — the missing variant."""
-    if choice == 1:
-        return None
-    if choice == 2:
-        return math.nan
-    return value
-
-
 def _equity_frames(length: st.SearchStrategy[int], *, missing: bool) -> st.SearchStrategy[pl.DataFrame]:
     """Frames of one positive ``equity_curve`` column; when ``missing``, null / NaN are punched into the grown path."""
 
@@ -512,7 +504,7 @@ def _equity_frames(length: st.SearchStrategy[int], *, missing: bool) -> st.Searc
             return cast("st.SearchStrategy[list[float | None]]", path)
         masks = st.lists(st.sampled_from((0, 1, 2)), min_size=n, max_size=n)
         return st.tuples(path, masks).map(
-            lambda drawn: [_punch_missing(value, choice) for value, choice in zip(drawn[0], drawn[1], strict=True)]
+            lambda drawn: [apply_missing(value, choice) for value, choice in zip(drawn[0], drawn[1], strict=True)]
         )
 
     return length.flatmap(
