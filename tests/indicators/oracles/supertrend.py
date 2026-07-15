@@ -60,7 +60,9 @@ def supertrend_reference(
 ) -> dict[str, list[float | None]]:
     """
     Naive SuperTrend over Python lists, written as two explicit passes rather than the implementation's single-pass
-    state machine, so agreement is evidence rather than a shared shape.
+    state machine; the final-band ratchet and the flip recursion still replay the kernel branch for branch, so the
+    agreement confirms internal consistency rather than independence — the independent witness is the set of frozen
+    golden masters (SuperTrend has no TA-Lib twin).
 
     The first pass ratchets the *final* band arrays over the finite bars (the upper falls only while the prior close
     holds below it, the lower rises only while the prior close holds above it); the second pass walks those arrays,

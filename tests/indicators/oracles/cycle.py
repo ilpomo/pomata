@@ -132,6 +132,12 @@ def _pipeline(prices: list[float], fast_limit: float, slow_limit: float) -> dict
 def dominant_cycle_period_reference(values: Sequence[float | None]) -> list[float | None]:
     """
     Naive Ehlers dominant-cycle period, the oracle for :func:`pomata.indicators.dominant_cycle_period`.
+
+    A structural mirror of the shipped Ehlers pipeline (the adaptive dominant-cycle feedback has no closed
+    form), so its agreement confirms internal consistency rather than independence; the independent witnesses
+    are the frozen golden masters and the TA-Lib differential. Its delicate points are the ``32``-row
+    warm-up mask and the latching missing-data contract: the pipeline consumes the longest clean prefix, so
+    every row from the first ``None``, ``NaN``, or ``inf`` onward is ``None``.
     """
     prices = _prefix(values)
     return _mask(_pipeline(prices, 0.5, 0.05)["period"], len(values), _DIRECT_WARMUP)
@@ -140,6 +146,12 @@ def dominant_cycle_period_reference(values: Sequence[float | None]) -> list[floa
 def dominant_cycle_phase_reference(values: Sequence[float | None]) -> list[float | None]:
     """
     Naive Ehlers dominant-cycle phase, the oracle for :func:`pomata.indicators.dominant_cycle_phase`.
+
+    A structural mirror of the shipped Ehlers pipeline (the adaptive dominant-cycle feedback has no closed
+    form), so its agreement confirms internal consistency rather than independence; the independent witnesses
+    are the frozen golden masters and the TA-Lib differential. Its delicate points are the ``63``-row
+    warm-up mask and the latching missing-data contract: the pipeline consumes the longest clean prefix, so
+    every row from the first ``None``, ``NaN``, or ``inf`` onward is ``None``.
     """
     prices = _prefix(values)
     return _mask(_pipeline(prices, 0.5, 0.05)["phase"], len(values), _PHASE_WARMUP)
@@ -148,6 +160,13 @@ def dominant_cycle_phase_reference(values: Sequence[float | None]) -> list[float
 def hilbert_phasor_reference(values: Sequence[float | None]) -> dict[str, list[float | None]]:
     """
     Naive Ehlers in-phase / quadrature phasor, the oracle for :func:`pomata.indicators.hilbert_phasor`.
+
+    A structural mirror of the shipped Ehlers pipeline (the adaptive dominant-cycle feedback has no closed
+    form), so its agreement confirms internal consistency rather than independence; the independent witnesses
+    are the frozen golden masters and the TA-Lib differential. Its delicate points are the ``32``-row
+    warm-up mask and the latching missing-data contract: the pipeline consumes the longest clean prefix, so
+    every row from the first ``None``, ``NaN``, or ``inf`` onward is ``None`` on both the ``in_phase`` and
+    ``quadrature`` lanes.
     """
     prices = _prefix(values)
     pipeline = _pipeline(prices, 0.5, 0.05)
@@ -158,6 +177,13 @@ def hilbert_phasor_reference(values: Sequence[float | None]) -> dict[str, list[f
 def sine_wave_reference(values: Sequence[float | None]) -> dict[str, list[float | None]]:
     """
     Naive Ehlers sine / lead-sine wave, the oracle for :func:`pomata.indicators.sine_wave`.
+
+    A structural mirror of the shipped Ehlers pipeline (the adaptive dominant-cycle feedback has no closed
+    form), so its agreement confirms internal consistency rather than independence; the independent witnesses
+    are the frozen golden masters and the TA-Lib differential. Its delicate points are the ``63``-row
+    warm-up mask and the latching missing-data contract: the pipeline consumes the longest clean prefix, so
+    every row from the first ``None``, ``NaN``, or ``inf`` onward is ``None`` on both the ``sine`` and
+    ``lead_sine`` lanes.
     """
     prices = _prefix(values)
     pipeline = _pipeline(prices, 0.5, 0.05)
@@ -168,6 +194,12 @@ def sine_wave_reference(values: Sequence[float | None]) -> dict[str, list[float 
 def trend_mode_reference(values: Sequence[float | None]) -> list[float | None]:
     """
     Naive Ehlers trend / cycle flag, the oracle for :func:`pomata.indicators.trend_mode`.
+
+    A structural mirror of the shipped Ehlers pipeline (the adaptive dominant-cycle feedback has no closed
+    form), so its agreement confirms internal consistency rather than independence; the independent witnesses
+    are the frozen golden masters and the TA-Lib differential. Its delicate points are the ``63``-row
+    warm-up mask and the latching missing-data contract: the pipeline consumes the longest clean prefix, so
+    every row from the first ``None``, ``NaN``, or ``inf`` onward is ``None``.
     """
     prices = _prefix(values)
     return _mask(_pipeline(prices, 0.5, 0.05)["trend_mode"], len(values), _PHASE_WARMUP)
@@ -176,6 +208,12 @@ def trend_mode_reference(values: Sequence[float | None]) -> list[float | None]:
 def hilbert_trendline_reference(values: Sequence[float | None]) -> list[float | None]:
     """
     Naive Ehlers instantaneous trendline, the oracle for :func:`pomata.indicators.hilbert_trendline`.
+
+    A structural mirror of the shipped Ehlers pipeline (the adaptive dominant-cycle feedback has no closed
+    form), so its agreement confirms internal consistency rather than independence; the independent witnesses
+    are the frozen golden masters and the TA-Lib differential. Its delicate points are the ``63``-row
+    warm-up mask and the latching missing-data contract: the pipeline consumes the longest clean prefix, so
+    every row from the first ``None``, ``NaN``, or ``inf`` onward is ``None``.
     """
     prices = _prefix(values)
     return _mask(_pipeline(prices, 0.5, 0.05)["trendline"], len(values), _PHASE_WARMUP)
@@ -188,6 +226,12 @@ def mama_reference(
 ) -> dict[str, list[float | None]]:
     """
     Naive Ehlers MESA adaptive moving average and its companion, the oracle for :func:`pomata.indicators.mama`.
+
+    A structural mirror of the shipped Ehlers pipeline (the adaptive dominant-cycle feedback has no closed
+    form), so its agreement confirms internal consistency rather than independence; the independent witnesses
+    are the frozen golden masters and the TA-Lib differential. Its delicate points are the ``32``-row
+    warm-up mask and the latching missing-data contract: the pipeline consumes the longest clean prefix, so
+    every row from the first ``None``, ``NaN``, or ``inf`` onward is ``None`` on both the ``mama`` and ``fama`` lanes.
     """
     prices = _prefix(values)
     pipeline = _pipeline(prices, fast_limit, slow_limit)

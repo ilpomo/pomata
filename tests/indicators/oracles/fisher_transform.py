@@ -52,10 +52,12 @@ def fisher_transform_reference(
     """
     Naive Ehlers Fisher Transform over Python lists.
 
-    Built bottom-up in plain Python, sharing no code with the Polars implementation it certifies: the median price's
-    position in its rolling ``[min, max]`` channel is mapped to ``[-1, 1]``, smoothed by the fixed ``0.33 / 0.67``
-    recursion, clamped to ``[-0.999, 0.999]``, then run through ``0.5 * ln((1 + x) / (1 - x))`` with its own ``0.5``
-    recursion. The ``signal`` line is ``fisher`` lagged one bar.
+    An independent transcription of Ehlers' published recursions that shares no code with the Polars implementation,
+    but is one-shape with its kernel (the same fixed ``0.33 / 0.67`` and ``0.5`` filters), so its agreement confirms
+    internal consistency rather than independence — the independent witness is the set of frozen golden masters (the
+    Fisher transform has no TA-Lib twin). The median price's position in its rolling ``[min, max]`` channel is mapped
+    to ``[-1, 1]``, smoothed by the fixed ``0.33 / 0.67`` recursion, clamped to ``[-0.999, 0.999]``, then run through
+    ``0.5 * ln((1 + x) / (1 - x))`` with its own ``0.5`` recursion. The ``signal`` line is ``fisher`` lagged one bar.
 
     Args:
         high: High-price series (may contain ``None`` and ``float('nan')``).
