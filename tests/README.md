@@ -122,15 +122,20 @@ Derived, never declared: `name` (from the factory), `family` (from `__all__`), `
 ## The ladder (one function per rung, canonical order)
 
 Contract — `returns_expr`, `output_lands_on_declared_column`, `shape_matches_declaration`, `lazy_eager_parity`,
-`over_partitions_independently` (shape-aware: a reduction broadcasts across its group's rows, an elementwise output
-concatenates; `assert_matches`, never a bit-equality), `bare_string_raises_type_error`.
+`streaming_engine_parity` (the third execution mode, at the reference band — the streaming engine's chunked
+accumulation legitimately reorders a sum by an ULP), `over_partitions_independently` and
+`over_interleaved_partitions` (shape-aware: a reduction broadcasts across its group's rows, an elementwise output
+concatenates; `assert_matches`, never a bit-equality; the interleaved variant proves the guarantee does not depend
+on contiguous groups), `bare_string_raises_type_error`.
 Edge — `invalid_params_raise` (per counterexample), `all_null_input` (honoring an `all_null` `Deviant`),
 `single_row`, `empty`, `interior_null_flow` / `interior_nan_flow` (the policy-dispatched flow, tail guards
 included; a spec declaring a `flow_deviation` is exempt and pins its flow as crafted cases instead),
 `warmup_null_count` (windowed subset, per field for a struct), `window_exceeds_length` (windowed subset,
 per lane: a frame no longer than a lane's warm-up emits nothing on that lane), `no_lookahead` (non-reducing subset: a
 prefix of the frame gives the prefix of the full output).
-Correctness — `matches_reference`, `golden_master` (rounded expression-side), `pinned_cases` (per `SpecPin`: the
+Correctness — `matches_reference`, `float32_input_parity` (a `Float32` input computes what the oracle computes on
+the same rounded values — the up-cast changes the dtype, never the arithmetic), `golden_master` (rounded
+expression-side), `pinned_cases` (per `SpecPin`: the
 crafted frame maps to the crafted lanes, signed pins comparing the sign too).
 Properties — `scale` (per `ScaleAxis`: scale only that axis's roles by a power of two, degree as declared),
 `matches_reference_for_any_input` and `matches_reference_under_missing_data` (`@given(st.data())` inside
