@@ -36,6 +36,11 @@ extensions = [
 myst_enable_extensions = ["colon_fence", "deflist", "smartquotes"]
 myst_heading_anchors = 3
 
+# The copy button strips the doctest prompts and keeps only the input lines, so a copied example pastes straight into
+# a REPL or script; the regex covers both the ``>>>`` and the ``...`` continuation prompt.
+copybutton_prompt_text = r">>> |\.\.\. "
+copybutton_prompt_is_regexp = True
+
 # Deterministic Polars table rendering so DataFrame reprs in doctests do not drift with terminal width.
 doctest_global_setup = "import polars as pl\npl.Config.set_tbl_width_chars(120)"
 
