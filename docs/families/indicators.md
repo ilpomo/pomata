@@ -70,7 +70,8 @@ Envelopes around price — rolling extremes, ATR bands, and the Ichimoku cloud.
 
 ### Directional movement
 
-Wilder's trend-strength system — the directional indicators, their spread, and the smoothed ADX.
+Wilder's trend-strength system — the directional indicators, their spread, and the smoothed ADX — plus the Vortex
+oscillator.
 
 {py:func}`~pomata.indicators.dm_plus` ·
 {py:func}`~pomata.indicators.dm_minus` ·

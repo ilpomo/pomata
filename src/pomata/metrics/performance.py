@@ -61,8 +61,8 @@ def cagr(
           observations. An all-null series yields ``null``.
         - **NaN** — a ``NaN`` anywhere yields ``NaN``.
         - **Few observations** — annualizing a handful of periods extrapolates aggressively (e.g. one period at
-          ``periods_per_year = 252`` raises the growth to the 252nd power); this is the defined geometric behavior, not
-          an error.
+          ``periods_per_year = 252`` raises the growth to the 252nd power, which can overflow to ``+inf`` — reported
+          not clipped); this is the defined geometric behavior, not an error.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the rate is computed per
           series, e.g. ``cagr(pl.col("equity"), periods_per_year=252).over("ticker")``.
 

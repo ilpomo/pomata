@@ -28,6 +28,7 @@ CI runs the gate below; run it locally before opening a pull request:
 ```bash
 uv run ruff check                                                              # lint
 uv run ruff format --check                                                     # formatting
+uv run codespell                                                               # US spelling
 uv run mypy -p pomata -p tests                                                 # types (package + tests)
 uv run pyright                                                                 # types (pyright)
 uv run pyright --verifytypes pomata --ignoreexternal                           # public type completeness
@@ -50,7 +51,8 @@ uvx pre-commit install
 
 Every public function is a pure `pl.Expr` factory, and ships with:
 
-- a Google-style docstring: a plain-language summary, the formula in LaTeX, `Args`/`Returns`/`Raises`, a `Note`
+- a Google-style docstring: a plain-language summary, the formula in LaTeX (where a closed form exists),
+  `Args`/`Returns`/`Raises`, a `Note`
   on null/NaN/warm-up behavior, a `References` section, and a runnable `Examples` block;
 - a naive reference implementation used as an independent oracle in the tests;
 - a declarative spec — one frozen-dataclass file under `tests/<family>/<name>.py`, registered by an explicit

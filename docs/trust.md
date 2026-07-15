@@ -65,8 +65,8 @@ authority.
 ### The receipt: against the public reference
 
 For indicators there is also a public yardstick — **TA-Lib**, the de-facto industry C implementation, a genuinely
-different computation path. Here is `rsi(14)`, the last value of a deterministic 400-bar series, to every digit a
-`float64` holds:
+different computation path. Here is `rsi(14)`, the last value of a deterministic 400-bar series, at full `float64`
+display precision:
 
 ```text
 pomata      85.20908701341023
@@ -119,14 +119,15 @@ Their math is simple; their correctness lives where the bad things happen, not i
 machine applies — independent oracle, four-tier ladder, golden masters — but the characteristic invariants change:
 
 - **PnL** — cost monotonicity (more cost, less PnL); the additive-vs-compounded split (`cumulative_pnl` sums currency
-  P&L, `equity_curve` compounds returns); no look-ahead (every bar uses only past data); and a defined, tested behavior
+  P&L, `equity_curve` compounds returns); no look-ahead (every bar uses only past data); and a defined behavior
   for **every** degenerate input — `null`, `NaN`, `0`, `±inf`, warm-up.
 - **Metrics** — the annualization identities; scale-equivariance (a Sharpe Ratio is invariant to leverage); closed-form
   checks (the Sharpe Ratio of constant returns, the drawdown of a monotone series); and a defined behavior for every
   degenerate input — for the reducing (scalar) metrics a `null` is skipped and a non-null `NaN` poisons the result,
-  while the rolling and running (series-shaped) metrics follow the windowed policy (a `null` nulls the windows that
-  overlap it, a `NaN` propagates and then recovers); a degenerate denominator is reported as `±inf`/`NaN`, never
-  silently clipped.
+  while the rolling (series-shaped) metrics follow the windowed policy (a `null` nulls the windows that
+  overlap it, a `NaN` propagates and then recovers) — except the endpoint and peak-tracking series (`cagr_rolling`,
+  `total_return_rolling`, the running drawdown), where an interior value never crosses a window boundary and only
+  the affected rows are nulled; a degenerate denominator is reported as `±inf`/`NaN`, never silently clipped.
 
 ## The tolerance ladder
 
