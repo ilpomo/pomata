@@ -44,7 +44,7 @@ def atr(
     Args:
         high: High-price series (e.g. ``pl.col("high")``).
         low: Low-price series (e.g. ``pl.col("low")``).
-        close: Close-price series (e.g. ``pl.col("close")``); the previous close seeds the two gap terms.
+        close: Close-price series (e.g. ``pl.col("close")``); the previous close supplies the two gap terms.
         window: Number of observations in the Wilder moving window. Must be ``>= 1``.
 
     Returns:

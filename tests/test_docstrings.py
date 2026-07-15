@@ -46,8 +46,6 @@ _SHARED_PARAMS: dict[str, frozenset[str]] = {
         {
             "conditional_drawdown_at_risk",
             "conditional_value_at_risk",
-            "value_at_risk_modified",
-            "value_at_risk_parametric",
         }
     ),
     "periods_per_year": frozenset({"probabilistic_sharpe_ratio"}),

@@ -265,8 +265,9 @@ def validate_finite(
     """
     Validate a scalar tuning parameter is a finite number, raising the canonical message on failure.
 
-    Shared by the metric factories that take a finite scalar knob (``threshold``, ``risk_free_rate``), so a ``NaN`` or
-    ``inf`` is rejected at the call site rather than silently poisoning the result.
+    Shared by the factories that take a finite scalar knob (the metrics' ``threshold`` and ``risk_free_rate``, the
+    indicators' ``volume_factor``), so a ``NaN`` or ``inf`` is rejected at the call site rather than silently
+    poisoning the result.
 
     Args:
         value: The scalar parameter value.

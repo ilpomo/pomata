@@ -295,8 +295,9 @@ def dominant_cycle_period(
 
     Returns:
         The dominant-cycle period for each row, the same length as ``expr``, settling into ``[6, 50]`` (the raw
-        estimate is clamped there before the reported double-smoothing, so the first emitted rows may sit marginally
-        below ``6``). The first ``32`` rows are ``null`` (the warm-up the recursive smoothers need to settle).
+        estimate is clamped there before the reported double-smoothing, so every emitted row already lies inside the
+        band; the earliest rows start near its middle while the smoothers converge). The first ``32`` rows are
+        ``null`` (the warm-up the recursive smoothers need to settle).
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
@@ -375,12 +376,6 @@ def dominant_cycle_phase(
         is ill-conditioned (there is no cycle to measure). ``CORRECTNESS.md`` gives the method and the
         float-conditioning limit beyond it.
 
-        **Edge-case behavior:**
-
-        - **Null / NaN / inf** — a ``null``, ``NaN``, or ``inf`` price latches ``null`` for every row from there.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursion re-seeds per
-          series and never spans series boundaries, e.g. ``dominant_cycle_phase(pl.col("close")).over("ticker")``.
-
         **When it breaks:**
 
         On a constant (flat) price the discrete transform's projections are pure cancellation residuals, so the phase
@@ -389,10 +384,16 @@ def dominant_cycle_phase(
         absolute cutoff; this is the continuous limit and keeps the phase invariant under a lossless rescale of the
         price, whereas a fixed threshold would be scale-dependent.
 
+        **Edge-case behavior:**
+
+        - **Null / NaN / inf** — a ``null``, ``NaN``, or ``inf`` price latches ``null`` for every row from there.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursion re-seeds per
+          series and never spans series boundaries, e.g. ``dominant_cycle_phase(pl.col("close")).over("ticker")``.
+
     See Also:
         - :func:`dominant_cycle_period`: The length of the same dominant cycle.
         - :func:`sine_wave`: The sine of this phase.
-        - :func:`mama`: The adaptive average this phase's rate drives.
+        - :func:`mama`: The adaptive average driven by the same pipeline's phasor-phase rate.
 
     References:
         - Ehlers, J. F. (2001). *Rocket Science for Traders: Digital Signal Processing Applications*. Wiley.
@@ -555,7 +556,7 @@ def mama(
     r"""
     MESA Adaptive Moving Average (MAMA), with its companion FAMA.
 
-    John Ehlers' adaptive average: the smoothing constant tracks the rate of change of the dominant-cycle phase, so the
+    John Ehlers' adaptive average: the smoothing constant tracks the rate of change of the phasor phase, so the
     average follows price closely when the cycle phase turns quickly and lags when it is slow. ``FAMA`` (the Following
     Adaptive Moving Average) is a second, slower pass used as a signal line:
 
@@ -746,7 +747,9 @@ def trend_mode(
 
     Returns:
         The mode flag (``1.0`` trend / ``0.0`` cycle) for each row, the same length as ``expr``. The first ``63`` rows
-        are ``null`` (warm-up).
+        are ``null`` (warm-up). The days-in-trend count the flag thresholds has no canonical seed, so for a few dozen
+        rows past the warm-up the flag can differ from a differently-seeded implementation before that state
+        converges; the TA-Lib parity below holds on the converged tail.
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
