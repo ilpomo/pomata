@@ -11,9 +11,9 @@ requirement; rename freely and pass the matching expression.
 ## Lazy or eager — does it matter?
 
 It does not. A function returns the same `pl.Expr` either way, so it runs inside a `DataFrame.select` or a
-`LazyFrame.with_columns` without a single change. Build on a `LazyFrame` when the job is large and let Polars fuse and
-stream it; `.collect()` when you want the result. The numbers are identical to the bit — the test suite checks exactly
-that.
+`LazyFrame.with_columns` without a single change. Build on a `LazyFrame` when the job is large and let Polars fuse
+the plan; `.collect()` when you want the result. Lazy and eager runs are identical to the bit — the test suite checks
+exactly that.
 
 ## Do I have to shift the signal myself?
 
@@ -48,7 +48,7 @@ when something genuinely needs it, and a nightly CI job re-proves the floor stil
 ## Why Polars only — no pandas, no NumPy?
 
 Because the whole design falls out of it. One dependency to vet, expressions that compose instead of objects that
-wrap your data, and lazy execution and streaming for free — with one caveat: a handful of sequential functions run a
-Python kernel per evaluation, so reuse them via a column rather than textually (see the
-[performance note in concepts](concepts.md#2-over-for-multi-asset-panels)). You stay in one engine from the raw bars
-to the final metric, with nothing to convert in between.
+wrap your data, and lazy execution for free (the expressions also compose with Polars' streaming engine) — with one
+caveat: a handful of sequential functions run a Python kernel per evaluation, so reuse them via a column rather than
+textually (see the [performance note in concepts](concepts.md#2-over-for-multi-asset-panels)). You stay in one
+engine from the raw bars to the final metric, with nothing to convert in between.

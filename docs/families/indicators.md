@@ -1,12 +1,15 @@
 # Indicators
 
 `pomata.indicators` is the technical-analysis layer — 75 classic studies, from simple moving averages to Ehlers'
-cycle measures. Each is a pure `pl.Expr` factory over your OHLCV columns, verified to the `float64` floor against an
-independent oracle, so any number of them fuse into a single Polars query with no glue code between the steps.
+cycle measures. Each is a pure `pl.Expr` factory over your OHLCV columns, verified to the `float64` floor against a
+naive reference oracle — an independent second implementation for all but a handful of irreducibly-sequential
+studies, which rest on hand-checked golden masters and the TA-Lib differential instead — so any number of them fuse
+into a single Polars query with no glue code between the steps.
 
 ## What you get
 
-Seventy-five studies across eleven categories. Every name links to its full signature and formula in the API reference.
+Seventy-five studies across eleven categories. Every name links to its full signature and definition in the API
+reference.
 
 ### Moving average
 
