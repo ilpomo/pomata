@@ -10,6 +10,7 @@ this is reachable by ruff's pydocstyle shell checks or the doctest gate, so it i
 same way the spec ladder proves the suite's own declarations at import.
 """
 
+import ast
 import inspect
 import re
 from types import ModuleType
@@ -300,3 +301,97 @@ def test_examples_open_with_the_canonical_imports(name: str) -> None:
         )
     else:
         assert header == ["import polars as pl", expected_self], f"{name}: header {header}"
+
+
+# --- the source-form conventions: the factory body and its docstring literal, swept from the same registry ---
+
+
+def _function_source(name: str) -> str:
+    """The factory's own source text, for the literal-level facts the parsed docstring cannot carry."""
+    return inspect.getsource(getattr(_module_of(name), name))
+
+
+def _function_def(name: str) -> ast.FunctionDef:
+    """The factory's parsed definition, for the body-shape sweeps."""
+    node = ast.parse(_function_source(name)).body[0]
+    assert isinstance(node, ast.FunctionDef)
+    return node
+
+
+@pytest.mark.parametrize("name", _NAMES)
+def test_edge_case_block_is_the_terminal_subheader(name: str) -> None:
+    """Verifies ``**Edge-case behavior:**`` is the LAST bold sub-header of the Note — explanations precede it."""
+    headers = re.findall(r"\*\*([^*\n]+?):\*\*", _note(_doc(name)))
+    assert headers, "the Note carries no bold sub-header"
+    assert headers[-1] == "Edge-case behavior", f"the Note's sub-headers end with {headers[-1]!r}"
+
+
+@pytest.mark.parametrize("name", _NAMES)
+def test_docstring_literal_is_raw(name: str) -> None:
+    """Verifies the public docstring is a raw string, so the math blocks' backslashes never need doubling."""
+    source = _function_source(name)
+    index = source.index('"""')
+    assert source[index - 1] == "r", "the public docstring literal is not raw"
+
+
+@pytest.mark.parametrize("name", _NAMES)
+def test_body_returns_name_keep(name: str) -> None:
+    """Verifies every top-level return keeps the landing column: the expression chain ends in ``.name.keep()``."""
+    returns = [node for node in _function_def(name).body if isinstance(node, ast.Return)]
+    assert returns, "no top-level return"
+    for node in returns:
+        call = node.value
+        assert isinstance(call, ast.Call), "the return is not a call chain"
+        assert isinstance(call.func, ast.Attribute), "the return does not end in .name.keep()"
+        assert call.func.attr == "keep", "the return does not end in .name.keep()"
+        assert isinstance(call.func.value, ast.Attribute), "the return does not end in .name.keep()"
+        assert call.func.value.attr == "name", "the return does not end in .name.keep()"
+
+
+@pytest.mark.parametrize("name", _NAMES)
+def test_scalar_knobs_are_keyword_only(name: str) -> None:
+    """
+    Verifies the positional surface is only the ``pl.Expr`` inputs and the ``window*`` lookbacks — every other
+    scalar knob is keyword-only, so a call site always names it.
+    """
+    factory = getattr(_module_of(name), name)
+    for parameter in inspect.signature(factory).parameters.values():
+        if parameter.kind is not inspect.Parameter.POSITIONAL_OR_KEYWORD:
+            continue
+        positional_kind = parameter.annotation is pl.Expr or (
+            parameter.annotation is int and parameter.name.startswith("window")
+        )
+        assert positional_kind, f"{parameter.name}: positional but neither a pl.Expr input nor a window lookback"
+
+
+def _phase_of(statement: ast.stmt) -> str:
+    """The body phase one statement belongs to: docstring, normalization, validation, or computation."""
+    if isinstance(statement, ast.Expr) and isinstance(statement.value, ast.Constant):
+        return "docstring"
+    if (
+        isinstance(statement, ast.Assign)
+        and isinstance(statement.value, ast.Call)
+        and isinstance(statement.value.func, ast.Name)
+        and statement.value.func.id == "float64_expr"
+    ):
+        return "normalize"
+    if (
+        isinstance(statement, ast.Expr)
+        and isinstance(statement.value, ast.Call)
+        and isinstance(statement.value.func, ast.Name)
+        and statement.value.func.id.startswith("validate_")
+    ):
+        return "validate"
+    return "compute"
+
+
+@pytest.mark.parametrize("name", _NAMES)
+def test_body_keeps_the_three_phases(name: str) -> None:
+    """
+    Verifies the body never interleaves its phases: every ``float64_expr`` normalization precedes every
+    ``validate_*`` guard, and every guard precedes the first computation statement.
+    """
+    rank = {"normalize": 0, "validate": 1, "compute": 2}
+    phases = [_phase_of(statement) for statement in _function_def(name).body]
+    indices = [rank[phase] for phase in phases if phase != "docstring"]
+    assert indices == sorted(indices), f"the body phases interleave: {[p for p in phases if p != 'docstring']}"
