@@ -20,6 +20,7 @@ canonical spec parameters, so they cannot be derived from the spec registry with
 
 import math
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -635,3 +636,17 @@ def test_every_indicator_is_accounted_for() -> None:
     covered = set(SPECS) | set(NO_TALIB_EQUIVALENT) | set(DOCUMENTED_DIVERGENCES)
     assert covered == set(indicators.__all__)
     assert set(STEADY_STATE_ONLY) <= set(SPECS)
+
+
+def test_readme_talib_split_matches_the_partition() -> None:
+    """
+    Verifies the README's TA-Lib coverage split equals the partition this module declares, so reclassifying an
+    indicator between the compared and excluded buckets reddens the page instead of silently staling its figures.
+    """
+    readme = (Path(__file__).parent.parent / "README.md").read_text(encoding="utf-8")
+    compared = len(SPECS)
+    excluded = len(NO_TALIB_EQUIVALENT) + len(DOCUMENTED_DIVERGENCES)
+    total = len(indicators.__all__)
+    assert f"and {compared} of the {total} cross-checked against" in readme
+    assert f"(the other {excluded} have no TA-Lib twin" in readme
+    assert f"for the {compared} of {total} with a twin" in readme

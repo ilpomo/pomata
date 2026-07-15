@@ -21,8 +21,11 @@ PNL_GROSS = Spec(
         ({"multiplier": -math.inf}, r"multiplier must be a finite number > 0"),
     ),
     oracle=pnl_gross_reference,
-    # Degree-1 homogeneous in the position
-    scale=(ScaleAxis(roles=("quantity",), degree=1),),
+    # Degree-1 homogeneous in the position and in the price (each scales the currency P&L linearly)
+    scale=(
+        ScaleAxis(roles=("quantity",), degree=1),
+        ScaleAxis(roles=("price",), degree=1),
+    ),
     golden_input={
         "quantity": (10.0, 10.0, -5.0, -5.0, 20.0),
         "price": (100.0, 102.0, 101.0, 104.0, 103.0),

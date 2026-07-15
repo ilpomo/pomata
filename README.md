@@ -139,7 +139,7 @@ with `.struct.field(...)` or expand every line with `.struct.unnest()`.
 18 functions that turn a signal into money. An indicator becomes a signed `weight`; `returns_gross` /
 `cost_proportional` / `returns_net` turn that into a costed return, and the `.shift(1)` on the signal is the whole
 no-look-ahead story — a decision at the close acts on the next bar. Every degenerate input (`null` / `NaN` / `0` /
-`±inf` / warm-up) has a defined, documented, tested behavior:
+`±inf` / warm-up) has a defined, documented behavior:
 
 ```python
 from pomata.pnl import returns_simple, returns_gross, returns_net, cost_proportional
@@ -287,7 +287,7 @@ inputs, under **100% branch coverage** — or the build is red.
 
 Each family is then held to the yardstick that catches its bugs: **indicators to the digit** against an independent
 oracle — and, for the 58 of 75 with a twin, against the public **TA-Lib** reference too; **PnL and metrics at the
-edges**, where every degenerate input has a defined, tested behavior.
+edges**, where every degenerate input has a defined behavior.
 
 The full account — the precision guarantee, the receipts, and exactly what is and is not claimed — is on the 
 [trust page](https://ilpomo.github.io/pomata/trust.html) and in

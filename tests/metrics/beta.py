@@ -49,7 +49,8 @@ BETA = Spec(
             expected=(math.nan,),
             reason="a constant (zero-variance) benchmark gives 0/0, reported as NaN via an exact max==min guard — "
             "the exact-zero core of the near-constant regime; no conditioning filter is declared: the cov/var "
-            "slope tracks the oracle down to a benchmark spread the fuzz cannot reach",
+            "slope matches the oracle within one ULP even at ULP-adjacent benchmark spreads (measured down to a "
+            "1e-15 spread on base 0.1)",
         ),
         SpecPin(
             label="constant_benchmark_one_third",

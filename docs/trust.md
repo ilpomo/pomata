@@ -44,7 +44,7 @@ number is chosen, not guessed — and enforced:
   implementation and the two-pass oracle lands around `1e-15`. `1e-10` is five orders above that — tight enough to
   reject any real coding error, loose enough that a last-bit difference never flakes the suite.
 - **It is verified, not asserted.** The property tier holds every indicator to `1e-10` across the full random domain
-  — except the one-pass rolling family (thirteen indicators whose sliding-window sums and exponential recurrences
+  — except the one-pass rolling family (twelve indicators whose sliding-window sums and exponential recurrences
   round differently from a fresh two-pass recompute), held to the per-family `1e-6` band each spec declares.
   In practice the agreement is *far* tighter: about **half the outputs match the oracle to the last bit** (a relative
   difference of exactly zero), and the rest land at the noise floor — typically thirteen to fifteen figures, never
