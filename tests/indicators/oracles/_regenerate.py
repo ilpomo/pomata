@@ -31,9 +31,23 @@ def regenerate() -> int:
             for node in ast.parse(path.read_text()).body
             if isinstance(node, ast.FunctionDef) and node.name.endswith("_reference")
         )
-    entries.sort(key=lambda entry: entry[0])
-    imports = "\n".join(f"from tests.indicators.oracles.{module} import {function}" for module, function in entries)
-    exports = "\n".join(f'    "{function}",' for _, function in entries)
+    # One from-import per module with its names grouped and sorted (isort-clean), the parenthesized one-name-per-line
+    # form from 120 columns up (the wrapped form is stable under ruff format, which keeps a magic trailing comma and
+    # never unwraps it), and a globally function-sorted __all__ (RUF022-clean) — so the emitted file is exactly the
+    # committed style and a regeneration is a no-op.
+    by_module: dict[str, list[str]] = {}
+    for module, function in sorted(entries):
+        by_module.setdefault(module, []).append(function)
+    import_lines: list[str] = []
+    for module, functions in sorted(by_module.items()):
+        flat = f"from tests.indicators.oracles.{module} import {', '.join(sorted(functions))}"
+        if len(flat) < 120:
+            import_lines.append(flat)
+        else:
+            wrapped = "\n".join(f"    {function}," for function in sorted(functions))
+            import_lines.append(f"from tests.indicators.oracles.{module} import (\n{wrapped}\n)")
+    imports = "\n".join(import_lines)
+    exports = "\n".join(f'    "{function}",' for function in sorted(function for _, function in entries))
     init.write_text(preamble + "\n" + imports + "\n\n__all__ = (\n" + exports + "\n)\n")
     return len(entries)
 

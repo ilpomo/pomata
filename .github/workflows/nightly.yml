@@ -91,6 +91,10 @@ jobs:
         env:
           HYPOTHESIS_PROFILE: ci
         run: uv run --no-sync pytest -n auto
+      # The docs gates run only at the locked (latest) versions; a Python-version-safe doctest can still drift at the
+      # floor (a polars repr change between the floor and the lock), so the floor re-proves them too.
+      - name: "Docs: doctests at the floor"
+        run: uv run --no-sync pytest --doctest-modules src/pomata -q
 
   # Workflow security audit: the repo's "clean under zizmor" bar, enforced in CI rather than left to a manual local
   # run, so a workflow change that introduces a finding shows red within a day. Pinned like twine in release.yml: a
@@ -133,3 +137,38 @@ jobs:
           cd "$RUNNER_TEMP"/pomata-*/
           uv sync --locked --no-default-groups --group test
           uv run --no-sync pytest -n auto
+
+  # Prove the oracle re-export is exactly what its regenerator emits: a hand edit to the package __init__ (or a
+  # regenerator change) that drifts from the committed file shows red within a day. The regenerated file is the
+  # committed style byte for byte, so the diff gate needs no normalization pass.
+  oracles:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: "Setup: checkout"
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: "Setup: install uv"
+        uses: ./.github/actions/setup
+      - name: "Setup: sync dependencies (test)"
+        run: uv sync --locked --no-default-groups --group test
+      - name: "Guard: the oracle re-export regenerates to a no-op"
+        run: |
+          uv run --no-sync python -m tests.indicators.oracles._regenerate
+          git diff --exit-code tests/indicators/oracles/__init__.py
+
+  # Validate CITATION.cff against the Citation File Format schema. Pinned like zizmor above: a version in a `run:`
+  # string is outside Dependabot's reach, so the bump is manual.
+  citation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: "Setup: checkout"
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: "Setup: install uv"
+        uses: ./.github/actions/setup
+      - name: "Guard: CITATION.cff validates against the CFF schema"
+        run: uvx cffconvert@2.0.0 --validate
