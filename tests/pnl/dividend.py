@@ -33,5 +33,12 @@ DIVIDEND = Spec(
             expected=(None, 50.0),
             reason="a null in one input against a NaN in the other at the same row yields null (null wins over NaN)",
         ),
+        SpecPin(
+            label="infinite_flow_signs_with_the_position",
+            inputs={"quantity": (math.inf, -2.0, -math.inf), "dividend_per_share": (1.0, math.inf, 0.5)},
+            expected=(math.inf, -math.inf, -math.inf),
+            reason="the cash flow keeps the sign of quantity * dividend_per_share even at infinite magnitude; the "
+            "property tiers set allow_infinity=False",
+        ),
     ),
 )
