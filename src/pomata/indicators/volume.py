@@ -448,7 +448,8 @@ def chaikin_money_flow(
     # gate preserves null precedence: a ``null`` in a price input nulls the weighted sum even though the all-zero
     # volume's rolling maximum is still ``0``, so such a window stays ``null`` rather than taking the guard's ``NaN``.
     # The clip pins the bound: the ratio is mathematically in [-1, 1] (so is the multiplier), so past a sane dynamic
-    # range a residual-dominated near-zero-volume window degrades but stays in range (see CORRECTNESS.md).
+    # range a residual-dominated near-zero-volume window degrades but stays in range (see the
+    # documentation's Correctness page).
     is_zero_volume = (volume.abs().rolling_max(window) == 0) & weighted_sum.is_not_null()
     return pl.when(is_zero_volume).then(float("nan")).otherwise(raw.clip(-1.0, 1.0)).name.keep()
 
@@ -634,7 +635,7 @@ def money_flow_index(
     # exactly 0. A null/NaN change makes the rolling maxima null/NaN (never == 0), so no guard fires and the
     # null-precedence and NaN-poisoning above are unchanged. The clip pins the [0, 100] bound for the mixed windows:
     # beyond a sane dynamic range a residual-dominated near-flat window degrades but stays in range rather than
-    # escaping (see CORRECTNESS.md).
+    # escaping (see the documentation's Correctness page).
     is_flat = typical_change.abs().rolling_max(window) == 0
     no_negative_change = (-typical_change).clip(lower_bound=0.0).rolling_max(window) == 0
     no_positive_change = typical_change.clip(lower_bound=0.0).rolling_max(window) == 0

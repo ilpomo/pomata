@@ -173,6 +173,56 @@ unit tests of the harness itself, and the source-and-docs guards:
   bounds), whose error branches the ladder crosses only indirectly.
 - `test_package.py` — import smoke for every subpackage and the exposed `__version__`.
 
+## Deliberate conventions (tested exactly as implemented)
+
+A few behaviors look like inconsistencies until the domain reason is on the table; each is pinned by the suite exactly
+as the function computes it, and its docstring states it:
+
+- **Burke ratio, per-bar denominator.** `burke_ratio` sums the squared *per-bar* drawdown series, not the classic
+  per-episode declines of Burke (1994): every underwater bar contributes, so deeper *and* longer drawdowns are both
+  penalized. The figure is not comparable to a per-episode Burke from another library.
+- **EWM dispersions, `window >= 2`.** `standard_deviation_ewma` and `variance_ewma` reject a window of one while their
+  rolling twins accept `window=1, ddof=0`: the EWM form's debiasing (`bias=False`) has no defined value at a single
+  observation, and a runtime flag cannot carry a `ddof`-style bound.
+- **Parabolic SAR, intrabar order.** Within a bar the extreme point and acceleration factor update *before* the
+  reversal check, so a bar that both makes a new extreme and crosses the stop reverses onto that bar's fresh extreme.
+  Wilder's text does not fix this order; the golden masters pin the chosen one, including the seeding and reversal
+  branches.
+- **TA-Lib divergences.** ADXR's averaging lag, the Chande momentum oscillator's smoothing, and OBV's origin follow
+  the charting authorities rather than TA-Lib, so they do not agree with it even at steady state and are held out of
+  the differential tier on purpose — each justified on the function itself.
+
+## Tolerances, conditioning, and the exact-zero closures
+
+A tolerance is never a round number picked by feel. When the implementation and the oracle agree they still round
+differently, and how far they drift is set by the statistic's *conditioning*: each band is a named constant from
+`tests/support/tolerances.py`, sized to the worst residual that conditioning predicts plus a margin. The
+well-conditioned kernels (recursive, windowed, and stateless means) match to a few ULP; the one-pass rolling and EWM
+moments meet their two-pass oracle at the wider rolling band each spec declares; a scale-invariant output (a bounded
+ratio, a cycle period, a flag) carries an *absolute* band, since sizing an `O(1)` value to the input magnitude is
+meaningless; and the large-magnitude bespoke tier sizes its floor to the data (`input_scale ** degree * factor`). Any
+`oracle_*_tol` departure sits under a one-line comment saying why — a bare, unexplained tolerance is treated as a
+defect, and `test_spec_files.py` enforces the comment.
+
+A separate mechanism closes the one regime where a relative band cannot hold: a window that collapses onto the
+float-precision floor of a much larger value that recently slid through it. The bit-constant battery
+(`matches_reference_on_bit_constant_input`) drives every column to one repeated constant — the regime where the
+shipped kernels pin a zero dispersion to exactly zero while a naive two-pass mean can keep a rounding residue — and the
+suite pins these float-residue closures exactly:
+
+- the rolling skewness and kurtosis recompute any window at residue risk as a fresh two-pass mean-centered moment, so a
+  departed outlier can no longer poison every later window;
+- the reducing dispersions pin an exactly-constant series to exactly zero, so the first-moment ratios built on them
+  (Sharpe, Sortino, the information ratio's tracking error, the M-squared that composes them) degenerate to the
+  documented signed infinity rather than a residue-driven huge finite, while the higher-moment variants (the adjusted
+  and probabilistic Sharpe ratios) degenerate to `NaN` — their moment corrections are `0 / 0` there;
+- the rolling dispersions (the rolling volatility, the rolling variance and standard deviation, and the Bollinger
+  bands built on them) pin a bit-constant window to exactly zero, so a departed outlier's residue can never be reported
+  as spread.
+
+The windowed win / loss ratios (the Chande momentum oscillator, the rolling omega) keep the documented dynamic-range
+limit instead: their sliding sums are guarded at the bit-constant edge and clamped where the output is bounded.
+
 ## Glossary (plain words for the suite's terms)
 
 - **spec** — one public function's whole testing contract, written as a single frozen dataclass of plain data in
@@ -184,7 +234,8 @@ unit tests of the harness itself, and the source-and-docs guards:
 - **oracle** — the naive, obviously-correct reimplementation of a function (plain Python, two-pass, no streaming
   tricks) that the fast Polars implementation is compared against. For the irreducibly-sequential indicators (the
   Ehlers cycle cluster, the parabolic SAR, KAMA, the Fisher transform, SuperTrend) the oracle is a structural mirror
-  that confirms internal consistency; `CORRECTNESS.md` documents the second witness each rests on instead.
+  that confirms internal consistency; the documentation's Correctness page documents the second witness each rests on
+  instead.
 - **golden master** — one frozen input with its frozen, hand-verified output; a change in behavior shows up as a
   golden mismatch even if impl and oracle drift together.
 - **pin (fixed case)** — one crafted input mapped to its exact expected output, with a written reason. The data

@@ -290,8 +290,7 @@ oracle — and, for the 58 of 75 with a twin, against the public **TA-Lib** refe
 edges**, where every degenerate input has a defined behavior.
 
 The full account — the precision guarantee, the receipts, and exactly what is and is not claimed — is on the 
-[trust page](https://ilpomo.github.io/pomata/trust.html) and in
-[CORRECTNESS.md](https://github.com/ilpomo/pomata/blob/main/CORRECTNESS.md).
+[trust page](https://ilpomo.github.io/pomata/trust.html).
 
 ## Where pomata fits
 

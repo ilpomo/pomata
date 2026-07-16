@@ -310,10 +310,10 @@ def alpha_rolling(
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
         - **Degenerate denominator** — a zero-variance window benchmark makes the slope ``NaN`` (a ``0 / 0``), which
           propagates here.
-        - **Stability** — a near-flat (non-bit-identical) benchmark window sits at the float-conditioning limit
-          ``CORRECTNESS.md`` documents: the one-pass rolling covariance behind the embedded slope and an exact two-pass
-          recomputation can round a vanishing benchmark variance apart without bound there. The bit-flat window is
-          guarded exactly (``NaN``); real market windows are far from the regime.
+        - **Stability** — a near-flat (non-bit-identical) benchmark window sits at the float-conditioning limit the
+          documentation's *Correctness* page documents: the one-pass rolling covariance behind the embedded slope and an
+          exact two-pass recomputation can round a vanishing benchmark variance apart without bound there. The bit-flat
+          window is guarded exactly (``NaN``); real market windows are far from the regime.
         - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries.
 
     See Also:
@@ -525,10 +525,10 @@ def beta_rolling(
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
         - **Degenerate denominator** — a zero-variance window benchmark leaves the slope undefined, so the result is a
           ``0 / 0``, i.e. ``NaN``.
-        - **Stability** — a near-flat (non-bit-identical) benchmark window sits at the float-conditioning limit
-          ``CORRECTNESS.md`` documents: the one-pass rolling covariance and an exact two-pass recomputation can round a
-          vanishing denominator apart without bound there. The bit-flat window is guarded exactly (``NaN``); real
-          market windows are far from the regime.
+        - **Stability** — a near-flat (non-bit-identical) benchmark window sits at the float-conditioning limit the
+          documentation's *Correctness* page documents: the one-pass rolling covariance and an exact two-pass
+          recomputation can round a vanishing denominator apart without bound there. The bit-flat window is guarded
+          exactly (``NaN``); real market windows are far from the regime.
         - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries.
 
     See Also:
@@ -1059,10 +1059,11 @@ def information_ratio_rolling(
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
         - **Degenerate denominator** — a constant active window has zero tracking error, so the result is ``+/-inf`` —
           reported, not clipped (or ``NaN`` when the mean active is also zero).
-        - **Stability** — a near-flat (non-bit-identical) active-return window sits at the float-conditioning limit
-          ``CORRECTNESS.md`` documents: the one-pass rolling tracking error and an exact two-pass recomputation can
-          round a vanishing denominator apart without bound there. The bit-flat window is pinned exactly (a zero
-          tracking error, the documented ``+/-inf`` / ``NaN``); real market windows are far from the regime.
+        - **Stability** — a near-flat (non-bit-identical) active-return window sits at the float-conditioning limit the
+          documentation's *Correctness* page documents: the one-pass rolling tracking error and an exact two-pass
+          recomputation can round a vanishing denominator apart without bound there. The bit-flat window is pinned
+          exactly (a zero tracking error, the documented ``+/-inf`` / ``NaN``); real market windows are far from the
+          regime.
         - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries.
 
     See Also:
@@ -1297,8 +1298,8 @@ def treynor_ratio(
           return is also zero); a zero-variance benchmark instead makes :func:`beta` ``NaN``, which propagates here.
         - **Stability** — a beta bounded away from zero is the one regime the excess-over-beta quotient genuinely
           needs: as the slope vanishes the division amplifies rounding without bound, so a near-zero beta sits at the
-          float-conditioning limit ``CORRECTNESS.md`` documents. The exact zero-beta case is guarded (``+/-inf``); real
-          market betas are far from the regime.
+          float-conditioning limit the documentation's *Correctness* page documents. The exact zero-beta case is guarded
+          (``+/-inf``); real market betas are far from the regime.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history, e.g.
           ``treynor_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252).over("ticker")``.
@@ -1414,10 +1415,10 @@ def treynor_ratio_rolling(
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
         - **Degenerate denominator** — a window whose slope is zero gives ``+/-inf`` — reported, not clipped (or
           ``NaN``); a zero-variance benchmark window instead makes the slope ``NaN``, which propagates here.
-        - **Stability** — a near-flat (non-bit-identical) benchmark window sits at the float-conditioning limit
-          ``CORRECTNESS.md`` documents: the one-pass rolling slope and an exact two-pass recomputation can round a
-          vanishing benchmark variance — and with it the ``beta`` divisor — apart without bound there. The bit-flat
-          window is guarded exactly (``NaN``); real market windows are far from the regime.
+        - **Stability** — a near-flat (non-bit-identical) benchmark window sits at the float-conditioning limit the
+          documentation's *Correctness* page documents: the one-pass rolling slope and an exact two-pass recomputation
+          can round a vanishing benchmark variance — and with it the ``beta`` divisor — apart without bound there. The
+          bit-flat window is guarded exactly (``NaN``); real market windows are far from the regime.
         - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries.
 
     See Also:

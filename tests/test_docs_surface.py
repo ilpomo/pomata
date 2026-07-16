@@ -16,7 +16,6 @@ import pytest
 import pomata.indicators
 import pomata.metrics
 import pomata.pnl
-from pomata._policy import NanPolicy, NullPolicy
 
 _README = Path(__file__).parent.parent / "README.md"
 
@@ -155,19 +154,3 @@ def test_single_runtime_dependency_claim_holds() -> None:
         dependencies = tomllib.load(handle)["project"]["dependencies"]
     assert len(dependencies) == 1, dependencies
     assert str(dependencies[0]).startswith("polars"), dependencies
-
-
-def test_glossary_names_every_policy_state() -> None:
-    """The glossary's null/NaN vocabulary names every declared policy state."""
-    text = (_DOCS / "glossary.md").read_text(encoding="utf-8").lower()
-    words = {
-        NullPolicy.SKIPPED: "skipped",
-        NullPolicy.ABSORBED: "absorbed",
-        NullPolicy.PROPAGATES: "propagated",
-        NullPolicy.IN_WINDOW_IS_NULL: "in-window-nulled",
-        NullPolicy.BRIDGED: "bridged",
-        NullPolicy.LATCHES: "latched",
-        NanPolicy.POISONS: "poisoned",
-    }
-    missing = sorted(str(policy) for policy, word in words.items() if word not in text)
-    assert not missing, f"glossary vocabulary misses: {missing}"

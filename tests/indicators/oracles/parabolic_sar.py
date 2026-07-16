@@ -19,7 +19,7 @@ def parabolic_sar_reference(
     trail the stop, clamp to the two prior extremes, accelerate on new extremes, reverse on a crossing), recomputed as
     the oracle for :func:`pomata.indicators.parabolic_sar`. This is a one-shape path-dependent recurrence, so the
     transcription necessarily mirrors the production kernel's structure; the genuine correctness evidence is the
-    spec's hand-derived golden master and pins, not the oracle agreement (see ``CORRECTNESS.md``).
+    spec's hand-derived golden master and pins, not the oracle agreement (see the documentation's Correctness page).
 
     Args:
         high: High-price series (may contain ``None`` and ``float('nan')``).

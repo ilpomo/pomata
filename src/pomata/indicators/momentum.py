@@ -826,7 +826,8 @@ def chande_momentum_oscillator(
     # An exactly-flat window (every change zero) is the 0/0 degenerate: detect it via the residual-free rolling maximum
     # of |change| -- zero only when every change is exactly zero -- and return NaN, matching the oracle. The clip bounds
     # the near-flat residual overshoot to [-100, 100]: beyond a sane dynamic range the streaming quotient degrades but
-    # stays in range (see CORRECTNESS.md); the bound holds without a non-decaying floor that NaN-s legitimate data.
+    # stays in range (see the documentation's Correctness page); the bound holds without a non-decaying floor
+    # that NaN-s legitimate data.
     raw = (100.0 * (sum_gain - sum_loss) / (sum_gain + sum_loss)).clip(-100.0, 100.0)
     is_flat = delta.abs().rolling_max(window) == 0
     return pl.when(is_flat).then(float("nan")).otherwise(raw).name.keep()
@@ -1895,7 +1896,7 @@ def ultimate_oscillator(
         # reachable only through the documented missing-low fallback -- is left to IEEE-754 as +/-inf, the deliberate
         # malformed-bar signal. The near-flat residual is reported as-is, not clipped: the [0, 100] bound is conditional
         # on well-formed bars, so beyond a sane dynamic range the streaming quotient degrades but is reported, not
-        # silenced (see CORRECTNESS.md).
+        # silenced (see the documentation's Correctness page).
         raw = buying_pressure.rolling_sum(window) / true_range.rolling_sum(window)
         is_zero_over_zero = (true_range.rolling_max(window) == 0) & (buying_pressure.abs().rolling_max(window) == 0)
         return pl.when(is_zero_over_zero).then(float("nan")).otherwise(raw)

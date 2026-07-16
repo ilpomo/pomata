@@ -1,7 +1,8 @@
 """
 The oracle docstring contract, swept from the registry: every reference states how it treats missing data, and the
-irreducibly-sequential mirrors say so instead of overstating independence — the taxonomy of ``CORRECTNESS.md``,
-keyed by :data:`pomata._policy.NO_ORACLE` plus the named structural-mirror references. The word-boundary markers
+irreducibly-sequential mirrors say so instead of overstating independence — the taxonomy the documentation's Correctness
+page describes, keyed by :data:`pomata._policy.NO_ORACLE` plus the named structural-mirror references. The word-boundary
+markers
 below are matched on the lowered docstring, so an incidental substring (``nan`` inside ``dominant``) can never
 satisfy a contract leg.
 """
