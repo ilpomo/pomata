@@ -7,14 +7,17 @@ signature order, the byte-identical ``TypeError`` line, a sanctioned Note opener
 canonical order, each bullet worded to its class canon (or pinned as a deviant), the latch marker every
 ``NanPolicy.LATCHES`` docstring must carry, a whitelisted set of explanatory sub-headers above the edge-case list,
 the canonical Returns opener per output shape, byte-identical Args prose for every shared parameter (with the
-sanctioned per-role deviants pinned by name), and a Raises section that names every validation counterexample's
-parameter. None of this is reachable by ruff's pydocstyle shell checks or the doctest gate, so it is proven here,
-from the source, the same way the spec ladder proves the suite's own declarations at import.
+sanctioned per-role deviants pinned by name), a Raises section that names every validation counterexample's
+parameter, and a Returns warm-up formula that reproduces the spec's declared warm-up when the canonical parameters
+are substituted into it. None of this is reachable by ruff's pydocstyle shell checks or the doctest gate, so it is
+proven here, from the source, the same way the spec ladder proves the suite's own declarations at import.
 """
 
 import ast
 import inspect
+import operator
 import re
+from collections.abc import Callable
 from types import ModuleType
 
 import polars as pl
@@ -509,3 +512,81 @@ def test_raises_section_names_every_counterexample(name: str) -> None:
     raises = _flat_raises(name)
     offenders = sorted({param for override, _ in spec.raises for param in override if param not in raises})
     assert not offenders, f"{name}: Raises does not name {offenders}"
+
+
+# The sentence forms a Returns block states its warm-up in; the captured group is the backticked formula whose
+# value, at the canonical parameters, must equal the spec's declared warm-up.
+_WARMUP_PATTERNS: tuple[str, ...] = (
+    r"first ``([^`]+)`` (?:rows|values) are ``null``",
+    r"(?:Values|values) are ``null`` until [^(]*\(the first ``([^`]+)`` rows\)",
+    r"``([^`]+)`` rows of ``null``",
+    r"[Tt]he first (?:value|row) is ``null``()",
+    r"Row ``0`` is ``null``()",
+)
+
+# Warm-ups substitution cannot check: adxr composes its length from adx's in words, and hma's formula reads a
+# prose-defined intermediate. Shrink this set by rephrasing to a formula in the canonical parameters; an entry
+# whose Returns becomes checkable fails as stale.
+_WARMUP_PROSE: frozenset[str] = frozenset({"adxr", "hma"})
+
+
+def _eval_warmup(formula: str, params: dict[str, int]) -> int:
+    """The integer value of a backticked warm-up formula under the canonical parameters (an empty capture is the
+    one-row shift, i.e. ``1``).
+    """
+    if not formula:
+        return 1
+    node = ast.parse(formula, mode="eval").body
+    operators: dict[type[ast.operator], Callable[[int, int], int]] = {
+        ast.Add: operator.add,
+        ast.Sub: operator.sub,
+        ast.Mult: operator.mul,
+    }
+
+    def evaluate(expr: ast.expr) -> int:
+        if isinstance(expr, ast.Constant) and isinstance(expr.value, int):
+            return expr.value
+        if isinstance(expr, ast.Name) and expr.id in params:
+            return params[expr.id]
+        if isinstance(expr, ast.BinOp) and type(expr.op) in operators:
+            return operators[type(expr.op)](evaluate(expr.left), evaluate(expr.right))
+        if isinstance(expr, ast.UnaryOp) and isinstance(expr.op, ast.USub):
+            return -evaluate(expr.operand)
+        if isinstance(expr, ast.Call) and isinstance(expr.func, ast.Name) and expr.func.id == "max":
+            return max(evaluate(argument) for argument in expr.args)
+        message = f"unsupported warm-up formula node: {ast.dump(expr)}"
+        raise ValueError(message)
+
+    return evaluate(node)
+
+
+def _returns_block(name: str) -> str:
+    """The full Returns section, flattened to one line."""
+    tail = _doc(name).split("\nReturns:\n", 1)[1]
+    cuts = [tail.find("\n" + section) for section in ("Raises:", "Note:") if "\n" + section in tail]
+    return " ".join(tail[: min(cuts)].split()) if cuts else " ".join(tail.split())
+
+
+@pytest.mark.parametrize("name", _NAMES)
+def test_returns_warmup_matches_the_spec(name: str) -> None:
+    """The Returns warm-up formula reproduces the spec's declared warm-up under the canonical parameters."""
+    spec = _SPECS[name]
+    if spec.warmup is None or not isinstance(spec.warmup, int):
+        return
+    text = _returns_block(name)
+    formula = next((m.group(1) for p in _WARMUP_PATTERNS if (m := re.search(p, text)) is not None), None)
+    params = {key: value for key, value in spec.params.items() if isinstance(value, int)}
+    if name in _WARMUP_PROSE:
+        if formula is None:
+            return
+        try:
+            _eval_warmup(formula, params)
+        except ValueError:
+            return
+        pytest.fail(f"{name}: now checkable by substitution — remove its stale _WARMUP_PROSE entry")
+    assert formula is not None, f"{name}: no checkable warm-up sentence found in Returns"
+    declared = _eval_warmup(formula, params)
+    assert declared == spec.warmup, (
+        f"{name}: the Returns formula ``{formula}`` gives {declared} at the canonical parameters, but the spec "
+        f"declares warmup={spec.warmup}"
+    )
