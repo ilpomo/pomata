@@ -126,11 +126,8 @@ def accumulation_distribution(
         ...         "volume": [100.0, 200.0, 300.0, 400.0, 500.0],
         ...     }
         ... )
-        >>> frame.select(
-        ...     accumulation_distribution(
-        ...         pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume")
-        ...     ).round(4).alias("ad")
-        ... )["ad"].to_list()
+        >>> expr = accumulation_distribution(pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume")).round(4)
+        >>> frame.select(accumulation_distribution=expr)["accumulation_distribution"].to_list()
         [0.0, 100.0, -200.0, 200.0, -50.0]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -147,7 +144,7 @@ def accumulation_distribution(
         >>> expr = accumulation_distribution(
         ...     pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume")
         ... ).over("ticker").round(4)
-        >>> frame.with_columns(expr.alias("accumulation_distribution"))["accumulation_distribution"].to_list()
+        >>> frame.with_columns(accumulation_distribution=expr)["accumulation_distribution"].to_list()
         [0.0, 60.0, 30.0, 85.0, 50.0, -30.0, 15.0, 15.0]
 
         A ``null`` (skipped, the running total carrying across it) and a ``NaN`` (which propagates) make the
@@ -162,7 +159,7 @@ def accumulation_distribution(
         ...     }
         ... )
         >>> expr = accumulation_distribution(pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume")).round(4)
-        >>> frame.select(expr.alias("accumulation_distribution"))["accumulation_distribution"].to_list()
+        >>> frame.select(accumulation_distribution=expr)["accumulation_distribution"].to_list()
         [50.0, 110.0, 110.0, 165.0, None, 165.0, nan, nan]
     """
     high = float64_expr(high)
@@ -255,7 +252,7 @@ def accumulation_distribution_oscillator(
         >>> expr = accumulation_distribution_oscillator(
         ...     pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), window_fast=2, window_slow=3
         ... ).round(4)
-        >>> frame.select(expr.alias("adosc"))["adosc"].to_list()
+        >>> frame.select(accumulation_distribution_oscillator=expr)["accumulation_distribution_oscillator"].to_list()
         [None, None, 13.0, 8.6667, 11.0556]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -276,7 +273,9 @@ def accumulation_distribution_oscillator(
         ...     .over("ticker")
         ...     .round(4)
         ... )
-        >>> frame.with_columns(expr.alias("adosc"))["adosc"].to_list()
+        >>> frame.with_columns(accumulation_distribution_oscillator=expr)[
+        ...     "accumulation_distribution_oscillator"
+        ... ].to_list()
         [None, None, 0.0, 9.1667, None, None, 1.6667, 1.1111]
 
         A ``null`` (which voids the line and its EMAs) and a ``NaN`` (which propagates) make the exact handling
@@ -293,7 +292,7 @@ def accumulation_distribution_oscillator(
         >>> expr = accumulation_distribution_oscillator(
         ...     pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), window_fast=2, window_slow=3
         ... ).round(4)
-        >>> frame.select(expr.alias("adosc"))["adosc"].to_list()
+        >>> frame.select(accumulation_distribution_oscillator=expr)["accumulation_distribution_oscillator"].to_list()
         [None, None, 10.0, 15.8333, None, 9.4048, nan, nan]
     """
     high = float64_expr(high)
@@ -403,11 +402,10 @@ def chaikin_money_flow(
         ...         "volume": [100.0, 200.0, 150.0, 300.0, 250.0],
         ...     }
         ... )
-        >>> frame.select(
-        ...     chaikin_money_flow(
-        ...         pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), window=3
-        ...     ).round(4).alias("cmf_3")
-        ... )["cmf_3"].to_list()
+        >>> expr = chaikin_money_flow(
+        ...     pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), window=3
+        ... ).round(4)
+        >>> frame.select(chaikin_money_flow=expr)["chaikin_money_flow"].to_list()
         [None, None, 0.1481, 0.2564, 0.2619]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -424,7 +422,7 @@ def chaikin_money_flow(
         >>> expr = chaikin_money_flow(
         ...     pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), 2
         ... ).over("ticker").round(4)
-        >>> frame.with_columns(expr.alias("chaikin_money_flow"))["chaikin_money_flow"].to_list()
+        >>> frame.with_columns(chaikin_money_flow=expr)["chaikin_money_flow"].to_list()
         [None, 0.2727, 0.1429, 0.125, None, -0.1364, -0.1667, 0.225]
 
         A ``null`` (skipped, and any window it touches yields ``null``) and a ``NaN`` (which propagates) make the
@@ -439,8 +437,39 @@ def chaikin_money_flow(
         ...     }
         ... )
         >>> expr = chaikin_money_flow(pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), 2).round(4)
-        >>> frame.select(expr.alias("chaikin_money_flow"))["chaikin_money_flow"].to_list()
+        >>> frame.select(chaikin_money_flow=expr)["chaikin_money_flow"].to_list()
         [None, 0.5, 0.2857, 0.275, None, None, nan, nan]
+
+        **Degenerate denominator** — a window whose total volume is zero is the genuine ``0/0``, so the flow
+        reads ``NaN``:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.0, 12.0, 11.0],
+        ...         "low": [8.0, 9.0, 9.0],
+        ...         "close": [9.0, 11.0, 10.0],
+        ...         "volume": [0.0, 0.0, 0.0],
+        ...     }
+        ... )
+        >>> expr = chaikin_money_flow(pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), window=2)
+        >>> frame.select(chaikin_money_flow=expr)["chaikin_money_flow"].to_list()
+        [None, nan, nan]
+
+        **Degenerate denominator** — once a large volume has slid out of the window, the rolling-sum denominator
+        can carry a sub-ULP residual, yet the exact all-zero-volume detection still resolves the final window to
+        ``NaN`` rather than a spurious finite ratio:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0],
+        ...         "low": [10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0],
+        ...         "close": [11.0, 12.5, 13.5, 14.0, 15.5, 16.0, 17.5],
+        ...         "volume": [1e+16, 0.1, 0.2, 0.3, 0.0, 0.0, 0.0],
+        ...     }
+        ... )
+        >>> expr = chaikin_money_flow(pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), window=3)
+        >>> frame.select(chaikin_money_flow=expr)["chaikin_money_flow"].to_list()
+        [None, None, 1.5000000000000003e-17, 0.25, 0.19999999999999996, 0.0, nan]
     """
     high = float64_expr(high)
     low = float64_expr(low)
@@ -563,11 +592,8 @@ def money_flow_index(
         ...         "volume": [100.0, 150.0, 120.0, 130.0, 110.0, 160.0, 140.0, 170.0],
         ...     }
         ... )
-        >>> frame.select(
-        ...     money_flow_index(pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), window=3)
-        ...     .round(4)
-        ...     .alias("mfi_3")
-        ... )["mfi_3"].to_list()
+        >>> expr = money_flow_index(pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), window=3).round(4)
+        >>> frame.select(money_flow_index=expr)["money_flow_index"].to_list()
         [None, None, None, 68.4466, 67.0051, 72.3404, 66.9291, 72.6384]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -586,7 +612,7 @@ def money_flow_index(
         ...     .over("ticker")
         ...     .round(4)
         ... )
-        >>> frame.with_columns(expr.alias("money_flow_index"))["money_flow_index"].to_list()
+        >>> frame.with_columns(money_flow_index=expr)["money_flow_index"].to_list()
         [None, None, 58.1673, 57.972, None, None, 100.0, 100.0]
 
         A ``null`` (skipped, and any window it touches yields ``null``) and a ``NaN`` (which propagates) make the
@@ -601,8 +627,38 @@ def money_flow_index(
         ...     }
         ... )
         >>> expr = money_flow_index(pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), 2).round(4)
-        >>> frame.select(expr.alias("money_flow_index"))["money_flow_index"].to_list()
+        >>> frame.select(money_flow_index=expr)["money_flow_index"].to_list()
         [None, None, 100.0, 100.0, None, None, None, nan]
+
+        **Degenerate denominator** — a window whose typical price never moves leaves both money flows at zero, so
+        the ratio is the genuine ``0/0``, i.e. ``NaN``:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.0, 10.0, 10.0, 10.0, 10.0],
+        ...         "low": [8.0, 8.0, 8.0, 8.0, 8.0],
+        ...         "close": [9.0, 9.0, 9.0, 9.0, 9.0],
+        ...         "volume": [100.0, 100.0, 100.0, 100.0, 100.0],
+        ...     }
+        ... )
+        >>> expr = money_flow_index(pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), window=3)
+        >>> frame.select(money_flow_index=expr)["money_flow_index"].to_list()
+        [None, None, None, nan, nan]
+
+        **window == 1** — each bar's own change alone decides the reading: a fully up bar prints ``100``, a fully
+        down bar prints ``0``:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.0, 11.0, 12.0, 11.0, 13.0],
+        ...         "low": [8.0, 9.0, 10.0, 9.0, 11.0],
+        ...         "close": [9.0, 10.0, 11.0, 10.0, 12.0],
+        ...         "volume": [100.0, 150.0, 120.0, 130.0, 110.0],
+        ...     }
+        ... )
+        >>> expr = money_flow_index(pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), window=1)
+        >>> frame.select(money_flow_index=expr)["money_flow_index"].to_list()
+        [None, 100.0, 100.0, 0.0, 100.0]
     """
     high = float64_expr(high)
     low = float64_expr(low)
@@ -750,7 +806,7 @@ def obv(
         ...         "volume": [100.0, 200.0, 150.0, 80.0, 300.0, 250.0],
         ...     }
         ... )
-        >>> frame.select(obv(pl.col("close"), pl.col("volume")).round(4).alias("obv"))["obv"].to_list()
+        >>> frame.select(obv=obv(pl.col("close"), pl.col("volume")).round(4))["obv"].to_list()
         [0.0, 200.0, 50.0, 50.0, 350.0, 100.0]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -763,7 +819,7 @@ def obv(
         ...     }
         ... )
         >>> expr = obv(pl.col("close"), pl.col("volume")).over("ticker").round(4)
-        >>> frame.with_columns(expr.alias("obv"))["obv"].to_list()
+        >>> frame.with_columns(obv=expr)["obv"].to_list()
         [0.0, 120.0, 30.0, 140.0, 0.0, 0.0, 90.0, 200.0]
 
         A ``null`` (skipped, the running total carrying across it) and a ``NaN`` (which propagates) make the
@@ -776,7 +832,7 @@ def obv(
         ...     }
         ... )
         >>> expr = obv(pl.col("close"), pl.col("volume")).round(4)
-        >>> frame.select(expr.alias("obv"))["obv"].to_list()
+        >>> frame.select(obv=expr)["obv"].to_list()
         [0.0, 120.0, 210.0, 320.0, 320.0, 320.0, nan, nan, nan, nan]
     """
     expr = float64_expr(expr)
@@ -877,7 +933,7 @@ def vwap(
         ...     }
         ... )
         >>> expr = vwap(pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"))
-        >>> frame.select(expr.round(4).alias("vwap"))["vwap"].to_list()
+        >>> frame.select(vwap=expr.round(4))["vwap"].to_list()
         [1.0, 2.3333, 3.6667]
 
         Anchor per session with ``.over`` so each day's VWAP restarts:
@@ -892,7 +948,7 @@ def vwap(
         ...     }
         ... )
         >>> expr = vwap(pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume")).over("session")
-        >>> frame.select(expr.round(4).alias("vwap"))["vwap"].to_list()
+        >>> frame.select(vwap=expr.round(4))["vwap"].to_list()
         [1.0, 2.3333, 11.0, 12.3333]
 
         A ``null`` (yields ``null`` at that row) and a ``NaN`` (which latches in the running totals) make it visible:
@@ -906,7 +962,7 @@ def vwap(
         ...     }
         ... )
         >>> expr = vwap(pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"))
-        >>> frame.select(expr.round(4).alias("vwap"))["vwap"].to_list()
+        >>> frame.select(vwap=expr.round(4))["vwap"].to_list()
         [9.0, 9.6667, None, 11.0, nan, nan]
     """
     high = float64_expr(high)

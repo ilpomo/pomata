@@ -155,13 +155,27 @@ def adjusted_sharpe_ratio(
         ...     }
         ... )
         >>> reduced = adjusted_sharpe_ratio(pl.col("returns"), periods_per_year=252).over("ticker").round(4)
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(adjusted_sharpe_ratio=reduced)["adjusted_sharpe_ratio"].unique().sort().to_list()
         [2.4414, 5.0532]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
 
         >>> frame = pl.DataFrame({"returns": [0.03, None, 0.02, -0.015, float("nan"), 0.005, -0.02]})
         >>> frame.select(adjusted_sharpe_ratio(pl.col("returns"), periods_per_year=252).round(4)).item()
+        nan
+
+        **Insufficient sample** — a single return has no sample dispersion, so the result is ``null``:
+
+        >>> frame = pl.DataFrame({"returns": [0.05]})
+        >>> expr = adjusted_sharpe_ratio(pl.col("returns"), periods_per_year=252)
+        >>> frame.select(adjusted_sharpe_ratio=expr)["adjusted_sharpe_ratio"].to_list()
+        [None]
+
+        **Degenerate denominator** — a constant series has zero dispersion, so the skewness and kurtosis
+        correction terms are undefined and the result is ``NaN``:
+
+        >>> frame = pl.DataFrame({"returns": [0.01, 0.01, 0.01, 0.01]})
+        >>> frame.select(adjusted_sharpe_ratio(pl.col("returns"), periods_per_year=252)).item()
         nan
     """
     returns = float64_expr(returns)
@@ -255,13 +269,34 @@ def burke_ratio(
         ...     }
         ... )
         >>> reduced = burke_ratio(pl.col("equity_curve"), periods_per_year=1).over("ticker").round(4)
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(burke_ratio=reduced)["burke_ratio"].unique().sort().to_list()
         [0.6776, 0.7789]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
 
         >>> frame = pl.DataFrame({"equity_curve": [1.1, None, 1.2, 1.15, float("nan"), 1.25, 1.4]})
         >>> frame.select(burke_ratio(pl.col("equity_curve"), periods_per_year=1).round(4)).item()
+        nan
+
+        **Insufficient sample** — a single observation has zero excess growth and zero drawdown energy, so the
+        ratio is a ``0 / 0``, i.e. ``NaN``:
+
+        >>> frame = pl.DataFrame({"equity": [1.0]})
+        >>> frame.select(burke_ratio(pl.col("equity"), periods_per_year=252)).item()
+        nan
+
+        **Degenerate denominator** — a monotonically rising curve has zero drawdown energy with positive growth,
+        so the ratio is ``+inf``:
+
+        >>> frame = pl.DataFrame({"equity": [1.0, 1.1, 1.21]})
+        >>> frame.select(burke_ratio(pl.col("equity"), periods_per_year=1)).item()
+        inf
+
+        **Degenerate denominator** — a flat multi-row curve has zero drawdown energy and zero excess growth, so
+        the ratio is a ``0 / 0``, i.e. ``NaN``:
+
+        >>> frame = pl.DataFrame({"equity": [1.0, 1.0, 1.0]})
+        >>> frame.select(burke_ratio(pl.col("equity"), periods_per_year=252)).item()
         nan
     """
     equity_curve = float64_expr(equity_curve)
@@ -349,13 +384,34 @@ def calmar_ratio(
         ...     }
         ... )
         >>> reduced = calmar_ratio(pl.col("equity_curve"), periods_per_year=1).over("ticker").round(4)
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(calmar_ratio=reduced)["calmar_ratio"].unique().sort().to_list()
         [0.8814, 1.0833]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
 
         >>> frame = pl.DataFrame({"equity_curve": [1.1, None, 1.2, 1.15, float("nan"), 1.25, 1.4]})
         >>> frame.select(calmar_ratio(pl.col("equity_curve"), periods_per_year=1).round(4)).item()
+        nan
+
+        **Insufficient sample** — a single observation has zero growth and zero maximum drawdown, so the ratio
+        is a ``0 / 0``, i.e. ``NaN``:
+
+        >>> frame = pl.DataFrame({"equity": [1.0]})
+        >>> frame.select(calmar_ratio(pl.col("equity"), periods_per_year=252)).item()
+        nan
+
+        **Degenerate denominator** — a monotonically rising curve has zero maximum drawdown with positive
+        growth, so the ratio is ``+inf``:
+
+        >>> frame = pl.DataFrame({"equity": [1.0, 1.1, 1.21]})
+        >>> frame.select(calmar_ratio(pl.col("equity"), periods_per_year=1)).item()
+        inf
+
+        **Degenerate denominator** — a flat multi-row curve has zero maximum drawdown and zero growth, so the
+        ratio is a ``0 / 0``, i.e. ``NaN``:
+
+        >>> frame = pl.DataFrame({"equity": [1.0, 1.0, 1.0]})
+        >>> frame.select(calmar_ratio(pl.col("equity"), periods_per_year=252)).item()
         nan
     """
     equity_curve = float64_expr(equity_curve)
@@ -434,13 +490,34 @@ def common_sense_ratio(
         ...     }
         ... )
         >>> reduced = common_sense_ratio(pl.col("returns")).over("ticker").round(4)
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(common_sense_ratio=reduced)["common_sense_ratio"].unique().sort().to_list()
         [2.1081, 4.5809]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
 
         >>> frame = pl.DataFrame({"returns": [0.03, None, 0.02, -0.015, float("nan"), 0.005, -0.02]})
         >>> frame.select(common_sense_ratio(pl.col("returns")).round(4)).item()
+        nan
+
+        **Insufficient sample** — a single loss has a zero profit factor and a unit tail ratio, so the product
+        is exactly ``0``:
+
+        >>> frame = pl.DataFrame({"returns": [-0.02]})
+        >>> frame.select(common_sense_ratio(pl.col("returns"))).item()
+        0.0
+
+        **Degenerate denominator** — an all-positive series has an infinite profit factor and a finite positive
+        tail ratio, so the product is ``+inf``:
+
+        >>> frame = pl.DataFrame({"returns": [0.01, 0.02, 0.03]})
+        >>> frame.select(common_sense_ratio(pl.col("returns"))).item()
+        inf
+
+        **Degenerate denominator** — an all-zero series drives both the profit factor and the tail ratio to a
+        ``0 / 0``, so the product is ``NaN``:
+
+        >>> frame = pl.DataFrame({"returns": [0.0, 0.0, 0.0]})
+        >>> frame.select(common_sense_ratio(pl.col("returns"))).item()
         nan
     """
     returns = float64_expr(returns)
@@ -516,13 +593,32 @@ def gain_to_pain_ratio(
         ...     }
         ... )
         >>> reduced = gain_to_pain_ratio(pl.col("returns")).over("ticker").round(4)
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(gain_to_pain_ratio=reduced)["gain_to_pain_ratio"].unique().sort().to_list()
         [0.4444, 1.2222]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
 
         >>> frame = pl.DataFrame({"returns": [0.03, None, 0.02, -0.015, float("nan"), 0.005, -0.02]})
         >>> frame.select(gain_to_pain_ratio(pl.col("returns")).round(4)).item()
+        nan
+
+        **Insufficient sample** — a single positive return has no offsetting loss, so the ratio is ``+inf``:
+
+        >>> frame = pl.DataFrame({"returns": [0.02]})
+        >>> frame.select(gain_to_pain_ratio(pl.col("returns"))).item()
+        inf
+
+        **Degenerate denominator** — an all-positive series has no loss, so the ratio is ``+inf``:
+
+        >>> frame = pl.DataFrame({"returns": [0.01, 0.02, 0.03]})
+        >>> frame.select(gain_to_pain_ratio(pl.col("returns"))).item()
+        inf
+
+        **Degenerate denominator** — an all-zero series has zero total loss and zero net return, so the ratio
+        is a ``0 / 0``, i.e. ``NaN``:
+
+        >>> frame = pl.DataFrame({"returns": [0.0, 0.0, 0.0]})
+        >>> frame.select(gain_to_pain_ratio(pl.col("returns"))).item()
         nan
     """
     returns = float64_expr(returns)
@@ -608,13 +704,40 @@ def omega_ratio(
         ...     }
         ... )
         >>> reduced = omega_ratio(pl.col("returns")).over("ticker").round(4)
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(omega_ratio=reduced)["omega_ratio"].unique().sort().to_list()
         [1.4444, 2.2222]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
 
         >>> frame = pl.DataFrame({"returns": [0.03, None, 0.02, -0.015, float("nan"), 0.005, -0.02]})
         >>> frame.select(omega_ratio(pl.col("returns")).round(4)).item()
+        nan
+
+        **Insufficient sample** — a single observation above the threshold has no offsetting loss, so the ratio
+        is ``+inf``:
+
+        >>> frame = pl.DataFrame({"returns": [0.05]})
+        >>> frame.select(omega_ratio(pl.col("returns"))).item()
+        inf
+
+        **Degenerate denominator** — returns all above the threshold have no downside, so the ratio is ``+inf``:
+
+        >>> frame = pl.DataFrame({"returns": [0.01, 0.02, 0.03]})
+        >>> frame.select(omega_ratio(pl.col("returns"))).item()
+        inf
+
+        **Degenerate denominator** — returns all below the threshold have no upside, so the ratio is exactly
+        ``0``:
+
+        >>> frame = pl.DataFrame({"returns": [-0.01, -0.02, -0.03]})
+        >>> frame.select(omega_ratio(pl.col("returns"))).item()
+        0.0
+
+        **Degenerate denominator** — returns all exactly at the threshold give a ``0 / 0``, so the ratio is
+        ``NaN``:
+
+        >>> frame = pl.DataFrame({"returns": [0.0, 0.0, 0.0]})
+        >>> frame.select(omega_ratio(pl.col("returns"))).item()
         nan
     """
     returns = float64_expr(returns)
@@ -701,7 +824,7 @@ def omega_ratio_rolling(
         ...     }
         ... )
         >>> rolling = omega_ratio_rolling(pl.col("returns"), 3).over("ticker").round(4)
-        >>> frame.select(rolling.alias("m"))["m"].to_list()
+        >>> frame.select(omega_ratio_rolling=rolling)["omega_ratio_rolling"].to_list()
         [None, None, 2.0, 1.0, 5.0, 2.0, 1.3333, None, None, 7.0, 1.0, 4.0, 2.5, 2.0833]
 
         A ``null`` (which voids every window that spans it) and a ``NaN`` (which propagates to its windows) make the
@@ -710,6 +833,22 @@ def omega_ratio_rolling(
         >>> frame = pl.DataFrame({"returns": [0.01, None, 0.03, -0.01, 0.02, float("nan"), -0.015, 0.02, 0.01]})
         >>> frame.select(omega_ratio_rolling(pl.col("returns"), 3).round(4))["returns"].to_list()
         [None, None, None, None, 5.0, nan, nan, nan, 2.0]
+
+        **Degenerate denominator** — a window with no return below the threshold has zero mean loss, so the
+        ratio is ``+inf``:
+
+        >>> frame = pl.DataFrame({"returns": [0.01, 0.02, 0.03]})
+        >>> expr = omega_ratio_rolling(pl.col("returns"), window=3)
+        >>> frame.select(omega_ratio_rolling=expr)["omega_ratio_rolling"].to_list()
+        [None, None, inf]
+
+        **Degenerate denominator** — a window of two exact zeros at the threshold, reached after a much larger
+        value slides out, gives a ``0 / 0``, so the ratio is ``NaN``:
+
+        >>> frame = pl.DataFrame({"returns": [1000000000.0, 0.01, 1e-09, 0.0, 0.0]})
+        >>> expr = omega_ratio_rolling(pl.col("returns"), window=2)
+        >>> frame.select(omega_ratio_rolling=expr)["omega_ratio_rolling"].to_list()
+        [None, inf, inf, inf, nan]
     """
     returns = float64_expr(returns)
     validate_window(window)
@@ -804,13 +943,34 @@ def pain_ratio(
         ...     }
         ... )
         >>> reduced = pain_ratio(pl.col("equity_curve"), periods_per_year=1).over("ticker").round(4)
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(pain_ratio=reduced)["pain_ratio"].unique().sort().to_list()
         [2.7447, 4.0339]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
 
         >>> frame = pl.DataFrame({"equity_curve": [1.1, None, 1.2, 1.15, float("nan"), 1.25, 1.4]})
         >>> frame.select(pain_ratio(pl.col("equity_curve"), periods_per_year=1).round(4)).item()
+        nan
+
+        **Insufficient sample** — a single observation has zero excess growth over a zero pain index, so the
+        ratio is a ``0 / 0``, i.e. ``NaN``:
+
+        >>> frame = pl.DataFrame({"equity": [1.0]})
+        >>> frame.select(pain_ratio(pl.col("equity"), periods_per_year=252)).item()
+        nan
+
+        **Degenerate denominator** — a monotonically rising curve has a zero pain index with positive excess
+        growth, so the ratio is ``+inf``:
+
+        >>> frame = pl.DataFrame({"equity": [1.0, 1.1, 1.21]})
+        >>> frame.select(pain_ratio(pl.col("equity"), periods_per_year=1)).item()
+        inf
+
+        **Degenerate denominator** — a flat multi-row curve has a zero pain index and zero excess growth, so
+        the ratio is a ``0 / 0``, i.e. ``NaN``:
+
+        >>> frame = pl.DataFrame({"equity": [1.0, 1.0, 1.0]})
+        >>> frame.select(pain_ratio(pl.col("equity"), periods_per_year=252)).item()
         nan
     """
     equity_curve = float64_expr(equity_curve)
@@ -921,13 +1081,27 @@ def probabilistic_sharpe_ratio(
         ...     }
         ... )
         >>> reduced = probabilistic_sharpe_ratio(pl.col("returns"), periods_per_year=252).over("ticker").round(4)
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(probabilistic_sharpe_ratio=reduced)["probabilistic_sharpe_ratio"].unique().sort().to_list()
         [0.6475, 0.7851]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
 
         >>> frame = pl.DataFrame({"returns": [0.03, None, 0.02, -0.015, float("nan"), 0.005, -0.02]})
         >>> frame.select(probabilistic_sharpe_ratio(pl.col("returns"), periods_per_year=252).round(4)).item()
+        nan
+
+        **Insufficient sample** — a single return has no sample dispersion, so the result is ``null``:
+
+        >>> frame = pl.DataFrame({"returns": [0.05]})
+        >>> expr = probabilistic_sharpe_ratio(pl.col("returns"), periods_per_year=252)
+        >>> frame.select(probabilistic_sharpe_ratio=expr)["probabilistic_sharpe_ratio"].to_list()
+        [None]
+
+        **Degenerate denominator** — a constant series has zero dispersion, so the Sharpe ratio and higher
+        moments are undefined and the result is ``NaN``:
+
+        >>> frame = pl.DataFrame({"returns": [0.01, 0.01, 0.01, 0.01]})
+        >>> frame.select(probabilistic_sharpe_ratio(pl.col("returns"), periods_per_year=252)).item()
         nan
     """
     returns = float64_expr(returns)
@@ -1021,13 +1195,34 @@ def recovery_ratio(
         ...     }
         ... )
         >>> reduced = recovery_ratio(pl.col("equity_curve")).over("ticker").round(4)
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(recovery_ratio=reduced)["recovery_ratio"].unique().sort().to_list()
         [6.48, 8.8]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
 
         >>> frame = pl.DataFrame({"equity_curve": [1.1, None, 1.2, 1.15, float("nan"), 1.25, 1.4]})
         >>> frame.select(recovery_ratio(pl.col("equity_curve")).round(4)).item()
+        nan
+
+        **Insufficient sample** — a single observation has zero total return and zero maximum drawdown, so the
+        ratio is a ``0 / 0``, i.e. ``NaN``:
+
+        >>> frame = pl.DataFrame({"equity": [1.0]})
+        >>> frame.select(recovery_ratio(pl.col("equity"))).item()
+        nan
+
+        **Degenerate denominator** — a monotonically rising curve has zero maximum drawdown with a positive
+        total return, so the ratio is ``+inf``:
+
+        >>> frame = pl.DataFrame({"equity": [1.0, 1.1, 1.21]})
+        >>> frame.select(recovery_ratio(pl.col("equity"))).item()
+        inf
+
+        **Degenerate denominator** — a flat multi-row curve has zero maximum drawdown and zero total return, so
+        the ratio is a ``0 / 0``, i.e. ``NaN``:
+
+        >>> frame = pl.DataFrame({"equity": [1.0, 1.0, 1.0]})
+        >>> frame.select(recovery_ratio(pl.col("equity"))).item()
         nan
     """
     equity_curve = float64_expr(equity_curve)
@@ -1116,13 +1311,33 @@ def sharpe_ratio(
         ...     }
         ... )
         >>> reduced = sharpe_ratio(pl.col("returns"), periods_per_year=252).over("ticker").round(4)
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(sharpe_ratio=reduced)["sharpe_ratio"].unique().sort().to_list()
         [2.4285, 4.9645]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
 
         >>> frame = pl.DataFrame({"returns": [0.03, None, 0.02, -0.015, float("nan"), 0.005, -0.02]})
         >>> frame.select(sharpe_ratio(pl.col("returns"), periods_per_year=252).round(4)).item()
+        nan
+
+        **Insufficient sample** — a single return has no sample dispersion, so the result is ``null``:
+
+        >>> frame = pl.DataFrame({"returns": [0.05]})
+        >>> frame.select(sharpe_ratio=sharpe_ratio(pl.col("returns"), periods_per_year=252))["sharpe_ratio"].to_list()
+        [None]
+
+        **Degenerate denominator** — a constant series has zero dispersion with a positive mean excess, so the
+        ratio is ``+inf``:
+
+        >>> frame = pl.DataFrame({"returns": [0.01, 0.01, 0.01, 0.01]})
+        >>> frame.select(sharpe_ratio(pl.col("returns"), periods_per_year=252)).item()
+        inf
+
+        **Degenerate denominator** — an all-zero series at a zero risk-free rate is the ``0/0`` case (zero mean
+        over zero dispersion), so the ratio is ``NaN``:
+
+        >>> frame = pl.DataFrame({"returns": [0.0, 0.0, 0.0, 0.0]})
+        >>> frame.select(sharpe_ratio(pl.col("returns"), periods_per_year=252)).item()
         nan
     """
     returns = float64_expr(returns)
@@ -1216,7 +1431,7 @@ def sharpe_ratio_rolling(
         ...     }
         ... )
         >>> rolling = sharpe_ratio_rolling(pl.col("returns"), 3, periods_per_year=252).over("ticker").round(4)
-        >>> frame.select(rolling.alias("m"))["m"].to_list()
+        >>> frame.select(sharpe_ratio_rolling=rolling)["sharpe_ratio_rolling"].to_list()
         [None, None, 10.1678, -1.3977, 7.2837, 1.271, 13.1689, None, None, 12.0, -0.0, 8.8056, 4.4028, 3.6441]
 
         A ``null`` (which voids every window that spans it) and a ``NaN`` (which propagates to its windows) make the
@@ -1225,6 +1440,22 @@ def sharpe_ratio_rolling(
         >>> frame = pl.DataFrame({"returns": [0.03, None, 0.02, -0.015, 0.025, float("nan"), 0.02, -0.01, 0.015]})
         >>> frame.select(sharpe_ratio_rolling(pl.col("returns"), 3, periods_per_year=252).round(4))["returns"].to_list()
         [None, None, None, None, 7.2837, nan, nan, nan, 8.2305]
+
+        **Degenerate denominator** — a constant window has zero dispersion with a positive mean, so the ratio
+        is ``+inf``:
+
+        >>> frame = pl.DataFrame({"returns": [0.5, 0.5, 0.5, 0.5]})
+        >>> expr = sharpe_ratio_rolling(pl.col("returns"), window=3, periods_per_year=252)
+        >>> frame.select(sharpe_ratio_rolling=expr)["sharpe_ratio_rolling"].to_list()
+        [None, None, inf, inf]
+
+        **Degenerate denominator** — a trailing window of exact zeros, reached after larger values slide out,
+        has zero mean and zero dispersion, so the ratio is a ``0 / 0``, i.e. ``NaN``:
+
+        >>> frame = pl.DataFrame({"returns": [-0.3233, -0.6457, 0.0, 0.4404, 0.0, 0.0, 0.0, 0.0]})
+        >>> expr = sharpe_ratio_rolling(pl.col("returns"), window=4, periods_per_year=252).round(4)
+        >>> frame.select(sharpe_ratio_rolling=expr)["sharpe_ratio_rolling"].to_list()
+        [None, None, None, -4.5223, -1.8213, 7.9373, 7.9373, nan]
     """
     returns = float64_expr(returns)
     validate_window(window, minimum=2)
@@ -1321,13 +1552,27 @@ def sortino_ratio(
         ...     }
         ... )
         >>> reduced = sortino_ratio(pl.col("returns"), periods_per_year=252).over("ticker").round(4)
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(sortino_ratio=reduced)["sortino_ratio"].unique().sort().to_list()
         [4.4567, 12.0723]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
 
         >>> frame = pl.DataFrame({"returns": [0.03, None, 0.02, -0.015, float("nan"), 0.005, -0.02]})
         >>> frame.select(sortino_ratio(pl.col("returns"), periods_per_year=252).round(4)).item()
+        nan
+
+        **Degenerate denominator** — returns all at or above the target have zero downside deviation with a
+        positive mean, so the ratio is ``+inf``:
+
+        >>> frame = pl.DataFrame({"returns": [0.01, 0.02, 0.03]})
+        >>> frame.select(sortino_ratio(pl.col("returns"), periods_per_year=252)).item()
+        inf
+
+        **Degenerate denominator** — an all-zero series sits exactly at the target with zero mean excess, so
+        both the numerator and the downside deviation are zero, giving a ``0 / 0``, i.e. ``NaN``:
+
+        >>> frame = pl.DataFrame({"returns": [0.0, 0.0, 0.0]})
+        >>> frame.select(sortino_ratio(pl.col("returns"), periods_per_year=252)).item()
         nan
     """
     returns = float64_expr(returns)
@@ -1424,7 +1669,7 @@ def sortino_ratio_rolling(
         ...     }
         ... )
         >>> rolling = sortino_ratio_rolling(pl.col("returns"), 3, periods_per_year=252).over("ticker").round(4)
-        >>> frame.select(rolling.alias("m"))["m"].to_list()
+        >>> frame.select(sortino_ratio_rolling=rolling)["sortino_ratio_rolling"].to_list()
         [None, None, 36.6606, -2.542, 18.3303, 2.8983, 73.3212, None, None, 54.9909, -0.0, 27.4955, 13.7477, 9.9289]
 
         A ``null`` (which voids every window that spans it) and a ``NaN`` (which propagates to its windows) make the
@@ -1435,6 +1680,23 @@ def sortino_ratio_rolling(
         ...     "returns"
         ... ].to_list()
         [None, None, None, None, 18.3303, nan, nan, nan, 22.9129]
+
+        **Degenerate denominator** — a window with no downside has zero downside deviation with a positive
+        mean, so the ratio is ``+inf``:
+
+        >>> frame = pl.DataFrame({"returns": [0.01, 0.02, 0.03, 0.04]})
+        >>> expr = sortino_ratio_rolling(pl.col("returns"), window=3, periods_per_year=252)
+        >>> frame.select(sortino_ratio_rolling=expr)["sortino_ratio_rolling"].to_list()
+        [None, None, inf, inf]
+
+        **Degenerate denominator** — a trailing window of exact zeros, reached after larger values slide out,
+        has zero mean and zero downside deviation, giving a ``0 / 0``, i.e. ``NaN``, while the two preceding
+        no-downside windows are genuine ``+inf``:
+
+        >>> frame = pl.DataFrame({"returns": [-0.3233, -0.6457, 0.0, 0.4404, 0.0, 0.0, 0.0, 0.0]})
+        >>> expr = sortino_ratio_rolling(pl.col("returns"), window=4, periods_per_year=252).round(4)
+        >>> frame.select(sortino_ratio_rolling=expr)["sortino_ratio_rolling"].to_list()
+        [None, None, None, -5.8102, -2.5236, inf, inf, nan]
     """
     returns = float64_expr(returns)
     validate_window(window)
@@ -1532,13 +1794,34 @@ def sterling_ratio(
         ...     }
         ... )
         >>> reduced = sterling_ratio(pl.col("equity_curve"), periods_per_year=1).over("ticker").round(4)
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(sterling_ratio=reduced)["sterling_ratio"].unique().sort().to_list()
         [0.1569, 0.4175]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
 
         >>> frame = pl.DataFrame({"equity_curve": [1.1, None, 1.2, 1.15, float("nan"), 1.25, 1.4]})
         >>> frame.select(sterling_ratio(pl.col("equity_curve"), periods_per_year=1).round(4)).item()
+        nan
+
+        **Degenerate denominator** — a flat single-period curve has zero drawdown and zero excess growth over
+        the default cushion, so the ratio is exactly ``0``:
+
+        >>> frame = pl.DataFrame({"equity": [1.0]})
+        >>> frame.select(sterling_ratio(pl.col("equity"), periods_per_year=252)).item()
+        0.0
+
+        **Degenerate denominator** — a zero cushion on a drawdown-free rising curve leaves a zero denominator
+        with positive growth, so the ratio is ``+inf``:
+
+        >>> frame = pl.DataFrame({"equity": [1.0, 1.1, 1.21]})
+        >>> frame.select(sterling_ratio(pl.col("equity"), periods_per_year=1, excess=0.0)).item()
+        inf
+
+        **Degenerate denominator** — a zero cushion on a flat curve leaves a zero denominator and zero excess
+        growth, so the ratio is a ``0 / 0``, i.e. ``NaN``:
+
+        >>> frame = pl.DataFrame({"equity": [1.0, 1.0, 1.0]})
+        >>> frame.select(sterling_ratio(pl.col("equity"), periods_per_year=1, excess=0.0)).item()
         nan
     """
     equity_curve = float64_expr(equity_curve)
@@ -1626,13 +1909,34 @@ def ulcer_performance_ratio(
         ...     }
         ... )
         >>> reduced = ulcer_performance_ratio(pl.col("equity_curve"), periods_per_year=1).over("ticker").round(4)
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(ulcer_performance_ratio=reduced)["ulcer_performance_ratio"].unique().sort().to_list()
         [1.7927, 2.0609]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
 
         >>> frame = pl.DataFrame({"equity_curve": [1.1, None, 1.2, 1.15, float("nan"), 1.25, 1.4]})
         >>> frame.select(ulcer_performance_ratio(pl.col("equity_curve"), periods_per_year=1).round(4)).item()
+        nan
+
+        **Insufficient sample** — a single observation has zero excess growth over a zero ulcer index, so the
+        ratio is a ``0 / 0``, i.e. ``NaN``:
+
+        >>> frame = pl.DataFrame({"equity": [1.0]})
+        >>> frame.select(ulcer_performance_ratio(pl.col("equity"), periods_per_year=252)).item()
+        nan
+
+        **Degenerate denominator** — a monotonically rising curve has a zero ulcer index with positive excess
+        growth, so the ratio is ``+inf``:
+
+        >>> frame = pl.DataFrame({"equity": [1.0, 1.1, 1.21]})
+        >>> frame.select(ulcer_performance_ratio(pl.col("equity"), periods_per_year=1)).item()
+        inf
+
+        **Degenerate denominator** — a flat multi-row curve has a zero ulcer index and zero excess growth, so
+        the ratio is a ``0 / 0``, i.e. ``NaN``:
+
+        >>> frame = pl.DataFrame({"equity": [1.0, 1.0, 1.0]})
+        >>> frame.select(ulcer_performance_ratio(pl.col("equity"), periods_per_year=252)).item()
         nan
     """
     equity_curve = float64_expr(equity_curve)

@@ -150,7 +150,7 @@ def dema(
         >>> from pomata.indicators import dema
         >>>
         >>> frame = pl.DataFrame({"close": [2.0, 4.0, 6.0, 8.0, 10.0, 12.0]})
-        >>> frame.select(dema(pl.col("close"), window=2).round(4).alias("dema_2"))["dema_2"].to_list()
+        >>> frame.select(dema=dema(pl.col("close"), window=2).round(4))["dema"].to_list()
         [None, None, 6.0, 8.0, 10.0, 12.0]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -161,15 +161,22 @@ def dema(
         ...         "close": [10.0, 11.0, 12.0, 11.0, 13.0, 20.0, 22.0, 21.0, 23.0, 22.0],
         ...     }
         ... )
-        >>> frame.with_columns(dema(pl.col("close"), 2).over("ticker").round(4).alias("dema"))["dema"].to_list()
+        >>> frame.with_columns(dema=dema(pl.col("close"), 2).over("ticker").round(4))["dema"].to_list()
         [None, None, 12.0, 11.2222, 12.8148, None, None, 21.0, 22.7778, 22.1852]
 
         A ``null`` (skipped: it voids its own row while the recursion bridges the gap) and a ``NaN`` (which latches)
         make the exact handling visible at a glance:
 
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, 13.0, None, 15.0, float("nan"), 17.0, 18.0, 19.0]})
-        >>> frame.select(dema(pl.col("close"), 2).round(4).alias("dema"))["dema"].to_list()
+        >>> frame.select(dema=dema(pl.col("close"), 2).round(4))["dema"].to_list()
         [None, None, 12.0, 13.0, None, 15.0204, nan, nan, nan, nan]
+
+        **Insufficient sample** — a one-row series has no history beyond the seed itself, but with ``window=1`` both
+        EMA passes are the identity, so the lone value passes through unchanged:
+
+        >>> frame = pl.DataFrame({"close": [42.0]})
+        >>> frame.select(dema=dema(pl.col("close"), window=1))["dema"].to_list()
+        [42.0]
     """
     expr = float64_expr(expr)
     validate_window(window)
@@ -256,7 +263,7 @@ def ema(
         >>> from pomata.indicators import ema
         >>>
         >>> frame = pl.DataFrame({"close": [2.0, 4.0, 6.0, 8.0, 10.0]})
-        >>> frame.select(ema(pl.col("close"), window=3).round(4).alias("ema_3"))["ema_3"].to_list()
+        >>> frame.select(ema=ema(pl.col("close"), window=3).round(4))["ema"].to_list()
         [None, None, 4.0, 6.0, 8.0]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -267,15 +274,21 @@ def ema(
         ...         "close": [10.0, 11.0, 12.0, 11.0, 13.0, 20.0, 22.0, 21.0, 23.0, 22.0],
         ...     }
         ... )
-        >>> frame.with_columns(ema(pl.col("close"), 2).over("ticker").round(4).alias("ema"))["ema"].to_list()
+        >>> frame.with_columns(ema=ema(pl.col("close"), 2).over("ticker").round(4))["ema"].to_list()
         [None, 10.5, 11.5, 11.1667, 12.3889, None, 21.0, 21.0, 22.3333, 22.1111]
 
         A ``null`` (skipped: it voids its own row while the recursion bridges the gap) and a ``NaN`` (which latches)
         make the exact handling visible at a glance:
 
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, 13.0, None, 15.0, float("nan"), 17.0, 18.0, 19.0]})
-        >>> frame.select(ema(pl.col("close"), 2).round(4).alias("ema"))["ema"].to_list()
+        >>> frame.select(ema=ema(pl.col("close"), 2).round(4))["ema"].to_list()
         [None, 10.5, 11.5, 12.5, None, 14.6429, nan, nan, nan, nan]
+
+        **window == 1** — the smoothing factor ``alpha=1`` reproduces the input exactly, with no warm-up:
+
+        >>> frame = pl.DataFrame({"close": [1.0, 2.0, 3.0]})
+        >>> frame.select(ema=ema(pl.col("close"), window=1))["ema"].to_list()
+        [1.0, 2.0, 3.0]
     """
     expr = float64_expr(expr)
     validate_window(window)
@@ -361,7 +374,7 @@ def hma(
         >>> from pomata.indicators import hma
         >>>
         >>> frame = pl.DataFrame({"close": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]})
-        >>> frame.select(hma(pl.col("close"), window=4).round(4).alias("hma_4"))["hma_4"].to_list()
+        >>> frame.select(hma=hma(pl.col("close"), window=4).round(4))["hma"].to_list()
         [None, None, None, None, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -372,14 +385,14 @@ def hma(
         ...         "close": [10.0, 11.0, 12.0, 11.0, 13.0, 20.0, 22.0, 21.0, 23.0, 22.0],
         ...     }
         ... )
-        >>> frame.with_columns(hma(pl.col("close"), 2).over("ticker").round(4).alias("hma"))["hma"].to_list()
+        >>> frame.with_columns(hma=hma(pl.col("close"), 2).over("ticker").round(4))["hma"].to_list()
         [None, 11.3333, 12.3333, 10.6667, 13.6667, None, 22.6667, 20.6667, 23.6667, 21.6667]
 
         A ``null`` (skipped, and any window it touches yields ``null``) and a ``NaN`` (which propagates) make the
         exact handling visible at a glance:
 
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, 13.0, None, 15.0, float("nan"), 17.0, 18.0, 19.0]})
-        >>> frame.select(hma(pl.col("close"), 2).round(4).alias("hma"))["hma"].to_list()
+        >>> frame.select(hma=hma(pl.col("close"), 2).round(4))["hma"].to_list()
         [None, 11.3333, 12.3333, 13.3333, None, None, nan, nan, 18.3333, 19.3333]
     """
     expr = float64_expr(expr)
@@ -509,17 +522,20 @@ def kama(
         >>>
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, 11.0, 13.0, 12.5]})
         >>> frame.select(
-        ...     kama(pl.col("close"), window=2, window_fast=2, window_slow=30).round(4).alias("kama")
+        ...     kama=kama(pl.col("close"), window=2, window_fast=2, window_slow=30).round(4)
         ... )["kama"].to_list()
         [None, 11.0, 11.4444, 11.4426, 11.5522, 11.724]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
 
         >>> frame = pl.DataFrame(
-        ...     {"ticker": ["A"] * 5 + ["B"] * 5, "close": [10.0, 11.0, 12.0, 11.0, 13.0, 20.0, 22.0, 21.0, 23.0, 22.0]}
+        ...     {
+        ...         "ticker": ["A"] * 5 + ["B"] * 5,
+        ...         "close": [10.0, 11.0, 12.0, 11.0, 13.0, 20.0, 22.0, 21.0, 23.0, 22.0],
+        ...     }
         ... )
         >>> frame.with_columns(
-        ...     kama(pl.col("close"), window=2, window_fast=2, window_slow=30).over("ticker").round(4).alias("kama")
+        ...     kama=kama(pl.col("close"), window=2, window_fast=2, window_slow=30).over("ticker").round(4)
         ... )["kama"].to_list()
         [None, 11.0, 11.4444, 11.4426, 11.5522, None, 22.0, 21.9297, 22.0049, 22.0046]
 
@@ -527,9 +543,16 @@ def kama(
 
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, None, 13.0, float("nan"), 15.0, 16.0]})
         >>> frame.select(
-        ...     kama(pl.col("close"), window=2, window_fast=2, window_slow=30).round(4).alias("kama")
+        ...     kama=kama(pl.col("close"), window=2, window_fast=2, window_slow=30).round(4)
         ... )["kama"].to_list()
         [None, 11.0, 11.4444, None, None, None, nan, nan]
+
+        **Degenerate denominator** — a flat series has zero bar-to-bar travel, so the efficiency ratio is taken as
+        ``0`` (avoiding the ``0 / 0`` degenerate) and KAMA holds at the constant:
+
+        >>> frame = pl.DataFrame({"close": [5.0, 5.0, 5.0, 5.0]})
+        >>> frame.select(kama=kama(pl.col("close"), window=2, window_fast=2, window_slow=30))["kama"].to_list()
+        [None, 5.0, 5.0, 5.0]
     """
     expr = float64_expr(expr)
     validate_window(window)
@@ -619,7 +642,7 @@ def rma(
         >>> from pomata.indicators import rma
         >>>
         >>> frame = pl.DataFrame({"close": [2.0, 4.0, 6.0, 8.0, 10.0]})
-        >>> frame.select(rma(pl.col("close"), window=3).round(4).alias("rma_3"))["rma_3"].to_list()
+        >>> frame.select(rma=rma(pl.col("close"), window=3).round(4))["rma"].to_list()
         [None, None, 4.0, 5.3333, 6.8889]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -630,15 +653,21 @@ def rma(
         ...         "close": [10.0, 11.0, 12.0, 11.0, 13.0, 20.0, 22.0, 21.0, 23.0, 22.0],
         ...     }
         ... )
-        >>> frame.with_columns(rma(pl.col("close"), 2).over("ticker").round(4).alias("rma"))["rma"].to_list()
+        >>> frame.with_columns(rma=rma(pl.col("close"), 2).over("ticker").round(4))["rma"].to_list()
         [None, 10.5, 11.25, 11.125, 12.0625, None, 21.0, 21.0, 22.0, 22.0]
 
         A ``null`` (skipped: it voids its own row while the recursion bridges the gap) and a ``NaN`` (which latches)
         make the exact handling visible at a glance:
 
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, 13.0, None, 15.0, float("nan"), 17.0, 18.0, 19.0]})
-        >>> frame.select(rma(pl.col("close"), 2).round(4).alias("rma"))["rma"].to_list()
+        >>> frame.select(rma=rma(pl.col("close"), 2).round(4))["rma"].to_list()
         [None, 10.5, 11.25, 12.125, None, 14.0417, nan, nan, nan, nan]
+
+        **window == 1** — the smoothing factor ``alpha=1`` reproduces the input exactly, with zero warm-up:
+
+        >>> frame = pl.DataFrame({"close": [1.0, 2.0, 3.0]})
+        >>> frame.select(rma=rma(pl.col("close"), window=1))["rma"].to_list()
+        [1.0, 2.0, 3.0]
     """
     expr = float64_expr(expr)
     validate_window(window)
@@ -703,7 +732,7 @@ def sma(
         >>> from pomata.indicators import sma
         >>>
         >>> frame = pl.DataFrame({"close": [2.0, 4.0, 6.0, 8.0, 10.0]})
-        >>> frame.select(sma(pl.col("close"), window=3).round(4).alias("sma_3"))["sma_3"].to_list()
+        >>> frame.select(sma=sma(pl.col("close"), window=3).round(4))["sma"].to_list()
         [None, None, 4.0, 6.0, 8.0]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -714,15 +743,22 @@ def sma(
         ...         "close": [10.0, 11.0, 12.0, 11.0, 13.0, 20.0, 22.0, 21.0, 23.0, 22.0],
         ...     }
         ... )
-        >>> frame.with_columns(sma(pl.col("close"), 2).over("ticker").round(4).alias("sma"))["sma"].to_list()
+        >>> frame.with_columns(sma=sma(pl.col("close"), 2).over("ticker").round(4))["sma"].to_list()
         [None, 10.5, 11.5, 11.5, 12.0, None, 21.0, 21.5, 22.0, 22.5]
 
         A ``null`` (skipped, and any window it touches yields ``null``) and a ``NaN`` (which propagates) make the
         exact handling visible at a glance:
 
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, 13.0, None, 15.0, float("nan"), 17.0, 18.0, 19.0]})
-        >>> frame.select(sma(pl.col("close"), 2).round(4).alias("sma"))["sma"].to_list()
+        >>> frame.select(sma=sma(pl.col("close"), 2).round(4))["sma"].to_list()
         [None, 10.5, 11.5, 12.5, None, None, nan, nan, 17.5, 18.5]
+
+        **Insufficient sample** — a one-element series holds only a single observation, and at ``window=1`` that is
+        exactly enough, so the mean returns the value itself:
+
+        >>> frame = pl.DataFrame({"close": [42.0]})
+        >>> frame.select(sma=sma(pl.col("close"), window=1))["sma"].to_list()
+        [42.0]
     """
     expr = float64_expr(expr)
     validate_window(window)
@@ -821,7 +857,7 @@ def t3(
         >>> from pomata.indicators import t3
         >>>
         >>> frame = pl.DataFrame({"close": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]})
-        >>> frame.select(t3(pl.col("close"), window=2).round(4).alias("t3_2"))["t3_2"].to_list()
+        >>> frame.select(t3=t3(pl.col("close"), window=2).round(4))["t3"].to_list()
         [None, None, None, None, None, None, 6.55, 7.55]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -849,7 +885,7 @@ def t3(
         ...         ],
         ...     }
         ... )
-        >>> frame.with_columns(t3(pl.col("close"), 2).over("ticker").round(4).alias("t3"))["t3"].to_list()
+        >>> frame.with_columns(t3=t3(pl.col("close"), 2).over("ticker").round(4))["t3"].to_list()
         [None, None, None, None, None, None, 13.3568, 14.2815, None, None, None, None, None, None, 24.4079, 24.3942]
 
         A ``null`` (skipped: it voids its own row while the recursion bridges the gap) and a ``NaN`` (which latches)
@@ -874,8 +910,22 @@ def t3(
         ...         ],
         ...     }
         ... )
-        >>> frame.select(t3(pl.col("close"), 2).round(4).alias("t3"))["t3"].to_list()
+        >>> frame.select(t3=t3(pl.col("close"), 2).round(4))["t3"].to_list()
         [None, None, None, None, None, None, 15.55, 16.55, None, 18.7118, nan, nan, nan]
+
+        **Insufficient sample** — a one-row series has no history beyond the seed, but at ``window=1`` every chained
+        EMA is the identity, so the value passes through:
+
+        >>> frame = pl.DataFrame({"close": [42.0]})
+        >>> frame.select(t3=t3(pl.col("close"), window=1))["t3"].to_list()
+        [42.0]
+
+        **window == 1** — every chained EMA reduces to the identity and the four coefficients sum to exactly ``1``,
+        so the T3 reproduces the input:
+
+        >>> frame = pl.DataFrame({"close": [1.0, 2.0, 3.0]})
+        >>> frame.select(t3=t3(pl.col("close"), window=1))["t3"].to_list()
+        [1.0, 2.0, 3.0]
     """
     expr = float64_expr(expr)
     validate_window(window)
@@ -966,7 +1016,7 @@ def tema(
         >>> from pomata.indicators import tema
         >>>
         >>> frame = pl.DataFrame({"close": [2.0, 4.0, 6.0, 8.0, 10.0, 12.0]})
-        >>> frame.select(tema(pl.col("close"), window=2).round(4).alias("tema_2"))["tema_2"].to_list()
+        >>> frame.select(tema=tema(pl.col("close"), window=2).round(4))["tema"].to_list()
         [None, None, None, 8.0, 10.0, 12.0]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -977,15 +1027,21 @@ def tema(
         ...         "close": [10.0, 11.0, 12.0, 11.0, 13.0, 20.0, 22.0, 21.0, 23.0, 22.0],
         ...     }
         ... )
-        >>> frame.with_columns(tema(pl.col("close"), 2).over("ticker").round(4).alias("tema"))["tema"].to_list()
+        >>> frame.with_columns(tema=tema(pl.col("close"), 2).over("ticker").round(4))["tema"].to_list()
         [None, None, None, 11.2222, 12.9383, None, None, None, 22.7778, 22.0617]
 
         A ``null`` (skipped: it voids its own row while the recursion bridges the gap) and a ``NaN`` (which latches)
         make the exact handling visible at a glance:
 
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, 13.0, None, 15.0, float("nan"), 17.0, 18.0, 19.0]})
-        >>> frame.select(tema(pl.col("close"), 2).round(4).alias("tema"))["tema"].to_list()
+        >>> frame.select(tema=tema(pl.col("close"), 2).round(4))["tema"].to_list()
         [None, None, None, 13.0, None, 15.0029, nan, nan, nan, nan]
+
+        **window == 1** — each of the three nested EMAs collapses to the identity, so the TEMA reproduces the input:
+
+        >>> frame = pl.DataFrame({"close": [1.0, 2.0, 3.0, 4.0]})
+        >>> frame.select(tema=tema(pl.col("close"), window=1))["tema"].to_list()
+        [1.0, 2.0, 3.0, 4.0]
     """
     expr = float64_expr(expr)
     validate_window(window)
@@ -1056,21 +1112,33 @@ def trima(
         >>> from pomata.indicators import trima
         >>>
         >>> frame = pl.DataFrame({"x": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]})
-        >>> frame.select(trima(pl.col("x"), 4).round(4).alias("trima"))["trima"].to_list()
+        >>> frame.select(trima=trima(pl.col("x"), 4).round(4))["trima"].to_list()
         [None, None, None, 2.5, 3.5, 4.5]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
 
-        >>> frame = pl.DataFrame({"ticker": ["A"] * 3 + ["B"] * 3, "x": [1.0, 2.0, 3.0, 10.0, 20.0, 30.0]})
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "ticker": ["A"] * 3 + ["B"] * 3,
+        ...         "x": [1.0, 2.0, 3.0, 10.0, 20.0, 30.0],
+        ...     }
+        ... )
         >>> expr = trima(pl.col("x"), 2).over("ticker").round(4)
-        >>> frame.with_columns(expr.alias("trima"))["trima"].to_list()
+        >>> frame.with_columns(trima=expr)["trima"].to_list()
         [None, 1.5, 2.5, None, 15.0, 25.0]
 
         A ``null`` (which both passes propagate) and a ``NaN`` make the missing-data handling visible:
 
         >>> frame = pl.DataFrame({"x": [1.0, None, 3.0, float("nan"), 5.0, 6.0]})
-        >>> frame.select(trima(pl.col("x"), 3).round(4).alias("trima"))["trima"].to_list()
+        >>> frame.select(trima=trima(pl.col("x"), 3).round(4))["trima"].to_list()
         [None, None, None, None, nan, nan]
+
+        **Insufficient sample** — a one-row series has nothing to average beyond itself, so at ``window=1`` the
+        triangular smoothing is the identity and the value passes through unchanged:
+
+        >>> frame = pl.DataFrame({"x": [42.0]})
+        >>> frame.select(trima=trima(pl.col("x"), window=1))["trima"].to_list()
+        [42.0]
     """
     expr = float64_expr(expr)
     validate_window(window)
@@ -1153,7 +1221,7 @@ def vwma(
         ...         "volume": [100.0, 200.0, 300.0, 400.0, 500.0],
         ...     }
         ... )
-        >>> frame.select(vwma(pl.col("close"), pl.col("volume"), window=3).round(4).alias("vwma_3"))["vwma_3"].to_list()
+        >>> frame.select(vwma=vwma(pl.col("close"), pl.col("volume"), window=3).round(4))["vwma"].to_list()
         [None, None, 11.3333, 12.2222, 13.1667]
 
         On a multi-series panel, wrap the call in ``.over`` so each group warms up independently:
@@ -1166,7 +1234,7 @@ def vwma(
         ...     }
         ... )
         >>> expr = vwma(pl.col("price"), pl.col("volume"), 2).over("ticker").round(4)
-        >>> frame.with_columns(expr.alias("vwma"))["vwma"].to_list()
+        >>> frame.with_columns(vwma=expr)["vwma"].to_list()
         [None, 10.5455, 11.4286, 11.45, 12.0833, None, 21.0909, 21.5714, 22.1, 22.4583]
 
         A ``null`` (skipped, and any window it touches yields ``null``) and a ``NaN`` (which propagates) make the
@@ -1179,8 +1247,32 @@ def vwma(
         ...     }
         ... )
         >>> expr = vwma(pl.col("price"), pl.col("volume"), 2).round(4)
-        >>> frame.select(expr.alias("vwma"))["vwma"].to_list()
+        >>> frame.select(vwma=expr)["vwma"].to_list()
         [None, 10.5455, 11.4286, 12.55, None, None, nan, nan, 17.4286, 18.5227]
+
+        **Insufficient sample** — a one-row input has only a single (price, volume) pair, and at ``window=1`` that
+        pair alone determines the weighted mean, so the price passes through:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "close": [42.0],
+        ...         "volume": [10.0],
+        ...     }
+        ... )
+        >>> frame.select(vwma=vwma(pl.col("close"), pl.col("volume"), window=1))["vwma"].to_list()
+        [42.0]
+
+        **Degenerate denominator** — an all-zero-volume window is the IEEE-754 ``0 / 0`` degenerate, so once the
+        window fills the ratio is ``NaN``:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "close": [10.0, 11.0, 12.0],
+        ...         "volume": [0.0, 0.0, 0.0],
+        ...     }
+        ... )
+        >>> frame.select(vwma=vwma(pl.col("close"), pl.col("volume"), window=2))["vwma"].to_list()
+        [None, nan, nan]
     """
     expr = float64_expr(expr)
     volume = float64_expr(volume)
@@ -1255,7 +1347,7 @@ def wma(
         >>> from pomata.indicators import wma
         >>>
         >>> frame = pl.DataFrame({"close": [2.0, 4.0, 6.0, 8.0, 10.0]})
-        >>> frame.select(wma(pl.col("close"), window=3).round(4).alias("wma_3"))["wma_3"].to_list()
+        >>> frame.select(wma=wma(pl.col("close"), window=3).round(4))["wma"].to_list()
         [None, None, 4.6667, 6.6667, 8.6667]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -1266,15 +1358,29 @@ def wma(
         ...         "close": [10.0, 11.0, 12.0, 11.0, 13.0, 20.0, 22.0, 21.0, 23.0, 22.0],
         ...     }
         ... )
-        >>> frame.with_columns(wma(pl.col("close"), 2).over("ticker").round(4).alias("wma"))["wma"].to_list()
+        >>> frame.with_columns(wma=wma(pl.col("close"), 2).over("ticker").round(4))["wma"].to_list()
         [None, 10.6667, 11.6667, 11.3333, 12.3333, None, 21.3333, 21.3333, 22.3333, 22.3333]
 
         A ``null`` (skipped, and any window it touches yields ``null``) and a ``NaN`` (which propagates) make the
         exact handling visible at a glance:
 
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, 13.0, None, 15.0, float("nan"), 17.0, 18.0, 19.0]})
-        >>> frame.select(wma(pl.col("close"), 2).round(4).alias("wma"))["wma"].to_list()
+        >>> frame.select(wma=wma(pl.col("close"), 2).round(4))["wma"].to_list()
         [None, 10.6667, 11.6667, 12.6667, None, None, nan, nan, 17.6667, 18.6667]
+
+        **Insufficient sample** — a one-element series holds only a single observation, and at ``window=1`` that
+        observation alone determines the weighted mean, so it returns the value itself:
+
+        >>> frame = pl.DataFrame({"close": [42.0]})
+        >>> frame.select(wma=wma(pl.col("close"), window=1))["wma"].to_list()
+        [42.0]
+
+        **window == 1** — the single weight in the window normalizes to ``1``, so the WMA reproduces the input
+        exactly:
+
+        >>> frame = pl.DataFrame({"close": [1.0, 2.0, 3.0]})
+        >>> frame.select(wma=wma(pl.col("close"), window=1))["wma"].to_list()
+        [1.0, 2.0, 3.0]
     """
     expr = float64_expr(expr)
     validate_window(window)

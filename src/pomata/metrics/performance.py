@@ -91,7 +91,7 @@ def cagr(
         ...     }
         ... )
         >>> reduced = cagr(pl.col("equity_curve"), periods_per_year=1).over("ticker").round(4)
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(cagr=reduced)["cagr"].unique().sort().to_list()
         [0.05, 0.1]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -99,6 +99,20 @@ def cagr(
         >>> frame = pl.DataFrame({"equity_curve": [1.0, 1.1, None, 1.21, float("nan"), 1.3]})
         >>> frame.select(cagr(pl.col("equity_curve"), periods_per_year=1).round(4)).item()
         nan
+
+        **Domain** — a negative terminal equity falls outside the fractional-power domain, so the result is a loud
+        ``NaN``:
+
+        >>> frame = pl.DataFrame({"equity": [1.0, 0.5, -0.2]})
+        >>> frame.select(cagr(pl.col("equity"), periods_per_year=252)).item()
+        nan
+
+        **Insufficient sample** — a single observation still annualizes its growth over the one period it spans, rather
+        than requiring a minimum count:
+
+        >>> frame = pl.DataFrame({"equity": [1.01]})
+        >>> frame.select(cagr(pl.col("equity"), periods_per_year=4).round(4)).item()
+        0.0406
     """
     equity_curve = float64_expr(equity_curve)
     validate_periods_per_year(periods_per_year)
@@ -179,7 +193,8 @@ def cagr_rolling(
         >>> from pomata.metrics import cagr_rolling
         >>>
         >>> frame = pl.DataFrame({"equity": [1.0, 1.1, 1.05, 1.2, 1.15, 1.3, 1.25]})
-        >>> frame.select(cagr_rolling(pl.col("equity"), 3, periods_per_year=4).round(4))["equity"].to_list()
+        >>> expr = cagr_rolling(pl.col("equity"), 3, periods_per_year=4).round(4)
+        >>> frame.select(cagr_rolling=expr)["cagr_rolling"].to_list()
         [None, None, 0.1025, 0.1901, 0.1995, 0.1736, 0.1815]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -191,14 +206,32 @@ def cagr_rolling(
         ...     }
         ... )
         >>> rolled = cagr_rolling(pl.col("equity"), 3, periods_per_year=4).over("ticker").round(4)
-        >>> frame.select(rolled.alias("m"))["m"].to_list()
+        >>> frame.select(cagr_rolling=rolled)["cagr_rolling"].to_list()
         [None, None, 0.1025, 0.1901, 0.1995, None, None, 0.1664, 0.0597, 0.0754]
 
         A ``null`` or ``NaN`` at a window endpoint propagates, while a ``NaN`` interior to a window is ignored:
 
         >>> frame = pl.DataFrame({"equity": [None, 1.1, 1.05, 1.2, float("nan"), 1.3, 1.25]})
-        >>> frame.select(cagr_rolling(pl.col("equity"), 3, periods_per_year=4).round(4))["equity"].to_list()
+        >>> expr = cagr_rolling(pl.col("equity"), 3, periods_per_year=4).round(4)
+        >>> frame.select(cagr_rolling=expr)["cagr_rolling"].to_list()
         [None, None, None, 0.1901, nan, 0.1736, nan]
+
+        **Domain** — a window whose endpoint ratio is non-positive falls outside the geometric-growth domain, yielding
+        a loud ``NaN``:
+
+        >>> frame = pl.DataFrame({"equity": [1.0, -0.5, 0.8, 1.2]})
+        >>> expr = cagr_rolling(pl.col("equity"), window=2, periods_per_year=1)
+        >>> frame.select(cagr_rolling=expr)["cagr_rolling"].to_list()
+        [None, nan, nan, 0.4999999999999998]
+
+        **Degenerate denominator** — a window ending exactly at zero equity sits on the geometric domain's zero
+        boundary, so the result is a loud ``NaN`` rather than the plausible ``-1``, while a window starting at zero
+        blows the ratio to ``+inf``:
+
+        >>> frame = pl.DataFrame({"equity": [100.0, 105.0, 0.0, 110.0, 120.0]})
+        >>> expr = cagr_rolling(pl.col("equity"), window=3, periods_per_year=4).round(4)
+        >>> frame.select(cagr_rolling=expr)["cagr_rolling"].to_list()
+        [None, None, nan, 0.0975, inf]
     """
     equity_curve = float64_expr(equity_curve)
     validate_window(window, minimum=2)
@@ -301,13 +334,33 @@ def stability(
         ...     }
         ... )
         >>> reduced = stability(pl.col("returns")).over("ticker").round(4)
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(stability=reduced)["stability"].unique().sort().to_list()
         [0.3855, 0.9984]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
 
         >>> frame = pl.DataFrame({"returns": [0.01, 0.012, None, 0.009, float("nan"), 0.011]})
         >>> frame.select(stability(pl.col("returns")).round(4)).item()
+        nan
+
+        **Domain** — a return at or below ``-1`` makes the cumulative log undefined, so the result is a loud ``NaN``:
+
+        >>> frame = pl.DataFrame({"returns": [0.02, -1.5, 0.01]})
+        >>> frame.select(stability(pl.col("returns"))).item()
+        nan
+
+        **Insufficient sample** — a single observation gives the regression no second point to fit, so the result is
+        ``null``:
+
+        >>> frame = pl.DataFrame({"returns": [0.01]})
+        >>> frame.select(stability=stability(pl.col("returns")))["stability"].to_list()
+        [None]
+
+        **Degenerate denominator** — an all-zero series has a perfectly flat cumulative log with zero variance to
+        explain, so the result is the ``0 / 0`` case, ``NaN``:
+
+        >>> frame = pl.DataFrame({"returns": [0.0, 0.0, 0.0]})
+        >>> frame.select(stability(pl.col("returns"))).item()
         nan
     """
     returns = float64_expr(returns)
@@ -397,7 +450,7 @@ def total_return(
         ...     }
         ... )
         >>> reduced = total_return(pl.col("equity_curve")).over("ticker").round(4)
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(total_return=reduced)["total_return"].unique().sort().to_list()
         [0.12, 0.3794]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -466,7 +519,8 @@ def total_return_rolling(
         >>> from pomata.metrics import total_return_rolling
         >>>
         >>> frame = pl.DataFrame({"equity": [1.0, 1.1, 1.05, 1.2, 1.15, 1.3, 1.25]})
-        >>> frame.select(total_return_rolling(pl.col("equity"), 3).round(4))["equity"].to_list()
+        >>> expr = total_return_rolling(pl.col("equity"), 3).round(4)
+        >>> frame.select(total_return_rolling=expr)["total_return_rolling"].to_list()
         [None, None, 0.05, 0.0909, 0.0952, 0.0833, 0.087]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -478,13 +532,14 @@ def total_return_rolling(
         ...     }
         ... )
         >>> rolled = total_return_rolling(pl.col("equity"), 3).over("ticker").round(4)
-        >>> frame.select(rolled.alias("m"))["m"].to_list()
+        >>> frame.select(total_return_rolling=rolled)["total_return_rolling"].to_list()
         [None, None, 0.05, 0.0909, 0.0952, None, None, 0.08, 0.0294, 0.037]
 
         A ``null`` or ``NaN`` at a window endpoint propagates, while a ``NaN`` interior to a window is ignored:
 
         >>> frame = pl.DataFrame({"equity": [None, 1.1, 1.05, 1.2, float("nan"), 1.3, 1.25]})
-        >>> frame.select(total_return_rolling(pl.col("equity"), 3).round(4))["equity"].to_list()
+        >>> expr = total_return_rolling(pl.col("equity"), 3).round(4)
+        >>> frame.select(total_return_rolling=expr)["total_return_rolling"].to_list()
         [None, None, None, 0.0909, nan, 0.0833, nan]
     """
     equity_curve = float64_expr(equity_curve)
