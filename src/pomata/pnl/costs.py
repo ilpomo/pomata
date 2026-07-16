@@ -55,10 +55,13 @@ def cost_borrow(
         ValueError: If ``rate`` is not a finite number ``>= 0`` (i.e. ``< 0``, ``NaN``, or ``±inf``).
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every
-        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data,
+        boundaries, and warm-up where applicable) is given a defined behavior.
 
-        **Long / flat:** a non-negative quantity has zero borrow cost (only the short part is charged).
+        **Long / flat:**
+
+        A non-negative quantity has zero borrow cost (only the short part is charged).
 
         **Edge-case behavior:**
 
@@ -161,11 +164,14 @@ def cost_fixed(
         ValueError: If ``fee`` is not a finite number ``>= 0`` (i.e. ``< 0``, ``NaN``, or ``±inf``).
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every
-        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data,
+        boundaries, and warm-up where applicable) is given a defined behavior.
 
-        **Flat start:** the pre-series quantity is taken as ``0`` (via :func:`turnover`), so the first row charges the
-        ``fee`` (entering the initial position is a trade).
+        **Flat start:**
+
+        The pre-series quantity is taken as ``0`` (via :func:`turnover`), so the first row charges the ``fee`` (entering
+        the initial position is a trade).
 
         **Edge-case behavior:**
 
@@ -258,13 +264,18 @@ def cost_funding(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every
-        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data,
+        boundaries, and warm-up where applicable) is given a defined behavior.
 
-        **Sign:** the cost follows ``sign(quantity) * sign(funding_rate)``: a long pays a positive rate and is rebated
-        by a negative one; a short is the mirror image.
+        **Sign:**
 
-        **Off-funding bars:** pass ``funding_rate = 0`` on bars with no funding event; the cost is then ``0`` there.
+        The cost follows ``sign(quantity) * sign(funding_rate)``: a long pays a positive rate and is rebated by a
+        negative one; a short is the mirror image.
+
+        **Off-funding bars:**
+
+        Pass ``funding_rate = 0`` on bars with no funding event; the cost is then ``0`` there.
 
         **Edge-case behavior:**
 
@@ -372,11 +383,13 @@ def cost_notional(
         ValueError: If ``rate`` is not a finite number ``>= 0`` (i.e. ``< 0``, ``NaN``, or ``±inf``).
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every
-        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data,
+        boundaries, and warm-up where applicable) is given a defined behavior.
 
-        **Flat start:** the pre-series quantity is taken as ``0`` (via :func:`turnover`), so the first row charges on
-        the entry trade.
+        **Flat start:**
+
+        The pre-series quantity is taken as ``0`` (via :func:`turnover`), so the first row charges on the entry trade.
 
         **Edge-case behavior:**
 
@@ -473,11 +486,14 @@ def cost_per_share(
         ValueError: If ``fee`` is not a finite number ``>= 0`` (i.e. ``< 0``, ``NaN``, or ``±inf``).
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every
-        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data,
+        boundaries, and warm-up where applicable) is given a defined behavior.
 
-        **Flat start:** the pre-series quantity is taken as ``0`` (via :func:`turnover`), so the first row charges on
-        ``|quantity_0|`` (entering the initial position is a trade).
+        **Flat start:**
+
+        The pre-series quantity is taken as ``0`` (via :func:`turnover`), so the first row charges on ``|quantity_0|``
+        (entering the initial position is a trade).
 
         **Edge-case behavior:**
 
@@ -562,11 +578,14 @@ def cost_proportional(
         ValueError: If ``rate`` is not a finite number ``>= 0`` (i.e. ``< 0``, ``NaN``, or ``±inf``).
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every
-        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data,
+        boundaries, and warm-up where applicable) is given a defined behavior.
 
-        **Flat start:** the weight before the series is taken as ``0`` (via :func:`turnover`), so the first row is
-        ``|weight_0| * rate``: establishing the initial weight carries its cost.
+        **Flat start:**
+
+        The weight before the series is taken as ``0`` (via :func:`turnover`), so the first row is ``|weight_0| *
+        rate``: establishing the initial weight carries its cost.
 
         **Edge-case behavior:**
 
@@ -656,11 +675,14 @@ def cost_slippage(
         ValueError: If ``half_spread`` is not a finite number ``>= 0`` (i.e. ``< 0``, ``NaN``, or ``±inf``).
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every
-        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data,
+        boundaries, and warm-up where applicable) is given a defined behavior.
 
-        **Flat start:** the weight before the series is taken as ``0`` (via :func:`turnover`), so the first row is
-        ``|weight_0| * half_spread``: establishing the initial weight crosses the spread.
+        **Flat start:**
+
+        The weight before the series is taken as ``0`` (via :func:`turnover`), so the first row is ``|weight_0| *
+        half_spread``: establishing the initial weight crosses the spread.
 
         **Edge-case behavior:**
 

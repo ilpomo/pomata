@@ -69,7 +69,7 @@ no order fills, no event loop, no lot accounting.
 - **{doc}`installation`** — one runtime dependency (Polars), Python 3.12+.
 - **{doc}`concepts`** — the five ideas that make everything compose.
 - **{doc}`tutorial`** — raw bars to a costed, look-ahead-free report, end to end.
-- **{doc}`trust`** — what pomata tests, and the precision it is confident to guarantee.
+- **{doc}`correctness`** — what pomata tests, and the precision it is confident to guarantee.
 - **The families** — {doc}`indicators <families/indicators>` · {doc}`pnl <families/pnl>` · {doc}`metrics <families/metrics>`: the catalogs, and how `pomata` solves the classic pains.
 - **{doc}`API reference <api/index>`** — every function, generated from the docstrings.
 
@@ -84,9 +84,9 @@ tutorial
 
 ```{toctree}
 :hidden:
-:caption: Trust & families
+:caption: Correctness & families
 
-trust
+correctness
 families/indicators
 families/pnl
 families/metrics

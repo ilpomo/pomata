@@ -43,9 +43,10 @@ def adx(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         It is scale-invariant under a positive common rescaling of ``high``, ``low``, and ``close`` (it is built from
         ratios of directional movement to the average true range).
@@ -159,9 +160,10 @@ def adxr(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         It is scale-invariant under a positive common rescaling of ``high``, ``low``, and ``close``.
 
@@ -169,9 +171,11 @@ def adxr(
 
         The warm-up inherits the recursive Wilder seeding of :func:`rma` used throughout the cluster.
 
-        **Documented TA-Lib divergence** — TA-Lib averages the current ADX with the ADX from ``window - 1`` bars
-        back; pomata uses ``window`` bars back, Wilder's book convention, so the two never agree even at steady
-        state and the differential tier holds ADXR out as a documented divergence.
+        **Documented TA-Lib divergence:**
+
+        TA-Lib averages the current ADX with the ADX from ``window - 1`` bars back; pomata uses ``window`` bars back,
+        Wilder's book convention, so the two never agree even at steady state and the differential tier holds ADXR out
+        as a documented divergence.
 
         **Edge-case behavior:**
 
@@ -280,9 +284,10 @@ def di_minus(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         It is scale-invariant under a positive common rescaling of ``high``, ``low``, and ``close`` (the smoothed
         movement and the average true range scale together).
@@ -400,9 +405,10 @@ def di_plus(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         It is scale-invariant under a positive common rescaling of ``high``, ``low``, and ``close`` (the smoothed
         movement and the average true range scale together).
@@ -524,9 +530,10 @@ def dm_minus(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         It is homogeneous of degree ``1`` in a positive common rescaling of ``high`` and ``low`` (a range expansion in
         price units).
@@ -649,9 +656,10 @@ def dm_plus(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         It is homogeneous of degree ``1`` in a positive common rescaling of ``high`` and ``low`` (a range expansion in
         price units).
@@ -772,9 +780,10 @@ def dx(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         It is scale-invariant under a positive common rescaling of ``high``, ``low``, and ``close``.
 
@@ -898,9 +907,10 @@ def vortex(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         **Inputs:**
 

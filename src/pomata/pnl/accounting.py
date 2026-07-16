@@ -48,8 +48,9 @@ def cumulative_pnl(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every
-        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data,
+        boundaries, and warm-up where applicable) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -134,8 +135,9 @@ def dividend(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every
-        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data,
+        boundaries, and warm-up where applicable) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -232,8 +234,9 @@ def equity_curve(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every
-        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data,
+        boundaries, and warm-up where applicable) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -326,14 +329,16 @@ def pnl_gross(
         ValueError: If ``multiplier`` is not a finite number ``> 0`` (i.e. ``<= 0``, ``NaN``, or ``±inf``).
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every
-        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data,
+        boundaries, and warm-up where applicable) is given a defined behavior.
 
-        **No lookahead (alignment is the caller's):** the PnL assumes ``quantity`` at row ``t`` is the position held
-        over the price change into row ``t``. To stay lookahead-free, that quantity must depend only on information
-        available before that price; if it is decided on the same bar's close, lag it by one bar
-        (``pnl_gross(quantity.shift(1), price)``). Nothing is shifted for you, so a quantity you have already aligned is
-        never double-shifted.
+        **No lookahead (alignment is the caller's):**
+
+        The PnL assumes ``quantity`` at row ``t`` is the position held over the price change into row ``t``. To stay
+        lookahead-free, that quantity must depend only on information available before that price; if it is decided on
+        the same bar's close, lag it by one bar (``pnl_gross(quantity.shift(1), price)``). Nothing is shifted for you,
+        so a quantity you have already aligned is never double-shifted.
 
         **Edge-case behavior:**
 
@@ -447,14 +452,16 @@ def pnl_gross_inverse(
         ValueError: If ``multiplier`` is not a finite number ``> 0`` (i.e. ``<= 0``, ``NaN``, or ``±inf``).
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every
-        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data,
+        boundaries, and warm-up where applicable) is given a defined behavior.
 
-        **No lookahead (alignment is the caller's):** the PnL assumes ``quantity`` at row ``t`` is the position held
-        over the price change into row ``t``. To stay lookahead-free, that quantity must depend only on information
-        available before that price; if it is decided on the same bar's close, lag it by one bar
-        (``pnl_gross_inverse(quantity.shift(1), price)``). Nothing is shifted for you, so a quantity you have already
-        aligned is never double-shifted.
+        **No lookahead (alignment is the caller's):**
+
+        The PnL assumes ``quantity`` at row ``t`` is the position held over the price change into row ``t``. To stay
+        lookahead-free, that quantity must depend only on information available before that price; if it is decided on
+        the same bar's close, lag it by one bar (``pnl_gross_inverse(quantity.shift(1), price)``). Nothing is shifted
+        for you, so a quantity you have already aligned is never double-shifted.
 
         **Edge-case behavior:**
 
@@ -567,8 +574,9 @@ def pnl_net(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every
-        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data,
+        boundaries, and warm-up where applicable) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -669,14 +677,17 @@ def returns_gross(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every
-        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data,
+        boundaries, and warm-up where applicable) is given a defined behavior.
 
-        **No lookahead (alignment is the caller's):** the product assumes ``weight`` at row ``t`` is the weight held
-        over ``asset_returns`` at row ``t``. To stay lookahead-free, that weight must depend only on information
-        available **before** that return; if your weight is decided on the same bar that closes the return, lag it by
-        one bar -- ``returns_gross(weight.shift(1), asset_returns)`` -- so the weight reflects only the prior close.
-        Nothing is shifted for you, so a weight you have already aligned is never double-shifted.
+        **No lookahead (alignment is the caller's):**
+
+        The product assumes ``weight`` at row ``t`` is the weight held over ``asset_returns`` at row ``t``. To stay
+        lookahead-free, that weight must depend only on information available **before** that return; if your weight is
+        decided on the same bar that closes the return, lag it by one bar -- ``returns_gross(weight.shift(1),
+        asset_returns)`` -- so the weight reflects only the prior close. Nothing is shifted for you, so a weight you
+        have already aligned is never double-shifted.
 
         **Edge-case behavior:**
 
@@ -777,8 +788,9 @@ def returns_net(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every
-        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data,
+        boundaries, and warm-up where applicable) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -875,11 +887,14 @@ def turnover(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every
-        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data,
+        boundaries, and warm-up where applicable) is given a defined behavior.
 
-        **Flat start:** the weight before the series is taken as ``0``, so the first row is ``|weight_0|`` rather than
-        ``null``; establishing the initial weight from cash is a real trade and carries its cost.
+        **Flat start:**
+
+        The weight before the series is taken as ``0``, so the first row is ``|weight_0|`` rather than ``null``;
+        establishing the initial weight from cash is a real trade and carries its cost.
 
         **Edge-case behavior:**
 

@@ -55,8 +55,9 @@ def conditional_drawdown_at_risk(
         ValueError: If ``confidence`` is not in the open interval ``(0, 1)``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -149,13 +150,16 @@ def drawdown(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
-        **Inception:** the running peak starts at the FIRST observation: a curve fed from
-        :func:`~pomata.pnl.equity_curve` begins at its first post-return value, so a drawdown from the starting
-        capital itself (an opening losing streak) is invisible by construction. Prepend a literal ``1.0`` row to
-        count declines from inception; the convention matches quantstats (empyrical instead prepends the start).
+        **Inception:**
+
+        The running peak starts at the FIRST observation: a curve fed from :func:`~pomata.pnl.equity_curve` begins at
+        its first post-return value, so a drawdown from the starting capital itself (an opening losing streak) is
+        invisible by construction. Prepend a literal ``1.0`` row to count declines from inception; the convention
+        matches quantstats (empyrical instead prepends the start).
 
         **Edge-case behavior:**
 
@@ -235,8 +239,8 @@ def drawdown_rolling(
         ValueError: If ``window < 1``.
 
     Note:
-        **Correctness** -- each window matches an independent reference oracle (the current equity over the window peak,
-        less one).
+        **Correctness:**
+        Each window matches an independent reference oracle (the current equity over the window peak, less one).
 
         **Edge-case behavior:**
 
@@ -309,8 +313,9 @@ def max_drawdown(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -384,8 +389,9 @@ def max_drawdown_duration(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         The duration is a count of observations, not a calendar span; with irregular spacing scale it by the bar period
         externally.
@@ -468,8 +474,9 @@ def pain_index(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -547,8 +554,9 @@ def ulcer_index(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 

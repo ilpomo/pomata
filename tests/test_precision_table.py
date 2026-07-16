@@ -1,10 +1,10 @@
 """
-Pins the precision figures published in ``docs/trust.md`` to the suite — each published value at the reference band
-and each residual cell at its printed magnitude — so a drift in the shipped kernels shows up red instead of leaving
+Pins the precision figures published in ``docs/correctness.md`` to the suite — each published value at the reference
+band and each residual cell at its printed magnitude — so a drift in the shipped kernels shows up red instead of leaving
 stale prose.
 
-Builds the deterministic 400-bar OHLC series the trust page quotes (closed-form, no RNG, so the figures regenerate from
-a fresh clone), and for every indicator in the table checks two things: the final value still equals the published
+Builds the deterministic 400-bar OHLC series the correctness page quotes (closed-form, no RNG, so the figures regenerate
+from a fresh clone), and for every indicator in the table checks two things: the final value still equals the published
 figure, and it agrees with the independent reference oracle to the precision promise. This is the single source of truth
 for the series; ``scripts/precision_table.py`` imports it to regenerate the full table, including the TA-Lib column
 (which needs the optional ``differential`` dependency and is verified separately by the differential checks).
@@ -53,7 +53,7 @@ _ORACLE: dict[str, float] = {
     "atr(14)": _last(atr_reference(HIGH, LOW, CLOSE, 14)),
     "macd(12,26,9)": _last(macd_reference(CLOSE, 12, 26, 9)["macd"]),
 }
-# The ``pomata`` column published in ``docs/trust.md``, frozen so any indicator (or table) change fails the suite.
+# The ``pomata`` column published in ``docs/correctness.md``, frozen so any indicator (or table) change fails the suite.
 _PUBLISHED: dict[str, float] = {
     "sma(20)": 105.15146076264764,
     "ema(20)": 107.7299930892346,
@@ -65,13 +65,14 @@ _PUBLISHED: dict[str, float] = {
 
 class TestPrecisionTable:
     """
-    The ``docs/trust.md`` precision figures, pinned and reproduced.
+    The ``docs/correctness.md`` precision figures, pinned and reproduced.
     """
 
     @pytest.mark.parametrize("name", list(_PUBLISHED))
     def test_matches_published_figure(self, name: str) -> None:
         """
-        Verifies the indicator's final value still equals the figure published in the ``docs/trust.md`` precision table.
+        Verifies the indicator's final value still equals the figure published in the ``docs/correctness.md`` precision
+        table.
         """
         assert_matches([_POMATA[name]], [_PUBLISHED[name]], rel_tol=RELATIVE_TOLERANCE_REFERENCE)
 
@@ -94,8 +95,8 @@ def residual_cell(actual: float, expected: float) -> str:
     return f"{abs(actual - expected) / abs(expected):.0e}"
 
 
-# The residual cells published in ``docs/trust.md``, frozen like the value column: a re-vectorization that moves an
-# indicator inside the promise band, or a TA-Lib upgrade, now reddens the build instead of leaving stale prose.
+# The residual cells published in ``docs/correctness.md``, frozen like the value column: a re-vectorization that moves
+# an indicator inside the promise band, or a TA-Lib upgrade, now reddens the build instead of leaving stale prose.
 _RESIDUAL_VS_ORACLE: dict[str, str] = {
     "sma(20)": "exact",
     "ema(20)": "1e-15",
@@ -114,7 +115,7 @@ _RESIDUAL_VS_TALIB: dict[str, str] = {
 
 class TestPrecisionResiduals:
     """
-    The ``docs/trust.md`` residual cells, pinned and recomputed.
+    The ``docs/correctness.md`` residual cells, pinned and recomputed.
     """
 
     @pytest.mark.parametrize("name", list(_RESIDUAL_VS_ORACLE))

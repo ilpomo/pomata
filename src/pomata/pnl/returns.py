@@ -39,8 +39,9 @@ def returns_log(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every
-        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data,
+        boundaries, and warm-up where applicable) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -133,8 +134,9 @@ def returns_simple(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every
-        edge case (missing data, boundaries, and warm-up where applicable) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data,
+        boundaries, and warm-up where applicable) is given a defined behavior.
 
         **Edge-case behavior:**
 

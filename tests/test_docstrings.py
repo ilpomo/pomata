@@ -165,10 +165,10 @@ def test_type_error_line_is_canonical(name: str) -> None:
 
 @pytest.mark.parametrize("name", _NAMES)
 def test_note_opener_matches_family(name: str) -> None:
-    """The Note opens with **Precision** for indicators and **Correctness** for metrics and pnl."""
-    opener = re.search(r"\*\*(.+?)\*\*", _note(_doc(name)))
+    """The Note opens with **Precision:** for indicators and **Correctness:** for metrics and pnl."""
+    opener = re.search(r"\*\*(.+?):\*\*", _note(_doc(name)))
     expected = "Precision" if _family_of(name) == "indicators" else "Correctness"
-    assert opener is not None, f"{name}: the Note opens with no bold marker"
+    assert opener is not None, f"{name}: the Note opens with no bold header"
     assert opener.group(1) == expected, f"{name}: opener {opener.group(1)}"
 
 
@@ -433,6 +433,7 @@ _PRELIST_LABELS: frozenset[str] = frozenset(
         "Composition",
         "Degrees of freedom",
         "Displacement (no lookahead)",
+        "Documented TA-Lib divergence",
         "Flat start",
         "Gaussian assumption",
         "Historical, not parametric",
@@ -458,8 +459,11 @@ _PRELIST_LABELS: frozenset[str] = frozenset(
 @pytest.mark.parametrize("name", _NAMES)
 def test_prelist_labels_are_whitelisted(name: str) -> None:
     """Every explanatory sub-header above the edge-case list is a sanctioned label — no ad-hoc section names."""
+    # The Note opens with a **Precision:** / **Correctness:** colon header (guarded by test_note_opener_is_canonical),
+    # and closes on the **Edge-case behavior:** list; the whitelist governs every explanatory header in between.
     headers = re.findall(r"\*\*([^*\n]+?):\*\*", _note(_doc(name)))
-    offenders = [header for header in headers if header != "Edge-case behavior" and header not in _PRELIST_LABELS]
+    reserved = {"Precision", "Correctness", "Edge-case behavior"}
+    offenders = [header for header in headers if header not in reserved and header not in _PRELIST_LABELS]
     assert not offenders, f"{name}: non-whitelisted pre-list sub-headers {offenders}"
 
 
@@ -469,11 +473,11 @@ def test_prelist_labels_are_whitelisted(name: str) -> None:
 # functions whose oracle can only mirror a path-dependent recurrence (the Ehlers cycle cluster, ``kama``,
 # ``parabolic_sar``) open on their own measured wording, pinned per name. Shrink-only.
 _OPENER_PREFIXES: tuple[str, ...] = (
-    "**Precision** -- agrees with its independent reference oracle",
-    "**Correctness** -- the result is checked against an independent reference oracle",
-    "**Correctness** -- each window matches an independent reference oracle (",
+    "**Precision:** Agrees with its independent reference oracle",
+    "**Correctness:** The result is checked against an independent reference oracle",
+    "**Correctness:** Each window matches an independent reference oracle (",
 )
-_CYCLE_OPENER = "**Precision** -- the fixed FIR smoothing and quadrature stages are computed independently"
+_CYCLE_OPENER = "**Precision:** The fixed FIR smoothing and quadrature stages are computed independently"
 _OPENER_VARIANTS: dict[str, str] = {
     **dict.fromkeys(
         (
@@ -488,10 +492,10 @@ _OPENER_VARIANTS: dict[str, str] = {
         _CYCLE_OPENER,
     ),
     "kama": (
-        "**Precision** -- the efficiency ratio and adaptive smoothing constant are checked against "
+        "**Precision:** The efficiency ratio and adaptive smoothing constant are checked against "
         "an independent reference"
     ),
-    "parabolic_sar": "**Precision** -- the parabolic SAR is a path-dependent stop-and-reverse recurrence",
+    "parabolic_sar": "**Precision:** The parabolic SAR is a path-dependent stop-and-reverse recurrence",
 }
 
 
@@ -501,6 +505,27 @@ def test_note_opener_is_canonical(name: str) -> None:
     opener = _flat(_note(_doc(name)).strip().split("\n\n", 1)[0])
     sanctioned = (_OPENER_VARIANTS[name],) if name in _OPENER_VARIANTS else _OPENER_PREFIXES
     assert any(opener.startswith(prefix) for prefix in sanctioned), f"{name}: non-canonical Note opener: {opener[:120]}"
+
+
+@pytest.mark.parametrize("name", _NAMES)
+def test_note_headers_put_text_on_the_next_line(name: str) -> None:
+    """
+    Every non-bullet bold label in the Note is a colon header whose text starts on the next line: no ``**Label:**``
+    carries text on its own line after the colon, and no ``**Label** --`` / ``**Label** —`` dash-connective header
+    survives. A list item keeps its ``- **Label** — text`` form and is exempt.
+    """
+    for line in _note(_doc(name)).splitlines():
+        stripped = line.strip()
+        if stripped.startswith("- "):
+            continue
+        match = re.match(r"\*\*([^*]+?)\*\*(.*)", stripped)
+        if match is None:
+            continue
+        label, rest = match.group(1), match.group(2)
+        if label.endswith(":"):
+            assert not rest.strip(), f"{name}: header **{label}** carries inline text after the colon"
+        else:
+            assert re.match(r"\s*(--|—)", rest) is None, f"{name}: **{label}** is a dash connective, not a colon header"
 
 
 @pytest.mark.parametrize("name", _NAMES)

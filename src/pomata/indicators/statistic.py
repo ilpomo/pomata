@@ -48,9 +48,10 @@ def linear_regression(
         ValueError: If ``window < 2``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         It is homogeneous of degree ``1`` in ``expr`` (a fitted price scales with the price). For a perfectly linear
         input the endpoint reproduces the series exactly.
@@ -126,9 +127,10 @@ def linear_regression_angle(
         ValueError: If ``window < 2``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         Unlike the other regression outputs, the angle is **not** homogeneous in ``expr``: the arctangent is non-linear,
         so scaling the input does not scale the angle: amplifying it steepens the angle toward :math:`\pm 90`,
@@ -208,9 +210,10 @@ def linear_regression_intercept(
         ValueError: If ``window < 2``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         It is homogeneous of degree ``1`` in ``expr`` (a fitted price scales with the price).
 
@@ -290,9 +293,10 @@ def linear_regression_slope(
         ValueError: If ``window < 2``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         It is homogeneous of degree ``1`` in ``expr`` (the rise scales with the price while the run is fixed). For a
         perfectly linear input it returns the exact constant slope.
@@ -386,9 +390,10 @@ def standard_deviation_ewma(
         ValueError: If ``window < 2``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         It is homogeneous of degree ``1`` in ``expr`` (a spread in the input's own units).
 
@@ -477,9 +482,10 @@ def standard_deviation_rolling(
             non-positive).
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         **Degrees of freedom:**
 
@@ -577,9 +583,10 @@ def time_series_forecast(
         ValueError: If ``window < 2``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         It is homogeneous of degree ``1`` in ``expr`` (a projected price scales with the price). For a perfectly linear
         input the forecast equals the next value of the line exactly.
@@ -670,9 +677,10 @@ def variance_ewma(
         ValueError: If ``window < 2``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         ``window`` must be ``>= 2``: a single observation yields a well-defined ``0`` under the default ``bias=True``,
         but divides by zero under the unbiased ``bias=False`` correction, so a minimum of ``2`` is enforced uniformly
@@ -764,9 +772,10 @@ def variance_rolling(
             non-positive).
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         **Degrees of freedom:**
 

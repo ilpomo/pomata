@@ -50,9 +50,10 @@ def donchian_channels(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         **Inputs:**
 
@@ -173,9 +174,10 @@ def ichimoku(
             window_senkou`` (equality is allowed and collapses the corresponding lines onto each other).
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         Every line is homogeneous of degree ``1`` under a positive common rescaling of ``high`` and ``low`` (each is a
         midpoint of price extremes).
@@ -323,9 +325,9 @@ def keltner_channels(
             ``<= 0``, ``NaN``, or ``±inf``).
 
     Note:
-        **Precision** -- agrees with its independent reference oracle (a composition of the :func:`ema` and :func:`atr`
-        references) to ten significant figures (a ``1e-10`` band); the documentation's *Correctness* page gives the
-        method.
+        **Precision:**
+        Agrees with its independent reference oracle (a composition of the :func:`ema` and :func:`atr` references) to
+        ten significant figures (a ``1e-10`` band); the documentation's *Correctness* page gives the method.
 
         **Inputs:**
 
@@ -431,9 +433,10 @@ def midpoint(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         **Edge-case behavior:**
 
@@ -509,9 +512,10 @@ def midprice(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         **Inputs:**
 

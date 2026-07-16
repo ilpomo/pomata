@@ -48,8 +48,9 @@ def cagr(
         ValueError: If ``periods_per_year < 1``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -148,7 +149,8 @@ def cagr_rolling(
         ValueError: If ``window < 2``, or if ``periods_per_year < 1``.
 
     Note:
-        **Correctness** -- each window matches an independent reference oracle (the endpoint ratio annualized).
+        **Correctness:**
+        Each window matches an independent reference oracle (the endpoint ratio annualized).
 
         **Edge-case behavior:**
 
@@ -235,8 +237,9 @@ def stability(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -352,8 +355,9 @@ def total_return(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -432,7 +436,8 @@ def total_return_rolling(
         ValueError: If ``window < 2``.
 
     Note:
-        **Correctness** -- each window matches an independent reference oracle (the endpoint ratio less one).
+        **Correctness:**
+        Each window matches an independent reference oracle (the endpoint ratio less one).
 
         **Edge-case behavior:**
 
