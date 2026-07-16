@@ -113,9 +113,7 @@ def atr(
         ...         "close": [9.5, 11.0, 12.0, 11.0, 13.0],
         ...     }
         ... )
-        >>> frame.select(
-        ...     atr(pl.col("high"), pl.col("low"), pl.col("close"), window=3).round(4).alias("atr_3")
-        ... )["atr_3"].to_list()
+        >>> frame.select(atr=atr(pl.col("high"), pl.col("low"), pl.col("close"), window=3).round(4))["atr"].to_list()
         [None, None, 1.8333, 1.8889, 2.2593]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -129,7 +127,7 @@ def atr(
         ...     }
         ... )
         >>> expr = atr(pl.col("high"), pl.col("low"), pl.col("close"), 2).over("ticker").round(4)
-        >>> frame.with_columns(expr.alias("atr"))["atr"].to_list()
+        >>> frame.with_columns(atr=expr)["atr"].to_list()
         [None, 2.0, 1.75, 2.125, None, 2.5, 2.25, 2.375]
 
         A ``null`` ``close`` (absorbed, so the next bar falls back to ``high - low``) then a ``NaN`` ``close`` (which
@@ -143,8 +141,20 @@ def atr(
         ...     }
         ... )
         >>> expr = atr(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
-        >>> frame.select(expr.alias("atr"))["atr"].to_list()
+        >>> frame.select(atr=expr)["atr"].to_list()
         [None, 2.0, 2.0, 2.0, 2.0, 2.0, nan, nan]
+
+        **window == 1** — window=1 makes the Wilder smoothing the identity, so the ATR reproduces the true range:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.0, 12.0, 11.0, 13.0],
+        ...         "low": [8.0, 9.0, 9.5, 10.0],
+        ...         "close": [9.0, 11.0, 10.0, 12.0],
+        ...     }
+        ... )
+        >>> frame.select(atr=atr(pl.col("high"), pl.col("low"), pl.col("close"), window=1))["atr"].to_list()
+        [2.0, 3.0, 1.5, 3.0]
     """
     high = float64_expr(high)
     low = float64_expr(low)
@@ -224,7 +234,7 @@ def atr_normalized(
         ...     }
         ... )
         >>> expr = atr_normalized(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
-        >>> frame.select(expr.alias("natr"))["natr"].to_list()
+        >>> frame.select(atr_normalized=expr)["atr_normalized"].to_list()
         [None, 4.3689, 4.5238, 5.3218, 5.8373]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -238,7 +248,7 @@ def atr_normalized(
         ...     }
         ... )
         >>> expr = atr_normalized(pl.col("high"), pl.col("low"), pl.col("close"), 2).over("ticker").round(4)
-        >>> frame.with_columns(expr.alias("natr"))["natr"].to_list()
+        >>> frame.with_columns(atr_normalized=expr)["atr_normalized"].to_list()
         [None, 4.3689, 4.5238, 5.3218, None, 4.3689, 4.5238, 5.3218]
 
         A ``null`` ``close`` (voiding the ratio at that row) then a ``NaN`` ``close`` (which propagates through the
@@ -252,7 +262,7 @@ def atr_normalized(
         ...     }
         ... )
         >>> expr = atr_normalized(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
-        >>> frame.select(expr.alias("natr"))["natr"].to_list()
+        >>> frame.select(atr_normalized=expr)["atr_normalized"].to_list()
         [None, 4.3689, None, 4.5561, nan, nan, nan, nan]
     """
     high = float64_expr(high)
@@ -345,31 +355,44 @@ def bollinger_bands(
         >>>
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, 11.0, 13.0]})
         >>> bands = bollinger_bands(pl.col("close"), 3)
-        >>> frame.select(bands.struct.field("lower").round(4).alias("l"))["l"].to_list()
+        >>> frame.select(lower=bands.struct.field("lower").round(4))["lower"].to_list()
         [None, None, 9.367, 10.3905, 10.367]
-        >>> frame.select(bands.struct.field("middle").round(4).alias("m"))["m"].to_list()
+        >>> frame.select(middle=bands.struct.field("middle").round(4))["middle"].to_list()
         [None, None, 11.0, 11.3333, 12.0]
-        >>> frame.select(bands.struct.field("upper").round(4).alias("u"))["u"].to_list()
+        >>> frame.select(upper=bands.struct.field("upper").round(4))["upper"].to_list()
         [None, None, 12.633, 12.2761, 13.633]
 
         Split the struct into three columns with ``.struct.unnest()``:
 
-        >>> frame.select(bands.alias("bb")).unnest("bb").columns
+        >>> frame.select(bollinger_bands=bands).unnest("bollinger_bands").columns
         ['lower', 'middle', 'upper']
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
 
-        >>> frame = pl.DataFrame({"ticker": ["A"] * 3 + ["B"] * 3, "close": [10.0, 11.0, 12.0, 20.0, 22.0, 21.0]})
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "ticker": ["A"] * 3 + ["B"] * 3,
+        ...         "close": [10.0, 11.0, 12.0, 20.0, 22.0, 21.0],
+        ...     }
+        ... )
         >>> expr = bollinger_bands(pl.col("close"), 2).over("ticker").struct.field("middle").round(4)
-        >>> frame.with_columns(expr.alias("middle"))["middle"].to_list()
+        >>> frame.with_columns(middle=expr)["middle"].to_list()
         [None, 10.5, 11.5, None, 21.0, 21.5]
 
         A ``null`` and a ``NaN`` propagate to every band; the middle band makes the handling visible:
 
         >>> frame = pl.DataFrame({"close": [10.0, None, 12.0, float("nan"), 14.0, 15.0]})
         >>> expr = bollinger_bands(pl.col("close"), 2).struct.field("middle").round(4)
-        >>> frame.select(expr.alias("middle"))["middle"].to_list()
+        >>> frame.select(middle=expr)["middle"].to_list()
         [None, None, None, nan, nan, 14.5]
+
+        **Degenerate denominator** — a constant window has zero deviation, so all three bands collapse onto the middle
+        even after a much larger value has left the window, where the rolling kernel would otherwise leave a residue:
+
+        >>> frame = pl.DataFrame({"close": [1000000.0, 0.1, 0.1, 0.1, 0.1]})
+        >>> expr = bollinger_bands(pl.col("close"), window=3)
+        >>> frame.select(lower=expr.struct.field("lower").round(4))["lower"].to_list()
+        [None, None, -609475.5473, 0.1, 0.1]
     """
     expr = float64_expr(expr)
     validate_window(window)
@@ -464,9 +487,8 @@ def true_range(
         ...         "close": [9.5, 11.0, 10.5, 12.5, 12.0],
         ...     }
         ... )
-        >>> frame.select(true_range(pl.col("high"), pl.col("low"), pl.col("close")).round(4).alias("true_range"))[
-        ...     "true_range"
-        ... ].to_list()
+        >>> expr = true_range(pl.col("high"), pl.col("low"), pl.col("close")).round(4)
+        >>> frame.select(true_range=expr)["true_range"].to_list()
         [1.0, 2.5, 1.5, 2.5, 1.0]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -480,7 +502,7 @@ def true_range(
         ...     }
         ... )
         >>> expr = true_range(pl.col("high"), pl.col("low"), pl.col("close")).over("ticker").round(4)
-        >>> frame.with_columns(expr.alias("true_range"))["true_range"].to_list()
+        >>> frame.with_columns(true_range=expr)["true_range"].to_list()
         [2.0, 2.0, 1.5, 2.5, 2.0, 3.0, 2.0, 2.5]
 
         A ``null`` ``close`` (skipped, so the next bar falls back to ``high - low``) then a ``NaN`` ``close`` (which
@@ -494,7 +516,7 @@ def true_range(
         ...     }
         ... )
         >>> expr = true_range(pl.col("high"), pl.col("low"), pl.col("close")).round(4)
-        >>> frame.select(expr.alias("true_range"))["true_range"].to_list()
+        >>> frame.select(true_range=expr)["true_range"].to_list()
         [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, nan, 2.0]
     """
     high = float64_expr(high)

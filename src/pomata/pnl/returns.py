@@ -79,7 +79,7 @@ def returns_log(
         >>> from pomata.pnl import returns_log
         >>>
         >>> frame = pl.DataFrame({"close": [100.0, 102.0, 101.0, 105.0, 104.0, 107.0, 110.0, 108.0, 112.0]})
-        >>> frame.select(returns_log(pl.col("close")).round(4).alias("returns_log"))["returns_log"].to_list()
+        >>> frame.select(returns_log=returns_log(pl.col("close")).round(4))["returns_log"].to_list()
         [None, 0.0198, -0.0099, 0.0388, -0.0096, 0.0284, 0.0277, -0.0183, 0.0364]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -90,15 +90,44 @@ def returns_log(
         ...         "close": [100.0, 105.0, 102.0, 108.0, 50.0, 52.0, 51.0, 55.0],
         ...     }
         ... )
-        >>> frame.with_columns(returns_log(pl.col("close")).over("ticker").round(4).alias("r"))["r"].to_list()
+        >>> expr = returns_log(pl.col("close")).over("ticker").round(4)
+        >>> frame.with_columns(returns_log=expr)["returns_log"].to_list()
         [None, 0.0488, -0.029, 0.0572, None, 0.0392, -0.0194, 0.0755]
 
         A ``null`` (whose lag voids the next bar too) and a ``NaN`` (which propagates) touch only the positions that
         reference them before the series recovers, making the missing-data handling visible:
 
         >>> frame = pl.DataFrame({"close": [100.0, 105.0, None, 108.0, 110.0, float("nan"), 113.0, 115.0]})
-        >>> frame.select(returns_log(pl.col("close")).round(4).alias("returns_log"))["returns_log"].to_list()
+        >>> frame.select(returns_log=returns_log(pl.col("close")).round(4))["returns_log"].to_list()
         [None, 0.0488, None, None, 0.0183, nan, nan, 0.0175]
+
+        **Domain** — a negative price relative is outside the logarithm's domain and returns ``NaN``, a zero
+        relative logs to ``-inf``, and a zero previous price makes the relative ``+inf``:
+
+        >>> frame = pl.DataFrame({"close": [10.0, -5.0, 0.0, 5.0]})
+        >>> frame.select(returns_log=returns_log(pl.col("close")))["returns_log"].to_list()
+        [None, nan, -inf, inf]
+
+        **Degenerate denominator** — a ``-0.0`` previous price flips the relative's sign, so a positive price
+        gives a negative relative and the log is ``NaN``:
+
+        >>> frame = pl.DataFrame({"close": [-0.0, 5.0]})
+        >>> frame.select(returns_log=returns_log(pl.col("close")))["returns_log"].to_list()
+        [None, nan]
+
+        **Degenerate denominator** — a ``-0.0`` previous price with a negative price gives a positive relative,
+        so the log is ``+inf``:
+
+        >>> frame = pl.DataFrame({"close": [-0.0, -5.0]})
+        >>> frame.select(returns_log=returns_log(pl.col("close")))["returns_log"].to_list()
+        [None, inf]
+
+        **Non-finite input** — two consecutive same-sign infinite prices divide to an indeterminate ``inf / inf``,
+        so the second log return is ``NaN``:
+
+        >>> frame = pl.DataFrame({"close": [float("inf"), float("inf"), 1.0, float("-inf")]})
+        >>> frame.select(returns_log=returns_log(pl.col("close")))["returns_log"].to_list()
+        [None, nan, -inf, nan]
     """
     expr = float64_expr(expr)
     # The natural log of the one-bar price relative; the first row is null (no prior) and the IEEE-754 log carries the
@@ -171,7 +200,7 @@ def returns_simple(
         >>> from pomata.pnl import returns_simple
         >>>
         >>> frame = pl.DataFrame({"close": [100.0, 102.0, 101.0, 105.0, 104.0, 107.0, 110.0, 108.0, 112.0]})
-        >>> frame.select(returns_simple(pl.col("close")).round(4).alias("returns_simple"))["returns_simple"].to_list()
+        >>> frame.select(returns_simple=returns_simple(pl.col("close")).round(4))["returns_simple"].to_list()
         [None, 0.02, -0.0098, 0.0396, -0.0095, 0.0288, 0.028, -0.0182, 0.037]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -182,15 +211,30 @@ def returns_simple(
         ...         "close": [100.0, 105.0, 102.0, 108.0, 50.0, 52.0, 51.0, 55.0],
         ...     }
         ... )
-        >>> frame.with_columns(returns_simple(pl.col("close")).over("ticker").round(4).alias("r"))["r"].to_list()
+        >>> expr = returns_simple(pl.col("close")).over("ticker").round(4)
+        >>> frame.with_columns(returns_simple=expr)["returns_simple"].to_list()
         [None, 0.05, -0.0286, 0.0588, None, 0.04, -0.0192, 0.0784]
 
         A ``null`` (whose lag voids the next bar too) and a ``NaN`` (which propagates) touch only the positions that
         reference them before the series recovers, making the missing-data handling visible:
 
         >>> frame = pl.DataFrame({"close": [100.0, 105.0, None, 108.0, 110.0, float("nan"), 113.0, 115.0]})
-        >>> frame.select(returns_simple(pl.col("close")).round(4).alias("returns_simple"))["returns_simple"].to_list()
+        >>> frame.select(returns_simple=returns_simple(pl.col("close")).round(4))["returns_simple"].to_list()
         [None, 0.05, None, None, 0.0185, nan, nan, 0.0177]
+
+        **Degenerate denominator** — a nonzero price change over a zero previous price is ``+inf`` or ``-inf``
+        (sign-tracking), while a zero change over a zero previous price is ``NaN``:
+
+        >>> frame = pl.DataFrame({"close": [0.0, 10.0, 0.0, 0.0]})
+        >>> frame.select(returns_simple=returns_simple(pl.col("close")))["returns_simple"].to_list()
+        [None, inf, -1.0, nan]
+
+        **Non-finite input** — two consecutive same-sign infinite prices divide to an indeterminate ``inf / inf``,
+        so the second return is ``NaN``:
+
+        >>> frame = pl.DataFrame({"close": [float("inf"), float("inf"), 1.0, float("-inf")]})
+        >>> frame.select(returns_simple=returns_simple(pl.col("close")))["returns_simple"].to_list()
+        [None, nan, -1.0, -inf]
     """
     expr = float64_expr(expr)
     # The one-bar price relative minus one; the first row is null (no prior) and a zero previous price divides by zero

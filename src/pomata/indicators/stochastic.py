@@ -118,9 +118,9 @@ def stochastic_fast(
         ...     }
         ... )
         >>> oscillator = stochastic_fast(pl.col("high"), pl.col("low"), pl.col("close"), window_k=3, window_d=2)
-        >>> frame.select(oscillator.struct.field("k").round(4).alias("k"))["k"].to_list()
+        >>> frame.select(k=oscillator.struct.field("k").round(4))["k"].to_list()
         [None, None, 83.3333, 50.0, 80.0, 60.0, 80.0, 60.0]
-        >>> frame.select(oscillator.struct.field("d").round(4).alias("d"))["d"].to_list()
+        >>> frame.select(d=oscillator.struct.field("d").round(4))["d"].to_list()
         [None, None, None, 66.6667, 65.0, 70.0, 70.0, 70.0]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -134,7 +134,7 @@ def stochastic_fast(
         ...     }
         ... )
         >>> expr = stochastic_fast(pl.col("high"), pl.col("low"), pl.col("close"), window_k=2, window_d=2)
-        >>> frame.with_columns(expr.over("ticker").struct.field("k").round(4).alias("k"))["k"].to_list()
+        >>> frame.with_columns(k=expr.over("ticker").struct.field("k").round(4))["k"].to_list()
         [None, 75.0, 75.0, 33.3333, None, 75.0, 75.0, 33.3333]
 
         A ``null`` (yields ``null`` on ``k`` at that row) and a ``NaN`` (which propagates) in ``close`` surface on
@@ -148,8 +148,36 @@ def stochastic_fast(
         ...     }
         ... )
         >>> oscillator = stochastic_fast(pl.col("high"), pl.col("low"), pl.col("close"), window_k=3, window_d=2)
-        >>> frame.select(oscillator.struct.field("k").round(4).alias("k"))["k"].to_list()
+        >>> frame.select(k=oscillator.struct.field("k").round(4))["k"].to_list()
         [None, None, 83.3333, None, 80.0, nan, 80.0, 60.0]
+
+        **Degenerate denominator** — a flat window makes the raw %K's ``0/0`` division ``NaN``, which the %D pass
+        carries through:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.0, 10.0, 10.0],
+        ...         "low": [10.0, 10.0, 10.0],
+        ...         "close": [10.0, 10.0, 10.0],
+        ...     }
+        ... )
+        >>> expr = stochastic_fast(pl.col("high"), pl.col("low"), pl.col("close"), window_k=2, window_d=1)
+        >>> frame.select(k=expr.struct.field("k"))["k"].to_list()
+        [None, nan, nan]
+
+        **Degenerate denominator** — a malformed bar whose close sits above a flat ``high == low`` look-back makes the
+        raw %K a nonzero over zero, so %K is ``+inf``, which the %D pass carries through:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.0, 10.0, 10.0],
+        ...         "low": [10.0, 10.0, 10.0],
+        ...         "close": [20.0, 20.0, 20.0],
+        ...     }
+        ... )
+        >>> expr = stochastic_fast(pl.col("high"), pl.col("low"), pl.col("close"), window_k=2, window_d=1)
+        >>> frame.select(k=expr.struct.field("k"))["k"].to_list()
+        [None, inf, inf]
     """
     high = float64_expr(high)
     low = float64_expr(low)
@@ -255,9 +283,9 @@ def stochastic_slow(
         >>> oscillator = stochastic_slow(
         ...     pl.col("high"), pl.col("low"), pl.col("close"), window_k=3, window_slowing=2, window_d=2
         ... )
-        >>> frame.select(oscillator.struct.field("k").round(4).alias("k"))["k"].to_list()
+        >>> frame.select(k=oscillator.struct.field("k").round(4))["k"].to_list()
         [None, None, None, 66.6667, 65.0, 70.0, 70.0, 70.0]
-        >>> frame.select(oscillator.struct.field("d").round(4).alias("d"))["d"].to_list()
+        >>> frame.select(d=oscillator.struct.field("d").round(4))["d"].to_list()
         [None, None, None, None, 65.8333, 67.5, 70.0, 70.0]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -273,7 +301,7 @@ def stochastic_slow(
         >>> expr = stochastic_slow(
         ...     pl.col("high"), pl.col("low"), pl.col("close"), window_k=2, window_slowing=2, window_d=2
         ... )
-        >>> frame.with_columns(expr.over("ticker").struct.field("k").round(4).alias("k"))["k"].to_list()
+        >>> frame.with_columns(k=expr.over("ticker").struct.field("k").round(4))["k"].to_list()
         [None, None, 75.0, 54.1667, 56.6667, None, None, 75.0, 54.1667, 56.6667]
 
         A ``null`` (nulls every slow %K window it falls in) and a ``NaN`` (which propagates the same way) in
@@ -289,8 +317,40 @@ def stochastic_slow(
         >>> oscillator = stochastic_slow(
         ...     pl.col("high"), pl.col("low"), pl.col("close"), window_k=2, window_slowing=2, window_d=2
         ... )
-        >>> frame.select(oscillator.struct.field("k").round(4).alias("k"))["k"].to_list()
+        >>> frame.select(k=oscillator.struct.field("k").round(4))["k"].to_list()
         [None, None, 75.0, None, None, nan, nan, 56.6667]
+
+        **Degenerate denominator** — a flat look-back makes the raw %K's ``0/0`` division ``NaN``, passed through by
+        the slowing and %D SMAs:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.0, 10.0, 10.0],
+        ...         "low": [10.0, 10.0, 10.0],
+        ...         "close": [10.0, 10.0, 10.0],
+        ...     }
+        ... )
+        >>> expr = stochastic_slow(
+        ...     pl.col("high"), pl.col("low"), pl.col("close"), window_k=2, window_slowing=1, window_d=1
+        ... )
+        >>> frame.select(k=expr.struct.field("k"))["k"].to_list()
+        [None, nan, nan]
+
+        **Degenerate denominator** — a malformed bar whose close sits above a flat ``high == low`` look-back makes the
+        raw %K a nonzero over zero, so %K is ``+inf``, passed through by the slowing and %D SMAs:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.0, 10.0, 10.0],
+        ...         "low": [10.0, 10.0, 10.0],
+        ...         "close": [20.0, 20.0, 20.0],
+        ...     }
+        ... )
+        >>> expr = stochastic_slow(
+        ...     pl.col("high"), pl.col("low"), pl.col("close"), window_k=2, window_slowing=1, window_d=1
+        ... )
+        >>> frame.select(k=expr.struct.field("k"))["k"].to_list()
+        [None, inf, inf]
     """
     high = float64_expr(high)
     low = float64_expr(low)

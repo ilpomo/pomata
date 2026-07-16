@@ -102,23 +102,26 @@ def absolute_price_oscillator(
         >>>
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, 11.0, 13.0, 14.0, 13.0, 15.0]})
         >>> expr = absolute_price_oscillator(pl.col("close"), window_fast=2, window_slow=3).round(4)
-        >>> frame.select(expr.alias("apo"))["apo"].to_list()
+        >>> frame.select(absolute_price_oscillator=expr)["absolute_price_oscillator"].to_list()
         [None, None, 0.5, 0.1667, 0.3889, 0.463, 0.1543, 0.3848]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker's EMAs warm up independently:
 
         >>> frame = pl.DataFrame(
-        ...     {"ticker": ["A"] * 4 + ["B"] * 4, "close": [10.0, 11.0, 12.0, 11.0, 20.0, 22.0, 24.0, 22.0]}
+        ...     {
+        ...         "ticker": ["A"] * 4 + ["B"] * 4,
+        ...         "close": [10.0, 11.0, 12.0, 11.0, 20.0, 22.0, 24.0, 22.0],
+        ...     }
         ... )
         >>> expr = absolute_price_oscillator(pl.col("close"), window_fast=2, window_slow=3).over("ticker").round(4)
-        >>> frame.with_columns(expr.alias("apo"))["apo"].to_list()
+        >>> frame.with_columns(absolute_price_oscillator=expr)["absolute_price_oscillator"].to_list()
         [None, None, 0.5, 0.1667, None, None, 1.0, 0.3333]
 
         A ``null`` (which the recursive EMA bridges) and a ``NaN`` (which latches) make the handling visible:
 
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, None, 13.0, float("nan"), 15.0]})
         >>> expr = absolute_price_oscillator(pl.col("close"), window_fast=2, window_slow=3).round(4)
-        >>> frame.select(expr.alias("apo"))["apo"].to_list()
+        >>> frame.select(absolute_price_oscillator=expr)["absolute_price_oscillator"].to_list()
         [None, None, None, 1.3095, nan, nan]
     """
     expr = float64_expr(expr)
@@ -209,7 +212,7 @@ def aroon(
         ...         "low": [9.0, 10.0, 11.0, 10.0, 12.0, 11.0, 13.0, 12.0],
         ...     }
         ... )
-        >>> bands = frame.select(aroon(pl.col("high"), pl.col("low"), 3).alias("aroon")).unnest("aroon")
+        >>> bands = frame.select(aroon=aroon(pl.col("high"), pl.col("low"), 3)).unnest("aroon")
         >>> bands["up"].round(4).to_list()
         [None, None, None, 66.6667, 100.0, 66.6667, 100.0, 66.6667]
         >>> bands["down"].round(4).to_list()
@@ -225,7 +228,7 @@ def aroon(
         ...     }
         ... )
         >>> expr = aroon(pl.col("high"), pl.col("low"), 3).over("ticker").struct.field("up").round(4)
-        >>> frame.with_columns(expr.alias("up"))["up"].to_list()
+        >>> frame.with_columns(up=expr)["up"].to_list()
         [None, None, None, 66.6667, 100.0, None, None, None, 66.6667, 100.0]
 
         A ``null`` (which nulls the affected line) and a ``NaN`` (which propagates) in ``high`` make the handling
@@ -238,7 +241,7 @@ def aroon(
         ...     }
         ... )
         >>> expr = aroon(pl.col("high"), pl.col("low"), 3).struct.field("up").round(4)
-        >>> frame.select(expr.alias("up"))["up"].to_list()
+        >>> frame.select(up=expr)["up"].to_list()
         [None, None, None, 100.0, None, None, None, None, 100.0, nan, nan, nan]
     """
     high = float64_expr(high)
@@ -331,7 +334,7 @@ def aroon_oscillator(
         ...     }
         ... )
         >>> expr = aroon_oscillator(pl.col("high"), pl.col("low"), 3).round(4)
-        >>> frame.select(expr.alias("osc"))["osc"].to_list()
+        >>> frame.select(aroon_oscillator=expr)["aroon_oscillator"].to_list()
         [None, None, None, 66.6667, 33.3333, 33.3333, 100.0, 33.3333]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -344,7 +347,7 @@ def aroon_oscillator(
         ...     }
         ... )
         >>> expr = aroon_oscillator(pl.col("high"), pl.col("low"), 3).over("ticker").round(4)
-        >>> frame.with_columns(expr.alias("osc"))["osc"].to_list()
+        >>> frame.with_columns(aroon_oscillator=expr)["aroon_oscillator"].to_list()
         [None, None, None, 66.6667, 33.3333, None, None, None, 66.6667, 33.3333]
 
         A ``null`` (which nulls the oscillator) and a ``NaN`` (which propagates) in ``high`` make the handling
@@ -357,8 +360,21 @@ def aroon_oscillator(
         ...     }
         ... )
         >>> expr = aroon_oscillator(pl.col("high"), pl.col("low"), 3).round(4)
-        >>> frame.select(expr.alias("osc"))["osc"].to_list()
+        >>> frame.select(aroon_oscillator=expr)["aroon_oscillator"].to_list()
         [None, None, None, 100.0, None, None, None, None, 100.0, nan, nan, nan]
+
+        **window == 1** — a one-bar look-back collapses each Aroon line to the last two bars, so a strictly
+        alternating series saturates the oscillator at ``+100`` or ``-100`` from the second row on:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.0, 11.0, 12.0, 11.0, 13.0, 12.0, 14.0, 13.0, 15.0, 14.0],
+        ...         "low": [9.0, 10.0, 11.0, 10.0, 12.0, 11.0, 13.0, 12.0, 14.0, 13.0],
+        ...     }
+        ... )
+        >>> expr = aroon_oscillator(pl.col("high"), pl.col("low"), window=1)
+        >>> frame.select(aroon_oscillator=expr)["aroon_oscillator"].to_list()
+        [None, 100.0, 100.0, -100.0, 100.0, -100.0, 100.0, -100.0, 100.0, -100.0]
     """
     high = float64_expr(high)
     low = float64_expr(low)
@@ -440,9 +456,14 @@ def awesome_oscillator(
         >>> import polars as pl
         >>> from pomata.indicators import awesome_oscillator
         >>>
-        >>> frame = pl.DataFrame({"high": [2.0, 4.0, 6.0, 8.0, 10.0], "low": [0.0, 2.0, 4.0, 6.0, 8.0]})
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [2.0, 4.0, 6.0, 8.0, 10.0],
+        ...         "low": [0.0, 2.0, 4.0, 6.0, 8.0],
+        ...     }
+        ... )
         >>> expr = awesome_oscillator(pl.col("high"), pl.col("low"), window_fast=2, window_slow=3)
-        >>> frame.select(expr.round(4).alias("ao"))["ao"].to_list()
+        >>> frame.select(awesome_oscillator=expr.round(4))["awesome_oscillator"].to_list()
         [None, None, 1.0, 1.0, 1.0]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -455,7 +476,7 @@ def awesome_oscillator(
         ...     }
         ... )
         >>> expr = awesome_oscillator(pl.col("high"), pl.col("low"), window_fast=2, window_slow=3)
-        >>> frame.with_columns(expr.over("ticker").round(4).alias("ao"))["ao"].to_list()
+        >>> frame.with_columns(awesome_oscillator=expr.over("ticker").round(4))["awesome_oscillator"].to_list()
         [None, None, 0.5, 0.2917, 0.125, None, None, 0.5, 0.2917, 0.125]
 
         A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make it visible:
@@ -467,8 +488,34 @@ def awesome_oscillator(
         ...     }
         ... )
         >>> expr = awesome_oscillator(pl.col("high"), pl.col("low"), window_fast=2, window_slow=3)
-        >>> frame.select(expr.round(4).alias("ao"))["ao"].to_list()
+        >>> frame.select(awesome_oscillator=expr.round(4))["awesome_oscillator"].to_list()
         [None, None, 0.5, 0.2917, 0.125, None, None, None, nan, nan]
+
+        **Insufficient sample** — a fast and slow window both collapsed to a single bar leave no warm-up to wait
+        out, so a one-row series reads a well-defined ``0``:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [2.0],
+        ...         "low": [0.0],
+        ...     }
+        ... )
+        >>> expr = awesome_oscillator(pl.col("high"), pl.col("low"), window_fast=1, window_slow=1)
+        >>> frame.select(awesome_oscillator=expr)["awesome_oscillator"].to_list()
+        [0.0]
+
+        **Degenerate denominator** — a constant median price makes the fast and slow averages equal, so the
+        oscillator is exactly ``0``:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [5.0, 5.0, 5.0, 5.0, 5.0],
+        ...         "low": [5.0, 5.0, 5.0, 5.0, 5.0],
+        ...     }
+        ... )
+        >>> expr = awesome_oscillator(pl.col("high"), pl.col("low"), window_fast=2, window_slow=3)
+        >>> frame.select(awesome_oscillator=expr)["awesome_oscillator"].to_list()
+        [None, None, 0.0, 0.0, 0.0]
     """
     high = float64_expr(high)
     low = float64_expr(low)
@@ -558,7 +605,7 @@ def balance_of_power(
         ...     }
         ... )
         >>> expr = balance_of_power(pl.col("open"), pl.col("high"), pl.col("low"), pl.col("close")).round(4)
-        >>> frame.select(expr.alias("bop"))["bop"].to_list()
+        >>> frame.select(balance_of_power=expr)["balance_of_power"].to_list()
         [0.25, 0.3333, -0.5, 0.3333]
 
         Balance of Power is elementwise, so ``.over`` is optional; each ticker yields the same per-bar reading:
@@ -573,7 +620,7 @@ def balance_of_power(
         ...     }
         ... )
         >>> expr = balance_of_power(pl.col("open"), pl.col("high"), pl.col("low"), pl.col("close"))
-        >>> frame.with_columns(expr.over("ticker").round(4).alias("bop"))["bop"].to_list()
+        >>> frame.with_columns(balance_of_power=expr.over("ticker").round(4))["balance_of_power"].to_list()
         [0.25, 0.3333, -0.5, 0.3333, 0.25, 0.3333, -0.5, 0.3333]
 
         A flat bar (``high == low``, giving ``0``), then a ``null`` and a ``NaN`` in ``close`` make the edge
@@ -588,8 +635,23 @@ def balance_of_power(
         ...     }
         ... )
         >>> expr = balance_of_power(pl.col("open"), pl.col("high"), pl.col("low"), pl.col("close")).round(4)
-        >>> frame.select(expr.alias("bop"))["bop"].to_list()
+        >>> frame.select(balance_of_power=expr)["balance_of_power"].to_list()
         [0.25, 0.0, None, 0.5, nan]
+
+        **Degenerate denominator** — a flat bar with ``high`` equal to ``low`` has an exact zero range, the bare
+        ``0/0``, but returns ``0`` by convention:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "open": [10.0, 12.0],
+        ...         "high": [11.0, 12.0],
+        ...         "low": [9.0, 12.0],
+        ...         "close": [10.5, 11.0],
+        ...     }
+        ... )
+        >>> expr = balance_of_power(pl.col("open"), pl.col("high"), pl.col("low"), pl.col("close"))
+        >>> frame.select(balance_of_power=expr)["balance_of_power"].to_list()
+        [0.25, 0.0]
     """
     open = float64_expr(open)
     high = float64_expr(high)
@@ -687,9 +749,7 @@ def cci(
         ...         "close": [24.0, 24.2, 24.5, 24.8, 24.6, 24.3, 24.4],
         ...     }
         ... )
-        >>> frame.select(cci(pl.col("high"), pl.col("low"), pl.col("close"), window=3).round(4).alias("cci_3"))[
-        ...     "cci_3"
-        ... ].to_list()
+        >>> frame.select(cci=cci(pl.col("high"), pl.col("low"), pl.col("close"), window=3).round(4))["cci"].to_list()
         [None, None, 100.0, 100.0, -20.0, -100.0, -20.0]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -703,7 +763,7 @@ def cci(
         ...     }
         ... )
         >>> expr = cci(pl.col("high"), pl.col("low"), pl.col("close"), 2).over("ticker").round(4)
-        >>> frame.with_columns(expr.alias("cci"))["cci"].to_list()
+        >>> frame.with_columns(cci=expr)["cci"].to_list()
         [None, 66.6667, 66.6667, -66.6667, None, 66.6667, -66.6667, 66.6667]
 
         A ``null`` and a ``NaN`` in ``close`` (each voiding every window that covers it) make the exact handling
@@ -717,8 +777,47 @@ def cci(
         ...     }
         ... )
         >>> expr = cci(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
-        >>> frame.select(expr.alias("cci"))["cci"].to_list()
+        >>> frame.select(cci=expr)["cci"].to_list()
         [None, 66.6667, 66.6667, None, None, 66.6667, nan, nan]
+
+        **Insufficient sample** — a single-row series with a one-bar window is trivially flat, so the result is
+        ``NaN`` immediately:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.0],
+        ...         "low": [8.0],
+        ...         "close": [9.0],
+        ...     }
+        ... )
+        >>> frame.select(cci=cci(pl.col("high"), pl.col("low"), pl.col("close"), window=1))["cci"].to_list()
+        [nan]
+
+        **Degenerate denominator** — a constant series gives a zero mean deviation, the flat-window ``0/0``
+        degenerate, so the result is ``NaN``:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.0, 10.0, 10.0, 10.0, 10.0],
+        ...         "low": [8.0, 8.0, 8.0, 8.0, 8.0],
+        ...         "close": [9.0, 9.0, 9.0, 9.0, 9.0],
+        ...     }
+        ... )
+        >>> frame.select(cci=cci(pl.col("high"), pl.col("low"), pl.col("close"), window=3))["cci"].to_list()
+        [None, None, nan, nan, nan]
+
+        **window == 1** — a one-bar window makes every window trivially flat, the ``0/0`` boundary, so every
+        result is ``NaN``:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.0, 12.0, 11.0],
+        ...         "low": [8.0, 9.0, 9.0],
+        ...         "close": [9.0, 11.0, 10.0],
+        ...     }
+        ... )
+        >>> frame.select(cci=cci(pl.col("high"), pl.col("low"), pl.col("close"), window=1))["cci"].to_list()
+        [nan, nan, nan]
     """
     high = float64_expr(high)
     low = float64_expr(low)
@@ -818,7 +917,8 @@ def chande_momentum_oscillator(
         >>> from pomata.indicators import chande_momentum_oscillator
         >>>
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, 11.0, 13.0, 14.0, 13.0, 15.0]})
-        >>> frame.select(chande_momentum_oscillator(pl.col("close"), 3).round(4).alias("cmo"))["cmo"].to_list()
+        >>> expr = chande_momentum_oscillator(pl.col("close"), 3).round(4)
+        >>> frame.select(chande_momentum_oscillator=expr)["chande_momentum_oscillator"].to_list()
         [None, None, None, 33.3333, 50.0, 50.0, 50.0, 50.0]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -830,14 +930,31 @@ def chande_momentum_oscillator(
         ...     }
         ... )
         >>> expr = chande_momentum_oscillator(pl.col("close"), 3).over("ticker").round(4)
-        >>> frame.with_columns(expr.alias("cmo"))["cmo"].to_list()
+        >>> frame.with_columns(chande_momentum_oscillator=expr)["chande_momentum_oscillator"].to_list()
         [None, None, None, 33.3333, 50.0, None, None, None, 50.0, 20.0]
 
         A ``null`` (any window it touches yields ``null``) and a ``NaN`` (which propagates) make the handling visible:
 
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, None, 14.0, float("nan"), 16.0, 17.0]})
-        >>> frame.select(chande_momentum_oscillator(pl.col("close"), 3).round(4).alias("cmo"))["cmo"].to_list()
+        >>> expr = chande_momentum_oscillator(pl.col("close"), 3).round(4)
+        >>> frame.select(chande_momentum_oscillator=expr)["chande_momentum_oscillator"].to_list()
         [None, None, None, None, None, None, None, nan]
+
+        **Degenerate denominator** — an all-flat window has every change exactly zero, the ``0/0`` degenerate,
+        so the result is ``NaN``:
+
+        >>> frame = pl.DataFrame({"close": [10.0, 10.0, 10.0, 10.0, 10.0]})
+        >>> expr = chande_momentum_oscillator(pl.col("close"), window=3)
+        >>> frame.select(chande_momentum_oscillator=expr)["chande_momentum_oscillator"].to_list()
+        [None, None, None, nan, nan]
+
+        **window == 1** — a one-bar window collapses the rolling gain/loss sums to the raw move direction, so
+        each row reports ``+100`` on an up move and ``-100`` on a down move:
+
+        >>> frame = pl.DataFrame({"close": [1.0, 3.0, 2.0, 5.0]})
+        >>> expr = chande_momentum_oscillator(pl.col("close"), window=1)
+        >>> frame.select(chande_momentum_oscillator=expr)["chande_momentum_oscillator"].to_list()
+        [None, 100.0, -100.0, 100.0]
     """
     expr = float64_expr(expr)
     validate_window(window)
@@ -993,7 +1110,9 @@ def fisher_transform(
         ...         "low": [9.0, 10.0, 11.0, 12.0, 13.0, 12.0, 11.0, 12.0, 13.0, 14.0],
         ...     }
         ... )
-        >>> out = frame.select(fisher_transform(pl.col("high"), pl.col("low"), 3).alias("ft")).unnest("ft")
+        >>> out = frame.select(
+        ...     fisher_transform=fisher_transform(pl.col("high"), pl.col("low"), 3)
+        ... ).unnest("fisher_transform")
         >>> out.select(pl.col("fisher").round(4))["fisher"].to_list()
         [None, None, 0.3428, 0.7914, 1.2615, 0.7701, 0.1432, 0.2444, 0.6002, 1.038]
         >>> out.select(pl.col("signal").round(4))["signal"].to_list()
@@ -1009,7 +1128,7 @@ def fisher_transform(
         ...     }
         ... )
         >>> expr = fisher_transform(pl.col("high"), pl.col("low"), 3)
-        >>> frame.with_columns(expr.over("ticker").struct.field("fisher").round(4).alias("f"))["f"].to_list()
+        >>> frame.with_columns(fisher=expr.over("ticker").struct.field("fisher").round(4))["fisher"].to_list()
         [None, None, 0.3428, 0.3962, 0.7187, None, None, 0.3428, 0.3962, 0.7187]
 
         A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make it visible:
@@ -1021,8 +1140,34 @@ def fisher_transform(
         ...     }
         ... )
         >>> expr = fisher_transform(pl.col("high"), pl.col("low"), 3)
-        >>> frame.select(expr.struct.field("fisher").round(4).alias("f"))["f"].to_list()
+        >>> frame.select(fisher=expr.struct.field("fisher").round(4))["fisher"].to_list()
         [None, None, 0.3428, None, None, None, nan]
+
+        **Insufficient sample** — a one-bar window is flat by construction (``max == min``), so ``fisher`` is
+        ``NaN`` from the first row:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [11.0],
+        ...         "low": [9.0],
+        ...     }
+        ... )
+        >>> expr = fisher_transform(pl.col("high"), pl.col("low"), window=1)
+        >>> frame.select(fisher=expr.struct.field("fisher"))["fisher"].to_list()
+        [nan]
+
+        **Degenerate denominator** — a constant series has ``max == min`` over every window, so the channel
+        normalization is the ``0/0`` boundary, which bridges through the recursion as ``NaN``:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.0, 10.0, 10.0, 10.0, 10.0, 10.0],
+        ...         "low": [10.0, 10.0, 10.0, 10.0, 10.0, 10.0],
+        ...     }
+        ... )
+        >>> expr = fisher_transform(pl.col("high"), pl.col("low"), window=3)
+        >>> frame.select(fisher=expr.struct.field("fisher"))["fisher"].to_list()
+        [None, None, nan, nan, nan, nan]
     """
     high = float64_expr(high)
     low = float64_expr(low)
@@ -1116,7 +1261,7 @@ def macd(
         >>>
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, 11.0, 13.0, 14.0, 13.0, 15.0]})
         >>> bands = frame.select(
-        ...     macd(pl.col("close"), window_fast=2, window_slow=3, window_signal=2).alias("macd")
+        ...     macd=macd(pl.col("close"), window_fast=2, window_slow=3, window_signal=2)
         ... ).unnest("macd")
         >>> bands["macd"].round(4).to_list()
         [None, None, 0.5, 0.1667, 0.3889, 0.463, 0.1543, 0.3848]
@@ -1128,10 +1273,13 @@ def macd(
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker's EMAs warm up independently:
 
         >>> frame = pl.DataFrame(
-        ...     {"ticker": ["A"] * 4 + ["B"] * 4, "close": [10.0, 11.0, 12.0, 11.0, 20.0, 22.0, 24.0, 22.0]}
+        ...     {
+        ...         "ticker": ["A"] * 4 + ["B"] * 4,
+        ...         "close": [10.0, 11.0, 12.0, 11.0, 20.0, 22.0, 24.0, 22.0],
+        ...     }
         ... )
         >>> expr = macd(pl.col("close"), window_fast=2, window_slow=3, window_signal=2)
-        >>> frame.with_columns(expr.over("ticker").struct.field("macd").round(4).alias("macd"))["macd"].to_list()
+        >>> frame.with_columns(macd=expr.over("ticker").struct.field("macd").round(4))["macd"].to_list()
         [None, None, 0.5, 0.1667, None, None, 1.0, 0.3333]
 
         A ``null`` (which the recursive EMAs bridge) and a ``NaN`` (which latches) make the handling visible on
@@ -1139,7 +1287,7 @@ def macd(
 
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, None, 13.0, float("nan"), 15.0]})
         >>> expr = macd(pl.col("close"), window_fast=2, window_slow=3, window_signal=2)
-        >>> frame.select(expr.struct.field("macd").round(4).alias("macd"))["macd"].to_list()
+        >>> frame.select(macd=expr.struct.field("macd").round(4))["macd"].to_list()
         [None, None, None, 1.3095, nan, nan]
     """
     expr = float64_expr(expr)
@@ -1220,7 +1368,7 @@ def mom(
         >>> from pomata.indicators import mom
         >>>
         >>> frame = pl.DataFrame({"close": [2.0, 4.0, 6.0, 8.0, 10.0]})
-        >>> frame.select(mom(pl.col("close"), window=2).round(4).alias("mom_2"))["mom_2"].to_list()
+        >>> frame.select(mom=mom(pl.col("close"), window=2).round(4))["mom"].to_list()
         [None, None, 4.0, 4.0, 4.0]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -1231,15 +1379,27 @@ def mom(
         ...         "close": [10.0, 11.0, 12.0, 11.0, 13.0, 20.0, 22.0, 21.0, 23.0, 22.0],
         ...     }
         ... )
-        >>> frame.with_columns(mom(pl.col("close"), 2).over("ticker").round(4).alias("mom"))["mom"].to_list()
+        >>> frame.with_columns(mom=mom(pl.col("close"), 2).over("ticker").round(4))["mom"].to_list()
         [None, None, 2.0, 0.0, 1.0, None, None, 1.0, 1.0, 1.0]
 
         A ``null`` (voiding the rows that reference it) and a ``NaN`` (which propagates) make the
         exact handling visible at a glance:
 
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, 13.0, None, 15.0, float("nan"), 17.0, 18.0, 19.0]})
-        >>> frame.select(mom(pl.col("close"), 2).round(4).alias("mom"))["mom"].to_list()
+        >>> frame.select(mom=mom(pl.col("close"), 2).round(4))["mom"].to_list()
         [None, None, 2.0, 2.0, None, 2.0, None, 2.0, nan, 2.0]
+
+        **Degenerate denominator** — the momentum of a constant series is exactly ``0`` once warmed up:
+
+        >>> frame = pl.DataFrame({"close": [5.0, 5.0, 5.0, 5.0, 5.0, 5.0]})
+        >>> frame.select(mom=mom(pl.col("close"), window=3))["mom"].to_list()
+        [None, None, None, 0.0, 0.0, 0.0]
+
+        **window == 1** — a one-bar window is the first difference with a single leading ``null``:
+
+        >>> frame = pl.DataFrame({"close": [2.0, 4.0, 6.0, 8.0]})
+        >>> frame.select(mom=mom(pl.col("close"), window=1))["mom"].to_list()
+        [None, 2.0, 2.0, 2.0]
     """
     expr = float64_expr(expr)
     validate_window(window)
@@ -1316,24 +1476,43 @@ def percentage_price_oscillator(
         >>>
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, 11.0, 13.0, 14.0, 13.0, 15.0]})
         >>> expr = percentage_price_oscillator(pl.col("close"), window_fast=2, window_slow=3).round(4)
-        >>> frame.select(expr.alias("ppo"))["ppo"].to_list()
+        >>> frame.select(percentage_price_oscillator=expr)["percentage_price_oscillator"].to_list()
         [None, None, 4.5455, 1.5152, 3.2407, 3.5613, 1.1871, 2.7484]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker's EMAs warm up independently:
 
         >>> frame = pl.DataFrame(
-        ...     {"ticker": ["A"] * 4 + ["B"] * 4, "close": [10.0, 11.0, 12.0, 11.0, 20.0, 22.0, 24.0, 22.0]}
+        ...     {
+        ...         "ticker": ["A"] * 4 + ["B"] * 4,
+        ...         "close": [10.0, 11.0, 12.0, 11.0, 20.0, 22.0, 24.0, 22.0],
+        ...     }
         ... )
         >>> expr = percentage_price_oscillator(pl.col("close"), window_fast=2, window_slow=3).over("ticker").round(4)
-        >>> frame.with_columns(expr.alias("ppo"))["ppo"].to_list()
+        >>> frame.with_columns(percentage_price_oscillator=expr)["percentage_price_oscillator"].to_list()
         [None, None, 4.5455, 1.5152, None, None, 4.5455, 1.5152]
 
         A ``null`` (which the recursive EMA bridges) and a ``NaN`` (which latches) make the handling visible:
 
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, None, 13.0, float("nan"), 15.0]})
         >>> expr = percentage_price_oscillator(pl.col("close"), window_fast=2, window_slow=3).round(4)
-        >>> frame.select(expr.alias("ppo"))["ppo"].to_list()
+        >>> frame.select(percentage_price_oscillator=expr)["percentage_price_oscillator"].to_list()
         [None, None, None, 11.5546, nan, nan]
+
+        **Degenerate denominator** — an all-zero series drives both EMAs to exactly ``0.0``, so the ``0/0``
+        boundary surfaces as ``NaN``:
+
+        >>> frame = pl.DataFrame({"close": [0.0, 0.0, 0.0, 0.0]})
+        >>> expr = percentage_price_oscillator(pl.col("close"), window_fast=2, window_slow=3)
+        >>> frame.select(percentage_price_oscillator=expr)["percentage_price_oscillator"].to_list()
+        [None, None, nan, nan]
+
+        **Degenerate denominator** — a window summing to zero seeds the slow EMA at exactly ``0.0`` while the
+        fast EMA stays non-zero, so the non-zero gap over the zero slow EMA is ``+/-inf``:
+
+        >>> frame = pl.DataFrame({"close": [1.0, 1.0, -2.0]})
+        >>> expr = percentage_price_oscillator(pl.col("close"), window_fast=2, window_slow=3)
+        >>> frame.select(percentage_price_oscillator=expr)["percentage_price_oscillator"].to_list()
+        [None, None, -inf]
     """
     expr = float64_expr(expr)
     validate_window(window_fast, name="window_fast")
@@ -1413,7 +1592,7 @@ def roc(
         >>> from pomata.indicators import roc
         >>>
         >>> frame = pl.DataFrame({"close": [2.0, 4.0, 6.0, 8.0, 10.0]})
-        >>> frame.select(roc(pl.col("close"), window=2).round(4).alias("roc_2"))["roc_2"].to_list()
+        >>> frame.select(roc=roc(pl.col("close"), window=2).round(4))["roc"].to_list()
         [None, None, 200.0, 100.0, 66.6667]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -1424,15 +1603,41 @@ def roc(
         ...         "close": [10.0, 11.0, 12.0, 11.0, 13.0, 20.0, 22.0, 21.0, 23.0, 22.0],
         ...     }
         ... )
-        >>> frame.with_columns(roc(pl.col("close"), 2).over("ticker").round(4).alias("roc"))["roc"].to_list()
+        >>> frame.with_columns(roc=roc(pl.col("close"), 2).over("ticker").round(4))["roc"].to_list()
         [None, None, 20.0, 0.0, 8.3333, None, None, 5.0, 4.5455, 4.7619]
 
         A ``null`` (voiding the rows that reference it) and a ``NaN`` (which propagates) make the
         exact handling visible at a glance:
 
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, 13.0, None, 15.0, float("nan"), 17.0, 18.0, 19.0]})
-        >>> frame.select(roc(pl.col("close"), 2).round(4).alias("roc"))["roc"].to_list()
+        >>> frame.select(roc=roc(pl.col("close"), 2).round(4))["roc"].to_list()
         [None, None, 20.0, 18.1818, None, 15.3846, None, 13.3333, nan, 11.7647]
+
+        **Insufficient sample** — a one-element series with a one-bar window stays undefined:
+
+        >>> frame = pl.DataFrame({"close": [42.0]})
+        >>> frame.select(roc=roc(pl.col("close"), window=1))["roc"].to_list()
+        [None]
+
+        **Degenerate denominator** — ROC of a constant non-zero series is exactly ``0`` once warmed up:
+
+        >>> frame = pl.DataFrame({"close": [5.0, 5.0, 5.0, 5.0]})
+        >>> frame.select(roc=roc(pl.col("close"), window=1))["roc"].to_list()
+        [None, 0.0, 0.0, 0.0]
+
+        **Degenerate denominator** — a non-zero change over a zero lagged value is ``+/-inf``, the sign tracking
+        the change direction:
+
+        >>> frame = pl.DataFrame({"close": [0.0, 5.0, 0.0, -5.0]})
+        >>> frame.select(roc=roc(pl.col("close"), window=1))["roc"].to_list()
+        [None, inf, -100.0, -inf]
+
+        **Degenerate denominator** — a zero change over zero is ``NaN`` (``0/0``), while a non-zero change over
+        zero is ``+inf``:
+
+        >>> frame = pl.DataFrame({"close": [0.0, 0.0, 5.0]})
+        >>> frame.select(roc=roc(pl.col("close"), window=1))["roc"].to_list()
+        [None, nan, inf]
     """
     expr = float64_expr(expr)
     validate_window(window)
@@ -1522,7 +1727,7 @@ def rsi(
         >>> from pomata.indicators import rsi
         >>>
         >>> frame = pl.DataFrame({"close": [44.34, 44.09, 44.15, 43.61, 44.33, 44.83, 45.10, 45.42]})
-        >>> frame.select(rsi(pl.col("close"), window=3).round(4).alias("rsi_3"))["rsi_3"].to_list()
+        >>> frame.select(rsi=rsi(pl.col("close"), window=3).round(4))["rsi"].to_list()
         [None, None, None, 7.0588, 59.0674, 74.1408, 80.0819, 85.8581]
 
         On a multi-ticker panel, wrap the call in ``.over`` so the difference and the recursion restart per group --
@@ -1534,15 +1739,35 @@ def rsi(
         ...         "close": [10.0, 11.0, 10.5, 11.5, 12.5, 50.0, 49.0, 51.0, 50.5, 52.0],
         ...     }
         ... )
-        >>> frame.with_columns(rsi(pl.col("close"), window=3).over("ticker").round(2).alias("rsi"))["rsi"].to_list()
+        >>> frame.with_columns(rsi=rsi(pl.col("close"), window=3).over("ticker").round(2))["rsi"].to_list()
         [None, None, None, 80.0, 87.5, None, None, None, 57.14, 73.91]
 
         A ``null`` (skipped, and any window it touches yields ``null``) and a ``NaN`` (which propagates) make the
         exact handling visible at a glance:
 
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, 13.0, None, 15.0, float("nan"), 17.0, 18.0, 19.0]})
-        >>> frame.select(rsi(pl.col("close"), 2).round(4).alias("rsi"))["rsi"].to_list()
+        >>> frame.select(rsi=rsi(pl.col("close"), 2).round(4))["rsi"].to_list()
         [None, None, 100.0, 100.0, None, None, nan, nan, nan, nan]
+
+        **Insufficient sample** — a one-element series has no difference to seed the recursion:
+
+        >>> frame = pl.DataFrame({"close": [42.0]})
+        >>> frame.select(rsi=rsi(pl.col("close"), window=1))["rsi"].to_list()
+        [None]
+
+        **Degenerate denominator** — zero gain and zero loss is the indeterminate ``0/0`` relative strength,
+        surfaced as ``NaN``:
+
+        >>> frame = pl.DataFrame({"close": [5.0, 5.0, 5.0, 5.0]})
+        >>> frame.select(rsi=rsi(pl.col("close"), window=2))["rsi"].to_list()
+        [None, None, nan, nan]
+
+        **window == 1** — a one-bar window collapses the Wilder smoothing to the raw move direction: ``100`` up,
+        ``0`` down:
+
+        >>> frame = pl.DataFrame({"close": [1.0, 3.0, 2.0, 5.0]})
+        >>> frame.select(rsi=rsi(pl.col("close"), window=1))["rsi"].to_list()
+        [None, 100.0, 0.0, 100.0]
     """
     expr = float64_expr(expr)
     validate_window(window)
@@ -1642,9 +1867,9 @@ def rsi_stochastic(
         >>>
         >>> frame = pl.DataFrame({"close": [50.0, 51.0, 50.5, 52.0, 51.5, 53.0, 52.0, 54.0, 53.5, 55.0]})
         >>> oscillator = rsi_stochastic(pl.col("close"), window_rsi=3, window_k=3, window_d=2)
-        >>> frame.select(oscillator.struct.field("k").round(4).alias("k"))["k"].to_list()
+        >>> frame.select(k=oscillator.struct.field("k").round(4))["k"].to_list()
         [None, None, None, None, None, 94.7368, 0.0, 81.5861, 44.2237, 100.0]
-        >>> frame.select(oscillator.struct.field("d").round(4).alias("d"))["d"].to_list()
+        >>> frame.select(d=oscillator.struct.field("d").round(4))["d"].to_list()
         [None, None, None, None, None, None, 47.3684, 40.793, 62.9049, 72.1118]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -1657,7 +1882,7 @@ def rsi_stochastic(
         ...     }
         ... )
         >>> expr = rsi_stochastic(pl.col("close"), window_rsi=3, window_k=3, window_d=2)
-        >>> frame.with_columns(expr.over("ticker").struct.field("k").round(4).alias("k"))["k"].to_list()
+        >>> frame.with_columns(k=expr.over("ticker").struct.field("k").round(4))["k"].to_list()
         [None, None, None, None, None, 94.7368, 0.0, 81.5861, None, None, None, None, None, 94.7368, 0.0, 81.5861]
 
         A ``null`` (which nulls the dependent %K) and a ``NaN`` (which propagates) make the handling visible:
@@ -1666,8 +1891,16 @@ def rsi_stochastic(
         ...     {"close": [50.0, 51.0, 50.5, 52.0, 51.5, 53.0, 52.0, 54.0, None, 55.0, float("nan"), 56.0, 57.0, 58.0]}
         ... )
         >>> expr = rsi_stochastic(pl.col("close"), window_rsi=3, window_k=3, window_d=2)
-        >>> frame.select(expr.struct.field("k").round(4).alias("k"))["k"].to_list()
+        >>> frame.select(k=expr.struct.field("k").round(4))["k"].to_list()
         [None, None, None, None, None, 94.7368, 0.0, 81.5861, None, None, None, None, nan, nan]
+
+        **Degenerate denominator** — a monotone run gives an exactly-flat RSI, so the %K channel normalization
+        is the ``0/0`` degenerate ``NaN``:
+
+        >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, 13.0, 14.0]})
+        >>> expr = rsi_stochastic(pl.col("close"), window_rsi=2, window_k=2, window_d=1)
+        >>> frame.select(k=expr.struct.field("k"))["k"].to_list()
+        [None, None, None, nan, nan]
     """
     expr = float64_expr(expr)
     validate_window(window_rsi, name="window_rsi")
@@ -1744,7 +1977,7 @@ def trix(
         >>> from pomata.indicators import trix
         >>>
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, 11.0, 13.0, 14.0, 13.0, 15.0]})
-        >>> frame.select(trix(pl.col("close"), 2).round(4).alias("trix"))["trix"].to_list()
+        >>> frame.select(trix=trix(pl.col("close"), 2).round(4))["trix"].to_list()
         [None, None, None, None, 5.4718, 7.4466, 2.989, 5.4253]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker's EMA chain warms up independently:
@@ -1756,14 +1989,29 @@ def trix(
         ...     }
         ... )
         >>> expr = trix(pl.col("close"), 2).over("ticker").round(4)
-        >>> frame.with_columns(expr.alias("trix"))["trix"].to_list()
+        >>> frame.with_columns(trix=expr)["trix"].to_list()
         [None, None, None, None, 8.6957, 8.0, None, None, None, None, 8.6957, 8.0]
 
         A ``null`` (which the EMA chain bridges) and a ``NaN`` (which latches) make the handling visible:
 
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, None, 14.0, float("nan"), 16.0, 17.0]})
-        >>> frame.select(trix(pl.col("close"), 2).round(4).alias("trix"))["trix"].to_list()
+        >>> frame.select(trix=trix(pl.col("close"), 2).round(4))["trix"].to_list()
         [None, None, None, None, None, nan, nan, nan]
+
+        **Degenerate denominator** — a zero-valued history drives the triple EMA to exactly zero, so the rate
+        of change divides by that zero: a ``0/0`` while the EMA holds at zero, ``+/-inf`` the moment it moves
+        off it:
+
+        >>> frame = pl.DataFrame({"close": [0.0, 0.0, 0.0, 0.0, 0.0, 5.0]})
+        >>> frame.select(trix=trix(pl.col("close"), window=2))["trix"].to_list()
+        [None, None, None, None, nan, inf]
+
+        **window == 1** — a one-bar window makes every EMA pass the identity, degenerating TRIX to the
+        one-period percentage ROC of the raw input:
+
+        >>> frame = pl.DataFrame({"close": [100.0, 120.0, 90.0, 108.0]})
+        >>> frame.select(trix=trix(pl.col("close"), window=1))["trix"].to_list()
+        [None, 20.0, -25.0, 20.0]
     """
     expr = float64_expr(expr)
     validate_window(window)
@@ -1880,7 +2128,7 @@ def ultimate_oscillator(
         >>> expr = ultimate_oscillator(
         ...     pl.col("high"), pl.col("low"), pl.col("close"), window_short=2, window_medium=3, window_long=4
         ... )
-        >>> frame.select(expr.round(4).alias("uo"))["uo"].to_list()
+        >>> frame.select(ultimate_oscillator=expr.round(4))["ultimate_oscillator"].to_list()
         [None, None, None, 60.7143, 66.6667, 65.0433]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -1896,7 +2144,7 @@ def ultimate_oscillator(
         >>> expr = ultimate_oscillator(
         ...     pl.col("high"), pl.col("low"), pl.col("close"), window_short=2, window_medium=3, window_long=4
         ... )
-        >>> frame.with_columns(expr.over("ticker").round(4).alias("uo"))["uo"].to_list()
+        >>> frame.with_columns(ultimate_oscillator=expr.over("ticker").round(4))["ultimate_oscillator"].to_list()
         [None, None, None, 60.7143, 66.6667, 65.0433, None, None, None, 60.7143, 66.6667, 65.0433]
 
         A ``null`` (which nulls the windows that cover it) and a ``NaN`` (which propagates, also poisoning the next
@@ -1912,8 +2160,40 @@ def ultimate_oscillator(
         >>> expr = ultimate_oscillator(
         ...     pl.col("high"), pl.col("low"), pl.col("close"), window_short=2, window_medium=3, window_long=4
         ... )
-        >>> frame.select(expr.round(4).alias("uo"))["uo"].to_list()
+        >>> frame.select(ultimate_oscillator=expr.round(4))["ultimate_oscillator"].to_list()
         [None, None, None, 60.7143, 66.6667, 65.0433, None, None, None, None, nan, nan, nan]
+
+        **Degenerate denominator** — the ``0/0`` degenerate on a flat well-formed series, detected via
+        residual-free rolling maxima:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.0, 10.0, 10.0],
+        ...         "low": [10.0, 10.0, 10.0],
+        ...         "close": [10.0, 10.0, 10.0],
+        ...     }
+        ... )
+        >>> expr = ultimate_oscillator(
+        ...     pl.col("high"), pl.col("low"), pl.col("close"), window_short=1, window_medium=1, window_long=2
+        ... )
+        >>> frame.select(ultimate_oscillator=expr)["ultimate_oscillator"].to_list()
+        [None, nan, nan]
+
+        **Degenerate denominator** — a missing low sends the true range to zero through the prior-close
+        fallback while the buying pressure stays positive, so the quotient is ``+/-inf``:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.0, 8.0],
+        ...         "low": [10.0, None],
+        ...         "close": [10.0, 12.0],
+        ...     }
+        ... )
+        >>> expr = ultimate_oscillator(
+        ...     pl.col("high"), pl.col("low"), pl.col("close"), window_short=1, window_medium=1, window_long=2
+        ... )
+        >>> frame.select(ultimate_oscillator=expr)["ultimate_oscillator"].to_list()
+        [None, inf]
     """
     high = float64_expr(high)
     low = float64_expr(low)
@@ -2044,9 +2324,8 @@ def williams_r(
         ...         "close": [9.0, 11.0, 10.5, 12.0, 14.0, 13.5],
         ...     }
         ... )
-        >>> frame.select(williams_r(pl.col("high"), pl.col("low"), pl.col("close"), window=3).round(4).alias("wr_3"))[
-        ...     "wr_3"
-        ... ].to_list()
+        >>> expr = williams_r(pl.col("high"), pl.col("low"), pl.col("close"), window=3).round(4)
+        >>> frame.select(williams_r=expr)["williams_r"].to_list()
         [None, None, -37.5, -25.0, -20.0, -37.5]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -2060,7 +2339,7 @@ def williams_r(
         ...     }
         ... )
         >>> expr = williams_r(pl.col("high"), pl.col("low"), pl.col("close"), 2).over("ticker").round(4)
-        >>> frame.with_columns(expr.alias("williams_r"))["williams_r"].to_list()
+        >>> frame.with_columns(williams_r=expr)["williams_r"].to_list()
         [None, -33.3333, -33.3333, -66.6667, None, -25.0, -66.6667, -25.0]
 
         A ``null`` and a ``NaN`` in ``close`` (each confined to its own bar, since the close enters elementwise) make
@@ -2074,8 +2353,48 @@ def williams_r(
         ...     }
         ... )
         >>> expr = williams_r(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
-        >>> frame.select(expr.alias("williams_r"))["williams_r"].to_list()
+        >>> frame.select(williams_r=expr)["williams_r"].to_list()
         [None, -33.3333, -33.3333, None, -33.3333, -33.3333, nan, -33.3333]
+
+        **Insufficient sample** — a single bar with a one-bar window:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.0],
+        ...         "low": [8.0],
+        ...         "close": [9.0],
+        ...     }
+        ... )
+        >>> expr = williams_r(pl.col("high"), pl.col("low"), pl.col("close"), window=1)
+        >>> frame.select(williams_r=expr)["williams_r"].to_list()
+        [-50.0]
+
+        **Degenerate denominator** — a flat window with close on that level is the ``0/0`` IEEE degenerate:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [5.0, 5.0, 5.0],
+        ...         "low": [5.0, 5.0, 5.0],
+        ...         "close": [5.0, 5.0, 5.0],
+        ...     }
+        ... )
+        >>> expr = williams_r(pl.col("high"), pl.col("low"), pl.col("close"), window=2)
+        >>> frame.select(williams_r=expr)["williams_r"].to_list()
+        [None, nan, nan]
+
+        **Degenerate denominator** — a flat window with close off that level is a non-zero numerator over a
+        zero denominator, signed ``inf``:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [5.0, 5.0],
+        ...         "low": [5.0, 5.0],
+        ...         "close": [3.0, 3.0],
+        ...     }
+        ... )
+        >>> expr = williams_r(pl.col("high"), pl.col("low"), pl.col("close"), window=2)
+        >>> frame.select(williams_r=expr)["williams_r"].to_list()
+        [None, -inf]
     """
     high = float64_expr(high)
     low = float64_expr(low)

@@ -292,7 +292,7 @@ def conditional_value_at_risk(
         ...     }
         ... )
         >>> reduced = conditional_value_at_risk(pl.col("returns"), confidence=0.75).over("ticker").round(4)
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(conditional_value_at_risk=reduced)["conditional_value_at_risk"].unique().sort().to_list()
         [-0.07, -0.055]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -395,7 +395,7 @@ def downside_deviation(
         ...     }
         ... )
         >>> reduced = downside_deviation(pl.col("returns"), periods_per_year=252).over("ticker").round(4)
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(downside_deviation=reduced)["downside_deviation"].unique().sort().to_list()
         [0.256, 0.5119]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -403,6 +403,13 @@ def downside_deviation(
         >>> frame = pl.DataFrame({"returns": [0.02, None, -0.04, 0.01, float("nan"), -0.06, 0.03]})
         >>> frame.select(downside_deviation(pl.col("returns"), periods_per_year=252).round(4)).item()
         nan
+
+        **Degenerate denominator** — returns all at or above the threshold have zero downside, so the deviation is
+        ``0``:
+
+        >>> frame = pl.DataFrame({"returns": [0.01, 0.02, 0.0, 0.03]})
+        >>> frame.select(downside_deviation(pl.col("returns"), periods_per_year=252)).item()
+        0.0
     """
     returns = float64_expr(returns)
     validate_periods_per_year(periods_per_year)
@@ -507,7 +514,7 @@ def downside_deviation_rolling(
         ...     }
         ... )
         >>> rolled = downside_deviation_rolling(pl.col("returns"), 3, periods_per_year=252).over("ticker").round(4)
-        >>> frame.select(rolled.alias("m"))["m"].to_list()
+        >>> frame.select(downside_deviation_rolling=rolled)["downside_deviation_rolling"].to_list()
         [None, None, 0.1833, 0.2049, 0.0917, 0.0917, 0.1375, None, None, 0.0917, 0.2898, 0.275, 0.275, 0.1833]
 
         A leading ``null`` and a later ``NaN`` show the per-window masking, with the result recovering once both
@@ -518,6 +525,14 @@ def downside_deviation_rolling(
         ...     downside_deviation_rolling(pl.col("returns"), 3, periods_per_year=252).round(4)
         ... ).to_series().to_list()
         [None, None, None, nan, nan, nan, 0.0917]
+
+        **Degenerate denominator** — a window with every return at or above the threshold has zero shortfall, so the
+        result is exactly ``0``:
+
+        >>> frame = pl.DataFrame({"returns": [0.01, 0.02, 0.03, 0.04]})
+        >>> expr = downside_deviation_rolling(pl.col("returns"), window=3, periods_per_year=252)
+        >>> frame.select(downside_deviation_rolling=expr)["downside_deviation_rolling"].to_list()
+        [None, None, 0.0, 0.0]
     """
     returns = float64_expr(returns)
     validate_window(window)
@@ -615,7 +630,7 @@ def kelly_criterion(
         ...     }
         ... )
         >>> reduced = kelly_criterion(pl.col("returns")).over("ticker").round(4)
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(kelly_criterion=reduced)["kelly_criterion"].unique().sort().to_list()
         [0.1758, 0.2286]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -623,6 +638,20 @@ def kelly_criterion(
         >>> frame = pl.DataFrame({"returns": [0.03, None, -0.01, 0.02, float("nan"), -0.015, 0.01]})
         >>> frame.select(kelly_criterion(pl.col("returns")).round(4)).item()
         nan
+
+        **Insufficient sample** — a one-element series is one-sided, so the payoff ratio is undefined and the fraction
+        is ``null``:
+
+        >>> frame = pl.DataFrame({"returns": [0.02]})
+        >>> frame.select(kelly_criterion=kelly_criterion(pl.col("returns")))["kelly_criterion"].to_list()
+        [None]
+
+        **Degenerate denominator** — an all-positive series has an undefined payoff ratio, so the fraction is
+        ``null``:
+
+        >>> frame = pl.DataFrame({"returns": [0.01, 0.02, 0.03]})
+        >>> frame.select(kelly_criterion=kelly_criterion(pl.col("returns")))["kelly_criterion"].to_list()
+        [None]
     """
     returns = float64_expr(returns)
     probability = win_rate(returns)
@@ -717,13 +746,20 @@ def kurtosis(
         ...     }
         ... )
         >>> reduced = kurtosis(pl.col("returns")).over("ticker").round(4)
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(kurtosis=reduced)["kurtosis"].unique().sort().to_list()
         [-1.4673, -1.3223]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
 
         >>> frame = pl.DataFrame({"returns": [0.01, None, -0.02, 0.015, float("nan"), -0.03, 0.005]})
         >>> frame.select(kurtosis(pl.col("returns")).round(4)).item()
+        nan
+
+        **Degenerate denominator** — a constant series has zero variance, so the standardized fourth moment is ``0/0``,
+        i.e. ``NaN``:
+
+        >>> frame = pl.DataFrame({"returns": [0.01, 0.01, 0.01]})
+        >>> frame.select(kurtosis(pl.col("returns"))).item()
         nan
     """
     returns = float64_expr(returns)
@@ -823,7 +859,7 @@ def kurtosis_rolling(
         ...     }
         ... )
         >>> rolled = kurtosis_rolling(pl.col("returns"), 4).over("ticker").round(4)
-        >>> frame.select(rolled.alias("m"))["m"].to_list()
+        >>> frame.select(kurtosis_rolling=rolled)["kurtosis_rolling"].to_list()
         [None, None, None, -1.4266, -1.7785, -1.64, -1.099, None, None, None, -1.5244, -1.2555, -1.0441, -1.6961]
 
         A leading ``null`` and a later ``NaN`` show the per-window masking, with the result recovering once both
@@ -832,6 +868,13 @@ def kurtosis_rolling(
         >>> frame = pl.DataFrame({"returns": [None, 0.01, float("nan"), -0.02, 0.03, -0.01, 0.02, 0.0, -0.015]})
         >>> frame.select(kurtosis_rolling(pl.col("returns"), 4).round(4))["returns"].to_list()
         [None, None, None, None, nan, nan, -1.7785, -1.64, -1.099]
+
+        **Degenerate denominator** — a constant window has zero variance, so the standardized moment is ``0/0``, i.e.
+        ``NaN``:
+
+        >>> frame = pl.DataFrame({"returns": [0.3, 0.3, 0.3, 0.3]})
+        >>> frame.select(kurtosis_rolling=kurtosis_rolling(pl.col("returns"), window=3))["kurtosis_rolling"].to_list()
+        [None, None, nan, nan]
     """
     returns = float64_expr(returns)
     validate_window(window, minimum=2)
@@ -927,7 +970,7 @@ def payoff_ratio(
         ...     }
         ... )
         >>> reduced = payoff_ratio(pl.col("returns")).over("ticker").round(4)
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(payoff_ratio=reduced)["payoff_ratio"].unique().sort().to_list()
         [1.0833, 1.25]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -935,6 +978,18 @@ def payoff_ratio(
         >>> frame = pl.DataFrame({"returns": [0.03, None, -0.01, 0.02, float("nan"), -0.015, 0.01]})
         >>> frame.select(payoff_ratio(pl.col("returns")).round(4)).item()
         nan
+
+        **Insufficient sample** — a one-element series leaves one side empty, so the ratio is ``null``:
+
+        >>> frame = pl.DataFrame({"returns": [0.05]})
+        >>> frame.select(payoff_ratio=payoff_ratio(pl.col("returns")))["payoff_ratio"].to_list()
+        [None]
+
+        **Degenerate denominator** — an all-positive series has no losing side, so the ratio is ``null``:
+
+        >>> frame = pl.DataFrame({"returns": [0.01, 0.02, 0.03]})
+        >>> frame.select(payoff_ratio=payoff_ratio(pl.col("returns")))["payoff_ratio"].to_list()
+        [None]
     """
     returns = float64_expr(returns)
     average_win = returns.filter(returns > 0.0).mean()
@@ -1028,13 +1083,38 @@ def profit_factor(
         ...     }
         ... )
         >>> reduced = profit_factor(pl.col("returns")).over("ticker").round(4)
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(profit_factor=reduced)["profit_factor"].unique().sort().to_list()
         [1.4444, 1.6667]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
 
         >>> frame = pl.DataFrame({"returns": [0.03, None, -0.01, 0.02, float("nan"), -0.015, 0.01]})
         >>> frame.select(profit_factor(pl.col("returns")).round(4)).item()
+        nan
+
+        **Insufficient sample** — a single gain has zero gross loss, so the factor is ``+inf``:
+
+        >>> frame = pl.DataFrame({"returns": [0.05]})
+        >>> frame.select(profit_factor(pl.col("returns"))).item()
+        inf
+
+        **Degenerate denominator** — an all-positive series has no losses, so the ratio is ``+inf``:
+
+        >>> frame = pl.DataFrame({"returns": [0.01, 0.02, 0.03]})
+        >>> frame.select(profit_factor(pl.col("returns"))).item()
+        inf
+
+        **Degenerate denominator** — an all-negative series has no gains, so the ratio is ``0``:
+
+        >>> frame = pl.DataFrame({"returns": [-0.01, -0.02, -0.03]})
+        >>> frame.select(profit_factor(pl.col("returns"))).item()
+        0.0
+
+        **Degenerate denominator** — an all-zero series has zero gains and losses, so the ratio is ``0/0``, i.e.
+        ``NaN``:
+
+        >>> frame = pl.DataFrame({"returns": [0.0, 0.0, 0.0]})
+        >>> frame.select(profit_factor(pl.col("returns"))).item()
         nan
     """
     returns = float64_expr(returns)
@@ -1124,7 +1204,7 @@ def risk_of_ruin(
         ...     }
         ... )
         >>> reduced = risk_of_ruin(pl.col("returns")).over("ticker").round(4)
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(risk_of_ruin=reduced)["risk_of_ruin"].unique().sort().to_list()
         [0.0123, 1.0]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -1132,6 +1212,25 @@ def risk_of_ruin(
         >>> frame = pl.DataFrame({"returns": [0.02, None, -0.01, 0.03, float("nan"), -0.02]})
         >>> frame.select(risk_of_ruin(pl.col("returns")).round(4)).item()
         nan
+
+        **Insufficient sample** — a single win (``p = 1``) gives ruin ``0``:
+
+        >>> frame = pl.DataFrame({"returns": [0.05]})
+        >>> frame.select(risk_of_ruin(pl.col("returns"))).item()
+        0.0
+
+        **Degenerate denominator** — an all-winning series (``p = 1``) has no ruin risk, so the probability is ``0``:
+
+        >>> frame = pl.DataFrame({"returns": [0.01, 0.02, 0.03]})
+        >>> frame.select(risk_of_ruin(pl.col("returns"))).item()
+        0.0
+
+        **Degenerate denominator** — a series of exact-zero returns has no decisive bars, so the win rate and ruin are
+        ``null``:
+
+        >>> frame = pl.DataFrame({"returns": [0.0, 0.0, 0.0]})
+        >>> frame.select(risk_of_ruin=risk_of_ruin(pl.col("returns")))["risk_of_ruin"].to_list()
+        [None]
     """
     returns = float64_expr(returns)
     probability = win_rate(returns)
@@ -1230,13 +1329,27 @@ def skewness(
         ...     }
         ... )
         >>> reduced = skewness(pl.col("returns")).over("ticker").round(4)
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(skewness=reduced)["skewness"].unique().sort().to_list()
         [-0.384, -0.1814]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
 
         >>> frame = pl.DataFrame({"returns": [0.01, None, -0.02, 0.015, float("nan"), -0.03, 0.005]})
         >>> frame.select(skewness(pl.col("returns")).round(4)).item()
+        nan
+
+        **Insufficient sample** — one observation has zero variance, so the standardized third moment is ``0/0``, i.e.
+        ``NaN``:
+
+        >>> frame = pl.DataFrame({"returns": [0.05]})
+        >>> frame.select(skewness(pl.col("returns"))).item()
+        nan
+
+        **Degenerate denominator** — a constant series has zero variance, so the standardized moment is ``0/0``, i.e.
+        ``NaN``:
+
+        >>> frame = pl.DataFrame({"returns": [0.01, 0.01, 0.01]})
+        >>> frame.select(skewness(pl.col("returns"))).item()
         nan
     """
     returns = float64_expr(returns)
@@ -1335,7 +1448,7 @@ def skewness_rolling(
         ...     }
         ... )
         >>> rolled = skewness_rolling(pl.col("returns"), 4).over("ticker").round(4)
-        >>> frame.select(rolled.alias("m"))["m"].to_list()
+        >>> frame.select(skewness_rolling=rolled)["skewness_rolling"].to_list()
         [None, None, None, 0.278, -0.0, -0.0, 0.6568, None, None, None, -0.0, 0.2439, -0.6183, 0.0912]
 
         A leading ``null`` and a later ``NaN`` show the per-window masking, with the result recovering once both
@@ -1344,6 +1457,13 @@ def skewness_rolling(
         >>> frame = pl.DataFrame({"returns": [None, 0.01, float("nan"), -0.02, 0.03, -0.01, 0.02, 0.0, -0.015]})
         >>> frame.select(skewness_rolling(pl.col("returns"), 4).round(4))["returns"].to_list()
         [None, None, None, None, nan, nan, -0.0, -0.0, 0.6568]
+
+        **Degenerate denominator** — a constant window has zero variance, so the standardized moment is ``0/0``, i.e.
+        ``NaN``:
+
+        >>> frame = pl.DataFrame({"returns": [0.3, 0.3, 0.3, 0.3]})
+        >>> frame.select(skewness_rolling=skewness_rolling(pl.col("returns"), window=3))["skewness_rolling"].to_list()
+        [None, None, nan, nan]
     """
     returns = float64_expr(returns)
     validate_window(window, minimum=2)
@@ -1417,13 +1537,25 @@ def tail_ratio(
         ...     }
         ... )
         >>> reduced = tail_ratio(pl.col("returns")).over("ticker").round(4)
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(tail_ratio=reduced)["tail_ratio"].unique().sort().to_list()
         [0.5, 1.7143]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
 
         >>> frame = pl.DataFrame({"returns": [0.02, None, -0.04, 0.01, float("nan"), -0.06, 0.03]})
         >>> frame.select(tail_ratio(pl.col("returns")).round(4)).item()
+        nan
+
+        **Degenerate denominator** — a zero 5th-percentile against a non-zero 95th gives ``+inf``:
+
+        >>> frame = pl.DataFrame({"returns": [0.0, 0.0, 0.0, 0.0, 0.02]})
+        >>> frame.select(tail_ratio(pl.col("returns"))).item()
+        inf
+
+        **Degenerate denominator** — an all-zero series gives ``0/0`` at both tails, so the ratio is ``NaN``:
+
+        >>> frame = pl.DataFrame({"returns": [0.0, 0.0, 0.0]})
+        >>> frame.select(tail_ratio(pl.col("returns"))).item()
         nan
     """
     returns = float64_expr(returns)
@@ -1516,7 +1648,7 @@ def tail_ratio_rolling(
         ...     }
         ... )
         >>> rolled = tail_ratio_rolling(pl.col("returns"), 5).over("ticker").round(4)
-        >>> frame.select(rolled.alias("m"))["m"].to_list()
+        >>> frame.select(tail_ratio_rolling=rolled)["tail_ratio_rolling"].to_list()
         [None, None, None, None, 1.5556, 1.5556, 2.0, None, None, None, None, 1.3846, 1.4231, 1.3214]
 
         A leading ``null`` and a later ``NaN`` show the per-window masking, with the result recovering once both
@@ -1525,6 +1657,20 @@ def tail_ratio_rolling(
         >>> frame = pl.DataFrame({"returns": [None, 0.01, float("nan"), -0.02, 0.03, -0.01, 0.02, 0.0, -0.015, 0.005]})
         >>> frame.select(tail_ratio_rolling(pl.col("returns"), 5).round(4)).to_series().to_list()
         [None, None, None, None, None, nan, nan, 1.5556, 2.0, 1.2143]
+
+        **Degenerate denominator** — a window with a zero 5th-percentile and a non-zero 95th gives ``+inf``:
+
+        >>> frame = pl.DataFrame({"returns": [0.0, 0.0, 0.0, 0.0, 0.02]})
+        >>> expr = tail_ratio_rolling(pl.col("returns"), window=5)
+        >>> frame.select(tail_ratio_rolling=expr)["tail_ratio_rolling"].to_list()
+        [None, None, None, None, inf]
+
+        **Degenerate denominator** — an all-zero window gives ``0/0``, so the ratio is ``NaN``:
+
+        >>> frame = pl.DataFrame({"returns": [0.0, 0.0, 0.0]})
+        >>> expr = tail_ratio_rolling(pl.col("returns"), window=3)
+        >>> frame.select(tail_ratio_rolling=expr)["tail_ratio_rolling"].to_list()
+        [None, None, nan]
     """
     returns = float64_expr(returns)
     validate_window(window)
@@ -1616,7 +1762,7 @@ def value_at_risk(
         ...     }
         ... )
         >>> reduced = value_at_risk(pl.col("returns"), confidence=0.95).over("ticker").round(4)
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(value_at_risk=reduced)["value_at_risk"].unique().sort().to_list()
         [-0.056, -0.028]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -1739,13 +1885,33 @@ def value_at_risk_modified(
         ...     }
         ... )
         >>> reduced = value_at_risk_modified(pl.col("returns")).over("ticker").round(4)
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(value_at_risk_modified=reduced)["value_at_risk_modified"].unique().sort().to_list()
         [-0.069, -0.0579]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
 
         >>> frame = pl.DataFrame({"returns": [0.02, None, -0.04, 0.01, float("nan"), -0.06, 0.03, -0.05, 0.04, -0.02]})
         >>> frame.select(value_at_risk_modified(pl.col("returns")).round(4)).item()
+        nan
+
+        **Domain** — the one-term Cornish-Fisher quantile map is not locally monotonic, so the estimate is ``NaN``:
+
+        >>> frame = pl.DataFrame({"returns": [1.0, -1.0, -1.0, -1.0]})
+        >>> frame.select(value_at_risk_modified(pl.col("returns"))).item()
+        nan
+
+        **Insufficient sample** — a one-element series yields ``null``, since the sample standard deviation needs at
+        least two observations:
+
+        >>> frame = pl.DataFrame({"returns": [0.05]})
+        >>> expr = value_at_risk_modified(pl.col("returns"))
+        >>> frame.select(value_at_risk_modified=expr)["value_at_risk_modified"].to_list()
+        [None]
+
+        **Degenerate denominator** — a constant series has undefined skewness and kurtosis, so the result is ``NaN``:
+
+        >>> frame = pl.DataFrame({"returns": [0.01, 0.01, 0.01, 0.01]})
+        >>> frame.select(value_at_risk_modified(pl.col("returns"))).item()
         nan
     """
     returns = float64_expr(returns)
@@ -1859,7 +2025,7 @@ def value_at_risk_parametric(
         ...     }
         ... )
         >>> reduced = value_at_risk_parametric(pl.col("returns")).over("ticker").round(4)
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(value_at_risk_parametric=reduced)["value_at_risk_parametric"].unique().sort().to_list()
         [-0.0732, -0.0434]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -1867,6 +2033,14 @@ def value_at_risk_parametric(
         >>> frame = pl.DataFrame({"returns": [0.02, None, -0.04, 0.01, float("nan"), -0.06, 0.03]})
         >>> frame.select(value_at_risk_parametric(pl.col("returns")).round(4)).item()
         nan
+
+        **Insufficient sample** — one observation has no sample standard deviation (``ddof=1`` needs at least two), so
+        the result is ``null``:
+
+        >>> frame = pl.DataFrame({"returns": [0.05]})
+        >>> expr = value_at_risk_parametric(pl.col("returns"))
+        >>> frame.select(value_at_risk_parametric=expr)["value_at_risk_parametric"].to_list()
+        [None]
     """
     returns = float64_expr(returns)
     validate_confidence(confidence)
@@ -1964,7 +2138,7 @@ def value_at_risk_rolling(
         ...     }
         ... )
         >>> rolled = value_at_risk_rolling(pl.col("returns"), 4).over("ticker").round(4)
-        >>> frame.select(rolled.alias("m"))["m"].to_list()
+        >>> frame.select(value_at_risk_rolling=rolled)["value_at_risk_rolling"].to_list()
         [None, None, None, -0.0185, -0.0185, -0.0085, -0.0142, None, None, None, -0.027, -0.027, -0.024, -0.0285]
 
         A leading ``null`` and a later ``NaN`` show the per-window masking, with the result recovering once both
@@ -2056,7 +2230,7 @@ def volatility(
         ...     }
         ... )
         >>> annual = volatility(pl.col("returns"), periods_per_year=252).over("ticker").round(4)
-        >>> frame.select(annual.alias("v"))["v"].unique().sort().to_list()
+        >>> frame.select(volatility=annual)["volatility"].unique().sort().to_list()
         [0.2314, 0.3054]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -2064,6 +2238,18 @@ def volatility(
         >>> frame = pl.DataFrame({"returns": [0.01, None, -0.02, 0.015, float("nan"), 0.005, -0.01]})
         >>> frame.select(volatility(pl.col("returns"), periods_per_year=252).round(4)).item()
         nan
+
+        **Insufficient sample** — one observation has no sample dispersion, so the result is ``null``:
+
+        >>> frame = pl.DataFrame({"returns": [0.05]})
+        >>> frame.select(volatility=volatility(pl.col("returns"), periods_per_year=252))["volatility"].to_list()
+        [None]
+
+        **Degenerate denominator** — a constant series has zero dispersion, so the volatility is exactly ``0``:
+
+        >>> frame = pl.DataFrame({"returns": [0.01, 0.01, 0.01, 0.01]})
+        >>> frame.select(volatility(pl.col("returns"), periods_per_year=252)).item()
+        0.0
     """
     returns = float64_expr(returns)
     validate_periods_per_year(periods_per_year)
@@ -2160,7 +2346,7 @@ def volatility_rolling(
         ...     }
         ... )
         >>> rolled = volatility_rolling(pl.col("returns"), 3, periods_per_year=252).over("ticker").round(4)
-        >>> frame.select(rolled.alias("m"))["m"].to_list()
+        >>> frame.select(volatility_rolling=rolled)["volatility_rolling"].to_list()
         [None, None, 0.3995, 0.42, 0.3305, 0.2425, 0.2787, None, None, 0.3995, 0.5724, 0.5575, 0.4513, 0.3637]
 
         A leading ``null`` and a later ``NaN`` show the per-window masking, with the result recovering once both
@@ -2169,6 +2355,13 @@ def volatility_rolling(
         >>> frame = pl.DataFrame({"returns": [None, 0.01, -0.02, float("nan"), 0.03, -0.01, 0.02]})
         >>> frame.select(volatility_rolling(pl.col("returns"), 3, periods_per_year=252).round(4))["returns"].to_list()
         [None, None, None, nan, nan, nan, 0.3305]
+
+        **Degenerate denominator** — a constant window has zero dispersion, so the volatility is exactly ``0``:
+
+        >>> frame = pl.DataFrame({"returns": [0.01, 0.01, 0.01, 0.01]})
+        >>> expr = volatility_rolling(pl.col("returns"), window=3, periods_per_year=252)
+        >>> frame.select(volatility_rolling=expr)["volatility_rolling"].to_list()
+        [None, None, 0.0, 0.0]
     """
     returns = float64_expr(returns)
     validate_window(window, minimum=2)
@@ -2270,7 +2463,7 @@ def win_rate(
         ...     }
         ... )
         >>> reduced = win_rate(pl.col("returns")).over("ticker").round(4)
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(win_rate=reduced)["win_rate"].unique().sort().to_list()
         [0.5714, 0.7143]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -2278,6 +2471,18 @@ def win_rate(
         >>> frame = pl.DataFrame({"returns": [0.03, None, -0.01, 0.02, float("nan"), -0.015, 0.01]})
         >>> frame.select(win_rate(pl.col("returns")).round(4)).item()
         nan
+
+        **Degenerate denominator** — an all-negative series wins no decisive period, so the rate is ``0``:
+
+        >>> frame = pl.DataFrame({"returns": [-0.01, -0.02, -0.03]})
+        >>> frame.select(win_rate(pl.col("returns"))).item()
+        0.0
+
+        **Degenerate denominator** — an all-zero series has no decisive returns, so the rate is ``null``:
+
+        >>> frame = pl.DataFrame({"returns": [0.0, 0.0, 0.0]})
+        >>> frame.select(win_rate=win_rate(pl.col("returns")))["win_rate"].to_list()
+        [None]
     """
     returns = float64_expr(returns)
     wins = (returns > 0.0).sum()

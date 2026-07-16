@@ -338,7 +338,8 @@ def dominant_cycle_period(
         >>> from pomata.indicators import dominant_cycle_period
         >>>
         >>> frame = pl.select(close=100.0 + (2 * math.pi * pl.int_range(200) / 20).sin())
-        >>> round(frame.select(dominant_cycle_period(pl.col("close")).alias("p"))["p"][-1], 2)
+        >>> expr = dominant_cycle_period(pl.col("close"))
+        >>> round(frame.select(dominant_cycle_period=expr)["dominant_cycle_period"][-1], 2)
         20.03
     """
     expr = float64_expr(expr)
@@ -409,7 +410,8 @@ def dominant_cycle_phase(
         >>> from pomata.indicators import dominant_cycle_phase
         >>>
         >>> frame = pl.select(close=100.0 + (2 * math.pi * pl.int_range(200) / 20).sin())
-        >>> round(frame.select(dominant_cycle_phase(pl.col("close")).alias("p"))["p"][-1], 2)
+        >>> expr = dominant_cycle_phase(pl.col("close"))
+        >>> round(frame.select(dominant_cycle_phase=expr)["dominant_cycle_phase"][-1], 2)
         -17.84
     """
     expr = float64_expr(expr)
@@ -478,7 +480,7 @@ def hilbert_phasor(
         >>> from pomata.indicators import hilbert_phasor
         >>>
         >>> frame = pl.select(close=100.0 + (2 * math.pi * pl.int_range(200) / 20).sin())
-        >>> phasor = frame.select(hilbert_phasor(pl.col("close")).alias("h")).unnest("h")
+        >>> phasor = frame.select(hilbert_phasor=hilbert_phasor(pl.col("close"))).unnest("hilbert_phasor")
         >>> round(phasor["in_phase"][-1], 2), round(phasor["quadrature"][-1], 2)
         (-0.8, 0.61)
     """
@@ -546,7 +548,7 @@ def hilbert_trendline(
         >>> from pomata.indicators import hilbert_trendline
         >>>
         >>> frame = pl.select(close=100.0 + (2 * math.pi * pl.int_range(200) / 20).sin())
-        >>> round(frame.select(hilbert_trendline(pl.col("close")).alias("t"))["t"][-1], 2)
+        >>> round(frame.select(hilbert_trendline=hilbert_trendline(pl.col("close")))["hilbert_trendline"][-1], 2)
         100.0
     """
     expr = float64_expr(expr)
@@ -647,7 +649,7 @@ def mama(
         >>> from pomata.indicators import mama
         >>>
         >>> frame = pl.select(close=100.0 + (2 * math.pi * pl.int_range(200) / 20).sin())
-        >>> lines = frame.select(mama(pl.col("close")).alias("m")).unnest("m")
+        >>> lines = frame.select(mama=mama(pl.col("close"))).unnest("mama")
         >>> round(lines["mama"][-1], 2), round(lines["fama"][-1], 2)
         (99.67, 99.96)
     """
@@ -735,7 +737,7 @@ def sine_wave(
         >>> from pomata.indicators import sine_wave
         >>>
         >>> frame = pl.select(close=100.0 + (2 * math.pi * pl.int_range(200) / 20).sin())
-        >>> waves = frame.select(sine_wave(pl.col("close")).alias("s")).unnest("s")
+        >>> waves = frame.select(sine_wave=sine_wave(pl.col("close"))).unnest("sine_wave")
         >>> round(waves["sine"][-1], 2), round(waves["lead_sine"][-1], 2)
         (-0.31, 0.46)
     """
@@ -812,7 +814,7 @@ def trend_mode(
         >>> from pomata.indicators import trend_mode
         >>>
         >>> frame = pl.select(close=100.0 + (2 * math.pi * pl.int_range(200) / 20).sin())
-        >>> frame.select(trend_mode(pl.col("close")).alias("t"))["t"].drop_nulls().unique().to_list()
+        >>> frame.select(trend_mode=trend_mode(pl.col("close")))["trend_mode"].drop_nulls().unique().to_list()
         [0.0]
     """
     expr = float64_expr(expr)

@@ -91,7 +91,7 @@ def adx(
         ...     }
         ... )
         >>> expr = adx(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
-        >>> frame.select(expr.alias("adx"))["adx"].to_list()
+        >>> frame.select(adx=expr)["adx"].to_list()
         [None, None, 100.0, 60.0, 68.2353, 44.1176, 58.3602, 39.1801, 55.4486, 37.7243]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -105,7 +105,7 @@ def adx(
         ...     }
         ... )
         >>> expr = adx(pl.col("high"), pl.col("low"), pl.col("close"), 2).over("ticker").round(4)
-        >>> frame.with_columns(expr.alias("adx"))["adx"].to_list()
+        >>> frame.with_columns(adx=expr)["adx"].to_list()
         [None, None, 100.0, 60.0, 68.2353, 44.1176, None, None, 75.0, 62.5, 43.75, 45.0893]
 
         A leading ``null`` ``close`` (absorbed by the true-range maximum) and a later ``NaN`` (which poisons the
@@ -119,8 +119,21 @@ def adx(
         ...     }
         ... )
         >>> expr = adx(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
-        >>> frame.select(expr.alias("adx"))["adx"].to_list()
+        >>> frame.select(adx=expr)["adx"].to_list()
         [None, None, 100.0, 60.0, 68.2353, nan, nan, nan]
+
+        **Degenerate denominator** — a fully flat window leaves both directional indicators at zero, the indeterminate
+        ``0/0``, which poisons the Wilder smoothing recursion, so the result is ``NaN`` after warm-up:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0],
+        ...         "low": [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0],
+        ...         "close": [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0],
+        ...     }
+        ... )
+        >>> frame.select(adx=adx(pl.col("high"), pl.col("low"), pl.col("close"), window=3))["adx"].to_list()
+        [None, None, None, None, nan, nan, nan, nan]
     """
     high = float64_expr(high)
     low = float64_expr(low)
@@ -215,7 +228,7 @@ def adxr(
         ...     }
         ... )
         >>> expr = adxr(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
-        >>> frame.select(expr.alias("adxr"))["adxr"].to_list()
+        >>> frame.select(adxr=expr)["adxr"].to_list()
         [None, None, None, None, 84.1176, 52.0588, 63.2977, 41.6489, 56.9044, 38.4522]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -229,7 +242,7 @@ def adxr(
         ...     }
         ... )
         >>> expr = adxr(pl.col("high"), pl.col("low"), pl.col("close"), 2).over("ticker").round(4)
-        >>> frame.with_columns(expr.alias("adxr"))["adxr"].to_list()
+        >>> frame.with_columns(adxr=expr)["adxr"].to_list()
         [None, None, None, None, 84.1176, 52.0588, 63.2977, None, None, None, None, 59.375, 53.7946, 38.4358]
 
         A leading ``null`` ``close`` (absorbed by the true-range maximum) and a later ``NaN`` (which latches)
@@ -243,8 +256,22 @@ def adxr(
         ...     }
         ... )
         >>> expr = adxr(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
-        >>> frame.select(expr.alias("adxr"))["adxr"].to_list()
+        >>> frame.select(adxr=expr)["adxr"].to_list()
         [None, None, None, None, 84.1176, nan, nan, nan]
+
+        **Degenerate denominator** — a fully flat window leaves both directional indicators at zero, the indeterminate
+        ``0/0``, which poisons the Wilder smoothing recursion and the averaging with the window-back value, so the
+        result is ``NaN`` after warm-up:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0],
+        ...         "low": [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0],
+        ...         "close": [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0],
+        ...     }
+        ... )
+        >>> frame.select(adxr=adxr(pl.col("high"), pl.col("low"), pl.col("close"), window=3))["adxr"].to_list()
+        [None, None, None, None, None, None, None, nan, nan, nan, nan]
     """
     high = float64_expr(high)
     low = float64_expr(low)
@@ -338,7 +365,7 @@ def di_minus(
         ...     }
         ... )
         >>> expr = di_minus(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
-        >>> frame.select(expr.alias("di_minus"))["di_minus"].to_list()
+        >>> frame.select(di_minus=expr)["di_minus"].to_list()
         [None, 0.0, 0.0, 21.0526, 7.8431, 24.0964, 9.4787, 24.7788]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -352,7 +379,7 @@ def di_minus(
         ...     }
         ... )
         >>> expr = di_minus(pl.col("high"), pl.col("low"), pl.col("close"), 2).over("ticker").round(4)
-        >>> frame.with_columns(expr.alias("di_minus"))["di_minus"].to_list()
+        >>> frame.with_columns(di_minus=expr)["di_minus"].to_list()
         [None, 0.0, 0.0, 21.0526, 7.8431, None, 0.0, 46.1538, 18.1818, 46.1538]
 
         A leading ``null`` ``close`` (absorbed by the ATR's true-range maximum) and a later ``NaN`` (which latches)
@@ -366,8 +393,22 @@ def di_minus(
         ...     }
         ... )
         >>> expr = di_minus(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
-        >>> frame.select(expr.alias("di_minus"))["di_minus"].to_list()
+        >>> frame.select(di_minus=expr)["di_minus"].to_list()
         [None, 0.0, 0.0, 22.2222, 8.0, nan, nan, nan]
+
+        **Degenerate denominator** — a fully flat window makes the average true range zero, so the smoothed movement
+        over it is the indeterminate ``0/0`` and the result is ``NaN`` after warm-up:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0],
+        ...         "low": [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0],
+        ...         "close": [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0],
+        ...     }
+        ... )
+        >>> expr = di_minus(pl.col("high"), pl.col("low"), pl.col("close"), window=3)
+        >>> frame.select(di_minus=expr)["di_minus"].to_list()
+        [None, None, nan, nan, nan, nan, nan, nan]
     """
     high = float64_expr(high)
     low = float64_expr(low)
@@ -460,7 +501,7 @@ def di_plus(
         ...     }
         ... )
         >>> expr = di_plus(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
-        >>> frame.select(expr.alias("di_plus"))["di_plus"].to_list()
+        >>> frame.select(di_plus=expr)["di_plus"].to_list()
         [None, 40.0, 54.5455, 31.5789, 58.8235, 36.1446, 59.7156, 37.1681]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -474,7 +515,7 @@ def di_plus(
         ...     }
         ... )
         >>> expr = di_plus(pl.col("high"), pl.col("low"), pl.col("close"), 2).over("ticker").round(4)
-        >>> frame.with_columns(expr.alias("di_plus"))["di_plus"].to_list()
+        >>> frame.with_columns(di_plus=expr)["di_plus"].to_list()
         [None, 40.0, 54.5455, 31.5789, 58.8235, None, 40.0, 15.3846, 54.5455, 27.6923]
 
         A leading ``null`` ``close`` (absorbed by the ATR's true-range maximum) and a later ``NaN`` (which latches)
@@ -488,8 +529,21 @@ def di_plus(
         ...     }
         ... )
         >>> expr = di_plus(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
-        >>> frame.select(expr.alias("di_plus"))["di_plus"].to_list()
+        >>> frame.select(di_plus=expr)["di_plus"].to_list()
         [None, 50.0, 60.0, 33.3333, 60.0, nan, nan, nan]
+
+        **Degenerate denominator** — a fully flat window makes the average true range zero, so the smoothed movement
+        over it is the indeterminate ``0/0`` and the result is ``NaN`` after warm-up:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0],
+        ...         "low": [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0],
+        ...         "close": [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0],
+        ...     }
+        ... )
+        >>> frame.select(di_plus=di_plus(pl.col("high"), pl.col("low"), pl.col("close"), window=3))["di_plus"].to_list()
+        [None, None, nan, nan, nan, nan, nan, nan]
     """
     high = float64_expr(high)
     low = float64_expr(low)
@@ -588,7 +642,7 @@ def dm_minus(
         ...         "low": [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5],
         ...     }
         ... )
-        >>> frame.select(dm_minus(pl.col("high"), pl.col("low"), 2).round(4).alias("dm_minus"))["dm_minus"].to_list()
+        >>> frame.select(dm_minus=dm_minus(pl.col("high"), pl.col("low"), 2).round(4))["dm_minus"].to_list()
         [None, 0.0, 0.0, 0.25, 0.125, 0.3125, 0.1562, 0.3281]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -601,7 +655,7 @@ def dm_minus(
         ...     }
         ... )
         >>> expr = dm_minus(pl.col("high"), pl.col("low"), 2).over("ticker").round(4)
-        >>> frame.with_columns(expr.alias("dm_minus"))["dm_minus"].to_list()
+        >>> frame.with_columns(dm_minus=expr)["dm_minus"].to_list()
         [None, 0.0, 0.0, 0.25, 0.125, None, 0.0, 1.5, 0.75, 1.875]
 
         On a falling frame, a leading ``null`` ``low`` (which zeroes the raw movement it touches) and a later ``NaN``
@@ -613,7 +667,7 @@ def dm_minus(
         ...         "low": [None, 7.0, 6.5, 5.5, float("nan"), 5.0, 4.5, 4.0],
         ...     }
         ... )
-        >>> frame.select(dm_minus(pl.col("high"), pl.col("low"), 2).round(4).alias("dm_minus"))["dm_minus"].to_list()
+        >>> frame.select(dm_minus=dm_minus(pl.col("high"), pl.col("low"), 2).round(4))["dm_minus"].to_list()
         [None, 0.0, 0.25, 0.625, nan, nan, nan, nan]
     """
     high = float64_expr(high)
@@ -714,7 +768,7 @@ def dm_plus(
         ...         "low": [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5],
         ...     }
         ... )
-        >>> frame.select(dm_plus(pl.col("high"), pl.col("low"), 2).round(4).alias("dm_plus"))["dm_plus"].to_list()
+        >>> frame.select(dm_plus=dm_plus(pl.col("high"), pl.col("low"), 2).round(4))["dm_plus"].to_list()
         [None, 0.5, 0.75, 0.375, 0.9375, 0.4688, 0.9844, 0.4922]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -727,7 +781,7 @@ def dm_plus(
         ...     }
         ... )
         >>> expr = dm_plus(pl.col("high"), pl.col("low"), 2).over("ticker").round(4)
-        >>> frame.with_columns(expr.alias("dm_plus"))["dm_plus"].to_list()
+        >>> frame.with_columns(dm_plus=expr)["dm_plus"].to_list()
         [None, 0.5, 0.75, 0.375, 0.9375, None, 1.0, 0.5, 2.25, 1.125]
 
         A leading ``null`` ``high`` (which zeroes the raw movement it touches) and a later ``NaN`` ``high`` (the own
@@ -739,7 +793,7 @@ def dm_plus(
         ...         "low": [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5],
         ...     }
         ... )
-        >>> frame.select(dm_plus(pl.col("high"), pl.col("low"), 2).round(4).alias("dm_plus"))["dm_plus"].to_list()
+        >>> frame.select(dm_plus=dm_plus(pl.col("high"), pl.col("low"), 2).round(4))["dm_plus"].to_list()
         [None, 0.0, 0.5, 0.25, nan, nan, nan, nan]
     """
     high = float64_expr(high)
@@ -830,7 +884,7 @@ def dx(
         ...     }
         ... )
         >>> expr = dx(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
-        >>> frame.select(expr.alias("dx"))["dx"].to_list()
+        >>> frame.select(dx=expr)["dx"].to_list()
         [None, 100.0, 100.0, 20.0, 76.4706, 20.0, 72.6027, 20.0]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -844,7 +898,7 @@ def dx(
         ...     }
         ... )
         >>> expr = dx(pl.col("high"), pl.col("low"), pl.col("close"), 2).over("ticker").round(4)
-        >>> frame.with_columns(expr.alias("dx"))["dx"].to_list()
+        >>> frame.with_columns(dx=expr)["dx"].to_list()
         [None, 100.0, 100.0, 20.0, 76.4706, None, 100.0, 50.0, 50.0, 25.0]
 
         A leading ``null`` ``close`` (absorbed by the underlying ATR's true-range maximum) and a later ``NaN`` (which
@@ -858,8 +912,21 @@ def dx(
         ...     }
         ... )
         >>> expr = dx(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
-        >>> frame.select(expr.alias("dx"))["dx"].to_list()
+        >>> frame.select(dx=expr)["dx"].to_list()
         [None, 100.0, 100.0, 20.0, 76.4706, nan, nan, nan]
+
+        **Degenerate denominator** — a fully flat window has no movement either way, so both directional indicators are
+        ``NaN`` and the indeterminate ``0/0`` spread propagates:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0],
+        ...         "low": [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0],
+        ...         "close": [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0],
+        ...     }
+        ... )
+        >>> frame.select(dx=dx(pl.col("high"), pl.col("low"), pl.col("close"), window=3))["dx"].to_list()
+        [None, None, nan, nan, nan, nan, nan, nan]
     """
     high = float64_expr(high)
     low = float64_expr(low)
@@ -960,9 +1027,9 @@ def vortex(
         ...     }
         ... )
         >>> bands = vortex(pl.col("high"), pl.col("low"), pl.col("close"), 2)
-        >>> frame.select(bands.struct.field("plus").round(4).alias("plus"))["plus"].to_list()
+        >>> frame.select(plus=bands.struct.field("plus").round(4))["plus"].to_list()
         [None, None, 1.2, 1.1429, 1.1429, 1.2857, 1.3333, 1.3333]
-        >>> frame.select(bands.struct.field("minus").round(4).alias("minus"))["minus"].to_list()
+        >>> frame.select(minus=bands.struct.field("minus").round(4))["minus"].to_list()
         [None, None, 0.2, 0.5714, 0.5714, 0.4286, 0.6667, 0.6667]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -976,9 +1043,9 @@ def vortex(
         ...     }
         ... )
         >>> expr = vortex(pl.col("high"), pl.col("low"), pl.col("close"), 2).over("ticker")
-        >>> frame.with_columns(expr.struct.field("plus").round(4).alias("plus"))["plus"].to_list()
+        >>> frame.with_columns(plus=expr.struct.field("plus").round(4))["plus"].to_list()
         [None, None, 1.2, 1.1429, 1.1429, None, None, 1.0, 0.7143, 0.7143]
-        >>> frame.with_columns(expr.struct.field("minus").round(4).alias("minus"))["minus"].to_list()
+        >>> frame.with_columns(minus=expr.struct.field("minus").round(4))["minus"].to_list()
         [None, None, 0.2, 0.5714, 0.5714, None, None, 0.6, 0.7143, 0.7143]
 
         A leading ``null`` ``close`` (absorbed by the true-range maximum) and a later ``NaN`` (which contaminates only
@@ -992,10 +1059,38 @@ def vortex(
         ...     }
         ... )
         >>> bands = vortex(pl.col("high"), pl.col("low"), pl.col("close"), 2)
-        >>> frame.select(bands.struct.field("plus").round(4).alias("plus"))["plus"].to_list()
+        >>> frame.select(plus=bands.struct.field("plus").round(4))["plus"].to_list()
         [None, None, 1.7143, 1.1429, 1.1429, nan, nan, 1.3333]
-        >>> frame.select(bands.struct.field("minus").round(4).alias("minus"))["minus"].to_list()
+        >>> frame.select(minus=bands.struct.field("minus").round(4))["minus"].to_list()
         [None, None, 0.2857, 0.5714, 0.5714, nan, nan, 0.6667]
+
+        **Degenerate denominator** — a flat window has zero summed true range and zero summed movement, so both lines
+        are the indeterminate ``0/0``, i.e. ``NaN``, after warm-up:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.0, 10.0, 10.0, 10.0, 10.0, 10.0],
+        ...         "low": [10.0, 10.0, 10.0, 10.0, 10.0, 10.0],
+        ...         "close": [10.0, 10.0, 10.0, 10.0, 10.0, 10.0],
+        ...     }
+        ... )
+        >>> expr = vortex(pl.col("high"), pl.col("low"), pl.col("close"), window=2)
+        >>> frame.select(plus=expr.struct.field("plus"))["plus"].to_list()
+        [None, None, nan, nan, nan, nan]
+
+        **window == 1** — each line reduces to a single bar's vortex movement over its own true range; the first row is
+        ``null`` (no prior bar for the lag):
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [2.0, 4.0, 6.0],
+        ...         "low": [1.0, 3.0, 4.0],
+        ...         "close": [1.5, 3.5, 5.0],
+        ...     }
+        ... )
+        >>> expr = vortex(pl.col("high"), pl.col("low"), pl.col("close"), window=1)
+        >>> frame.select(plus=expr.struct.field("plus"))["plus"].to_list()
+        [None, 1.2, 1.2]
     """
     high = float64_expr(high)
     low = float64_expr(low)

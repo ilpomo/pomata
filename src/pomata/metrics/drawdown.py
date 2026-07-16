@@ -100,7 +100,7 @@ def conditional_drawdown_at_risk(
         ...     }
         ... )
         >>> reduced = conditional_drawdown_at_risk(pl.col("equity_curve")).over("ticker").round(4)
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(conditional_drawdown_at_risk=reduced)["conditional_drawdown_at_risk"].unique().sort().to_list()
         [-0.1, -0.0455]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -108,6 +108,19 @@ def conditional_drawdown_at_risk(
         >>> frame = pl.DataFrame({"equity_curve": [1.1, 1.05, None, 1.2, float("nan"), 1.15, 1.3]})
         >>> frame.select(conditional_drawdown_at_risk(pl.col("equity_curve")).round(4)).item()
         nan
+
+        **Insufficient sample** — a one-element series is at its own peak, so CDaR is exactly ``0``:
+
+        >>> frame = pl.DataFrame({"equity": [1.0]})
+        >>> frame.select(conditional_drawdown_at_risk(pl.col("equity"))).item()
+        0.0
+
+        **Degenerate denominator** — a monotonically rising curve has an all-zero drawdown series, so CDaR is
+        ``0``:
+
+        >>> frame = pl.DataFrame({"equity": [1.0, 1.1, 1.21]})
+        >>> frame.select(conditional_drawdown_at_risk(pl.col("equity"))).item()
+        0.0
     """
     equity_curve = float64_expr(equity_curve)
     validate_confidence(confidence)
@@ -186,7 +199,7 @@ def drawdown(
         >>> import polars as pl
         >>> from pomata.metrics import drawdown
         >>> frame = pl.DataFrame({"equity": [1.0, 1.1, 1.05, 1.2, 0.9, 1.0]})
-        >>> frame.select(drawdown(pl.col("equity")).round(4).alias("d"))["d"].to_list()
+        >>> frame.select(drawdown=drawdown(pl.col("equity")).round(4))["drawdown"].to_list()
         [0.0, 0.0, -0.0455, 0.0, -0.25, -0.1667]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker's running peak restarts independently:
@@ -198,14 +211,20 @@ def drawdown(
         ...     }
         ... )
         >>> reduced = drawdown(pl.col("equity_curve")).over("ticker").round(4)
-        >>> frame.select(reduced.alias("d"))["d"].to_list()
+        >>> frame.select(drawdown=reduced)["drawdown"].to_list()
         [0.0, 0.0, -0.0455, 0.0, -0.25, -0.1667, -0.0833, 0.0, -0.05, 0.0, -0.0476, 0.0, -0.0435, 0.0]
 
         A ``null`` (skipped) and a ``NaN`` (which propagates at its row) make the missing-data handling visible:
 
         >>> frame = pl.DataFrame({"equity_curve": [1.0, 1.1, None, 1.2, float("nan"), 1.0]})
-        >>> frame.select(drawdown(pl.col("equity_curve")).round(4).alias("d"))["d"].to_list()
+        >>> frame.select(drawdown=drawdown(pl.col("equity_curve")).round(4))["drawdown"].to_list()
         [0.0, 0.0, None, 0.0, nan, -0.1667]
+
+        **Insufficient sample** — a one-element series is at its own peak, so the drawdown is ``0``:
+
+        >>> frame = pl.DataFrame({"equity": [1.0]})
+        >>> frame.select(drawdown=drawdown(pl.col("equity")))["drawdown"].to_list()
+        [0.0]
     """
     equity_curve = float64_expr(equity_curve)
     return (equity_curve / equity_curve.cum_max() - 1).name.keep()
@@ -278,14 +297,15 @@ def drawdown_rolling(
         ...     }
         ... )
         >>> reduced = drawdown_rolling(pl.col("equity_curve"), 3).over("ticker").round(4)
-        >>> frame.select(reduced.alias("d"))["d"].to_list()
+        >>> frame.select(drawdown_rolling=reduced)["drawdown_rolling"].to_list()
         [None, None, -0.0455, 0.0, -0.0417, 0.0, -0.0385, None, None, 0.0, -0.0476, 0.0, -0.0435, 0.0]
 
         A leading ``null`` and a later ``NaN`` make the windowed handling visible: a window covering the ``null`` is
         ``null``, and the ``NaN`` poisons every window it enters:
 
         >>> frame = pl.DataFrame({"equity_curve": [None, 1.1, 1.05, 1.2, float("nan"), 1.15, 1.3]})
-        >>> frame.select(drawdown_rolling(pl.col("equity_curve"), 3).round(4).alias("d"))["d"].to_list()
+        >>> expr = drawdown_rolling(pl.col("equity_curve"), 3).round(4)
+        >>> frame.select(drawdown_rolling=expr)["drawdown_rolling"].to_list()
         [None, None, None, 0.0, nan, nan, nan]
     """
     equity_curve = float64_expr(equity_curve)
@@ -360,7 +380,7 @@ def max_drawdown(
         ...     }
         ... )
         >>> reduced = max_drawdown(pl.col("equity_curve")).over("ticker").round(4)
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(max_drawdown=reduced)["max_drawdown"].unique().sort().to_list()
         [-0.25, -0.05]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -368,6 +388,18 @@ def max_drawdown(
         >>> frame = pl.DataFrame({"equity_curve": [1.0, 1.1, None, 1.2, float("nan"), 1.0]})
         >>> frame.select(max_drawdown(pl.col("equity_curve")).round(4)).item()
         nan
+
+        **Insufficient sample** — a one-element series is at its own peak, so the maximum drawdown is ``0``:
+
+        >>> frame = pl.DataFrame({"equity": [1.0]})
+        >>> frame.select(max_drawdown(pl.col("equity"))).item()
+        0.0
+
+        **Degenerate denominator** — a never-declining curve has zero drawdown:
+
+        >>> frame = pl.DataFrame({"equity": [1.0, 1.1, 1.2, 1.3]})
+        >>> frame.select(max_drawdown(pl.col("equity"))).item()
+        0.0
     """
     equity_curve = float64_expr(equity_curve)
     declines = drawdown(equity_curve)
@@ -439,7 +471,7 @@ def max_drawdown_duration(
         ...     }
         ... )
         >>> reduced = max_drawdown_duration(pl.col("equity_curve")).over("ticker").round(4)
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(max_drawdown_duration=reduced)["max_drawdown_duration"].unique().sort().to_list()
         [2.0, 3.0]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -447,6 +479,18 @@ def max_drawdown_duration(
         >>> frame = pl.DataFrame({"equity_curve": [1.0, 0.9, None, 0.85, float("nan"), 1.05]})
         >>> frame.select(max_drawdown_duration(pl.col("equity_curve")).round(4)).item()
         nan
+
+        **Insufficient sample** — a one-element series is never underwater, so the duration is ``0``:
+
+        >>> frame = pl.DataFrame({"equity": [1.0]})
+        >>> frame.select(max_drawdown_duration(pl.col("equity"))).item()
+        0.0
+
+        **Degenerate denominator** — a monotonically rising curve is never underwater, so the duration is ``0``:
+
+        >>> frame = pl.DataFrame({"equity": [1.0, 1.1, 1.21]})
+        >>> frame.select(max_drawdown_duration(pl.col("equity"))).item()
+        0.0
     """
     equity_curve = float64_expr(equity_curve)
     defined = equity_curve.drop_nulls()
@@ -523,7 +567,7 @@ def pain_index(
         ...     }
         ... )
         >>> reduced = pain_index(pl.col("equity_curve")).over("ticker").round(4)
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(pain_index=reduced)["pain_index"].unique().sort().to_list()
         [0.0179, 0.0404]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -531,6 +575,19 @@ def pain_index(
         >>> frame = pl.DataFrame({"equity_curve": [1.1, 1.05, None, 1.2, float("nan"), 1.15, 1.3]})
         >>> frame.select(pain_index(pl.col("equity_curve")).round(4)).item()
         nan
+
+        **Insufficient sample** — a one-element series is at its own peak, so the pain index is exactly ``0``:
+
+        >>> frame = pl.DataFrame({"equity": [1.0]})
+        >>> frame.select(pain_index(pl.col("equity"))).item()
+        0.0
+
+        **Degenerate denominator** — a monotonically rising curve is never below its running peak, so the mean
+        drawdown is ``0``:
+
+        >>> frame = pl.DataFrame({"equity": [1.0, 1.1, 1.21]})
+        >>> frame.select(pain_index(pl.col("equity"))).item()
+        0.0
     """
     return (drawdown(equity_curve).abs().mean()).name.keep()
 
@@ -604,7 +661,7 @@ def ulcer_index(
         ...     }
         ... )
         >>> reduced = ulcer_index(pl.col("equity_curve")).over("ticker").round(4)
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(ulcer_index=reduced)["ulcer_index"].unique().sort().to_list()
         [0.0308, 0.1191]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -612,6 +669,19 @@ def ulcer_index(
         >>> frame = pl.DataFrame({"equity_curve": [1.0, 1.1, None, 1.2, float("nan"), 1.0]})
         >>> frame.select(ulcer_index(pl.col("equity_curve")).round(4)).item()
         nan
+
+        **Insufficient sample** — a one-element series has no drawdown, so the Ulcer Index is ``0``:
+
+        >>> frame = pl.DataFrame({"equity": [1.0]})
+        >>> frame.select(ulcer_index(pl.col("equity"))).item()
+        0.0
+
+        **Degenerate denominator** — a never-declining curve has all-zero drawdowns, so the Ulcer Index is exactly
+        ``0``:
+
+        >>> frame = pl.DataFrame({"equity": [1.0, 1.1, 1.2, 1.3]})
+        >>> frame.select(ulcer_index(pl.col("equity"))).item()
+        0.0
     """
     declines = drawdown(equity_curve)
     return (declines**2).mean().sqrt().name.keep()

@@ -239,7 +239,7 @@ def alpha(
         ...     }
         ... )
         >>> reduced = alpha(pl.col("returns"), pl.col("benchmark"), periods_per_year=252).over("ticker").round(4)
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(alpha=reduced)["alpha"].unique().sort().to_list()
         [-0.2798, 0.0233]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -251,6 +251,30 @@ def alpha(
         ...     }
         ... )
         >>> frame.select(alpha(pl.col("returns"), pl.col("benchmark"), periods_per_year=252).round(4)).item()
+        nan
+
+        **Insufficient sample** — a single complete pair yields ``null``, since the regression slope needs two
+        observations:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "returns": [0.05],
+        ...         "benchmark": [0.04],
+        ...     }
+        ... )
+        >>> frame.select(alpha=alpha(pl.col("returns"), pl.col("benchmark"), periods_per_year=252))["alpha"].to_list()
+        [None]
+
+        **Degenerate denominator** — a constant benchmark makes the embedded beta ``NaN``, which propagates to the
+        result:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "returns": [0.01, -0.02, 0.03],
+        ...         "benchmark": [0.1, 0.1, 0.1],
+        ...     }
+        ... )
+        >>> frame.select(alpha(pl.col("returns"), pl.col("benchmark"), periods_per_year=252)).item()
         nan
     """
     returns = float64_expr(returns)
@@ -357,7 +381,7 @@ def alpha_rolling(
         >>> expr = (
         ...     alpha_rolling(pl.col("returns"), pl.col("benchmark"), 4, periods_per_year=252).over("ticker").round(4)
         ... )
-        >>> frame.with_columns(expr.alias("m"))["m"].to_list()
+        >>> frame.with_columns(alpha_rolling=expr)["alpha_rolling"].to_list()
         [None, None, None, -0.0864, -0.0096, -0.0227, None, None, None, -0.3956, -0.1613, -0.1561]
 
         A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make the handling visible:
@@ -372,6 +396,19 @@ def alpha_rolling(
         ...     alpha_rolling(pl.col("returns"), pl.col("benchmark"), 4, periods_per_year=252).round(4)
         ... ).to_series().to_list()
         [None, None, None, None, nan, -0.0227, 0.4932, 0.7998]
+
+        **Degenerate denominator** — a null in the returns leg wins over the constant-benchmark ``NaN`` branch on
+        incomplete windows, so the result stays ``null`` until the window is complete, then ``NaN``:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "returns": [0.02, None, 0.03, 0.01, 0.02],
+        ...         "benchmark": [0.1, 0.1, 0.1, 0.1, 0.1],
+        ...     }
+        ... )
+        >>> expr = alpha_rolling(pl.col("returns"), pl.col("benchmark"), window=3, periods_per_year=252)
+        >>> frame.select(alpha_rolling=expr)["alpha_rolling"].to_list()
+        [None, None, None, None, nan]
     """
     returns = float64_expr(returns)
     benchmark = float64_expr(benchmark)
@@ -466,7 +503,7 @@ def beta(
         ...     }
         ... )
         >>> reduced = beta(pl.col("returns"), pl.col("benchmark")).over("ticker").round(4)
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(beta=reduced)["beta"].unique().sort().to_list()
         [1.2591, 1.2726]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -478,6 +515,30 @@ def beta(
         ...     }
         ... )
         >>> frame.select(beta(pl.col("returns"), pl.col("benchmark")).round(4)).item()
+        nan
+
+        **Insufficient sample** — one complete pair has no regression slope, since at least two observations are needed,
+        so the result is ``null``:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "returns": [0.05],
+        ...         "benchmark": [0.04],
+        ...     }
+        ... )
+        >>> frame.select(beta=beta(pl.col("returns"), pl.col("benchmark")))["beta"].to_list()
+        [None]
+
+        **Degenerate denominator** — a constant (zero-variance) benchmark leaves the slope undefined, the ``0 / 0``
+        case, so the result is ``NaN``:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "returns": [0.01, -0.02, 0.03],
+        ...         "benchmark": [0.1, 0.1, 0.1],
+        ...     }
+        ... )
+        >>> frame.select(beta(pl.col("returns"), pl.col("benchmark"))).item()
         nan
     """
     returns = float64_expr(returns)
@@ -572,7 +633,7 @@ def beta_rolling(
         ...     }
         ... )
         >>> expr = beta_rolling(pl.col("returns"), pl.col("benchmark"), 4).over("ticker").round(4)
-        >>> frame.with_columns(expr.alias("m"))["m"].to_list()
+        >>> frame.with_columns(beta_rolling=expr)["beta_rolling"].to_list()
         [None, None, None, 1.2608, 1.2628, 1.2652, None, None, None, 1.2851, 1.3159, 1.3466]
 
         A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make the handling visible:
@@ -585,6 +646,19 @@ def beta_rolling(
         ... )
         >>> frame.select(beta_rolling(pl.col("returns"), pl.col("benchmark"), 4).round(4)).to_series().to_list()
         [None, None, None, None, nan, 1.2652, 1.2592, 1.0331]
+
+        **Degenerate denominator** — a window holding a ``null`` yields ``null`` under the pairwise-complete gate rather
+        than the flat-benchmark ``NaN``, until the window clears and reports ``NaN``:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "returns": [0.02, None, 0.03, 0.01, 0.02],
+        ...         "benchmark": [0.1, 0.1, 0.1, 0.1, 0.1],
+        ...     }
+        ... )
+        >>> expr = beta_rolling(pl.col("returns"), pl.col("benchmark"), window=3)
+        >>> frame.select(beta_rolling=expr)["beta_rolling"].to_list()
+        [None, None, None, None, nan]
     """
     returns = float64_expr(returns)
     benchmark = float64_expr(benchmark)
@@ -678,7 +752,7 @@ def capture_downside_ratio(
         ...     .over("ticker")
         ...     .round(4)
         ... )
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(capture_downside_ratio=reduced)["capture_downside_ratio"].unique().sort().to_list()
         [1.0339, 1.1095]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -692,6 +766,18 @@ def capture_downside_ratio(
         >>> frame.select(
         ...     capture_downside_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252).round(4)
         ... ).item()
+        nan
+
+        **Domain** — a selected portfolio return at or below ``-1`` wipes that leg out of the geometric-growth domain,
+        so the result is a loud ``NaN``:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "returns": [0.02, -1.5, 0.01],
+        ...         "benchmark": [-0.01, -0.02, -0.03],
+        ...     }
+        ... )
+        >>> frame.select(capture_downside_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252)).item()
         nan
     """
     returns = float64_expr(returns)
@@ -781,7 +867,7 @@ def capture_ratio(
         >>> reduced = (
         ...     capture_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252).over("ticker").round(4)
         ... )
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(capture_ratio=reduced)["capture_ratio"].unique().sort().to_list()
         [1.4154, 2.6612]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -793,6 +879,18 @@ def capture_ratio(
         ...     }
         ... )
         >>> frame.select(capture_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252).round(4)).item()
+        nan
+
+        **Domain** — a selected gross return at or below ``-1`` on the returns leg is out of the geometric-growth
+        domain, so the result is a loud ``NaN``:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "returns": [0.02, -1.5, 0.01],
+        ...         "benchmark": [0.01, 0.02, -0.03],
+        ...     }
+        ... )
+        >>> frame.select(capture_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252)).item()
         nan
     """
     returns = float64_expr(returns)
@@ -890,7 +988,7 @@ def capture_upside_ratio(
         ...     .over("ticker")
         ...     .round(4)
         ... )
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(capture_upside_ratio=reduced)["capture_upside_ratio"].unique().sort().to_list()
         [1.5705, 2.7513]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -904,6 +1002,18 @@ def capture_upside_ratio(
         >>> frame.select(
         ...     capture_upside_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252).round(4)
         ... ).item()
+        nan
+
+        **Domain** — a selected up-market return at or below ``-1`` is outside the geometric-growth domain, so the
+        result is a loud ``NaN``:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "returns": [0.02, -1.5, 0.01],
+        ...         "benchmark": [0.01, 0.02, 0.03],
+        ...     }
+        ... )
+        >>> frame.select(capture_upside_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252)).item()
         nan
     """
     returns = float64_expr(returns)
@@ -999,7 +1109,7 @@ def information_ratio(
         >>> reduced = (
         ...     information_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252).over("ticker").round(4)
         ... )
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(information_ratio=reduced)["information_ratio"].unique().sort().to_list()
         [0.7463, 5.5663]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -1013,6 +1123,43 @@ def information_ratio(
         >>> frame.select(
         ...     information_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252).round(4)
         ... ).item()
+        nan
+
+        **Insufficient sample** — a single complete pair yields ``null``, since the tracking error needs two
+        observations:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "returns": [0.05],
+        ...         "benchmark": [0.04],
+        ...     }
+        ... )
+        >>> expr = information_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252)
+        >>> frame.select(information_ratio=expr)["information_ratio"].to_list()
+        [None]
+
+        **Degenerate denominator** — a constant active series has zero tracking error with a positive mean, so the ratio
+        is ``+inf``:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "returns": [0.01, 0.01, 0.01],
+        ...         "benchmark": [0.0, 0.0, 0.0],
+        ...     }
+        ... )
+        >>> frame.select(information_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252)).item()
+        inf
+
+        **Degenerate denominator** — identical legs give an exactly-zero active series, the zero mean over zero tracking
+        error ``0 / 0`` case, so the result is ``NaN``:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "returns": [0.01, 0.02, 0.03],
+        ...         "benchmark": [0.01, 0.02, 0.03],
+        ...     }
+        ... )
+        >>> frame.select(information_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252)).item()
         nan
     """
     returns = float64_expr(returns)
@@ -1118,7 +1265,7 @@ def information_ratio_rolling(
         ...     .over("ticker")
         ...     .round(4)
         ... )
-        >>> frame.with_columns(expr.alias("m"))["m"].to_list()
+        >>> frame.with_columns(information_ratio_rolling=expr)["information_ratio_rolling"].to_list()
         [None, None, None, 2.3539, 2.3539, 5.0387, None, None, None, 0.0, 0.929, -2.3932]
 
         A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make the handling visible:
@@ -1133,6 +1280,36 @@ def information_ratio_rolling(
         ...     information_ratio_rolling(pl.col("returns"), pl.col("benchmark"), 4, periods_per_year=252).round(4)
         ... ).to_series().to_list()
         [None, None, None, None, nan, 5.0387, 2.8393, 22.9129]
+
+        **Degenerate denominator** — once the outlier slides out of the window, the window is bit-constant with zero
+        tracking error, so the ratio is ``+inf``:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "returns": [1000000.0, 0.1, 0.1, 0.1, 0.1],
+        ...         "benchmark": [0.0, 0.0, 0.0, 0.0, 0.0],
+        ...     }
+        ... )
+        >>> expr = information_ratio_rolling(
+        ...     pl.col("returns"), pl.col("benchmark"), window=3, periods_per_year=252
+        ... ).round(4)
+        >>> frame.select(information_ratio_rolling=expr)["information_ratio_rolling"].to_list()
+        [None, None, 9.1652, inf, inf]
+
+        **Degenerate denominator** — a window whose active returns are all exactly zero is the ``0 / 0`` case, so the
+        result is ``NaN`` even once larger active values have slid out of the window:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "returns": [-0.3233, -0.6457, 0.0, 0.4404, 0.0, 0.0, 0.0, 0.0],
+        ...         "benchmark": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        ...     }
+        ... )
+        >>> expr = information_ratio_rolling(
+        ...     pl.col("returns"), pl.col("benchmark"), window=4, periods_per_year=252
+        ... ).round(4)
+        >>> frame.select(information_ratio_rolling=expr)["information_ratio_rolling"].to_list()
+        [None, None, None, -4.5223, -1.8213, 7.9373, 7.9373, nan]
     """
     returns = float64_expr(returns)
     benchmark = float64_expr(benchmark)
@@ -1238,7 +1415,9 @@ def modigliani_risk_adjusted_performance(
         ...     }
         ... )
         >>> reduced = m_squared(pl.col("returns"), pl.col("benchmark"), periods_per_year=252).over("ticker").round(4)
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(modigliani_risk_adjusted_performance=reduced)[
+        ...     "modigliani_risk_adjusted_performance"
+        ... ].unique().sort().to_list()
         [1.1541, 1.3163]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -1251,6 +1430,32 @@ def modigliani_risk_adjusted_performance(
         ... )
         >>> frame.select(m_squared(pl.col("returns"), pl.col("benchmark"), periods_per_year=252).round(4)).item()
         nan
+
+        **Insufficient sample** — a single complete pair leaves the embedded Sharpe ratio and benchmark volatility
+        undefined, so the result is ``null``:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "returns": [0.05],
+        ...         "benchmark": [0.04],
+        ...     }
+        ... )
+        >>> expr = m_squared(pl.col("returns"), pl.col("benchmark"), periods_per_year=252)
+        >>> frame.select(m_squared=expr)["m_squared"].to_list()
+        [None]
+
+        **Degenerate denominator** — a constant portfolio has zero dispersion, so the embedded Sharpe ratio is ``+inf``,
+        which propagates to ``+inf``:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "returns": [0.01, 0.01, 0.01],
+        ...         "benchmark": [0.02, -0.01, 0.03],
+        ...     }
+        ... )
+        >>> expr = m_squared(pl.col("returns"), pl.col("benchmark"), periods_per_year=252)
+        >>> frame.select(expr).item()
+        inf
     """
     returns = float64_expr(returns)
     benchmark = float64_expr(benchmark)
@@ -1354,7 +1559,7 @@ def treynor_ratio(
         >>> reduced = (
         ...     treynor_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252).over("ticker").round(4)
         ... )
-        >>> frame.select(reduced.alias("m"))["m"].unique().sort().to_list()
+        >>> frame.select(treynor_ratio=reduced)["treynor_ratio"].unique().sort().to_list()
         [1.1675, 1.3201]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -1366,6 +1571,42 @@ def treynor_ratio(
         ...     }
         ... )
         >>> frame.select(treynor_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252).round(4)).item()
+        nan
+
+        **Insufficient sample** — a single complete pair yields ``null``, since the regression slope needs two
+        observations:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "returns": [0.05],
+        ...         "benchmark": [0.04],
+        ...     }
+        ... )
+        >>> expr = treynor_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252)
+        >>> frame.select(treynor_ratio=expr)["treynor_ratio"].to_list()
+        [None]
+
+        **Degenerate denominator** — a zero beta with a positive excess return gives ``+inf``, reported not clipped:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "returns": [3.0, 3.0, 1.0, 1.0],
+        ...         "benchmark": [1.0, -1.0, 1.0, -1.0],
+        ...     }
+        ... )
+        >>> frame.select(treynor_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252)).item()
+        inf
+
+        **Degenerate denominator** — a constant benchmark makes the embedded beta ``NaN``, so the excess-over-beta ratio
+        is ``NaN``:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "returns": [0.01, -0.02, 0.03],
+        ...         "benchmark": [0.1, 0.1, 0.1],
+        ...     }
+        ... )
+        >>> frame.select(treynor_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252)).item()
         nan
     """
     returns = float64_expr(returns)
@@ -1476,7 +1717,7 @@ def treynor_ratio_rolling(
         ...     .over("ticker")
         ...     .round(4)
         ... )
-        >>> frame.with_columns(expr.alias("m"))["m"].to_list()
+        >>> frame.with_columns(treynor_ratio_rolling=expr)["treynor_ratio_rolling"].to_list()
         [None, None, None, 0.9993, 0.7483, 1.4938, None, None, None, 1.3726, 0.6224, 0.0]
 
         A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make the handling visible:
@@ -1491,6 +1732,33 @@ def treynor_ratio_rolling(
         ...     treynor_ratio_rolling(pl.col("returns"), pl.col("benchmark"), 4, periods_per_year=252).round(4)
         ... ).to_series().to_list()
         [None, None, None, None, nan, 1.4938, -0.5003, 1.8295]
+
+        **Degenerate denominator** — a ``null`` in a window yields ``null`` under the pairwise-complete gate before the
+        constant-benchmark ``NaN`` branch, so the result stays ``null`` until the window clears and then reports
+        ``NaN``:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "returns": [0.02, None, 0.03, 0.01, 0.02],
+        ...         "benchmark": [0.1, 0.1, 0.1, 0.1, 0.1],
+        ...     }
+        ... )
+        >>> expr = treynor_ratio_rolling(pl.col("returns"), pl.col("benchmark"), window=3, periods_per_year=252)
+        >>> frame.select(treynor_ratio_rolling=expr)["treynor_ratio_rolling"].to_list()
+        [None, None, None, None, nan]
+
+        **Degenerate denominator** — a zero-beta window with a positive excess return gives ``+inf``, reported not
+        clipped:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "returns": [3.0, 3.0, 1.0, 1.0],
+        ...         "benchmark": [1.0, -1.0, 1.0, -1.0],
+        ...     }
+        ... )
+        >>> expr = treynor_ratio_rolling(pl.col("returns"), pl.col("benchmark"), window=4, periods_per_year=252)
+        >>> frame.select(treynor_ratio_rolling=expr)["treynor_ratio_rolling"].to_list()
+        [None, None, None, inf]
     """
     returns = float64_expr(returns)
     benchmark = float64_expr(benchmark)

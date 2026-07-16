@@ -176,7 +176,7 @@ def parabolic_sar(
         ...         "low": [9.0, 10.0, 11.0, 12.0, 13.0, 12.0, 11.0, 10.0, 9.0, 10.0],
         ...     }
         ... )
-        >>> frame.select(parabolic_sar(pl.col("high"), pl.col("low")).round(4).alias("sar"))["sar"].to_list()
+        >>> frame.select(parabolic_sar=parabolic_sar(pl.col("high"), pl.col("low")).round(4))["parabolic_sar"].to_list()
         [None, 9.0, 9.0, 9.12, 9.3528, 9.7246, 10.0666, 14.0, 13.92, 13.7232]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker seeds independently:
@@ -189,7 +189,7 @@ def parabolic_sar(
         ...     }
         ... )
         >>> expr = parabolic_sar(pl.col("high"), pl.col("low")).over("ticker").round(4)
-        >>> frame.with_columns(expr.alias("sar"))["sar"].to_list()
+        >>> frame.with_columns(parabolic_sar=expr)["parabolic_sar"].to_list()
         [None, 9.0, 9.0, 9.12, 9.3528, None, 19.0, 19.0, 19.12, 22.0]
 
         A ``null`` then a ``NaN`` in ``high`` each yield ``null`` / ``NaN`` at that row and are skipped, the
@@ -201,7 +201,7 @@ def parabolic_sar(
         ...         "low": [9.0, 10.0, 11.0, 12.0, 13.0, 12.0, 11.0, 10.0],
         ...     }
         ... )
-        >>> frame.select(parabolic_sar(pl.col("high"), pl.col("low")).round(4).alias("sar"))["sar"].to_list()
+        >>> frame.select(parabolic_sar=parabolic_sar(pl.col("high"), pl.col("low")).round(4))["parabolic_sar"].to_list()
         [None, 9.0, 9.0, None, 9.12, nan, 9.4128, 9.688]
     """
     high = float64_expr(high)
@@ -375,7 +375,7 @@ def supertrend(
         ...     }
         ... )
         >>> expr = supertrend(pl.col("high"), pl.col("low"), pl.col("close"), 2, multiplier=2.0)
-        >>> out = frame.select(expr.alias("st")).unnest("st")
+        >>> out = frame.select(supertrend=expr).unnest("supertrend")
         >>> out.select(pl.col("line").round(4))["line"].to_list()
         [None, 8.0, 9.05, 9.05, 9.05, 9.05, 9.05]
         >>> out["direction"].to_list()
@@ -392,7 +392,7 @@ def supertrend(
         ...     }
         ... )
         >>> expr = supertrend(pl.col("high"), pl.col("low"), pl.col("close"), 2, multiplier=2.0)
-        >>> frame.with_columns(expr.over("ticker").struct.field("line").round(4).alias("l"))["l"].to_list()
+        >>> frame.with_columns(line=expr.over("ticker").struct.field("line").round(4))["line"].to_list()
         [None, 8.0, 9.05, 9.05, 9.05, None, 18.0, 19.05, 19.05, 19.05]
 
         A ``null`` in ``close`` is skipped and bridged by the running state, while a ``NaN`` poisons the ATR
@@ -406,8 +406,22 @@ def supertrend(
         ...     }
         ... )
         >>> expr = supertrend(pl.col("high"), pl.col("low"), pl.col("close"), 2, multiplier=2.0)
-        >>> frame.select(expr.struct.field("line").round(4).alias("l"))["l"].to_list()
+        >>> frame.select(line=expr.struct.field("line").round(4))["line"].to_list()
         [None, 8.0, 9.05, None, 9.9875, nan, nan]
+
+        **window == 1** — a single-bar window makes the ATR the bar's own true range, and a close above the lower band
+        seeds the trend long, so the line reads the lower band:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.0],
+        ...         "low": [8.0],
+        ...         "close": [9.0],
+        ...     }
+        ... )
+        >>> expr = supertrend(pl.col("high"), pl.col("low"), pl.col("close"), window=1)
+        >>> frame.select(line=expr.struct.field("line"))["line"].to_list()
+        [3.0]
     """
     high = float64_expr(high)
     low = float64_expr(low)
