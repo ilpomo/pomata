@@ -53,5 +53,12 @@ SORTINO_RATIO = Spec(
             reason="reference agreement at a non-default risk-free rate ",
             params_override={"risk_free_rate": 0.02},
         ),
+        SpecPin(
+            label="no_downside_zero_mean_is_nan",
+            inputs={"returns": (0.0, 0.0, 0.0)},
+            expected=(math.nan,),
+            reason="an all-zero series sits at the zero target with zero mean excess, so the downside deviation and "
+            "the numerator are both zero, giving a 0/0, i.e. NaN — the degenerate-denominator NaN beside the +inf pin",
+        ),
     ),
 )

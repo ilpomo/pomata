@@ -70,5 +70,13 @@ ULTIMATE_OSCILLATOR = Spec(
             expected=(None, math.nan, math.nan),
             reason="the exact-flat guard is residual-free at scale, yielding NaN rather than a falsely-saturated value",
         ),
+        SpecPin(
+            label="flat_range_missing_low_is_inf",
+            inputs={"high": (10.0, 8.0), "low": (10.0, None), "close": (10.0, 12.0)},
+            params_override={"window_short": 1, "window_medium": 1, "window_long": 2},
+            expected=(None, math.inf),
+            reason="a missing low sends the true range to zero through the prior-close fallback while the buying "
+            "pressure stays positive, so the quotient is +/-inf — the infinity beside the 0/0 NaN pin",
+        ),
     ),
 )

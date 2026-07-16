@@ -44,5 +44,13 @@ PERCENTAGE_PRICE_OSCILLATOR = Spec(
             expected=(None, None, math.nan, math.nan),
             reason="an all-zero series drives both EMAs to exactly 0.0, so the 0/0 boundary surfaces as NaN ",
         ),
+        SpecPin(
+            label="nonzero_gap_zero_slow_ema_is_inf",
+            inputs={"price": (1.0, 1.0, -2.0)},
+            params_override={"window_fast": 2, "window_slow": 3},
+            expected=(None, None, -math.inf),
+            reason="a window summing to zero seeds the slow EMA at exactly 0.0 while the fast EMA stays non-zero, so "
+            "the non-zero gap over the zero slow EMA is +/-inf — the infinity beside the 0/0 NaN pin",
+        ),
     ),
 )

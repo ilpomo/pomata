@@ -41,5 +41,12 @@ CALMAR_RATIO = Spec(
             reason="a monotonically rising curve has zero maximum drawdown with positive growth, so the ratio is +inf ",
             params_override={"periods_per_year": 1},
         ),
+        SpecPin(
+            label="no_drawdown_zero_growth_is_nan",
+            inputs={"equity_curve": (1.0, 1.0, 1.0)},
+            expected=(math.nan,),
+            reason="a flat multi-row curve has zero maximum drawdown and zero growth, so the ratio is a 0/0, "
+            "i.e. NaN — the degenerate-denominator NaN beside the +inf pin",
+        ),
     ),
 )

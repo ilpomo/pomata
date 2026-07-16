@@ -40,7 +40,7 @@ KELTNER_CHANNELS = Spec(
     },
     pins=(
         SpecPin(
-            label="flat_series_zero_atr_collapses_to_ema",
+            label="flat_range_zero_atr_collapses_to_ema",
             inputs={"high": (4.0, 4.0, 4.0, 4.0), "low": (4.0, 4.0, 4.0, 4.0), "close": (4.0, 4.0, 4.0, 4.0)},
             params_override={"window": 2, "window_atr": 2},
             expected={

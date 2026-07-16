@@ -35,6 +35,14 @@ CAGR = Spec(
             params_override={"periods_per_year": 4},
         ),
         SpecPin(
+            label="single_period_overflow_is_inf",
+            inputs={"equity_curve": (2.0,)},
+            expected=(math.inf,),
+            reason="a single observation raised to a huge annualization power overflows the float64 range, so the "
+            "result is +inf — the defined geometric extrapolation, reported not clipped",
+            params_override={"periods_per_year": 2000},
+        ),
+        SpecPin(
             label="non_positive_terminal_equity_negative",
             inputs={"equity_curve": (1.0, 0.5, -0.2)},
             expected=(math.nan,),

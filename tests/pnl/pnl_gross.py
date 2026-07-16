@@ -47,7 +47,7 @@ PNL_GROSS = Spec(
             "previous price also nulls the next bar",
         ),
         SpecPin(
-            label="short_on_flat_price_is_negative_zero",
+            label="short_on_flat_price_is_signed_zero",
             inputs={"quantity": (-5.0, -5.0), "price": (100.0, 100.0)},
             expected=(None, -0.0),
             reason="a short over a flat price yields IEEE -0.0 (a negative quantity times an exact +0.0 delta carries "

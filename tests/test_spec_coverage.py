@@ -56,9 +56,8 @@ def test_every_declared_oracle_band_is_a_named_constant(spec: Spec) -> None:
 
 # Knobs with a signature default that no declaration varies yet, frozen at this guard's introduction: the scale /
 # smoothing constants of the sequential kernels (their golden masters run the canonical defaults), the risk-free-rate
-# legs whose zero default is itself the canonical convention, the tail-confidence levels (validated by ``raises``,
-# exercised only at 0.95), and sterling's excess cushion (whose pins exist precisely to show the DEFAULT cushion's
-# behavior). Shrink this set by pinning a non-default case; never grow it.
+# legs whose zero default is itself the canonical convention, and the tail-confidence levels (validated by
+# ``raises``, exercised only at 0.95). Shrink this set by pinning a non-default case; never grow it.
 _UNVARIED: frozenset[tuple[str, str]] = frozenset(
     {
         ("adjusted_sharpe_ratio", "risk_free_rate"),
@@ -73,7 +72,6 @@ _UNVARIED: frozenset[tuple[str, str]] = frozenset(
         ("probabilistic_sharpe_ratio", "risk_free_rate"),
         ("sharpe_ratio", "risk_free_rate"),
         ("sharpe_ratio_rolling", "risk_free_rate"),
-        ("sterling_ratio", "excess"),
         ("sterling_ratio", "risk_free_rate"),
         ("t3", "volume_factor"),
         ("ulcer_performance_ratio", "risk_free_rate"),

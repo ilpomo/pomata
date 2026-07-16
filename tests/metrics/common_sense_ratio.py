@@ -32,5 +32,12 @@ COMMON_SENSE_RATIO = Spec(
             expected=(math.inf,),
             reason="an all-positive series has an infinite profit factor and a finite positive tail ratio, so +inf ",
         ),
+        SpecPin(
+            label="all_zero_is_nan",
+            inputs={"returns": (0.0, 0.0, 0.0)},
+            expected=(math.nan,),
+            reason="an all-zero series drives both the profit factor and the tail ratio to a 0/0, so the product is "
+            "NaN — the degenerate-denominator NaN beside the +inf pin",
+        ),
     ),
 )

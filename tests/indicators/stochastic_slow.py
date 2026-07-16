@@ -41,5 +41,13 @@ STOCHASTIC_SLOW = Spec(
             expected={"k": (None, math.nan, math.nan), "d": (None, math.nan, math.nan)},
             reason="a flat look-back makes the raw %K's 0/0 division NaN, passed through by the slowing and %D SMAs",
         ),
+        SpecPin(
+            label="flat_range_close_off_is_inf",
+            inputs={"high": (10.0, 10.0, 10.0), "low": (10.0, 10.0, 10.0), "close": (20.0, 20.0, 20.0)},
+            params_override={"window_k": 2, "window_slowing": 1, "window_d": 1},
+            expected={"k": (None, math.inf, math.inf), "d": (None, math.inf, math.inf)},
+            reason="a malformed bar whose close sits above a flat high==low look-back makes the raw %K a non-zero "
+            "over zero, so %K is +inf, passed through by the slowing and %D SMAs — the infinity beside the 0/0 NaN pin",
+        ),
     ),
 )

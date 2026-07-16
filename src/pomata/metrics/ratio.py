@@ -401,7 +401,7 @@ def common_sense_ratio(
         - **Null** — a ``null`` return is skipped; an all-null (or empty) series yields ``null``.
         - **NaN** — a ``NaN`` return propagates, yielding ``NaN``.
         - **Insufficient sample** — a one-element loss has a zero profit factor and a unit tail ratio, so the result is
-          an exact ``0``.
+          exactly ``0``.
         - **Degenerate denominator** — it inherits the degeneracies of its two factors: ``+inf`` when there are no
           losses (the profit factor diverges) or a zero left tail (the tail ratio diverges), and ``NaN`` where a
           ``0 * inf`` arises; all reported, not clipped.
