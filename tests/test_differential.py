@@ -20,13 +20,13 @@ canonical spec parameters, so they cannot be derived from the spec registry with
 
 import math
 from collections.abc import Callable
-from pathlib import Path
 from typing import Any
 
 import numpy as np
 import polars as pl
 import pytest
 from tests.support import ABSOLUTE_TOLERANCE_REFERENCE, RELATIVE_TOLERANCE_REFERENCE
+from tests.support.talib_coverage import DOCUMENTED_DIVERGENCES, NO_TALIB_EQUIVALENT
 
 from pomata import indicators
 from pomata.indicators import (
@@ -543,33 +543,8 @@ SPECS: dict[str, Compare] = {
     "wma": lambda m: [("wma", _ours(m["frame"], wma(pl.col("close"), 14)), talib.WMA(m["close"], 14))],
 }
 
-# Indicators with no TA-Lib twin: the differential tier cannot cover them. Listed so the gap is explicit, not silent.
-NO_TALIB_EQUIVALENT: dict[str, str] = {
-    "awesome_oscillator": "TA-Lib has no Awesome Oscillator.",
-    "chaikin_money_flow": "TA-Lib has the A/D line and Chaikin oscillator, but not the volume-normalized CMF.",
-    "donchian_channels": "TA-Lib has no Donchian channels.",
-    "fisher_transform": "TA-Lib has no Fisher Transform.",
-    "hma": "TA-Lib has no Hull moving average.",
-    "ichimoku": "TA-Lib has no Ichimoku Kinko Hyo.",
-    "keltner_channels": "TA-Lib has no Keltner channels.",
-    "rma": "TA-Lib has no Wilder smoothing (SMMA) as a standalone function.",
-    "standard_deviation_ewma": "TA-Lib STDDEV is windowed; there is no exponentially-weighted standard deviation.",
-    "supertrend": "TA-Lib has no SuperTrend.",
-    "variance_ewma": "TA-Lib VAR is windowed; there is no exponentially-weighted variance.",
-    "vortex": "TA-Lib has no Vortex indicator.",
-    "vwap": "TA-Lib has no VWAP.",
-    "vwma": "TA-Lib has no volume-weighted moving average.",
-}
-
-# Indicators that map to a TA-Lib function but follow a different (deliberate) definitional convention, so the
-# steady-state tail does not agree. Documented with the exact difference; see each indicator's own docstring.
-DOCUMENTED_DIVERGENCES: dict[str, str] = {
-    "adxr": "ADXR averages ADX with its lagged self; pomata lags by `window`, TA-Lib by `window - 1`.",
-    "chande_momentum_oscillator": (
-        "pomata uses Chande's original fixed-window sums; TA-Lib uses Wilder smoothing (CMO == 2*RSI - 100)."
-    ),
-    "obv": "OBV is a cumulative sum with an arbitrary origin; pomata seeds OBV[0] = 0, TA-Lib uses volume[0].",
-}
+# The no-twin / deliberate-divergence partition lives in tests.support.talib_coverage (pure data, no TA-Lib
+# dependency), so the docstring and README guards can read it on every run while this module stays talib-gated.
 
 
 # Indicators whose warm-up legitimately differs from TA-Lib, compared only on the converged steady-state tail. In every
@@ -636,17 +611,3 @@ def test_every_indicator_is_accounted_for() -> None:
     covered = set(SPECS) | set(NO_TALIB_EQUIVALENT) | set(DOCUMENTED_DIVERGENCES)
     assert covered == set(indicators.__all__)
     assert set(STEADY_STATE_ONLY) <= set(SPECS)
-
-
-def test_readme_talib_split_matches_the_partition() -> None:
-    """
-    Verifies the README's TA-Lib coverage split equals the partition this module declares, so reclassifying an
-    indicator between the compared and excluded buckets reddens the page instead of silently staling its figures.
-    """
-    readme = (Path(__file__).parent.parent / "README.md").read_text(encoding="utf-8")
-    compared = len(SPECS)
-    excluded = len(NO_TALIB_EQUIVALENT) + len(DOCUMENTED_DIVERGENCES)
-    total = len(indicators.__all__)
-    assert f"and {compared} of the {total} cross-checked against" in readme
-    assert f"(the other {excluded} have no TA-Lib twin" in readme
-    assert f"for the {compared} of {total} with a twin" in readme

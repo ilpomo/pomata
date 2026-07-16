@@ -48,7 +48,7 @@ PNL_GROSS_INVERSE = Spec(
             "price also nulls the next bar",
         ),
         SpecPin(
-            label="short_flat_price_negative_zero",
+            label="short_flat_price_signed_zero",
             inputs={"quantity": (-5.0, -5.0), "price": (100.0, 100.0)},
             expected=(None, -0.0),
             reason="a short over a flat price yields IEEE -0.0 (the reciprocal change is an exact +0.0, and a negative "

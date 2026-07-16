@@ -36,5 +36,12 @@ GAIN_TO_PAIN_RATIO = Spec(
             expected=(-1.0,),
             reason="an all-negative series has net loss equal to its total loss, so the ratio is -1 ",
         ),
+        SpecPin(
+            label="all_zero_is_nan",
+            inputs={"returns": (0.0, 0.0, 0.0)},
+            expected=(math.nan,),
+            reason="an all-zero series has zero total loss and zero net return, so the ratio is a 0/0, i.e. NaN — "
+            "the degenerate-denominator NaN beside the +inf pin",
+        ),
     ),
 )

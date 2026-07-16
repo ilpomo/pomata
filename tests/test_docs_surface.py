@@ -12,6 +12,7 @@ import tomllib
 from pathlib import Path
 
 import pytest
+from tests.support.talib_coverage import DOCUMENTED_DIVERGENCES, NO_TALIB_EQUIVALENT
 
 import pomata.indicators
 import pomata.metrics
@@ -154,3 +155,17 @@ def test_single_runtime_dependency_claim_holds() -> None:
         dependencies = tomllib.load(handle)["project"]["dependencies"]
     assert len(dependencies) == 1, dependencies
     assert str(dependencies[0]).startswith("polars"), dependencies
+
+
+def test_readme_talib_split_matches_the_partition() -> None:
+    """
+    Verifies the README's TA-Lib coverage split equals the registry partition, so reclassifying an indicator
+    between the compared and excluded buckets reddens the page instead of silently staling its figures.
+    """
+    readme = _README.read_text(encoding="utf-8")
+    total = len(pomata.indicators.__all__)
+    excluded = len(NO_TALIB_EQUIVALENT) + len(DOCUMENTED_DIVERGENCES)
+    compared = total - excluded
+    assert f"and {compared} of the {total} cross-checked against" in readme
+    assert f"(the other {excluded} have no TA-Lib twin" in readme
+    assert f"for the {compared} of {total} with a twin" in readme

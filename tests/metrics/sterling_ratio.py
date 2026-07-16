@@ -53,5 +53,21 @@ STERLING_RATIO = Spec(
             "positive where the cushion-less burke / calmar / pain / recovery / ulcer_performance twins diverge "
             "to +inf: sterling's distinguishing behavior, pinned like the twins pin theirs",
         ),
+        SpecPin(
+            label="zero_cushion_no_drawdown_is_inf",
+            inputs={"equity_curve": (1.0, 1.1, 1.21)},
+            params_override={"periods_per_year": 1, "excess": 0.0},
+            expected=(math.inf,),
+            reason="a zero excess cushion on a drawdown-free rising curve leaves a zero denominator with positive "
+            "growth, so the ratio is +inf",
+        ),
+        SpecPin(
+            label="zero_cushion_no_drawdown_zero_growth_is_nan",
+            inputs={"equity_curve": (1.0, 1.0, 1.0)},
+            params_override={"periods_per_year": 1, "excess": 0.0},
+            expected=(math.nan,),
+            reason="a zero excess cushion on a flat curve leaves a zero denominator and zero excess growth, so the "
+            "ratio is a 0/0, i.e. NaN — the degenerate-denominator NaN beside the +inf pin",
+        ),
     ),
 )

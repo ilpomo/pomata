@@ -43,5 +43,12 @@ RECOVERY_RATIO = Spec(
             reason="a curve ending below its start reports a negative recovery factor: the total-return numerator "
             "keeps its sign over the drawdown magnitude",
         ),
+        SpecPin(
+            label="no_drawdown_zero_growth_is_nan",
+            inputs={"equity_curve": (1.0, 1.0, 1.0)},
+            expected=(math.nan,),
+            reason="a flat multi-row curve has zero maximum drawdown and zero total return, so the ratio is a 0/0, "
+            "i.e. NaN — the degenerate-denominator NaN beside the +inf pin",
+        ),
     ),
 )

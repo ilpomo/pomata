@@ -24,12 +24,21 @@ import polars as pl
 import pytest
 from tests.all_specs import ALL_SPECS
 from tests.support import COLUMN_X, synthesize_call
-from tests.support.edge_classes import DEVIANT_BULLETS, bullet_matches, expected_bullet, required_classes
+from tests.support.edge_classes import (
+    DEVIANT_BULLETS,
+    EdgeClass,
+    asserted_outcome_kinds,
+    bullet_matches,
+    degenerate_witness_kinds,
+    expected_bullet,
+    required_classes,
+)
+from tests.support.talib_coverage import DOCUMENTED_DIVERGENCES
 
 import pomata.indicators
 import pomata.metrics
 import pomata.pnl
-from pomata._policy import POLICIES, NanPolicy
+from pomata._policy import NO_ORACLE, POLICIES, NanPolicy
 
 _FAMILIES = {"indicators": pomata.indicators, "pnl": pomata.pnl, "metrics": pomata.metrics}
 _SECTIONS = ("Args", "Returns", "Raises", "Note", "See Also", "References", "Examples")
@@ -424,6 +433,23 @@ def test_edge_bullet_phrasing_is_canonical(name: str) -> None:
         )
 
 
+@pytest.mark.parametrize("name", _NAMES)
+def test_structural_secondary_outcomes_are_pinned(name: str) -> None:
+    """Every degenerate outcome a Degenerate-denominator bullet asserts (a ``NaN`` or an infinity) is witnessed by a
+    Degenerate-denominator pin of that kind — the claim⇔pin link, so a narrated regime cannot go without a fixed case.
+    """
+    spec = _SPECS[name]
+    witnessed = degenerate_witness_kinds(spec)
+    for label, text in _edge_bullets(_note(_doc(name))):
+        if label != EdgeClass.DEGENERATE_DENOMINATOR.value:
+            continue
+        missing = asserted_outcome_kinds(text) - witnessed
+        assert not missing, (
+            f"{name}: the Degenerate-denominator bullet asserts {sorted(missing)} with no pin witnessing it — "
+            f"add a Degenerate-denominator pin whose expected lanes carry that outcome"
+        )
+
+
 # The whitelist of explanatory sub-headers a Note may carry above its ``**Edge-case behavior**`` list — the exact
 # set the corpus uses today. Each is a bold ``**Label**`` paragraph header naming a documented convention (seeding,
 # input handling, a clamp, a sign choice, ...); an unlisted header is an ad-hoc section the guard rejects. Shrink-only.
@@ -448,7 +474,6 @@ _PRELIST_LABELS: frozenset[str] = frozenset(
         "Period rounding",
         "Scaling",
         "Seeding",
-        "Sign",
         "Sign convention",
         "Tie-break and seeding",
         "Warm-up",
@@ -467,6 +492,95 @@ def test_prelist_labels_are_whitelisted(name: str) -> None:
     reserved = {"Precision", "Correctness", "Edge-case behavior"}
     offenders = [header for header in headers if header not in reserved and header not in _PRELIST_LABELS]
     assert not offenders, f"{name}: non-whitelisted pre-list sub-headers {offenders}"
+
+
+def _prelist_sections(name: str) -> list[tuple[str, str]]:
+    """Each explanatory sub-header of the Note with its first following paragraph, whitespace-flattened."""
+    lines = _note(_doc(name)).splitlines()
+    sections: list[tuple[str, str]] = []
+    for index, line in enumerate(lines):
+        match = re.fullmatch(r"\*\*([^*\n]+?)\*\*", line.strip())
+        if match is None:
+            continue
+        start = index + 1
+        while start < len(lines) and not lines[start].strip():
+            start += 1
+        stop = start
+        while stop < len(lines) and lines[stop].strip():
+            stop += 1
+        sections.append((match.group(1), _flat(" ".join(lines[start:stop]))))
+    return sections
+
+
+def _prelist_headers(name: str) -> set[str]:
+    return {header for header, _ in _prelist_sections(name)}
+
+
+@pytest.mark.parametrize("name", _NAMES)
+def test_talib_divergence_header_matches_the_registry(name: str) -> None:
+    """The ``Documented TA-Lib divergence`` sub-header appears exactly on the functions the differential tier holds
+    out as deliberate divergences — the header cannot go stale on either side.
+    """
+    carries = "Documented TA-Lib divergence" in _prelist_headers(name)
+    registered = name in DOCUMENTED_DIVERGENCES
+    assert carries == registered, (
+        f"{name}: TA-Lib divergence header present={carries} but DOCUMENTED_DIVERGENCES membership={registered}"
+    )
+
+
+@pytest.mark.parametrize("name", _NAMES)
+def test_ddof_header_matches_the_signature(name: str) -> None:
+    """The ``Degrees of freedom`` sub-header appears exactly on the factories that take a ``ddof`` parameter."""
+    carries = "Degrees of freedom" in _prelist_headers(name)
+    declared = "ddof" in inspect.signature(getattr(_module_of(name), name)).parameters
+    assert carries == declared, f"{name}: Degrees-of-freedom header present={carries} but ddof parameter={declared}"
+
+
+def test_opener_variants_are_the_path_dependent_set() -> None:
+    """The pinned Note-opener variants are exactly the golden-pinned cycle cluster plus the two structural-mirror
+    recurrences whose opener names its own method (``kama``, ``parabolic_sar``) — no variant outlives its reason.
+    """
+    assert set(_OPENER_VARIANTS) == NO_ORACLE | {"kama", "parabolic_sar"}
+
+
+# The canonical body skeleton per template-able pre-list label: the paragraph under the header must START with one of
+# its label's skeletons (``{slot}`` is a free segment). Most labels carry one skeleton; ``Sign convention`` carries
+# its two sanctioned forms (the funding-cost sign product and the signed-quantile convention). Swept over carriers,
+# so a reworded body reddens against the printed skeleton instead of drifting silently.
+_PRELIST_SKELETONS: dict[str, tuple[str, ...]] = {
+    "Flat start": ("The {slot} is taken as ``0``",),
+    "No lookahead (alignment is the caller's)": ("The {slot} assumes ``{slot}`` at row ``t`` is the {slot} held over",),
+    "Zero return": ("A return of exactly ``0`` is neither a win nor a loss and is excluded from",),
+    "Historical, not parametric": (
+        "The {slot} is taken over the empirical return distribution, with no normality or other distributional "
+        "assumption.",
+    ),
+    "Sign convention": (
+        "The cost follows ``sign(quantity) * sign(funding_rate)``:",
+        "Returned as the signed return quantile (negative for a loss), not a positive loss magnitude; negate it if "
+        "a positive figure is wanted.",
+    ),
+    "Degrees of freedom": ("``ddof``",),
+}
+
+
+def _skeleton_pattern(skeleton: str) -> str:
+    """The anchored prefix regex a skeleton compiles to: fixed text escaped, each ``{slot}`` a free segment."""
+    return "^" + ".*?".join(re.escape(part) for part in skeleton.split("{slot}"))
+
+
+@pytest.mark.parametrize("name", _NAMES)
+def test_prelist_bodies_follow_their_skeleton(name: str) -> None:
+    """Every template-able pre-list section's body starts with one of its label's canonical skeletons."""
+    for header, body in _prelist_sections(name):
+        skeletons = _PRELIST_SKELETONS.get(header)
+        if skeletons is None:
+            continue
+        assert any(re.match(_skeleton_pattern(skeleton), body) for skeleton in skeletons), (
+            f"{name}: the {header!r} body does not start with a canonical skeleton.\n"
+            f"  got: {body[:160]}\n"
+            f"  expected one of:\n  " + "\n  ".join(skeletons)
+        )
 
 
 # The sanctioned Note openers. The family-level prefixes carry the great majority: an indicator "agrees with its
