@@ -78,9 +78,10 @@ def accumulation_distribution(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         **Zero-range bars:**
 
@@ -210,12 +211,15 @@ def accumulation_distribution_oscillator(
         ValueError: If ``window_fast < 1``, ``window_slow < 1``, or ``window_fast > window_slow``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
-        **Scaling:** homogeneous of degree ``1`` — the accumulation/distribution multiplier is scale-invariant in price
-        while the line scales with ``volume``, so multiplying all four inputs by ``k`` scales the oscillator by ``k``.
+        **Scaling:**
+
+        Homogeneous of degree ``1`` — the accumulation/distribution multiplier is scale-invariant in price while the
+        line scales with ``volume``, so multiplying all four inputs by ``k`` scales the oscillator by ``k``.
 
         **Edge-case behavior:**
 
@@ -347,9 +351,10 @@ def chaikin_money_flow(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         **Zero-range bars:**
 
@@ -500,9 +505,10 @@ def money_flow_index(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         **Classification:**
 
@@ -697,9 +703,10 @@ def obv(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         **Edge-case behavior:**
 
@@ -802,13 +809,16 @@ def vwap(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        conditioning limit of the long cumulative sums beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the conditioning limit
+        of the long cumulative sums beyond it.
 
-        **Anchoring:** VWAP accumulates from the start of the partition, so wrap the call in ``.over(session_key)`` to
-        reset it per session (e.g. one trading day): ``vwap(...).over("session")``. Without an anchor it accumulates
-        across the whole series, the classic VWAP misuse.
+        **Anchoring:**
+
+        VWAP accumulates from the start of the partition, so wrap the call in ``.over(session_key)`` to reset it per
+        session (e.g. one trading day): ``vwap(...).over("session")``. Without an anchor it accumulates across the whole
+        series, the classic VWAP misuse.
 
         **Inputs:**
 

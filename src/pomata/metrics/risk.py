@@ -229,11 +229,14 @@ def conditional_value_at_risk(
         ValueError: If ``confidence`` is not in the open interval ``(0, 1)``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
-        **Historical, not parametric:** the shortfall is taken over the empirical return distribution, with no
-        normality or other distributional assumption.
+        **Historical, not parametric:**
+
+        The shortfall is taken over the empirical return distribution, with no normality or other distributional
+        assumption.
 
         **Edge-case behavior:**
 
@@ -348,8 +351,9 @@ def downside_deviation(
         ValueError: If ``periods_per_year < 1``, or if ``threshold`` is not finite.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -441,8 +445,9 @@ def downside_deviation_rolling(
         ValueError: If ``window < 1``, ``periods_per_year < 1``, or if ``threshold`` is not finite.
 
     Note:
-        **Correctness** -- each window matches an independent reference oracle (the reducing :func:`downside_deviation`
-        recomputed over the window).
+        **Correctness:**
+        Each window matches an independent reference oracle (the reducing :func:`downside_deviation` recomputed over the
+        window).
 
         **Edge-case behavior:**
 
@@ -544,8 +549,9 @@ def kelly_criterion(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         This is the **discrete win/loss** form (from the win rate and payoff ratio). A common alternative for continuous
         returns is the ratio of the mean return to its variance; the two coincide only under specific assumptions.
@@ -645,8 +651,9 @@ def kurtosis(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -748,8 +755,8 @@ def kurtosis_rolling(
         ValueError: If ``window < 2``.
 
     Note:
-        **Correctness** -- each window matches an independent reference oracle (the reducing :func:`kurtosis` recomputed
-        over the window).
+        **Correctness:**
+        Each window matches an independent reference oracle (the reducing :func:`kurtosis` recomputed over the window).
 
         **Edge-case behavior:**
 
@@ -850,13 +857,16 @@ def payoff_ratio(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         This is a **bar-level** statistic: each return observation is treated as one win or loss. It is not a per-trade
         statistic -- true per-trade payoff needs trade-level fill data, which is outside this toolkit's scope.
 
-        **Zero return:** a return of exactly ``0`` is neither a win nor a loss and is excluded from both means.
+        **Zero return:**
+
+        A return of exactly ``0`` is neither a win nor a loss and is excluded from both means.
 
         **Edge-case behavior:**
 
@@ -950,8 +960,9 @@ def profit_factor(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         This is a **bar-level** statistic: each return observation is treated as one gain or loss. It is not a per-trade
         statistic -- true per-trade profit factor needs trade-level fill data, which is outside this toolkit's scope.
@@ -1052,8 +1063,9 @@ def risk_of_ruin(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         This is the **symmetric** form: it depends only on the win rate and the bet count, assuming equal-sized wins and
         losses and ruin at the loss of all capital. It deliberately ignores win/loss size and capital units. Because the
@@ -1144,8 +1156,9 @@ def skewness(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -1248,8 +1261,8 @@ def skewness_rolling(
         ValueError: If ``window < 2``.
 
     Note:
-        **Correctness** -- each window matches an independent reference oracle (the reducing :func:`skewness` recomputed
-        over the window).
+        **Correctness:**
+        Each window matches an independent reference oracle (the reducing :func:`skewness` recomputed over the window).
 
         **Edge-case behavior:**
 
@@ -1350,8 +1363,9 @@ def tail_ratio(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -1432,8 +1446,9 @@ def tail_ratio_rolling(
         ValueError: If ``window < 1``.
 
     Note:
-        **Correctness** -- each window matches an independent reference oracle (the reducing :func:`tail_ratio`
-        recomputed over the window).
+        **Correctness:**
+        Each window matches an independent reference oracle (the reducing :func:`tail_ratio` recomputed over the
+        window).
 
         **Edge-case behavior:**
 
@@ -1535,14 +1550,19 @@ def value_at_risk(
         ValueError: If ``confidence`` is not in the open interval ``(0, 1)``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
-        **Sign convention:** returned as the signed return quantile (negative for a loss), not a positive loss
-        magnitude; negate it if a positive figure is wanted.
+        **Sign convention:**
 
-        **Historical, not parametric:** the quantile is taken over the empirical return distribution, with no
-        normality or other distributional assumption.
+        Returned as the signed return quantile (negative for a loss), not a positive loss magnitude; negate it if a
+        positive figure is wanted.
+
+        **Historical, not parametric:**
+
+        The quantile is taken over the empirical return distribution, with no normality or other distributional
+        assumption.
 
         **Edge-case behavior:**
 
@@ -1627,8 +1647,9 @@ def value_at_risk_modified(
         ValueError: If ``confidence`` is not in the open interval ``(0, 1)``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -1771,11 +1792,14 @@ def value_at_risk_parametric(
         ValueError: If ``confidence`` is not in the open interval ``(0, 1)``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
-        **Gaussian assumption:** the estimate assumes normally distributed returns; for fat tails see
-        :func:`value_at_risk_modified` (Cornish-Fisher) or :func:`value_at_risk` (historical).
+        **Gaussian assumption:**
+
+        The estimate assumes normally distributed returns; for fat tails see :func:`value_at_risk_modified`
+        (Cornish-Fisher) or :func:`value_at_risk` (historical).
 
         **Edge-case behavior:**
 
@@ -1862,10 +1886,13 @@ def value_at_risk_rolling(
         ValueError: If ``window < 1``, or if ``confidence`` is not in the open interval ``(0, 1)``.
 
     Note:
-        **Correctness** -- each window matches an independent reference oracle (the reducing :func:`value_at_risk`
-        recomputed over the window).
+        **Correctness:**
+        Each window matches an independent reference oracle (the reducing :func:`value_at_risk` recomputed over the
+        window).
 
-        **Sign convention:** returned as the signed return quantile (negative for a loss), not a positive loss.
+        **Sign convention:**
+
+        Returned as the signed return quantile (negative for a loss), not a positive loss.
 
         **Edge-case behavior:**
 
@@ -1965,8 +1992,9 @@ def volatility(
         ValueError: If ``periods_per_year < 1``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -2051,8 +2079,9 @@ def volatility_rolling(
         ValueError: If ``window < 2``, or if ``periods_per_year < 1``.
 
     Note:
-        **Correctness** -- each window matches an independent reference oracle (the reducing :func:`volatility`
-        recomputed over the window).
+        **Correctness:**
+        Each window matches an independent reference oracle (the reducing :func:`volatility` recomputed over the
+        window).
 
         **Edge-case behavior:**
 
@@ -2154,13 +2183,16 @@ def win_rate(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         This is a **bar-level** statistic: each return observation is treated as one win or loss. It is not a per-trade
         statistic -- true per-trade win rate needs trade-level fill data, which is outside this toolkit's scope.
 
-        **Zero return:** a return of exactly ``0`` is neither a win nor a loss and is excluded from the denominator.
+        **Zero return:**
+
+        A return of exactly ``0`` is neither a win nor a loss and is excluded from the denominator.
 
         **Edge-case behavior:**
 

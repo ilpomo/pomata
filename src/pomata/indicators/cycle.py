@@ -303,15 +303,16 @@ def dominant_cycle_period(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision** -- the fixed FIR smoothing and quadrature stages are computed independently, but the adaptive
-        dominant-cycle period feeds back into its own measurement and the stages built on it, so the reference oracle
-        replays Ehlers' pipeline and confirms its internal consistency rather than independence; the independent witness
-        is the set of frozen golden masters, plus TA-Lib parity on the converged tail (the differential tier compares
-        the whole cycle cluster — every HT_* counterpart plus MAMA — against the C reference). Where measurable the
-        oracle agrees to ten significant figures (a ``1e-10`` band) on any finite input within a sane dynamic
-        range — a flat or period-two (even-lag) series included, though there the reading itself is physically
-        meaningless (the Hilbert quadrature is a pure cancellation residual: there is no cycle to measure).
-        The documentation's *Correctness* page gives the method and the float-conditioning limit beyond it.
+        **Precision:**
+        The fixed FIR smoothing and quadrature stages are computed independently, but the adaptive dominant-cycle period
+        feeds back into its own measurement and the stages built on it, so the reference oracle replays Ehlers' pipeline
+        and confirms its internal consistency rather than independence; the independent witness is the set of frozen
+        golden masters, plus TA-Lib parity on the converged tail (the differential tier compares the whole cycle cluster
+        — every HT_* counterpart plus MAMA — against the C reference). Where measurable the oracle agrees to ten
+        significant figures (a ``1e-10`` band) on any finite input within a sane dynamic range — a flat or period-two
+        (even-lag) series included, though there the reading itself is physically meaningless (the Hilbert quadrature is
+        a pure cancellation residual: there is no cycle to measure). The documentation's *Correctness* page gives the
+        method and the float-conditioning limit beyond it.
 
         **Edge-case behavior:**
 
@@ -366,14 +367,14 @@ def dominant_cycle_phase(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision** -- the fixed FIR smoothing and quadrature stages are computed independently, but the adaptive
-        dominant-cycle period feeds back into its own measurement and the stages built on it, so the reference oracle
-        replays Ehlers' pipeline and confirms its internal consistency rather than independence; the independent witness
-        is the set of frozen golden masters, plus TA-Lib parity on the converged tail (the differential tier compares
-        the whole cycle cluster — every HT_* counterpart plus MAMA — against the C reference). Where measurable the
-        oracle agrees to ten significant figures (a ``1e-10`` band) on any finite input within a sane dynamic
-        range, except on a flat or period-two (even-lag) series, where the Hilbert quadrature is a pure cancellation
-        residual and the measurement
+        **Precision:**
+        The fixed FIR smoothing and quadrature stages are computed independently, but the adaptive dominant-cycle period
+        feeds back into its own measurement and the stages built on it, so the reference oracle replays Ehlers' pipeline
+        and confirms its internal consistency rather than independence; the independent witness is the set of frozen
+        golden masters, plus TA-Lib parity on the converged tail (the differential tier compares the whole cycle cluster
+        — every HT_* counterpart plus MAMA — against the C reference). Where measurable the oracle agrees to ten
+        significant figures (a ``1e-10`` band) on any finite input within a sane dynamic range, except on a flat or
+        period-two (even-lag) series, where the Hilbert quadrature is a pure cancellation residual and the measurement
         is ill-conditioned (there is no cycle to measure). The documentation's *Correctness* page gives the method and
         the float-conditioning limit beyond it.
 
@@ -440,14 +441,14 @@ def hilbert_phasor(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision** -- the fixed FIR smoothing and quadrature stages are computed independently, but the adaptive
-        dominant-cycle period feeds back into its own measurement and the stages built on it, so the reference oracle
-        replays Ehlers' pipeline and confirms its internal consistency rather than independence; the independent witness
-        is the set of frozen golden masters, plus TA-Lib parity on the converged tail (the differential tier compares
-        the whole cycle cluster — every HT_* counterpart plus MAMA — against the C reference). Where measurable the
-        oracle agrees to ten significant figures (a ``1e-10`` band) on any finite input within a sane dynamic
-        range, except on a flat or period-two (even-lag) series, where the Hilbert quadrature is a pure cancellation
-        residual and the measurement
+        **Precision:**
+        The fixed FIR smoothing and quadrature stages are computed independently, but the adaptive dominant-cycle period
+        feeds back into its own measurement and the stages built on it, so the reference oracle replays Ehlers' pipeline
+        and confirms its internal consistency rather than independence; the independent witness is the set of frozen
+        golden masters, plus TA-Lib parity on the converged tail (the differential tier compares the whole cycle cluster
+        — every HT_* counterpart plus MAMA — against the C reference). Where measurable the oracle agrees to ten
+        significant figures (a ``1e-10`` band) on any finite input within a sane dynamic range, except on a flat or
+        period-two (even-lag) series, where the Hilbert quadrature is a pure cancellation residual and the measurement
         is ill-conditioned (there is no cycle to measure). The documentation's *Correctness* page gives the method and
         the float-conditioning limit beyond it.
 
@@ -507,15 +508,16 @@ def hilbert_trendline(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision** -- the fixed FIR smoothing and quadrature stages are computed independently, but the adaptive
-        dominant-cycle period feeds back into its own measurement and the stages built on it, so the reference oracle
-        replays Ehlers' pipeline and confirms its internal consistency rather than independence; the independent witness
-        is the set of frozen golden masters, plus TA-Lib parity on the converged tail (the differential tier compares
-        the whole cycle cluster — every HT_* counterpart plus MAMA — against the C reference). Where measurable the
-        oracle agrees to ten significant figures (a ``1e-10`` band) on any finite input within a sane dynamic
-        range — a flat or period-two (even-lag) series included, though there the reading itself is physically
-        meaningless (the Hilbert quadrature is a pure cancellation residual: there is no cycle to measure).
-        The documentation's *Correctness* page gives the method and the float-conditioning limit beyond it.
+        **Precision:**
+        The fixed FIR smoothing and quadrature stages are computed independently, but the adaptive dominant-cycle period
+        feeds back into its own measurement and the stages built on it, so the reference oracle replays Ehlers' pipeline
+        and confirms its internal consistency rather than independence; the independent witness is the set of frozen
+        golden masters, plus TA-Lib parity on the converged tail (the differential tier compares the whole cycle cluster
+        — every HT_* counterpart plus MAMA — against the C reference). Where measurable the oracle agrees to ten
+        significant figures (a ``1e-10`` band) on any finite input within a sane dynamic range — a flat or period-two
+        (even-lag) series included, though there the reading itself is physically meaningless (the Hilbert quadrature is
+        a pure cancellation residual: there is no cycle to measure). The documentation's *Correctness* page gives the
+        method and the float-conditioning limit beyond it.
 
         **Edge-case behavior:**
 
@@ -595,14 +597,14 @@ def mama(
             false upper bound.
 
     Note:
-        **Precision** -- the fixed FIR smoothing and quadrature stages are computed independently, but the adaptive
-        dominant-cycle period feeds back into its own measurement and the stages built on it, so the reference oracle
-        replays Ehlers' pipeline and confirms its internal consistency rather than independence; the independent witness
-        is the set of frozen golden masters, plus TA-Lib parity on the converged tail (the differential tier compares
-        the whole cycle cluster — every HT_* counterpart plus MAMA — against the C reference). Where measurable the
-        oracle agrees to ten significant figures (a ``1e-10`` band) on any finite input within a sane dynamic
-        range, except on a flat or period-two (even-lag) series, where the Hilbert quadrature is a pure cancellation
-        residual and the measurement
+        **Precision:**
+        The fixed FIR smoothing and quadrature stages are computed independently, but the adaptive dominant-cycle period
+        feeds back into its own measurement and the stages built on it, so the reference oracle replays Ehlers' pipeline
+        and confirms its internal consistency rather than independence; the independent witness is the set of frozen
+        golden masters, plus TA-Lib parity on the converged tail (the differential tier compares the whole cycle cluster
+        — every HT_* counterpart plus MAMA — against the C reference). Where measurable the oracle agrees to ten
+        significant figures (a ``1e-10`` band) on any finite input within a sane dynamic range, except on a flat or
+        period-two (even-lag) series, where the Hilbert quadrature is a pure cancellation residual and the measurement
         is ill-conditioned (there is no cycle to measure). The documentation's *Correctness* page gives the method and
         the float-conditioning limit beyond it.
 
@@ -688,14 +690,14 @@ def sine_wave(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision** -- the fixed FIR smoothing and quadrature stages are computed independently, but the adaptive
-        dominant-cycle period feeds back into its own measurement and the stages built on it, so the reference oracle
-        replays Ehlers' pipeline and confirms its internal consistency rather than independence; the independent witness
-        is the set of frozen golden masters, plus TA-Lib parity on the converged tail (the differential tier compares
-        the whole cycle cluster — every HT_* counterpart plus MAMA — against the C reference). Where measurable the
-        oracle agrees to ten significant figures (a ``1e-10`` band) on any finite input within a sane dynamic
-        range, except on a flat or period-two (even-lag) series, where the Hilbert quadrature is a pure cancellation
-        residual and the measurement
+        **Precision:**
+        The fixed FIR smoothing and quadrature stages are computed independently, but the adaptive dominant-cycle period
+        feeds back into its own measurement and the stages built on it, so the reference oracle replays Ehlers' pipeline
+        and confirms its internal consistency rather than independence; the independent witness is the set of frozen
+        golden masters, plus TA-Lib parity on the converged tail (the differential tier compares the whole cycle cluster
+        — every HT_* counterpart plus MAMA — against the C reference). Where measurable the oracle agrees to ten
+        significant figures (a ``1e-10`` band) on any finite input within a sane dynamic range, except on a flat or
+        period-two (even-lag) series, where the Hilbert quadrature is a pure cancellation residual and the measurement
         is ill-conditioned (there is no cycle to measure). The documentation's *Correctness* page gives the method and
         the float-conditioning limit beyond it.
 
@@ -763,14 +765,14 @@ def trend_mode(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision** -- the fixed FIR smoothing and quadrature stages are computed independently, but the adaptive
-        dominant-cycle period feeds back into its own measurement and the stages built on it, so the reference oracle
-        replays Ehlers' pipeline and confirms its internal consistency rather than independence; the independent witness
-        is the set of frozen golden masters, plus TA-Lib parity on the converged tail (the differential tier compares
-        the whole cycle cluster — every HT_* counterpart plus MAMA — against the C reference). Where measurable the
-        oracle agrees to ten significant figures (a ``1e-10`` band) on any finite input within a sane dynamic
-        range, except on a flat or period-two (even-lag) series, where the Hilbert quadrature is a pure cancellation
-        residual and the measurement
+        **Precision:**
+        The fixed FIR smoothing and quadrature stages are computed independently, but the adaptive dominant-cycle period
+        feeds back into its own measurement and the stages built on it, so the reference oracle replays Ehlers' pipeline
+        and confirms its internal consistency rather than independence; the independent witness is the set of frozen
+        golden masters, plus TA-Lib parity on the converged tail (the differential tier compares the whole cycle cluster
+        — every HT_* counterpart plus MAMA — against the C reference). Where measurable the oracle agrees to ten
+        significant figures (a ``1e-10`` band) on any finite input within a sane dynamic range, except on a flat or
+        period-two (even-lag) series, where the Hilbert quadrature is a pure cancellation residual and the measurement
         is ill-conditioned (there is no cycle to measure). The documentation's *Correctness* page gives the method and
         the float-conditioning limit beyond it.
 

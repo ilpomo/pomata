@@ -66,12 +66,15 @@ def absolute_price_oscillator(
             the shorter one; ``window_fast == window_slow`` is allowed and gives an identically-zero oscillator).
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
-        **Moving average:** both legs use the exponential :func:`ema` (not a simple average), so APO is the MACD line
-        without the signal; compose :func:`sma` directly for a simple-average oscillator.
+        **Moving average:**
+
+        Both legs use the exponential :func:`ema` (not a simple average), so APO is the MACD line without the signal;
+        compose :func:`sma` directly for a simple-average oscillator.
 
         **Edge-case behavior:**
 
@@ -165,9 +168,10 @@ def aroon(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         **Tie-break and seeding:**
 
@@ -287,9 +291,10 @@ def aroon_oscillator(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         **Edge-case behavior:**
 
@@ -397,9 +402,10 @@ def awesome_oscillator(
             the shorter one; ``window_fast == window_slow`` is allowed and gives an identically-zero oscillator).
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         **Inputs:**
 
@@ -500,9 +506,10 @@ def balance_of_power(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         **Inputs:**
 
@@ -632,9 +639,10 @@ def cci(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         **Edge-case behavior:**
 
@@ -759,12 +767,13 @@ def chande_momentum_oscillator(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it. For this oscillator the limit is concrete: the windowed gain / loss sums
-        ride Polars' incremental sliding kernel, so a window whose scale sits tens of orders of magnitude below a value
-        that has already slid out can inherit a stale residue; the clamp keeps the output inside ``[-100, 100]``, and no
-        real market series builds that spread.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it. For this oscillator the limit is concrete: the windowed gain / loss sums ride Polars'
+        incremental sliding kernel, so a window whose scale sits tens of orders of magnitude below a value that has
+        already slid out can inherit a stale residue; the clamp keeps the output inside ``[-100, 100]``, and no real
+        market series builds that spread.
 
         **Edge-case behavior:**
 
@@ -916,9 +925,10 @@ def fisher_transform(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         It is invariant under a positive affine rescaling of the inputs: the channel normalization ``(p - \min)/(\max -
         \min)`` cancels any common scale, so the transform depends only on the price's *shape*, not its level or units.
@@ -1053,12 +1063,15 @@ def macd(
             identically-zero MACD line, signal, and histogram).
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
-        **Scaling:** every field is homogeneous of degree ``1`` in ``expr`` (the EMAs and their differences all scale
-        with the price), so multiplying the close by ``k`` scales all three fields by ``k``.
+        **Scaling:**
+
+        Every field is homogeneous of degree ``1`` in ``expr`` (the EMAs and their differences all scale with the
+        price), so multiplying the close by ``k`` scales all three fields by ``k``.
 
         **Edge-case behavior:**
 
@@ -1158,9 +1171,10 @@ def mom(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         **Edge-case behavior:**
 
@@ -1247,12 +1261,15 @@ def percentage_price_oscillator(
             the shorter one; ``window_fast == window_slow`` is allowed and gives an identically-zero oscillator).
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
-        **Moving average:** both legs use the exponential :func:`ema`. Being scale-free, PPO is invariant to the price's
-        unit — multiplying the close by a constant leaves it unchanged.
+        **Moving average:**
+
+        Both legs use the exponential :func:`ema`. Being scale-free, PPO is invariant to the price's unit — multiplying
+        the close by a constant leaves it unchanged.
 
         **Edge-case behavior:**
 
@@ -1345,9 +1362,10 @@ def roc(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         **Edge-case behavior:**
 
@@ -1442,9 +1460,10 @@ def rsi(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         **Seeding:**
 
@@ -1560,9 +1579,10 @@ def rsi_stochastic(
         ValueError: If ``window_rsi < 1``, ``window_k < 1``, or ``window_d < 1``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         Both lines lie in ``[0, 100]``. Because the underlying :func:`rsi` is already scale-invariant, so is this; there
         is no homogeneity to test.
@@ -1668,9 +1688,10 @@ def trix(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         **Edge-case behavior:**
 
@@ -1779,9 +1800,10 @@ def ultimate_oscillator(
             ``window_short <= window_medium <= window_long`` (the three windows must run shortest to longest).
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         It is scale-invariant under a positive common rescaling of ``high``, ``low``, and ``close`` (each averaged term
         is a ratio of price ranges).
@@ -1950,9 +1972,10 @@ def williams_r(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         **Warm-up:**
 

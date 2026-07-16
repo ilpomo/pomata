@@ -42,9 +42,10 @@ def price_average(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         **Inputs:**
 
@@ -149,9 +150,10 @@ def price_median(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         **Inputs:**
 
@@ -252,9 +254,10 @@ def price_typical(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         **Inputs:**
 
@@ -359,9 +362,10 @@ def price_weighted_close(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         **Inputs:**
 

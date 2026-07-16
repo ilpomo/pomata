@@ -72,9 +72,10 @@ def stochastic_fast(
         ValueError: If ``window_k < 1`` or ``window_d < 1``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         Both lines are scale-invariant under a positive common rescaling of ``high``, ``low``, and ``close`` (a ratio of
         price ranges), and lie in ``[0, 100]`` for well-formed bars (``low <= close <= high``).
@@ -205,9 +206,10 @@ def stochastic_slow(
         ValueError: If ``window_k < 1``, ``window_slowing < 1``, or ``window_d < 1``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         Both lines are scale-invariant under a positive common rescaling of ``high``, ``low``, and ``close``, and lie in
         ``[0, 100]`` for well-formed bars (``low <= close <= high``). The slow %K equals the fast %D of

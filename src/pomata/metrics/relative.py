@@ -189,8 +189,9 @@ def alpha(
         ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite or is ``< -1``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -301,8 +302,8 @@ def alpha_rolling(
         ValueError: If ``window < 2``, ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite or is ``< -1``.
 
     Note:
-        **Correctness** -- each window matches an independent reference oracle (the reducing :func:`alpha` over the
-        window).
+        **Correctness:**
+        Each window matches an independent reference oracle (the reducing :func:`alpha` over the window).
 
         **Edge-case behavior:**
 
@@ -413,8 +414,9 @@ def beta(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -516,8 +518,8 @@ def beta_rolling(
         ValueError: If ``window < 2``.
 
     Note:
-        **Correctness** -- each window matches an independent reference oracle (the reducing :func:`beta` over the
-        window).
+        **Correctness:**
+        Each window matches an independent reference oracle (the reducing :func:`beta` over the window).
 
         **Edge-case behavior:**
 
@@ -619,8 +621,9 @@ def capture_downside_ratio(
         ValueError: If ``periods_per_year < 1``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -725,8 +728,9 @@ def capture_ratio(
         ValueError: If ``periods_per_year < 1``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -829,8 +833,9 @@ def capture_upside_ratio(
         ValueError: If ``periods_per_year < 1``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -936,8 +941,9 @@ def information_ratio(
         ValueError: If ``periods_per_year < 1``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -1050,8 +1056,8 @@ def information_ratio_rolling(
         ValueError: If ``window < 2``, or if ``periods_per_year < 1``.
 
     Note:
-        **Correctness** -- each window matches an independent reference oracle (the reducing :func:`information_ratio`
-        over the window).
+        **Correctness:**
+        Each window matches an independent reference oracle (the reducing :func:`information_ratio` over the window).
 
         **Edge-case behavior:**
 
@@ -1175,8 +1181,9 @@ def modigliani_risk_adjusted_performance(
         ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite or is ``< -1``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -1285,8 +1292,9 @@ def treynor_ratio(
         ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite or is ``< -1``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -1406,8 +1414,8 @@ def treynor_ratio_rolling(
         ValueError: If ``window < 2``, ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite or is ``< -1``.
 
     Note:
-        **Correctness** -- each window matches an independent reference oracle (the reducing :func:`treynor_ratio` over
-        the window).
+        **Correctness:**
+        Each window matches an independent reference oracle (the reducing :func:`treynor_ratio` over the window).
 
         **Edge-case behavior:**
 

@@ -130,11 +130,12 @@ def parabolic_sar(
             ``acceleration > maximum``.
 
     Note:
-        **Precision** -- the parabolic SAR is a path-dependent stop-and-reverse recurrence, so its reference oracle
-        necessarily mirrors the implementation's state machine and confirms internal consistency, not independence; the
-        independent witness is the set of golden masters hand-computed from Wilder's published rules. Agreement holds to
-        ten significant figures (a ``1e-10`` band) on any finite input within a sane dynamic range; the documentation's
-        *Correctness* page gives the method and the float-conditioning limit beyond it.
+        **Precision:**
+        The parabolic SAR is a path-dependent stop-and-reverse recurrence, so its reference oracle necessarily mirrors
+        the implementation's state machine and confirms internal consistency, not independence; the independent witness
+        is the set of golden masters hand-computed from Wilder's published rules. Agreement holds to ten significant
+        figures (a ``1e-10`` band) on any finite input within a sane dynamic range; the documentation's *Correctness*
+        page gives the method and the float-conditioning limit beyond it.
 
         It is homogeneous of degree ``1`` under a positive common rescaling of ``high`` and ``low`` (the stop is a price
         level and the recurrence and crossings are linear in price).
@@ -327,9 +328,10 @@ def supertrend(
             ``±inf``).
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; the documentation's *Correctness* page gives the method and the
-        float-conditioning limit beyond it.
+        **Precision:**
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
+        limit beyond it.
 
         The ``line`` is homogeneous of degree ``1`` under a positive common rescaling of ``high`` / ``low`` / ``close``
         (a price level), while ``direction`` is scale-invariant (the crossings compare like-scaled quantities).

@@ -105,8 +105,9 @@ def adjusted_sharpe_ratio(
         ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite or is ``< -1``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -207,8 +208,9 @@ def burke_ratio(
         ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         The denominator is the sum (not the mean) of the squared drawdowns, taken over the per-period drawdown series
         (not the maxima of distinct decline episodes, as in some Burke variants), so it grows with the record length.
@@ -302,8 +304,9 @@ def calmar_ratio(
         ValueError: If ``periods_per_year < 1``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -385,8 +388,9 @@ def common_sense_ratio(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -463,8 +467,9 @@ def gain_to_pain_ratio(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         It is computed on the return series as given, with no calendar resampling and no risk-free adjustment (the pure
         Schwager ratio).
@@ -552,8 +557,9 @@ def omega_ratio(
         ValueError: If ``threshold`` is not finite.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -646,8 +652,9 @@ def omega_ratio_rolling(
         ValueError: If ``window < 1``, or if ``threshold`` is not finite.
 
     Note:
-        **Correctness** -- each window matches an independent reference oracle (the reducing :func:`omega_ratio`
-        recomputed over the window).
+        **Correctness:**
+        Each window matches an independent reference oracle (the reducing :func:`omega_ratio` recomputed over the
+        window).
 
         **Edge-case behavior:**
 
@@ -747,8 +754,9 @@ def pain_ratio(
         ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -849,8 +857,9 @@ def probabilistic_sharpe_ratio(
             ``risk_free_rate < -1``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         The kurtosis term uses the non-excess (raw) kurtosis :math:`\gamma_4`, exactly as in Bailey & López de Prado: a
         normal sample (:math:`\gamma_4 = 3`) recovers the classic Lo standard error :math:`\sqrt{(1 + \mathrm{SR}^2 / 2)
@@ -957,8 +966,9 @@ def recovery_ratio(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         Only the drawdown denominator is taken in magnitude; the total-return numerator keeps its sign, so a losing
         curve (a negative total return) reports a negative recovery factor.
@@ -1049,8 +1059,9 @@ def sharpe_ratio(
         ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite or is ``< -1``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -1146,8 +1157,9 @@ def sharpe_ratio_rolling(
         ValueError: If ``window < 2``, ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite or is ``< -1``.
 
     Note:
-        **Correctness** -- each window matches an independent reference oracle (the reducing :func:`sharpe_ratio`
-        recomputed over the window).
+        **Correctness:**
+        Each window matches an independent reference oracle (the reducing :func:`sharpe_ratio` recomputed over the
+        window).
 
         **Edge-case behavior:**
 
@@ -1250,8 +1262,9 @@ def sortino_ratio(
         ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite or is ``< -1``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -1350,8 +1363,9 @@ def sortino_ratio_rolling(
         ValueError: If ``window < 1``, ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite or is ``< -1``.
 
     Note:
-        **Correctness** -- each window matches an independent reference oracle (the reducing :func:`sortino_ratio`
-        recomputed over the window).
+        **Correctness:**
+        Each window matches an independent reference oracle (the reducing :func:`sortino_ratio` recomputed over the
+        window).
 
         **Edge-case behavior:**
 
@@ -1458,8 +1472,9 @@ def sterling_ratio(
             finite number ``>= 0``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 
@@ -1550,8 +1565,9 @@ def ulcer_performance_ratio(
         ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         **Edge-case behavior:**
 

@@ -1,4 +1,4 @@
-# Why you can trust pomata
+# Correctness
 
 Most libraries ask you to trust their output. `pomata` proves it. The premise is simple and a little obsessive:
 **every function is written twice.** The shipped version is tuned to vectorize in Polars; a second, deliberately

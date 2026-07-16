@@ -163,7 +163,7 @@ unit tests of the harness itself, and the source-and-docs guards:
 - `test_typing.py` — every public factory declares its return type as exactly `pl.Expr`.
 - `test_benchmark.py` (opt-in) — the performance and complexity-scaling tier over the whole registry.
 - `test_differential.py` (opt-in) — the non-gating TA-Lib parity check.
-- `test_precision_table.py` — the published precision figures in `docs/trust.md` stay reproducible.
+- `test_precision_table.py` — the published precision figures in `docs/correctness.md` stay reproducible.
 - `test_docstrings.py` — every public docstring conforms to the shared template (section order, argument order,
   the byte-identical `TypeError` line, the Null-before-NaN edge bullets, the reserved vocabulary).
 - `test_docs_surface.py` — the README's "All N …" surface lists and headline counts match the public `__all__`.
