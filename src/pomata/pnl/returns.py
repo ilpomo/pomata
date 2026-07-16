@@ -44,21 +44,24 @@ def returns_log(
 
         **Edge-case behavior:**
 
-        - **Null** — a ``null`` at the current row or at the previous row yields ``null`` at that position.
-        - **NaN** — a ``NaN`` at the current row or at the previous row (and no ``null``) yields ``NaN``. Because the
-          return is a fixed-lag transform of two endpoints rather than a recurrence, a ``null`` or ``NaN`` contaminates
-          only the positions that reference it and never latches onto the rest of the series.
-        - **Domain** — log returns are defined on strictly positive prices. Following the IEEE-754 logarithm, a zero
-          price relative (``P_t = 0`` over a positive ``P_{t-1}``) yields ``-inf``, a negative relative (the prices
-          straddle zero) yields ``NaN``, and a zero previous price yields ``+inf`` only for a positive current price,
-          while ``0/0`` and a negative current price over zero yield ``NaN``; these are the documented and intended
-          boundary values rather than an error. Two more corners complete the enumeration: with **both** prices
-          negative the ratio is positive and the log silently finite — an economically meaningless number the caller
-          must screen for, exactly like the single-negative case. A negative-zero ``-0.0`` previous price swaps which
-          of the two zero cases applies (no output changes sign), and does not
-          arise from real price data.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the lag never reaches across
-          series boundaries, e.g. ``returns_log(pl.col("close")).over("ticker")``.
+        - **Null** — a ``null`` price makes that row ``null`` (``null`` takes precedence over ``NaN``) — reading two
+          endpoints, a ``null`` at the current or the previous row voids the output that references it.
+        - **NaN** — a ``NaN`` price yields ``NaN`` for that row — a fixed-lag transform of two endpoints, not a
+          recurrence, so a ``NaN`` (like a ``null``) contaminates only the rows that reference it and never latches
+          onto the rest of the series.
+        - **Domain** — a negative price relative (the prices straddle zero) is outside the logarithm's
+          strictly-positive domain, so the result is a loud ``NaN`` — except with both prices negative, where the ratio
+          is positive and the log is silently finite, an economically meaningless number the caller must screen for.
+        - **Degenerate denominator** — both the price and the previous price are zero, so the result is a ``0 / 0``,
+          i.e. ``NaN`` (the logarithm then carries the ``NaN`` through).
+        - **Overflow** — a zero price relative logs to ``-inf`` and a positive price over a zero previous price logs
+          to ``+inf`` — reported, not clipped (a negative-zero ``-0.0`` previous price swaps which zero case applies
+          but does not arise from real price data).
+        - **Non-finite input** — an ``inf`` price follows IEEE-754 through the ratio and its logarithm, where two
+          consecutive same-sign infinite prices divide to ``inf / inf = NaN`` (the sign, and that indeterminate
+          ``inf / inf``, included).
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on
+          its own history, e.g. ``returns_log(pl.col("close")).over("ticker")``.
 
     See Also:
         - :func:`returns_simple`: The arithmetic sibling, which aggregates across assets rather than across time.
@@ -136,16 +139,19 @@ def returns_simple(
 
         **Edge-case behavior:**
 
-        - **Null** — a ``null`` at the current row or at the previous row yields ``null`` at that position.
-        - **NaN** — a ``NaN`` at the current row or at the previous row (and no ``null``) yields ``NaN``. Because the
-          return is a fixed-lag transform of two endpoints rather than a recurrence, a ``null`` or ``NaN`` contaminates
-          only the positions that reference it and never latches onto the rest of the series.
-        - **Division by zero** — when the previous price is ``0`` the relative divides by zero following IEEE-754: a
-          zero change (``0 / 0``) is ``NaN`` and a non-zero change over zero is ``+/-inf`` (the sign tracks the change).
-          This is the documented and intended behavior rather than an error; a negative-zero ``-0.0`` previous price
-          flips the ``+/-inf`` sign, but does not arise from real price data.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the lag never reaches across
-          series boundaries, e.g. ``returns_simple(pl.col("close")).over("ticker")``.
+        - **Null** — a ``null`` price makes that row ``null`` (``null`` takes precedence over ``NaN``) — reading two
+          endpoints, a ``null`` at the current or the previous row voids the output that references it.
+        - **NaN** — a ``NaN`` price yields ``NaN`` for that row — a fixed-lag transform of two endpoints, not a
+          recurrence, so a ``NaN`` (like a ``null``) contaminates only the rows that reference it and never latches
+          onto the rest of the series.
+        - **Degenerate denominator** — the previous price is ``0``, so a zero change is a ``0 / 0``, i.e. ``NaN`` —
+          while a non-zero change over it is ``+/-inf`` (the sign tracks the change), reported not clipped, and a
+          negative-zero ``-0.0`` previous price flips that sign but does not arise from real price data.
+        - **Non-finite input** — an ``inf`` price follows IEEE-754 through the ratio and the minus one, where two
+          consecutive same-sign infinite prices divide to ``inf / inf = NaN`` (the sign, and that indeterminate
+          ``inf / inf``, included).
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history, e.g. ``returns_simple(pl.col("close")).over("ticker")``.
 
     See Also:
         - :func:`returns_log`: The logarithmic sibling, which aggregates across time rather than across assets.
