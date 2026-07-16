@@ -1,5 +1,7 @@
 """Spec for ``pomata.indicators.trix`` — the triple-EMA rate of change, gap-bridging, NaN-latching, degree-0."""
 
+import math
+
 from tests.indicators.oracles import trix_reference
 from tests.support import ABSOLUTE_TOLERANCE_ROLLING_ORACLE, RELATIVE_TOLERANCE_ROLLING_ORACLE
 from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
@@ -30,6 +32,13 @@ TRIX = Spec(
             params_override={"window": 1},
             reason="window=1 makes every EMA pass the identity, degenerating TRIX to the one-period percentage ROC of "
             "the raw input",
+        ),
+        SpecPin(
+            label="flat_zero_history_is_degenerate",
+            inputs={"price": (0.0, 0.0, 0.0, 0.0, 0.0, 5.0)},
+            expected=(None, None, None, None, math.nan, math.inf),
+            reason="a zero-valued history drives the triple EMA to exactly zero, so the rate of change divides by that "
+            "zero: a 0/0 while the EMA holds at zero, +/-inf the moment it moves off it",
         ),
     ),
 )

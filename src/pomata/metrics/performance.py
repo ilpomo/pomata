@@ -157,8 +157,8 @@ def cagr_rolling(
         - **NaN** — a ``NaN`` at either endpoint propagates, yielding ``NaN``.
         - **Domain** — a window whose equity crossed zero, or ends exactly on it, has no fractional-power growth, so
           the result is a loud ``NaN`` — never a plausible wrong number.
-        - **Overflow** — a window starting exactly at zero blows the endpoint ratio to ``+inf`` — reported, not
-          clipped.
+        - **Degenerate denominator** — a window starting exactly at zero blows the endpoint ratio to ``+inf`` —
+          reported, not clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries.
 
     See Also:

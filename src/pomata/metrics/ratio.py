@@ -218,9 +218,10 @@ def burke_ratio(
         - **Null** — a ``null`` equity is skipped (excluded from both the growth and the drawdown energy); an all-null
           (or empty) series yields ``null``.
         - **NaN** — a ``NaN`` equity propagates, yielding ``NaN``.
+        - **Insufficient sample** — a single observation has zero excess growth over zero drawdown energy, so the
+          result is a ``0 / 0``, i.e. ``NaN``.
         - **Degenerate denominator** — a monotonically non-decreasing curve has zero drawdown energy, so the ratio is
-          ``+/-inf`` (or ``NaN`` when the excess growth is also zero, as for a one-element series), reported rather than
-          clipped.
+          ``+/-inf`` (or ``NaN`` when the excess growth is also zero), reported rather than clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history, e.g. ``burke_ratio(pl.col("equity"), periods_per_year=252).over("ticker")``.
 
@@ -309,9 +310,10 @@ def calmar_ratio(
         - **Null** — a ``null`` equity is skipped (excluded from both the growth and the drawdown); an all-null (or
           empty) series yields ``null``.
         - **NaN** — a ``NaN`` equity propagates, yielding ``NaN``.
+        - **Insufficient sample** — a single observation has zero growth over zero maximum drawdown, so the result is a
+          ``0 / 0``, i.e. ``NaN``.
         - **Degenerate denominator** — a monotonically non-decreasing curve has zero maximum drawdown, so the ratio is
-          ``+/-inf`` (or ``NaN`` when the growth is also zero, as for a one-element series), reported rather than
-          clipped.
+          ``+/-inf`` (or ``NaN`` when the growth is also zero), reported rather than clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history, e.g. ``calmar_ratio(pl.col("equity"), periods_per_year=252).over("ticker")``.
 
@@ -390,10 +392,11 @@ def common_sense_ratio(
 
         - **Null** — a ``null`` return is skipped; an all-null (or empty) series yields ``null``.
         - **NaN** — a ``NaN`` return propagates, yielding ``NaN``.
+        - **Insufficient sample** — a one-element loss has a zero profit factor and a unit tail ratio, so the result is
+          an exact ``0``.
         - **Degenerate denominator** — it inherits the degeneracies of its two factors: ``+inf`` when there are no
-          losses (the profit factor diverges) or a zero left tail (the tail ratio diverges), an exact ``0`` when the
-          only return is a loss (a zero profit factor), and ``NaN`` where a ``0 * inf`` arises; all reported rather than
-          clipped.
+          losses (the profit factor diverges) or a zero left tail (the tail ratio diverges), and ``NaN`` where a
+          ``0 * inf`` arises; all reported rather than clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history, e.g. ``common_sense_ratio(pl.col("returns")).over("ticker")``.
 
@@ -470,6 +473,8 @@ def gain_to_pain_ratio(
 
         - **Null** — a ``null`` return is skipped; an all-null (or empty) series yields ``null``.
         - **NaN** — a ``NaN`` return propagates, yielding ``NaN``.
+        - **Insufficient sample** — a single positive observation has no offsetting loss, so the result is ``+inf`` —
+          reported, not clipped.
         - **Degenerate denominator** — with no negative returns the total loss is zero, so the ratio is ``+inf`` (or
           ``NaN`` when the net return is also zero), reported rather than clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
@@ -554,6 +559,8 @@ def omega_ratio(
 
         - **Null** — a ``null`` return is skipped; an all-null (or empty) series yields ``null``.
         - **NaN** — a ``NaN`` return propagates, yielding ``NaN``.
+        - **Insufficient sample** — a single observation above the threshold has no offsetting downside, so the result
+          is ``+inf`` — reported, not clipped.
         - **Degenerate denominator** — when no return is below the threshold the mean loss is zero, so the ratio is
           ``+inf`` (or ``NaN`` when every return sits exactly at the threshold, a ``0 / 0``); with no return above it
           the mean gain is zero, so the ratio is an exact ``0`` — all reported rather than clipped.
@@ -748,9 +755,10 @@ def pain_ratio(
         - **Null** — a ``null`` equity is skipped (excluded from both the growth and the pain index); an all-null (or
           empty) series yields ``null``.
         - **NaN** — a ``NaN`` equity propagates, yielding ``NaN``.
+        - **Insufficient sample** — a single observation has zero excess growth over a zero pain index, so the result
+          is a ``0 / 0``, i.e. ``NaN``.
         - **Degenerate denominator** — a monotonically non-decreasing curve has a zero pain index, so the ratio is
-          ``+/-inf`` (or ``NaN`` when the excess growth is also zero, as for a one-element series), reported rather than
-          clipped.
+          ``+/-inf`` (or ``NaN`` when the excess growth is also zero), reported rather than clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history, e.g. ``pain_ratio(pl.col("equity"), periods_per_year=252).over("ticker")``.
 
@@ -959,9 +967,11 @@ def recovery_ratio(
 
         - **Null** — a ``null`` equity is skipped; an all-null (or empty) series yields ``null``.
         - **NaN** — a ``NaN`` equity propagates, yielding ``NaN``.
+        - **Insufficient sample** — a single observation has zero total return over zero maximum drawdown, so the
+          result is a ``0 / 0``, i.e. ``NaN``.
         - **Degenerate denominator** — a monotonically non-decreasing curve has zero maximum drawdown, so the ratio is
-          ``+/-inf`` with the sign of the total return (or ``NaN`` when the total return is also zero, as for a
-          one-element series), reported rather than clipped.
+          ``+/-inf`` with the sign of the total return (or ``NaN`` when the total return is also zero), reported rather
+          than clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history, e.g. ``recovery_ratio(pl.col("equity")).over("ticker")``.
 
@@ -1548,9 +1558,10 @@ def ulcer_performance_ratio(
         - **Null** — a ``null`` equity is skipped (excluded from both the growth and the ulcer index); an all-null (or
           empty) series yields ``null``.
         - **NaN** — a ``NaN`` equity propagates, yielding ``NaN``.
+        - **Insufficient sample** — a single observation has zero excess growth over a zero ulcer index, so the result
+          is a ``0 / 0``, i.e. ``NaN``.
         - **Degenerate denominator** — a monotonically non-decreasing curve has a zero ulcer index, so the ratio is
-          ``+/-inf`` (or ``NaN`` when the excess growth is also zero, as for a one-element series), reported rather than
-          clipped.
+          ``+/-inf`` (or ``NaN`` when the excess growth is also zero), reported rather than clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history, e.g. ``ulcer_performance_ratio(pl.col("equity"), periods_per_year=252).over("ticker")``.
 

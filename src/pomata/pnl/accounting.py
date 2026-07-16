@@ -464,9 +464,8 @@ def pnl_gross_inverse(
           the previous ``price`` there.
         - **Domain** — the reciprocal payoff is defined on strictly positive prices; a negative price is out of that
           domain yet is not rejected: the reciprocal flips sign, so the bar is a finite but economically meaningless
-          value.
-        - **Overflow** — a zero current price makes ``1 / P_t`` infinite, so the bar is ``-inf`` (a long) or ``+inf``
-          (a short), and a zero previous price makes the next bar ``+/-inf`` — reported, not clipped.
+          value. A zero current price makes ``1 / P_t`` infinite, so the bar is ``-inf`` (a long) or ``+inf`` (a short),
+          and a zero previous price makes the next bar ``+/-inf`` — reported, not clipped.
         - **Non-finite input** — an ``inf`` quantity follows IEEE-754 through the arithmetic, where an infinite
           ``price`` contributes ``1 / inf = 0`` to the reciprocal change (the sign, and any ``inf - inf = NaN``,
           included).

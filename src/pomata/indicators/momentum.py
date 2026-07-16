@@ -775,6 +775,8 @@ def chande_momentum_oscillator(
         - **Stability** — a near-flat window (tiny changes after a much larger one has slid out of the streaming sums)
           is not silenced: its quotient is clipped to ``[-100, +100]``, so it stays in range but, past a sane dynamic
           range, degrades in precision (see the precision note above).
+        - **window == 1** — the rolling sums collapse to the single change, so each row reports ``+100`` on an up
+          move, ``-100`` on a down move, and ``NaN`` on no move.
         - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries, e.g.
           ``chande_momentum_oscillator(pl.col("close"), 14).over("ticker")``.
 
@@ -1675,6 +1677,9 @@ def trix(
           ``null`` at that position while the recursion continues across the gap.
         - **NaN** — a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null
           position.
+        - **Degenerate denominator** — a zero-valued history drives the triple EMA to exactly ``0``, so the
+          one-period rate of change is a ``0 / 0``, i.e. ``NaN`` while the EMA holds at zero, and ``+/-inf`` —
+          reported, not clipped — the moment it moves off it.
         - **window == 1** — each EMA pass is the identity, so TRIX is the one-period rate of change of ``expr``.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history, e.g. ``trix(pl.col("close"), 15).over("ticker")``.
