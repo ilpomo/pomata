@@ -957,8 +957,8 @@ def information_ratio(
         - **NaN** — a ``NaN`` in either leg of a retained pair propagates, yielding ``NaN``.
         - **Insufficient sample** — fewer than two complete pairs leaves the sample tracking error undefined, so the
           result is ``null``.
-        - **Degenerate denominator** — a constant active series has zero tracking error, so the result is ``+/-inf`` —
-          reported, not clipped (or ``NaN`` when the mean active is also zero, the ``0 / 0``).
+        - **Degenerate denominator** — a constant active series has zero tracking error, so the result is ``+/-inf``
+          (or ``NaN`` when the mean active is also zero, the ``0 / 0``) — reported, not clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -1069,8 +1069,8 @@ def information_ratio_rolling(
 
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
-        - **Degenerate denominator** — a constant active window has zero tracking error, so the result is ``+/-inf`` —
-          reported, not clipped (or ``NaN`` when the mean active is also zero).
+        - **Degenerate denominator** — a constant active window has zero tracking error, so the result is ``+/-inf``
+          (or ``NaN`` when the mean active is also zero) — reported, not clipped.
         - **Stability** — a near-flat (non-bit-identical) active-return window sits at the float-conditioning limit the
           documentation's *Correctness* page documents: the one-pass rolling tracking error and an exact two-pass
           recomputation can round a vanishing denominator apart without bound there. The bit-flat window is pinned
@@ -1310,8 +1310,8 @@ def treynor_ratio(
         - **NaN** — a ``NaN`` in either leg of a retained pair propagates, yielding ``NaN``.
         - **Insufficient sample** — fewer than two complete pairs leaves the regression slope undefined, so the result
           is ``null``.
-        - **Degenerate denominator** — a zero beta gives ``+/-inf`` — reported, not clipped (or ``NaN`` when the excess
-          return is also zero); a zero-variance benchmark instead makes :func:`beta` ``NaN``, which propagates here.
+        - **Degenerate denominator** — a zero beta gives ``+/-inf`` (or ``NaN`` when the excess return is also zero) —
+          reported, not clipped; a zero-variance benchmark instead makes :func:`beta` ``NaN``, which propagates here.
         - **Stability** — a beta bounded away from zero is the one regime the excess-over-beta quotient genuinely
           needs: as the slope vanishes the division amplifies rounding without bound, so a near-zero beta sits at the
           float-conditioning limit the documentation's *Correctness* page documents. The exact zero-beta case is guarded
@@ -1429,8 +1429,8 @@ def treynor_ratio_rolling(
 
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
-        - **Degenerate denominator** — a window whose slope is zero gives ``+/-inf`` — reported, not clipped (or
-          ``NaN``); a zero-variance benchmark window instead makes the slope ``NaN``, which propagates here.
+        - **Degenerate denominator** — a window whose slope is zero gives ``+/-inf`` (or ``NaN``) — reported, not
+          clipped; a zero-variance benchmark window instead makes the slope ``NaN``, which propagates here.
         - **Stability** — a near-flat (non-bit-identical) benchmark window sits at the float-conditioning limit the
           documentation's *Correctness* page documents: the one-pass rolling slope and an exact two-pass recomputation
           can round a vanishing benchmark variance — and with it the ``beta`` divisor — apart without bound there. The

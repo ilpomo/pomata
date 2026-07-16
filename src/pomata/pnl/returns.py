@@ -148,7 +148,7 @@ def returns_simple(
           recurrence, so a ``NaN`` (like a ``null``) contaminates only the rows that reference it and never latches
           onto the rest of the series.
         - **Degenerate denominator** — the previous price is ``0``, so a zero change is a ``0 / 0``, i.e. ``NaN`` —
-          while a non-zero change over it is ``+/-inf`` (the sign tracks the change), reported not clipped, and a
+          while a non-zero change over it is ``+/-inf`` (the sign tracks the change), reported, not clipped, and a
           negative-zero ``-0.0`` previous price flips that sign but does not arise from real price data.
         - **Non-finite input** — an ``inf`` price follows IEEE-754 through the ratio and the minus one, where two
           consecutive same-sign infinite prices divide to ``inf / inf = NaN`` (the sign, and that indeterminate

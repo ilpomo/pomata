@@ -271,7 +271,7 @@ def cost_funding(
         The result is checked against an independent reference oracle on every input, and every edge case (missing data,
         boundaries, and warm-up where applicable) is given a defined behavior.
 
-        **Sign**
+        **Sign convention**
 
         The cost follows ``sign(quantity) * sign(funding_rate)``: a long pays a positive rate and is rebated by a
         negative one; a short is the mirror image.

@@ -712,6 +712,12 @@ def obv(
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
+        **Documented TA-Lib divergence**
+
+        TA-Lib seeds the running total with the first bar's ``volume``; pomata seeds ``OBV[0] = 0``, the first bar
+        having no predecessor to give it a direction, so the two lines sit a constant ``volume[0]`` apart at every
+        bar and the differential tier holds OBV out as a documented divergence.
+
         **Edge-case behavior**
 
         - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields

@@ -691,10 +691,9 @@ def returns_gross(
         **No lookahead (alignment is the caller's)**
 
         The product assumes ``weight`` at row ``t`` is the weight held over ``asset_returns`` at row ``t``. To stay
-        lookahead-free, that weight must depend only on information available **before** that return; if your weight is
-        decided on the same bar that closes the return, lag it by one bar -- ``returns_gross(weight.shift(1),
-        asset_returns)`` -- so the weight reflects only the prior close. Nothing is shifted for you, so a weight you
-        have already aligned is never double-shifted.
+        lookahead-free, that weight must depend only on information available before that return; if it is decided
+        on the same bar's close, lag it by one bar (``returns_gross(weight.shift(1), asset_returns)``). Nothing is
+        shifted for you, so a weight you have already aligned is never double-shifted.
 
         **Edge-case behavior**
 

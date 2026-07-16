@@ -783,6 +783,12 @@ def chande_momentum_oscillator(
         already slid out can inherit a stale residue; the clamp keeps the output inside ``[-100, 100]``, and no real
         market series builds that spread.
 
+        **Documented TA-Lib divergence**
+
+        TA-Lib Wilder-smooths the gains and losses, so its CMO equals ``2 * RSI - 100``; pomata sums them over a fixed
+        window, Chande's original 1994 construction, so the two never agree even at steady state and the differential
+        tier holds the CMO out as a documented divergence.
+
         **Edge-case behavior**
 
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
