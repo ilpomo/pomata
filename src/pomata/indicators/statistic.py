@@ -496,7 +496,7 @@ def standard_deviation_rolling(
         **Degrees of freedom**
 
         ``ddof`` carries the same meaning as in :func:`variance_rolling` (population vs sample); the standard
-        deviation is just its square root. It must be strictly below ``window`` so the divisor stays positive.
+        deviation is just its square root. ``ddof`` must be strictly below ``window`` so the divisor stays positive.
 
         **Edge-case behavior**
 

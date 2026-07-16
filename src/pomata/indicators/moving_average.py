@@ -236,7 +236,7 @@ def ema(
         - **NaN** — a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null
           position (a ``NaN`` still inside the warm-up shows as that warm-up's ``null`` on its own row, then latches
           from the first emitted row).
-        - **window == 1** — the smoothing factor is ``1``, so the EMA reduces to the identity and reproduces the input.
+        - **window == 1** — the smoothing factor is ``1``, so the EMA reproduces the input.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -1039,7 +1039,7 @@ def trima(
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there — through both :func:`sma` passes
           it composes.
         - **Insufficient sample** — a series shorter than ``window`` observations, so the result is ``null``.
-        - **window == 1** — both sub-windows are ``1``, so the TRIMA reduces to the identity and reproduces the input.
+        - **window == 1** — both sub-windows are ``1``, so the TRIMA reproduces the input.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 

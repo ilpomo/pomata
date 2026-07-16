@@ -65,8 +65,8 @@ def conditional_drawdown_at_risk(
         - **Null** — a ``null`` equity is skipped; an all-null (or empty) series yields ``null`` (the running peak
           carries across it).
         - **NaN** — a ``NaN`` equity propagates, yielding ``NaN``.
-        - **Insufficient sample** — a single observation is trivially at its own peak, so the result is ``0`` (not
-          ``null``).
+        - **Insufficient sample** — a single observation is trivially at its own peak, so the result is exactly
+          ``0``, not ``null``.
         - **Degenerate denominator** — a monotonically non-decreasing curve has an all-zero drawdown series, so the
           result is ``0`` (not a ``0 / 0``).
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
@@ -169,8 +169,8 @@ def drawdown(
           peak carries across it unchanged.
         - **NaN** — a ``NaN`` equity yields ``NaN`` for that row; the running peak ignores it (Polars' ``cum_max``
           semantics), so later rows are unaffected.
-        - **Insufficient sample** — a single-row series is trivially at its own peak, so its (only) drawdown is ``0``,
-          not ``null``.
+        - **Insufficient sample** — a single-row series is trivially at its own peak, so its (only) drawdown is
+          exactly ``0``, not ``null``.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -328,8 +328,8 @@ def max_drawdown(
           start a drawdown).
         - **NaN** — a ``NaN`` equity propagates, yielding ``NaN`` (an undefined equity makes the worst-drawdown summary
           undefined).
-        - **Insufficient sample** — a single observation is trivially at its own peak, so the result is ``0`` (not
-          ``null``).
+        - **Insufficient sample** — a single observation is trivially at its own peak, so the result is exactly
+          ``0``, not ``null``.
         - **Degenerate denominator** — a never-declining curve has zero drawdown throughout, so the result is ``0`` (not
           a ``0 / 0``).
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
@@ -407,7 +407,8 @@ def max_drawdown_duration(
         - **Null** — a ``null`` equity is skipped; an all-null (or empty) series yields ``null`` (the run is measured
           over the retained observations, so a gap neither breaks nor extends the underwater stretch).
         - **NaN** — a ``NaN`` equity propagates, yielding ``NaN``.
-        - **Insufficient sample** — a single observation is never underwater, so the result is ``0`` (not ``null``).
+        - **Insufficient sample** — a single observation is never underwater, so the result is exactly ``0``, not
+          ``null``.
         - **Degenerate denominator** — a monotonically non-decreasing curve is never underwater, so the result is ``0``
           (not a ``0 / 0``).
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
@@ -490,8 +491,8 @@ def pain_index(
         - **Null** — a ``null`` equity is skipped; an all-null (or empty) series yields ``null`` (the running peak
           carries across it).
         - **NaN** — a ``NaN`` equity propagates, yielding ``NaN``.
-        - **Insufficient sample** — a single observation is trivially at its own peak, so the result is ``0`` (not
-          ``null``).
+        - **Insufficient sample** — a single observation is trivially at its own peak, so the result is exactly
+          ``0``, not ``null``.
         - **Degenerate denominator** — a monotonically non-decreasing curve is never below its peak, so the result is
           ``0`` (not a ``0 / 0``).
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
@@ -571,7 +572,7 @@ def ulcer_index(
         - **Null** — a ``null`` equity is skipped; an all-null (or empty) series yields ``null`` (excluded from the
           mean).
         - **NaN** — a ``NaN`` equity propagates, yielding ``NaN``.
-        - **Insufficient sample** — a single observation has no drawdown, so the result is ``0`` (not ``null``).
+        - **Insufficient sample** — a single observation has no drawdown, so the result is exactly ``0``, not ``null``.
         - **Degenerate denominator** — a never-declining curve has all-zero drawdowns, so the result is ``0`` (not a
           ``0 / 0``).
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its

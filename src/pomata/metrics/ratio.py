@@ -225,7 +225,7 @@ def burke_ratio(
         - **Insufficient sample** — a single observation has zero excess growth over zero drawdown energy, so the
           result is a ``0 / 0``, i.e. ``NaN``.
         - **Degenerate denominator** — a monotonically non-decreasing curve has zero drawdown energy, so the ratio is
-          ``+/-inf`` (or ``NaN`` when the excess growth is also zero), reported rather than clipped.
+          ``+/-inf`` (or ``NaN`` when the excess growth is also zero) — reported, not clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -319,7 +319,7 @@ def calmar_ratio(
         - **Insufficient sample** — a single observation has zero growth over zero maximum drawdown, so the result is a
           ``0 / 0``, i.e. ``NaN``.
         - **Degenerate denominator** — a monotonically non-decreasing curve has zero maximum drawdown, so the ratio is
-          ``+/-inf`` (or ``NaN`` when the growth is also zero), reported rather than clipped.
+          ``+/-inf`` (or ``NaN`` when the growth is also zero) — reported, not clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -404,7 +404,7 @@ def common_sense_ratio(
           an exact ``0``.
         - **Degenerate denominator** — it inherits the degeneracies of its two factors: ``+inf`` when there are no
           losses (the profit factor diverges) or a zero left tail (the tail ratio diverges), and ``NaN`` where a
-          ``0 * inf`` arises; all reported rather than clipped.
+          ``0 * inf`` arises; all reported, not clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -486,7 +486,7 @@ def gain_to_pain_ratio(
         - **Insufficient sample** — a single positive observation has no offsetting loss, so the result is ``+inf`` —
           reported, not clipped.
         - **Degenerate denominator** — with no negative returns the total loss is zero, so the ratio is ``+inf`` (or
-          ``NaN`` when the net return is also zero), reported rather than clipped.
+          ``NaN`` when the net return is also zero) — reported, not clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -575,7 +575,7 @@ def omega_ratio(
           is ``+inf`` — reported, not clipped.
         - **Degenerate denominator** — when no return is below the threshold the mean loss is zero, so the ratio is
           ``+inf`` (or ``NaN`` when every return sits exactly at the threshold, a ``0 / 0``); with no return above it
-          the mean gain is zero, so the ratio is an exact ``0`` — all reported rather than clipped.
+          the mean gain is zero, so the ratio is exactly ``0`` — all reported, not clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -669,7 +669,7 @@ def omega_ratio_rolling(
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
         - **Degenerate denominator** — a window with no return below the threshold has zero mean loss (forced exactly to
           zero, never a slid-out residue), so the ratio is ``+inf`` (or ``NaN`` when every return sits at the threshold,
-          a ``0 / 0``), reported rather than clipped.
+          a ``0 / 0``) — reported, not clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -775,7 +775,7 @@ def pain_ratio(
         - **Insufficient sample** — a single observation has zero excess growth over a zero pain index, so the result
           is a ``0 / 0``, i.e. ``NaN``.
         - **Degenerate denominator** — a monotonically non-decreasing curve has a zero pain index, so the ratio is
-          ``+/-inf`` (or ``NaN`` when the excess growth is also zero), reported rather than clipped.
+          ``+/-inf`` (or ``NaN`` when the excess growth is also zero) — reported, not clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -991,8 +991,8 @@ def recovery_ratio(
         - **Insufficient sample** — a single observation has zero total return over zero maximum drawdown, so the
           result is a ``0 / 0``, i.e. ``NaN``.
         - **Degenerate denominator** — a monotonically non-decreasing curve has zero maximum drawdown, so the ratio is
-          ``+/-inf`` with the sign of the total return (or ``NaN`` when the total return is also zero), reported rather
-          than clipped.
+          ``+/-inf`` with the sign of the total return (or ``NaN`` when the total return is also zero) — reported, not
+          clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -1083,7 +1083,7 @@ def sharpe_ratio(
         - **Insufficient sample** — with fewer than two returns the sample standard deviation is undefined, so the
           result is ``null``.
         - **Degenerate denominator** — a constant excess series has zero dispersion, so the ratio is ``+/-inf`` (or
-          ``NaN`` when the mean excess is also zero), reported rather than clipped.
+          ``NaN`` when the mean excess is also zero) — reported, not clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -1180,7 +1180,7 @@ def sharpe_ratio_rolling(
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
         - **Degenerate denominator** — a constant window has zero dispersion, so the ratio is ``+/-inf`` (or ``NaN``
           when the mean excess is also zero, the exact-zero rolling mean pinning the numerator so no slid-out residue
-          rides above it), reported rather than clipped.
+          rides above it) — reported, not clipped.
         - **Stability** — a near-constant (non-bit-identical) window sits at the float-conditioning limit the
           documentation's *Correctness* page documents: the one-pass rolling standard deviation and a two-pass
           recomputation can round a vanishing dispersion apart there. The bit-constant window is pinned exactly (the
@@ -1287,7 +1287,7 @@ def sortino_ratio(
           empty) series yields ``null``.
         - **NaN** — a ``NaN`` return propagates, yielding ``NaN``.
         - **Degenerate denominator** — when every excess return is at or above the target the downside deviation is
-          zero, so the ratio is ``+/-inf`` (or ``NaN`` when the mean excess is also zero), reported rather than clipped.
+          zero, so the ratio is ``+/-inf`` (or ``NaN`` when the mean excess is also zero) — reported, not clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -1388,7 +1388,7 @@ def sortino_ratio_rolling(
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
         - **Degenerate denominator** — a window with every excess return at or above the target has zero downside
-          deviation, so the ratio is ``+/-inf`` (or ``NaN`` when the mean excess is also zero), reported rather than
+          deviation, so the ratio is ``+/-inf`` (or ``NaN`` when the mean excess is also zero) — reported, not
           clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
@@ -1500,9 +1500,9 @@ def sterling_ratio(
           (or empty) series yields ``null``.
         - **NaN** — a ``NaN`` equity propagates, yielding ``NaN``.
         - **Degenerate denominator** — with the default positive cushion the denominator never vanishes (a drawdown-free
-          curve gives an exact ``0`` when the excess growth is also zero, a finite ratio otherwise); only an ``excess``
-          of zero on a drawdown-free curve gives ``+/-inf`` (or ``NaN`` when the excess growth is also zero), reported
-          rather than clipped.
+          curve gives exactly ``0`` when the excess growth is also zero, a finite ratio otherwise); only an ``excess``
+          of zero on a drawdown-free curve gives ``+/-inf`` (or ``NaN`` when the excess growth is also zero) —
+          reported, not clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -1596,7 +1596,7 @@ def ulcer_performance_ratio(
         - **Insufficient sample** — a single observation has zero excess growth over a zero ulcer index, so the result
           is a ``0 / 0``, i.e. ``NaN``.
         - **Degenerate denominator** — a monotonically non-decreasing curve has a zero ulcer index, so the ratio is
-          ``+/-inf`` (or ``NaN`` when the excess growth is also zero), reported rather than clipped.
+          ``+/-inf`` (or ``NaN`` when the excess growth is also zero) — reported, not clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 

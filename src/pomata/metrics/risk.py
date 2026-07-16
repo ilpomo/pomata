@@ -984,7 +984,7 @@ def profit_factor(
         - **Insufficient sample** — a single gain has no offsetting loss, so the result is ``+inf`` — reported, not
           clipped.
         - **Degenerate denominator** — with no negative returns the total loss is zero, so the ratio is ``+inf`` (or
-          ``NaN`` when an all-``0`` series also has zero gross gain, a ``0 / 0``), reported rather than clipped.
+          ``NaN`` when an all-``0`` series also has zero gross gain, a ``0 / 0``) — reported, not clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -1913,7 +1913,8 @@ def value_at_risk_rolling(
 
         **Sign convention**
 
-        Returned as the signed return quantile (negative for a loss), not a positive loss.
+        Returned as the signed return quantile (negative for a loss), not a positive loss magnitude; negate it if a
+        positive figure is wanted.
 
         **Edge-case behavior**
 
