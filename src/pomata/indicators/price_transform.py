@@ -42,24 +42,23 @@ def price_average(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; ``CORRECTNESS.md`` gives the method and the float-conditioning
+        **Precision**
+
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Inputs:**
+        **Inputs**
 
         ``open``, ``high``, ``low``, and ``close`` are taken as the canonical OHLC roles in that positional order and
         must share a length and alignment (the same row index is one bar).
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
-        - **Null** — the mean is a plain sum over the four inputs, so a ``null`` in any of them propagates: the row is
-          ``null`` whenever at least one of its four prices is ``null`` (``null`` takes precedence over ``NaN``).
-        - **NaN** — a ``NaN`` in any input (with no ``null`` at that row) propagates, yielding ``NaN`` for that row.
-        - **Partitioning** — the transform is elementwise (each row uses only its own bar), so it is already
-          correct on a multi-series panel: ``.over(...)`` partitions identically and is therefore optional here
-          (the result is the same either way), unlike the windowed indicators where ``.over`` is required to stop
-          a window spanning series boundaries.
+        - **Null** — a ``null`` price makes that row ``null`` (``null`` takes precedence over ``NaN``).
+        - **NaN** — a ``NaN`` price yields ``NaN`` for that row.
+        - **Partitioning** — already correct on a multi-series panel: ``.over(...)`` partitions identically and is
+          therefore optional here.
 
     See Also:
         - :func:`price_median`: The midpoint of the bar's range, ``(high + low) / 2``.
@@ -152,24 +151,23 @@ def price_median(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; ``CORRECTNESS.md`` gives the method and the float-conditioning
+        **Precision**
+
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Inputs:**
+        **Inputs**
 
         ``high`` and ``low`` are taken as the canonical OHLC roles in that positional order and must share a length and
         alignment (the same row index is one bar).
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
-        - **Null** — the midpoint is a plain sum over the two inputs, so a ``null`` in either propagates: the row is
-          ``null`` whenever ``high`` or ``low`` is ``null`` (``null`` takes precedence over ``NaN``).
-        - **NaN** — a ``NaN`` in either input (with no ``null`` at that row) propagates, yielding ``NaN`` for that row.
-        - **Partitioning** — the transform is elementwise (each row uses only its own bar), so it is already
-          correct on a multi-series panel: ``.over(...)`` partitions identically and is therefore optional here
-          (the result is the same either way), unlike the windowed indicators where ``.over`` is required to stop
-          a window spanning series boundaries.
+        - **Null** — a ``null`` price makes that row ``null`` (``null`` takes precedence over ``NaN``).
+        - **NaN** — a ``NaN`` price yields ``NaN`` for that row.
+        - **Partitioning** — already correct on a multi-series panel: ``.over(...)`` partitions identically and is
+          therefore optional here.
 
     See Also:
         - :func:`midprice`: The rolling midpoint of the high-low range over a window.
@@ -258,25 +256,23 @@ def price_typical(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; ``CORRECTNESS.md`` gives the method and the float-conditioning
+        **Precision**
+
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Inputs:**
+        **Inputs**
 
         ``high``, ``low``, and ``close`` are taken as the canonical OHLC roles in that positional order and must share a
         length and alignment (the same row index is one bar).
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
-        - **Null** — the mean is a plain sum over the three inputs, so a ``null`` in any of them propagates: the row is
-          ``null`` whenever at least one of ``high`` / ``low`` / ``close`` is ``null`` (``null`` takes precedence over
-          ``NaN``).
-        - **NaN** — a ``NaN`` in any input (with no ``null`` at that row) propagates, yielding ``NaN`` for that row.
-        - **Partitioning** — the transform is elementwise (each row uses only its own bar), so it is already
-          correct on a multi-series panel: ``.over(...)`` partitions identically and is therefore optional here
-          (the result is the same either way), unlike the windowed indicators where ``.over`` is required to stop
-          a window spanning series boundaries.
+        - **Null** — a ``null`` price makes that row ``null`` (``null`` takes precedence over ``NaN``).
+        - **NaN** — a ``NaN`` price yields ``NaN`` for that row.
+        - **Partitioning** — already correct on a multi-series panel: ``.over(...)`` partitions identically and is
+          therefore optional here.
 
     See Also:
         - :func:`cci`: The Commodity Channel Index, built on the typical price.
@@ -369,25 +365,23 @@ def price_weighted_close(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; ``CORRECTNESS.md`` gives the method and the float-conditioning
+        **Precision**
+
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Inputs:**
+        **Inputs**
 
         ``high``, ``low``, and ``close`` are taken as the canonical OHLC roles in that positional order and must share a
         length and alignment (the same row index is one bar).
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
-        - **Null** — the result is a plain weighted sum over the three inputs, so a ``null`` in any of them propagates:
-          the row is ``null`` whenever at least one of ``high`` / ``low`` / ``close`` is ``null`` (``null`` takes
-          precedence over ``NaN``).
-        - **NaN** — a ``NaN`` in any input (with no ``null`` at that row) propagates, yielding ``NaN`` for that row.
-        - **Partitioning** — the transform is elementwise (each row uses only its own bar), so it is already
-          correct on a multi-series panel: ``.over(...)`` partitions identically and is therefore optional here
-          (the result is the same either way), unlike the windowed indicators where ``.over`` is required to stop
-          a window spanning series boundaries.
+        - **Null** — a ``null`` price makes that row ``null`` (``null`` takes precedence over ``NaN``).
+        - **NaN** — a ``NaN`` price yields ``NaN`` for that row.
+        - **Partitioning** — already correct on a multi-series panel: ``.over(...)`` partitions identically and is
+          therefore optional here.
 
     See Also:
         - :func:`price_average`: The equal-weighted mean of the four OHLC prices.

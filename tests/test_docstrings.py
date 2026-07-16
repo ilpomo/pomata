@@ -2,22 +2,29 @@
 Source-only conformance guards for the public docstring template.
 
 Every public factory's docstring follows one template: the seven Google sections in one order, the Args entries in
-signature order, the byte-identical ``TypeError`` line, the family Note opener (**Precision** for indicators,
-**Correctness** for metrics and pnl), the edge-case bullet order (Null before NaN, Partitioning last), the latch
-marker every ``NanPolicy.LATCHES`` docstring must carry, the canonical Returns opener per output shape, and
-byte-identical Args prose for every shared parameter (with the sanctioned per-role deviants pinned by name). None of
-this is reachable by ruff's pydocstyle shell checks or the doctest gate, so it is proven here, from the source, the
-same way the spec ladder proves the suite's own declarations at import.
+signature order, the byte-identical ``TypeError`` line, a sanctioned Note opener (a family-level **Precision** /
+**Correctness** form or the function's pinned variant), the edge-case bullet labels its declarations demand in
+canonical order, each bullet worded to its class canon (or pinned as a deviant), the latch marker every
+``NanPolicy.LATCHES`` docstring must carry, a whitelisted set of explanatory sub-headers above the edge-case list,
+the canonical Returns opener per output shape, byte-identical Args prose for every shared parameter (with the
+sanctioned per-role deviants pinned by name), a Raises section that names every validation counterexample's
+parameter, and a Returns warm-up formula that reproduces the spec's declared warm-up when the canonical parameters
+are substituted into it. None of this is reachable by ruff's pydocstyle shell checks or the doctest gate, so it is
+proven here, from the source, the same way the spec ladder proves the suite's own declarations at import.
 """
 
 import ast
 import inspect
+import operator
 import re
+from collections.abc import Callable
 from types import ModuleType
 
 import polars as pl
 import pytest
+from tests.all_specs import ALL_SPECS
 from tests.support import COLUMN_X, synthesize_call
+from tests.support.edge_classes import DEVIANT_BULLETS, bullet_matches, expected_bullet, required_classes
 
 import pomata.indicators
 import pomata.metrics
@@ -130,6 +137,7 @@ def _shape(name: str) -> str:
 
 
 _NAMES = sorted(POLICIES)
+_SPECS = {spec.name: spec for spec in ALL_SPECS}
 
 
 @pytest.mark.parametrize("name", _NAMES)
@@ -160,21 +168,8 @@ def test_note_opener_matches_family(name: str) -> None:
     """The Note opens with **Precision** for indicators and **Correctness** for metrics and pnl."""
     opener = re.search(r"\*\*(.+?)\*\*", _note(_doc(name)))
     expected = "Precision" if _family_of(name) == "indicators" else "Correctness"
-    assert opener is not None, f"{name}: the Note opens with no bold marker"
+    assert opener is not None, f"{name}: the Note opens with no bold header"
     assert opener.group(1) == expected, f"{name}: opener {opener.group(1)}"
-
-
-@pytest.mark.parametrize("name", _NAMES)
-def test_edge_bullets_ordered(name: str) -> None:
-    """In the edge-case list the Null bullet precedes the NaN bullet, and Partitioning closes the list."""
-    labels = [label for label, _ in _bullets(_note(_doc(name)))]
-    assert labels, f"{name}: no Note bullets parsed"
-    null_at = next((index for index, label in enumerate(labels) if label.startswith("Null")), None)
-    nan_at = next((index for index, label in enumerate(labels) if label.startswith("NaN")), None)
-    if null_at is not None and nan_at is not None:
-        assert null_at < nan_at, f"{name}: NaN bullet before Null bullet"
-    if "Partitioning" in labels:
-        assert labels[-1] == "Partitioning", f"{name}: Partitioning is not the last bullet"
 
 
 @pytest.mark.parametrize("name", _NAMES)
@@ -320,8 +315,8 @@ def _function_def(name: str) -> ast.FunctionDef:
 
 @pytest.mark.parametrize("name", _NAMES)
 def test_edge_case_block_is_the_terminal_subheader(name: str) -> None:
-    """Verifies ``**Edge-case behavior:**`` is the LAST bold sub-header of the Note — explanations precede it."""
-    headers = re.findall(r"\*\*([^*\n]+?):\*\*", _note(_doc(name)))
+    """Verifies ``**Edge-case behavior**`` is the LAST bold sub-header of the Note — explanations precede it."""
+    headers = re.findall(r"^ *\*\*([^*\n]+?)\*\* *$", _note(_doc(name)), flags=re.MULTILINE)
     assert headers, "the Note carries no bold sub-header"
     assert headers[-1] == "Edge-case behavior", f"the Note's sub-headers end with {headers[-1]!r}"
 
@@ -395,3 +390,235 @@ def test_body_keeps_the_three_phases(name: str) -> None:
     phases = [_phase_of(statement) for statement in _function_def(name).body]
     indices = [rank[phase] for phase in phases if phase != "docstring"]
     assert indices == sorted(indices), f"the body phases interleave: {[p for p in phases if p != 'docstring']}"
+
+
+# --- the edge-case list: labels demanded by the declarations, wording held to the class canon ---
+
+
+def _edge_bullets(note: str) -> list[tuple[str, str]]:
+    """Each edge-case bullet as ``(label, body)``, the body whitespace-flattened with the ``—`` separator stripped; a
+    bullet's content ends at the first blank line, so a paragraph following the list is not folded into the last bullet.
+    """
+    return [(label, _flat(rest.split("\n\n", 1)[0]).removeprefix("— ")) for label, rest in _bullets(note)]
+
+
+@pytest.mark.parametrize("name", _NAMES)
+def test_edge_bullets_match_the_required_classes(name: str) -> None:
+    """The edge-case bullet labels are exactly the classes the spec's declarations demand, in canonical order."""
+    labels = [label for label, _ in _edge_bullets(_note(_doc(name)))]
+    expected = [edge_class.value for edge_class in required_classes(_SPECS[name])]
+    assert labels == expected, f"{name}: bullet labels {labels} != required {expected}"
+
+
+@pytest.mark.parametrize("name", _NAMES)
+def test_edge_bullet_phrasing_is_canonical(name: str) -> None:
+    """Every edge-case bullet is worded to its class canon (or pinned as a deviant), so the phrasing cannot drift."""
+    spec = _SPECS[name]
+    for label, text in _edge_bullets(_note(_doc(name))):
+        if (name, label) in DEVIANT_BULLETS:
+            continue
+        assert bullet_matches(spec, label, text), (
+            f"{name}: the {label!r} bullet is not canonical.\n"
+            f"  got:      {text}\n"
+            f"  expected: {expected_bullet(spec, label)}"
+        )
+
+
+# The whitelist of explanatory sub-headers a Note may carry above its ``**Edge-case behavior**`` list — the exact
+# set the corpus uses today. Each is a bold ``**Label**`` paragraph header naming a documented convention (seeding,
+# input handling, a clamp, a sign choice, ...); an unlisted header is an ad-hoc section the guard rejects. Shrink-only.
+_PRELIST_LABELS: frozenset[str] = frozenset(
+    {
+        "Anchoring",
+        "Clamp convention",
+        "Classification",
+        "Composition",
+        "Degrees of freedom",
+        "Displacement (no lookahead)",
+        "Documented TA-Lib divergence",
+        "Flat start",
+        "Gaussian assumption",
+        "Historical, not parametric",
+        "Inception",
+        "Inputs",
+        "Long / flat",
+        "Moving average",
+        "No lookahead (alignment is the caller's)",
+        "Off-funding bars",
+        "Period rounding",
+        "Scaling",
+        "Seeding",
+        "Sign",
+        "Sign convention",
+        "Tie-break and seeding",
+        "Warm-up",
+        "Zero return",
+        "Zero-range bars",
+    }
+)
+
+
+@pytest.mark.parametrize("name", _NAMES)
+def test_prelist_labels_are_whitelisted(name: str) -> None:
+    """Every explanatory sub-header above the edge-case list is a sanctioned label — no ad-hoc section names."""
+    # The Note opens with a **Precision** / **Correctness** header (guarded by test_note_opener_is_canonical), and
+    # closes on the **Edge-case behavior** list; the whitelist governs every explanatory header in between.
+    headers = re.findall(r"^ *\*\*([^*\n]+?)\*\* *$", _note(_doc(name)), flags=re.MULTILINE)
+    reserved = {"Precision", "Correctness", "Edge-case behavior"}
+    offenders = [header for header in headers if header not in reserved and header not in _PRELIST_LABELS]
+    assert not offenders, f"{name}: non-whitelisted pre-list sub-headers {offenders}"
+
+
+# The sanctioned Note openers. The family-level prefixes carry the great majority: an indicator "agrees with its
+# independent reference oracle", a reducing metric or a pnl accounting line "the result is checked against an
+# independent reference oracle", a rolling metric "each window matches an independent reference oracle (". The
+# functions whose oracle can only mirror a path-dependent recurrence (the Ehlers cycle cluster, ``kama``,
+# ``parabolic_sar``) open on their own measured wording, pinned per name. Shrink-only.
+_OPENER_PREFIXES: tuple[str, ...] = (
+    "**Precision** Agrees with its independent reference oracle",
+    "**Correctness** The result is checked against an independent reference oracle",
+    "**Correctness** Each window matches an independent reference oracle (",
+)
+_CYCLE_OPENER = "**Precision** The fixed FIR smoothing and quadrature stages are computed independently"
+_OPENER_VARIANTS: dict[str, str] = {
+    **dict.fromkeys(
+        (
+            "dominant_cycle_period",
+            "dominant_cycle_phase",
+            "hilbert_phasor",
+            "hilbert_trendline",
+            "mama",
+            "sine_wave",
+            "trend_mode",
+        ),
+        _CYCLE_OPENER,
+    ),
+    "kama": (
+        "**Precision** The efficiency ratio and adaptive smoothing constant are checked against "
+        "an independent reference"
+    ),
+    "parabolic_sar": "**Precision** The parabolic SAR is a path-dependent stop-and-reverse recurrence",
+}
+
+
+@pytest.mark.parametrize("name", _NAMES)
+def test_note_opener_is_canonical(name: str) -> None:
+    """The Note opens with a sanctioned family form (or the function's pinned variant), so the opener cannot drift."""
+    # The opener is now two paragraphs — the bold header alone, then its sentence — so the sanctioned prefix is
+    # matched against both joined: the header, a space where the paragraph break is, and the sentence's first words.
+    paragraphs = _note(_doc(name)).strip().split("\n\n")
+    opener = _flat(" ".join(paragraphs[:2]))
+    sanctioned = (_OPENER_VARIANTS[name],) if name in _OPENER_VARIANTS else _OPENER_PREFIXES
+    assert any(opener.startswith(prefix) for prefix in sanctioned), f"{name}: non-canonical Note opener: {opener[:120]}"
+
+
+@pytest.mark.parametrize("name", _NAMES)
+def test_note_headers_are_their_own_paragraph(name: str) -> None:
+    """
+    Every non-bullet bold label in the Note is a header alone on its line, separated from its content by a blank line,
+    so Sphinx renders it as its own paragraph instead of joining it to the sentence below. A ``**Label:**`` colon
+    header, a ``**Label** --`` / ``**Label** —`` dash connective, or a header whose content abuts it with no blank
+    line is rejected. A list item keeps its ``- **Label** — text`` form and is exempt.
+    """
+    lines = _note(_doc(name)).splitlines()
+    for index, line in enumerate(lines):
+        stripped = line.strip()
+        if stripped.startswith("- "):
+            continue
+        match = re.match(r"\*\*([^*]+?)\*\*(.*)", stripped)
+        if match is None:
+            continue
+        label, rest = match.group(1), match.group(2)
+        assert not label.endswith(":"), f"{name}: header **{label}** still carries a trailing colon"
+        assert not rest.strip(), f"{name}: header **{label}** carries inline text on its own line"
+        following = lines[index + 1] if index + 1 < len(lines) else ""
+        assert not following.strip(), f"{name}: header **{label}** is joined to its content — no blank line follows"
+
+
+@pytest.mark.parametrize("name", _NAMES)
+def test_raises_section_names_every_counterexample(name: str) -> None:
+    """Every validation counterexample's parameter is named in the Raises section, so no guard goes undocumented."""
+    spec = _SPECS[name]
+    if not spec.raises:
+        return
+    raises = _flat_raises(name)
+    offenders = sorted({param for override, _ in spec.raises for param in override if param not in raises})
+    assert not offenders, f"{name}: Raises does not name {offenders}"
+
+
+# The sentence forms a Returns block states its warm-up in; the captured group is the backticked formula whose
+# value, at the canonical parameters, must equal the spec's declared warm-up.
+_WARMUP_PATTERNS: tuple[str, ...] = (
+    r"first ``([^`]+)`` (?:rows|values) are ``null``",
+    r"(?:Values|values) are ``null`` until [^(]*\(the first ``([^`]+)`` rows\)",
+    r"``([^`]+)`` rows of ``null``",
+    r"[Tt]he first (?:value|row) is ``null``()",
+    r"Row ``0`` is ``null``()",
+)
+
+# Warm-ups substitution cannot check: adxr composes its length from adx's in words, and hma's formula reads a
+# prose-defined intermediate. Shrink this set by rephrasing to a formula in the canonical parameters; an entry
+# whose Returns becomes checkable fails as stale.
+_WARMUP_PROSE: frozenset[str] = frozenset({"adxr", "hma"})
+
+
+def _eval_warmup(formula: str, params: dict[str, int]) -> int:
+    """The integer value of a backticked warm-up formula under the canonical parameters (an empty capture is the
+    one-row shift, i.e. ``1``).
+    """
+    if not formula:
+        return 1
+    node = ast.parse(formula, mode="eval").body
+    operators: dict[type[ast.operator], Callable[[int, int], int]] = {
+        ast.Add: operator.add,
+        ast.Sub: operator.sub,
+        ast.Mult: operator.mul,
+    }
+
+    def evaluate(expr: ast.expr) -> int:
+        if isinstance(expr, ast.Constant) and isinstance(expr.value, int):
+            return expr.value
+        if isinstance(expr, ast.Name) and expr.id in params:
+            return params[expr.id]
+        if isinstance(expr, ast.BinOp) and type(expr.op) in operators:
+            return operators[type(expr.op)](evaluate(expr.left), evaluate(expr.right))
+        if isinstance(expr, ast.UnaryOp) and isinstance(expr.op, ast.USub):
+            return -evaluate(expr.operand)
+        if isinstance(expr, ast.Call) and isinstance(expr.func, ast.Name) and expr.func.id == "max":
+            return max(evaluate(argument) for argument in expr.args)
+        message = f"unsupported warm-up formula node: {ast.dump(expr)}"
+        raise ValueError(message)
+
+    return evaluate(node)
+
+
+def _returns_block(name: str) -> str:
+    """The full Returns section, flattened to one line."""
+    tail = _doc(name).split("\nReturns:\n", 1)[1]
+    cuts = [tail.find("\n" + section) for section in ("Raises:", "Note:") if "\n" + section in tail]
+    return " ".join(tail[: min(cuts)].split()) if cuts else " ".join(tail.split())
+
+
+@pytest.mark.parametrize("name", _NAMES)
+def test_returns_warmup_matches_the_spec(name: str) -> None:
+    """The Returns warm-up formula reproduces the spec's declared warm-up under the canonical parameters."""
+    spec = _SPECS[name]
+    if spec.warmup is None or not isinstance(spec.warmup, int):
+        return
+    text = _returns_block(name)
+    formula = next((m.group(1) for p in _WARMUP_PATTERNS if (m := re.search(p, text)) is not None), None)
+    params = {key: value for key, value in spec.params.items() if isinstance(value, int)}
+    if name in _WARMUP_PROSE:
+        if formula is None:
+            return
+        try:
+            _eval_warmup(formula, params)
+        except ValueError:
+            return
+        pytest.fail(f"{name}: now checkable by substitution — remove its stale _WARMUP_PROSE entry")
+    assert formula is not None, f"{name}: no checkable warm-up sentence found in Returns"
+    declared = _eval_warmup(formula, params)
+    assert declared == spec.warmup, (
+        f"{name}: the Returns formula ``{formula}`` gives {declared} at the canonical parameters, but the spec "
+        f"declares warmup={spec.warmup}"
+    )

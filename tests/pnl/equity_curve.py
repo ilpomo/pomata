@@ -1,5 +1,7 @@
 """Spec for ``pomata.pnl.equity_curve`` — the compounding cumulation, bridged nulls, latched NaNs, scale-exempt."""
 
+import math
+
 from tests.pnl.oracles import equity_curve_reference
 from tests.support.spec import ScaleExempt, Shape, Spec, SpecPin
 
@@ -29,6 +31,13 @@ EQUITY_CURVE = Spec(
             expected=(None, 1.1, 1.32, 1.254),
             reason="a leading warm-up null stays null and the compounded curve begins at the first defined return; "
             "the function declares no warm-up window, so no generic warm-up rung exercises a leading null",
+        ),
+        SpecPin(
+            label="infinite_return_flips_the_curve_sign",
+            inputs={"returns": (math.inf, 0.1, -math.inf, 0.2)},
+            expected=(math.inf, math.inf, -math.inf, -math.inf),
+            reason="a +inf return inflates the compounded curve to +inf and a later -inf factor flips it to -inf, "
+            "which then persists; the property tiers set allow_infinity=False",
         ),
     ),
 )

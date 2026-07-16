@@ -203,7 +203,7 @@ testpaths = ["tests"]
 line-length = 120
 src = ["src", "tests"]
 target-version = "py312"
-# ``scripts/`` holds local dev tooling (the docs/trust.md precision-table regenerator and the tolerance calibrator), not shipped or imported by the package
+# ``scripts/`` holds local dev tooling (the docs/correctness.md precision-table regenerator and the tolerance calibrator), not shipped or imported by the package
 # or the test suite; it is out of the linters' scope, matching mypy / pyright / pyrefly (which include only src + tests).
 extend-exclude = ["scripts"]
 

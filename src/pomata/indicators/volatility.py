@@ -61,41 +61,37 @@ def atr(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; ``CORRECTNESS.md`` gives the method and the float-conditioning
+        **Precision**
+
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Scaling:**
+        **Scaling**
 
         Scaling is homogeneous of degree ``1`` only for a positive factor: multiplying every price by ``k > 0`` scales
         the ATR by ``k``. A negative factor makes the bar incoherent (``high`` falls below ``low``), so it is not a
         clean rescale.
 
-        **Seeding:**
+        **Seeding**
 
         The Wilder smoothing (:func:`rma`) is seeded with the simple average of the first ``window`` true ranges --
         Wilder's canonical initialization. The first true range is the bar's high-low range (no prior close extends
         it), so the seed and warm-up include it.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
-        - **Null** — ``null`` handling follows ``pl.max_horizontal``: a ``null`` in a single ``high``, ``low``, or
-          ``close`` input drops only the candidate terms that reference it, leaving the true range as the maximum of the
-          remaining non-null terms. The roles are not interchangeable: a ``null`` ``high`` removes the ``high - low``
-          and ``|high - close_prev|`` terms (leaving ``|low - close_prev|``), a ``null`` ``low`` removes ``high - low``
-          and ``|low - close_prev|`` (leaving ``|high - close_prev|``), and a ``null`` ``close`` only blanks the two gap
-          terms of the *next* bar (whose previous close is then ``null``). The true range is therefore ``null`` only
-          when every candidate term is ``null`` (e.g. the first bar with both ``high`` and ``low`` ``null``); a ``null``
-          true range yields ``null`` at that row while the Wilder recursion preserves its state and bridges the gap.
-        - **NaN** — a ``NaN`` in any active term poisons that true range and then the recursion, latching ``NaN`` for
-          every subsequent value (except at ``window == 1``, where the smoothing is the identity and no recursion
-          exists to latch: the ``NaN`` clears once it leaves the true range's one-bar reach).
+        - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
+          ``null`` at that position while the recursion continues across the gap — the true range is ``null`` only
+          when every :func:`true_range` candidate term is ``null``.
+        - **NaN** — a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null
+          position — except at ``window == 1``, where the smoothing is the identity and no recursion exists to latch:
+          the ``NaN`` clears once it leaves the true range's one-bar reach.
         - **window == 1** — the smoothing factor is ``1`` and the warm-up vanishes, so the ATR reproduces the true
           range exactly: the ``max_horizontal``-reduced true range (not a textbook three-term true range whenever a
           candidate term is dropped by a ``null``).
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so neither the previous-close
-          shift nor the Wilder recursion spans series boundaries, e.g.
-          ``atr(pl.col("high"), pl.col("low"), pl.col("close"), 14).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`true_range`: The per-bar range this Wilder-smooths.
@@ -188,23 +184,25 @@ def atr_normalized(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; ``CORRECTNESS.md`` gives the method and the float-conditioning
+        **Precision**
+
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
         It is scale-invariant under a positive common rescaling of ``high``, ``low``, and ``close`` (the ATR and the
         close scale together).
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
-        - **Null** — a ``null`` ATR or a ``null`` ``close`` at a row yields ``null`` there (the ATR inherits
-          :func:`atr`'s per-term ``null`` handling).
-        - **NaN** — a ``NaN`` ATR or ``close`` yields ``NaN``; a ``NaN`` inside the ATR's recursion latches, exactly
-          as documented for :func:`atr`.
-        - **Zero close** — where ``close`` is ``0`` the ratio follows IEEE-754 (``+/-inf`` for a non-zero ATR, ``NaN``
-          for a zero ATR).
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the underlying ATR does not
-          span series boundaries, e.g. ``atr_normalized(pl.col("high"), pl.col("low"), pl.col("close"), 14).over("t")``.
+        - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
+          ``null`` at that position while the recursion continues across the gap — inherited from :func:`atr`, with a
+          ``null`` ``close`` also nulling the ratio at that row.
+        - **NaN** — a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null
+          position — inherited from :func:`atr`, with a ``NaN`` ``close`` also yielding ``NaN`` for the ratio at that
+          row.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`atr`: The raw (price-unit) average true range this normalizes.
@@ -310,26 +308,27 @@ def bollinger_bands(
             ``±inf``).
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; ``CORRECTNESS.md`` gives the method and the float-conditioning
+        **Precision**
+
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Composition:**
+        **Composition**
 
         The bands are built from :func:`sma` (center) and the population :func:`standard_deviation_rolling` (width), so
         they inherit the warm-up and missing-data behavior of both — identically on every field of the struct.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
-        - **Null** — a window containing a ``null`` yields ``null`` on all three fields (the window must hold ``window``
-          non-null values).
-        - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` on all three fields.
-        - **Constant window** — the standard deviation is pinned to exactly ``0`` (see
-          :func:`standard_deviation_rolling`), so all three bands collapse onto the constant — even where a much
-          larger value has just left the window.
-        - **window == 1** — the standard deviation is ``0``, so all three bands collapse onto ``expr`` itself.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so no window spans series
-          boundaries, e.g. ``bollinger_bands(pl.col("close"), 20).over("ticker")``.
+        - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values)
+          — on all three fields.
+        - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there — on all three fields.
+        - **Degenerate denominator** — a window of equal values has zero standard deviation (see
+          :func:`standard_deviation_rolling`), so all three bands collapse onto the constant — even at
+          ``window == 1``, or just after a much larger value has left the window.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`sma`: The center band.
@@ -420,16 +419,18 @@ def true_range(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; ``CORRECTNESS.md`` gives the method and the float-conditioning
+        **Precision**
+
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Inputs:**
+        **Inputs**
 
         ``high``, ``low``, and ``close`` are taken as the canonical OHLC roles in that positional order and must share a
         length and alignment (the same row index is one bar).
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — ``null`` handling follows ``pl.max_horizontal``, which **skips** ``null`` candidates rather than
           propagating them: a ``null`` in ``high`` or ``low`` (or a ``null`` previous ``close``) simply drops that
@@ -438,13 +439,10 @@ def true_range(
           ``null`` at the row, but where the previous ``close`` is itself ``null`` (row ``0``, or any bar after a
           ``null`` close) the two gap distances are already ``null``, so a single ``null`` in ``high`` or ``low`` voids
           the row on its own.
-        - **NaN** — a ``NaN`` is **not** skipped: it dominates the maximum, so any row whose surviving candidates
-          include a ``NaN`` yields ``NaN`` (a ``NaN`` ``close`` therefore contaminates the two gap terms of the **next**
-          row only, not the whole series).
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the previous-close shift never
-          reaches across series boundaries, e.g.
-          ``true_range(pl.col("high"), pl.col("low"), pl.col("close")).over("ticker")`` — without it the first bar of
-          one series would borrow the last ``close`` of the previous series.
+        - **NaN** — a ``NaN`` price yields ``NaN`` for that row — it is not skipped like a ``null`` (it dominates
+          the maximum), so a ``NaN`` ``close`` also contaminates the two gap terms of the next row.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`atr`: The Wilder-smoothed average of this per-bar range.

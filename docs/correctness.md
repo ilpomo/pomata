@@ -1,15 +1,19 @@
-# Why you can trust pomata
+# Correctness
 
 Most libraries ask you to trust their output. `pomata` proves it. The premise is simple and a little obsessive:
 **every function is written twice.** The shipped version is tuned to vectorize in Polars; a second, deliberately
-naive {term}`oracle` re-derives the same published formula and shares no code with it. The two must agree — on a fixed
-series, on frozen {term}`golden-master <golden master>` numbers, and on thousands of randomly fuzzed inputs — or the
-build is red.
+naive *oracle* re-derives the same published formula and shares no code with it. The two must agree — on a fixed
+series, on frozen *golden-master* numbers, and on thousands of randomly fuzzed inputs — or the build is red. This
+page is the method behind every number: how the agreement is checked, and why each promise is the size it is.
+
+It is also an honest page. It does not claim the code is free of bugs; no one can. It claims something narrower and
+checkable: that every function agrees with an independent transcription of its published formula, satisfies a set of
+stated mathematical invariants, and matches the industry reference where the two are meant to match.
 
 The same method covers all three families — indicators, PnL, and metrics — but holds each to the standard that
 actually catches its bugs. Indicators must be right *to the digit*: they reproduce a fixed formula, so there is one
 correct number, and even a public reference — TA-Lib — to check it against. PnL and metrics are simpler arithmetic
-whose failures live at the edges — a `null`, a `NaN`, a zero denominator, a {term}`warm-up` — not in the fifteenth digit. So
+whose failures live at the edges — a `null`, a `NaN`, a zero denominator, a warm-up — not in the fifteenth digit. So
 the proof below splits in two: indicators to the last figure, PnL and metrics at the boundaries.
 
 ## What every function survives
@@ -32,6 +36,25 @@ The same four-tier ladder runs over all three families, under **100% branch cove
   - The same oracle agreement *and* the mathematical invariants (bounds, scale behavior, monotonicity) over the full `[-1e6, 1e6]` fuzz domain, with missing data freely interleaved — driven by Hypothesis.
 ```
 
+## Two independent witnesses — and where there is only one
+
+The oracle is the second witness, and it earns that title only when it is genuinely independent. For the great
+majority of functions — anything expressible as composed Polars expressions — the naive loop and the vectorized
+expression graph are unrelated computations, so a single transcription bug would have to occur *identically* in both
+to hide, which is vanishingly unlikely: agreement is evidence. It holds for the exponential averages too (the
+unadjusted EMA, Wilder's RMA, and the ATR / RSI / MACD family built on them): the shipped code runs one sequential
+pass, but the linear recurrence has a closed form, so the oracle is an independent unrolled weighted sum rather than a
+copy of the same loop — a forward-carry error cannot hide in it.
+
+A few indicators are irreducibly sequential with no such closed form, so their oracle necessarily resembles the
+shipped pass and confirms internal consistency, not independence — KAMA, the parabolic SAR, the Fisher transform,
+SuperTrend, and the Hilbert-transform cycle cluster (the dominant-cycle period and phase, the phasor, the trendline,
+the sine wave, the trend flag, and MAMA). For these the second witness is elsewhere, and stated rather than
+overstated: the parabolic SAR is anchored to golden masters hand-computed from Wilder's published rules, including
+the seeding and reversal branches the recurrence cannot reach by symmetry; the others rest on frozen golden masters
+that catch any drift; and KAMA and the cycle cluster are additionally cross-checked against TA-Lib in the non-gating
+differential tier.
+
 ## Indicators: proven to the digit
 
 Indicators reproduce a fixed formula, so the bar is numeric and absolute. The headline is **ten significant figures**:
@@ -41,14 +64,13 @@ number is chosen, not guessed — and enforced:
 - **It dwarfs the data.** Market feeds carry four to eight significant figures. Ten figures means `pomata` never adds
   error you could observe — lossless against its own input, with orders of headroom to spare.
 - **It sits far above the noise floor.** A `float64` holds ~16 figures; honest rounding between the streaming
-  implementation and the two-pass oracle lands around `1e-15`. `1e-10` is five orders above that — tight enough to
-  reject any real coding error, loose enough that a last-bit difference never flakes the suite.
+  implementation and the two-pass oracle lands at the `float64` noise floor. `1e-10` is orders above that — tight
+  enough to reject any real coding error, loose enough that a last-bit difference never flakes the suite.
 - **It is verified, not asserted.** The property tier holds every indicator to `1e-10` across the full random domain
-  — except the one-pass rolling family (twelve indicators whose sliding-window sums and exponential recurrences
-  round differently from a fresh two-pass recompute), held to the per-family `1e-6` band each spec declares.
-  In practice the agreement is *far* tighter: about **half the outputs match the oracle to the last bit** (a relative
-  difference of exactly zero), and the rest land at the noise floor — typically thirteen to fifteen figures, never
-  fewer than the promised ten.
+  — except the one-pass rolling family (whose sliding-window sums and exponential recurrences round differently from
+  a fresh two-pass recompute), held to the per-family band each spec declares. In practice the agreement is *far*
+  tighter: about **half the outputs match the oracle to the last bit** (a relative difference of exactly zero), and
+  the rest land at the noise floor — never fewer than the promised ten figures.
 
 :::{admonition} What pomata does *not* claim
 :class: warning
@@ -107,11 +129,14 @@ reproducing it exactly or at the `float64` noise floor, never worse than thirtee
   - `6e-15`
 ```
 
-The {term}`differential tier` (non-gating) compares the **58 of 75** indicators with a TA-Lib counterpart against it
-**bar-for-bar, from the first defined value**. A documented minority is compared only on the converged tail — always
-with a reason its warm-up differs from TA-Lib's (Wilder's first True Range, the independent MACD/Chaikin EMAs, the
-Ehlers Hilbert pipeline's long warm-up, the Parabolic SAR cold start) — never a steady-state disagreement. The other 17
-have no TA-Lib twin or keep a deliberate, documented convention of their own, and rest on the independent oracle instead.
+The differential tier (non-gating) compares every indicator that has a TA-Lib counterpart against the C reference,
+bar for bar from the first defined value. A documented minority is compared only on the converged tail — always with
+a reason its warm-up differs from TA-Lib's (Wilder's first True Range, the independent MACD / Chaikin EMAs, the
+Ehlers Hilbert pipeline's long warm-up, the Parabolic SAR cold start) — never a steady-state disagreement. A few more
+map to a TA-Lib function but keep a deliberate convention of their own (ADXR's averaging lag, the Chande momentum
+oscillator's smoothing, OBV's origin): they follow the charting authorities rather than TA-Lib, so they are held out
+of the differential on purpose, each divergence documented on the function itself. The indicators with no TA-Lib twin
+rest on the independent oracle and their golden masters instead.
 
 ## PnL and metrics: proven at the edges, not in the digits
 
@@ -129,46 +154,23 @@ machine applies — independent oracle, four-tier ladder, golden masters — but
   `total_return_rolling`, the running drawdown), where an interior value never crosses a window boundary and only
   the affected rows are nulled; a degenerate denominator is reported as `±inf`/`NaN`, never silently clipped.
 
-## The tolerance ladder
+## Tolerances, by conditioning
 
-Every band is named and lives in one file (`tests/support/tolerances.py`), sized to the worst residual the statistic's
-{term}`conditioning` predicts — not a round number:
-
-```{list-table}
-:header-rows: 1
-:widths: 32 18 50
-
-* - Band
-  - Value
-  - Where it applies
-* - exact
-  - `1e-12`
-  - recursive / stateless kernels that match the oracle to a few ULP
-* - reference / property
-  - `1e-10`
-  - oracle agreement on fixed and fuzzed inputs — the enforced guarantee
-* - scale
-  - `1e-6`
-  - degree-1 / degree-2 homogeneity under rescaling
-* - rolling-vs-oracle
-  - `1e-6`
-  - a one-pass rolling statistic against its recompute-per-window two-pass oracle, declared per spec
-* - rolling-moment floor
-  - `1e-7`
-  - the standardized rolling moments (skewness / kurtosis) against their two-pass oracle — an absolute floor, per spec
-* - streaming
-  - `1e-3`
-  - a streaming statistic evaluated at an extreme magnitude
-```
-
-Two magnitude-relative factors complete the ladder, sizing an absolute floor to the data (`input_scale ** degree *
-factor`) where a fixed band would be wrong at the extremes — see `tests/support/tolerances.py` for their derivation.
+When the implementation and the oracle agree they still round differently, and how far they drift depends on the
+statistic's *conditioning*, not on a round number. Every tolerance is therefore a named constant — sized to the
+worst-case residual its conditioning predicts, plus a margin — and they all live in one file
+(`tests/support/tolerances.py`). The enforced guarantee is the relative `1e-10` above; the well-conditioned kernels
+beat it by orders, and the families whose one-pass form rounds away from a fresh two-pass recompute declare their own
+wider band per spec. Where a fixed relative band would be wrong — an output that cancels toward zero, an input at an
+extreme magnitude — an absolute floor is sized to the data instead. No band is a bare number: each carries a one-line
+reason for its value, so a tolerance can never drift into superstition.
 
 ## Re-run it yourself
 
 None of this is something you have to take on faith. The full gate runs from a clean clone (`uv sync`, then the
-lint / type / test commands listed in `CONTRIBUTING.md`); the
-published figures regenerate from `scripts/precision_table.py`, and the realized headroom under the guarantee (it lands
-around `1e-14`) from `scripts/calibrate_tolerances.py`. The complete method — the derivations, the test sizing, exactly
-what is and is not claimed — is in
-[`CORRECTNESS.md`](https://github.com/ilpomo/pomata/blob/main/CORRECTNESS.md).
+lint / type / test commands listed in `CONTRIBUTING.md`); the published figures regenerate from
+`scripts/precision_table.py`, and the realized headroom under the guarantee from `scripts/calibrate_tolerances.py`.
+The suite's own design — the declarative spec ladder, the derived test sizing, and exactly what each rung proves — is
+documented alongside the tests in `tests/README.md`.
+</content>
+</invoke>

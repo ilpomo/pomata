@@ -6,7 +6,8 @@ composed Polars expressions — the oracle shares no code with the implementatio
 rather than coincidence. The irreducibly-sequential kernels (parabolic SAR, KAMA, the Hilbert-transform cycle cluster)
 are the exception: a one-shape path-dependent recurrence has essentially one transcription, so those oracles necessarily
 mirror the implementation's structure — their real correctness evidence is the hand-derived golden masters, not the
-oracle agreement (see ``CORRECTNESS.md``). They target the semantics of the project's Polars floor (declared in
+oracle agreement (see the documentation's Correctness page). They target the semantics of the project's Polars floor
+(declared in
 ``pyproject.toml``); each docstring states the definition, the subtle points the reimplementation must reproduce, and
 its null / NaN / degeneracy contract. This package re-exports them flat, mirroring
 ``pomata.indicators``: ``from tests.indicators.oracles import sma_reference``.

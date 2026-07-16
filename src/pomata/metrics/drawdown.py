@@ -55,17 +55,22 @@ def conditional_drawdown_at_risk(
         ValueError: If ``confidence`` is not in the open interval ``(0, 1)``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness**
 
-        **Edge-case behavior:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
-        - **Null** — a ``null`` equity is skipped (the running peak carries across it).
+        **Edge-case behavior**
+
+        - **Null** — a ``null`` equity is skipped; an all-null (or empty) series yields ``null`` (the running peak
+          carries across it).
         - **NaN** — a ``NaN`` equity propagates, yielding ``NaN``.
-        - **No drawdown** — a monotonically non-decreasing curve has an all-zero drawdown series, so the result is
-          ``0``; an empty (or all-null) series yields ``null``.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel, e.g.
-          ``conditional_drawdown_at_risk(pl.col("equity")).over("ticker")``.
+        - **Insufficient sample** — a single observation is trivially at its own peak, so the result is ``0`` (not
+          ``null``).
+        - **Degenerate denominator** — a monotonically non-decreasing curve has an all-zero drawdown series, so the
+          result is ``0`` (not a ``0 / 0``).
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`max_drawdown`: The single worst drawdown.
@@ -146,20 +151,28 @@ def drawdown(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness**
 
-        **Edge-case behavior:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
-        - **Null** — a ``null`` equity yields ``null`` at that row while the running peak carries across it unchanged.
-        - **Inception** — the running peak starts at the FIRST observation: a curve fed from
-          :func:`~pomata.pnl.equity_curve` begins at its first post-return value, so a drawdown from the starting
-          capital itself (an opening losing streak) is invisible by construction. Prepend a literal ``1.0`` row to
-          count declines from inception; the convention matches quantstats (empyrical instead prepends the start).
-        - **NaN** — a ``NaN`` equity yields ``NaN`` at that row; the running peak ignores it (Polars' ``cum_max``
+        **Inception**
+
+        The running peak starts at the FIRST observation: a curve fed from :func:`~pomata.pnl.equity_curve` begins at
+        its first post-return value, so a drawdown from the starting capital itself (an opening losing streak) is
+        invisible by construction. Prepend a literal ``1.0`` row to count declines from inception; the convention
+        matches quantstats (empyrical instead prepends the start).
+
+        **Edge-case behavior**
+
+        - **Null** — a ``null`` equity makes that row ``null`` (``null`` takes precedence over ``NaN``); the running
+          peak carries across it unchanged.
+        - **NaN** — a ``NaN`` equity yields ``NaN`` for that row; the running peak ignores it (Polars' ``cum_max``
           semantics), so later rows are unaffected.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the running peak restarts per
-          series, e.g. ``drawdown(pl.col("equity")).over("ticker")``.
+        - **Insufficient sample** — a single-row series is trivially at its own peak, so its (only) drawdown is ``0``,
+          not ``null``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`max_drawdown`: The deepest point of this series.
@@ -228,15 +241,16 @@ def drawdown_rolling(
         ValueError: If ``window < 1``.
 
     Note:
-        **Correctness** -- each window matches an independent reference oracle (the current equity over the window peak,
-        less one).
+        **Correctness**
 
-        **Edge-case behavior:**
+        Each window matches an independent reference oracle (the current equity over the window peak, less one).
+
+        **Edge-case behavior**
 
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
-        - **At the window peak** — when the current equity is the window's highest, the drawdown is ``0``.
-        - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`drawdown`: The running form, measured against the all-time high to date.
@@ -303,17 +317,23 @@ def max_drawdown(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness**
 
-        **Edge-case behavior:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
-        - **Null** — ``null`` equities are skipped (a missing bar does not start a drawdown); an all-null series yields
-          ``null``.
-        - **NaN** — a ``NaN`` anywhere yields ``NaN`` (an undefined equity makes the worst-drawdown summary undefined).
-        - **No decline** — a single observation or a never-declining curve yields ``0``.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the drawdown is computed per
-          series, e.g. ``max_drawdown(pl.col("equity")).over("ticker")``.
+        **Edge-case behavior**
+
+        - **Null** — a ``null`` equity is skipped; an all-null (or empty) series yields ``null`` (a missing bar does not
+          start a drawdown).
+        - **NaN** — a ``NaN`` equity propagates, yielding ``NaN`` (an undefined equity makes the worst-drawdown summary
+          undefined).
+        - **Insufficient sample** — a single observation is trivially at its own peak, so the result is ``0`` (not
+          ``null``).
+        - **Degenerate denominator** — a never-declining curve has zero drawdown throughout, so the result is ``0`` (not
+          a ``0 / 0``).
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`drawdown`: The running series this reduces.
@@ -374,21 +394,24 @@ def max_drawdown_duration(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness**
+
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
         The duration is a count of observations, not a calendar span; with irregular spacing scale it by the bar period
         externally.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
-        - **Null** — a ``null`` equity is skipped, and the run is measured over the retained observations (a gap
-          does not break or extend the underwater stretch).
+        - **Null** — a ``null`` equity is skipped; an all-null (or empty) series yields ``null`` (the run is measured
+          over the retained observations, so a gap neither breaks nor extends the underwater stretch).
         - **NaN** — a ``NaN`` equity propagates, yielding ``NaN``.
-        - **No drawdown** — a monotonically non-decreasing curve is never underwater, so the duration is ``0``; an empty
-          (or all-null) series yields ``null``.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel, e.g.
-          ``max_drawdown_duration(pl.col("equity")).over("ticker")``.
+        - **Insufficient sample** — a single observation is never underwater, so the result is ``0`` (not ``null``).
+        - **Degenerate denominator** — a monotonically non-decreasing curve is never underwater, so the result is ``0``
+          (not a ``0 / 0``).
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`max_drawdown`: The depth dimension (worst decline).
@@ -457,17 +480,22 @@ def pain_index(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness**
 
-        **Edge-case behavior:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
-        - **Null** — a ``null`` equity is skipped (the running peak carries across it).
+        **Edge-case behavior**
+
+        - **Null** — a ``null`` equity is skipped; an all-null (or empty) series yields ``null`` (the running peak
+          carries across it).
         - **NaN** — a ``NaN`` equity propagates, yielding ``NaN``.
-        - **No drawdown** — a monotonically non-decreasing curve is never below its peak, so the index is ``0``;
-          an empty (or all-null) series yields ``null``.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel, e.g.
-          ``pain_index(pl.col("equity")).over("ticker")``.
+        - **Insufficient sample** — a single observation is trivially at its own peak, so the result is ``0`` (not
+          ``null``).
+        - **Degenerate denominator** — a monotonically non-decreasing curve is never below its peak, so the result is
+          ``0`` (not a ``0 / 0``).
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`ulcer_index`: The root-mean-square counterpart.
@@ -533,16 +561,21 @@ def ulcer_index(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness** -- the result is checked against an independent reference oracle on every input, and every edge
-        case (missing data and boundaries) is given a defined behavior.
+        **Correctness**
 
-        **Edge-case behavior:**
+        The result is checked against an independent reference oracle on every input, and every edge case (missing data
+        and boundaries) is given a defined behavior.
 
-        - **Null** — ``null`` equities are skipped (excluded from the mean); an all-null series yields ``null``.
-        - **NaN** — a ``NaN`` anywhere yields ``NaN``.
-        - **No decline** — a never-declining curve has all-zero drawdowns, so the Ulcer Index is ``0``.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the index is computed per
-          series, e.g. ``ulcer_index(pl.col("equity")).over("ticker")``.
+        **Edge-case behavior**
+
+        - **Null** — a ``null`` equity is skipped; an all-null (or empty) series yields ``null`` (excluded from the
+          mean).
+        - **NaN** — a ``NaN`` equity propagates, yielding ``NaN``.
+        - **Insufficient sample** — a single observation has no drawdown, so the result is ``0`` (not ``null``).
+        - **Degenerate denominator** — a never-declining curve has all-zero drawdowns, so the result is ``0`` (not a
+          ``0 / 0``).
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`max_drawdown`: The single worst drawdown, which the Ulcer Index complements with a continuous measure.

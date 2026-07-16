@@ -50,27 +50,29 @@ def donchian_channels(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; ``CORRECTNESS.md`` gives the method and the float-conditioning
+        **Precision**
+
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Inputs:**
+        **Inputs**
 
         ``high`` and ``low`` must share a length and alignment (the same row index is one bar). The channel does not
         assume ``high >= low``: a malformed bar where ``high < low`` flows through unchanged (the upper band can then
         sit below the lower band) rather than being silently reordered.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
-        - **Null** — ``null`` propagates per band: a ``null`` in the ``high`` window nulls ``upper`` and ``middle``, a
-          ``null`` in the ``low`` window nulls ``lower`` and ``middle``; a fully missing bar nulls all three.
-        - **NaN** — a ``NaN`` propagates the same way per band, becoming ``NaN`` on the band that reads it (``null``
-          still takes precedence over ``NaN``).
+        - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values) —
+          a ``null`` in the ``high`` window nulls ``upper`` and ``middle``, a ``null`` in the ``low`` window nulls
+          ``lower`` and ``middle``; a fully missing bar nulls all three.
+        - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there — per band, with ``null`` still
+          taking precedence over ``NaN``.
         - **window == 1** — the bands are the bar's own ``high`` and ``low``, and the middle is its
           :func:`price_median`.
-        - **Flat window** — over a window where ``high`` and ``low`` hold one repeated value, all three bands equal it.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the window never spans series
-          boundaries, e.g. ``donchian_channels(pl.col("high"), pl.col("low"), 20).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`midprice`: The channel's middle band on its own.
@@ -173,14 +175,16 @@ def ichimoku(
             window_senkou`` (equality is allowed and collapses the corresponding lines onto each other).
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; ``CORRECTNESS.md`` gives the method and the float-conditioning
+        **Precision**
+
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
         Every line is homogeneous of degree ``1`` under a positive common rescaling of ``high`` and ``low`` (each is a
         midpoint of price extremes).
 
-        **Displacement (no lookahead):**
+        **Displacement (no lookahead)**
 
         Each line is emitted aligned to the row it is computed from -- zero displacement -- so the output never reads a
         future bar and is safe to feed a backtest directly. The traditional chart instead plots the two leading spans
@@ -190,14 +194,14 @@ def ichimoku(
         not emitted: un-displaced it is identical to ``close``, and its backward shift reads future bars, which must
         never enter a backtest.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
-        - **Null / NaN** — a ``null`` in either input nulls every line whose window touches it; a ``NaN`` propagates the
-          same way, per the underlying rolling extremes (and ``null`` takes precedence over ``NaN``).
-        - **Flat window** — over a constant window every line equals the price (the ``high`` and ``low`` extremes
-          coincide).
-        - **Partitioning** — append ``.over("ticker")`` to the call for a multi-series panel so no window spans series
-          boundaries.
+        - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window_tenkan`` non-null
+          values) — each line nulls only where its own window touches the ``null``, in either ``high`` or ``low``.
+        - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there — per line, via the underlying
+          rolling extremes, with ``null`` still taking precedence over ``NaN``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`midprice`: The single rolling high-low midpoint each Ichimoku line is built from.
@@ -324,23 +328,28 @@ def keltner_channels(
             ``<= 0``, ``NaN``, or ``±inf``).
 
     Note:
-        **Precision** -- agrees with its independent reference oracle (a composition of the :func:`ema` and :func:`atr`
-        references) to ten significant figures (a ``1e-10`` band); ``CORRECTNESS.md`` gives the method.
+        **Precision**
 
-        **Inputs:**
+        Agrees with its independent reference oracle (a composition of the :func:`ema` and :func:`atr` references) to
+        ten significant figures (a ``1e-10`` band); the documentation's *Correctness* page gives the method.
+
+        **Inputs**
 
         ``high``, ``low``, and ``close`` must share a length and alignment (the same row index is one bar). The original
         high-low band variant (Keltner's 1960 form) is not provided; compose it from :func:`ema` and the bar range if
         ever needed.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
-        - **Null / NaN** — flow through the recursive :func:`ema` (midline) and :func:`atr` (band width) legs exactly as
-          documented for each; the channel adds no propagation rule of its own.
-        - **Flat series** — over a constant ``high == low == close`` run the ATR is ``0``, so all three bands collapse
-          onto the EMA.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so neither smoother spans series
-          boundaries.
+        - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
+          ``null`` at that position while the recursion continues across the gap — inherited from the recursive
+          :func:`ema` (midline) and :func:`atr` (band width) legs, exactly as documented for each.
+        - **NaN** — a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null position
+          — inherited from the same :func:`ema` and :func:`atr` legs, exactly as documented for each.
+        - **Degenerate denominator** — a constant ``high == low == close`` run has zero ATR, so the half-width vanishes
+          and all three bands collapse onto the EMA.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`ema`: The midline.
@@ -428,18 +437,19 @@ def midpoint(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; ``CORRECTNESS.md`` gives the method and the float-conditioning
+        **Precision**
+
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
-        - **Null** — a window containing a ``null`` yields ``null`` (the rolling max and min each need ``window``
-          non-null values).
+        - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
         - **window == 1** — the max and min are the single value, so the midpoint reproduces the input.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the window never spans series
-          boundaries, e.g. ``midpoint(pl.col("close"), 20).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`midprice`: The same midpoint taken across a bar's high and low instead of one series.
@@ -507,23 +517,25 @@ def midprice(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; ``CORRECTNESS.md`` gives the method and the float-conditioning
+        **Precision**
+
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Inputs:**
+        **Inputs**
 
         ``high`` and ``low`` must share a length and alignment (the same row index is one bar).
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
-        - **Null** — a window containing a ``null`` in either input yields ``null`` (each rolling extreme needs
-          ``window`` non-null values).
+        - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values) —
+          in either ``high`` or ``low``.
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
         - **window == 1** — the extremes are the bar's own ``high`` and ``low``, so the midprice reduces to the per-bar
           :func:`price_median`.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the window never spans series
-          boundaries, e.g. ``midprice(pl.col("high"), pl.col("low"), 20).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`midpoint`: The same midpoint over a single series instead of a bar's high and low.

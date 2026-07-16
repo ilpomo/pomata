@@ -1,5 +1,7 @@
 """Spec for ``pomata.pnl.cumulative_pnl`` — the additive running total, bridged nulls, latched NaNs, degree-1."""
 
+import math
+
 from tests.pnl.oracles import cumulative_pnl_reference
 from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
@@ -28,6 +30,13 @@ CUMULATIVE_PNL = Spec(
             expected=(None, 0.1, 0.3, 0.25),
             reason="a leading warm-up null stays null and the running total begins at the first defined return; the "
             "function declares no warm-up window, so no generic warm-up rung exercises a leading null",
+        ),
+        SpecPin(
+            label="infinite_pnl_latches_nan_on_cancellation",
+            inputs={"returns": (math.inf, 0.1, -math.inf, 0.2)},
+            expected=(math.inf, math.inf, math.nan, math.nan),
+            reason="the running total holds +inf until the opposite infinity cancels it to inf - inf = NaN, which "
+            "then contaminates every later row; the property tiers set allow_infinity=False",
         ),
     ),
 )

@@ -72,30 +72,30 @@ def stochastic_fast(
         ValueError: If ``window_k < 1`` or ``window_d < 1``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; ``CORRECTNESS.md`` gives the method and the float-conditioning
+        **Precision**
+
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
         Both lines are scale-invariant under a positive common rescaling of ``high``, ``low``, and ``close`` (a ratio of
         price ranges), and lie in ``[0, 100]`` for well-formed bars (``low <= close <= high``).
 
-        **Composition:**
+        **Composition**
 
         %D is the :func:`sma` of %K, so it inherits that warm-up and the ``null`` / ``NaN`` handling on top of %K's
         own.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
-        - **Null** — a ``null`` anywhere in the %K window (a ``high`` / ``low`` over the look-back, or the current
-          ``close``) yields ``null`` on ``k`` at that row; a ``null`` reaching the %D average yields ``null`` on ``d``.
-        - **NaN** — a ``NaN`` in the window propagates, yielding ``NaN``.
-        - **Flat range** — when the highest ``high`` equals the lowest ``low`` (no range over the look-back) the
-          denominator is zero, so ``k`` follows IEEE-754: ``0 / 0`` is ``NaN`` when the close sits on that flat level,
-          and ``+/-inf`` when it lies outside it (a malformed bar whose close sits outside its own high-low range;
-          a gap on well-formed bars cannot produce it).
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so no window spans series
-          boundaries, e.g. ``stochastic_fast(pl.col("high"), pl.col("low"), pl.col("close"), window_k=14,
-          window_d=3).over("ticker")``.
+        - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window_k`` non-null values)
+          — including a ``null`` in the current ``close``, which %K reads outright rather than through a window.
+        - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
+        - **Degenerate denominator** — the highest ``high`` equals the lowest ``low`` over the look-back and the close
+          sits on that flat level, so the result is a ``0 / 0``, i.e. ``NaN`` — off that level it is ``+/-inf`` instead
+          (a malformed bar whose close sits outside its own high-low range; unreachable when ``low <= close <= high``).
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`stochastic_slow`: The slow variant, %K smoothed once more before %D.
@@ -207,29 +207,30 @@ def stochastic_slow(
         ValueError: If ``window_k < 1``, ``window_slowing < 1``, or ``window_d < 1``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; ``CORRECTNESS.md`` gives the method and the float-conditioning
+        **Precision**
+
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
         Both lines are scale-invariant under a positive common rescaling of ``high``, ``low``, and ``close``, and lie in
         ``[0, 100]`` for well-formed bars (``low <= close <= high``). The slow %K equals the fast %D of
         :func:`stochastic_fast` when ``window_slowing`` matches that call's ``window_d``.
 
-        **Composition:**
+        **Composition**
 
         The slow %K is the :func:`sma` of the raw %K, and %D is the :func:`sma` of the slow %K, so each averaging
         inherits the warm-up and ``null`` / ``NaN`` handling on top of the raw %K's own.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
-        - **Null** — a ``null`` anywhere in a window yields ``null`` on the dependent field at that row.
-        - **NaN** — a ``NaN`` in a window propagates, yielding ``NaN``.
-        - **Flat range** — when the highest ``high`` equals the lowest ``low`` (no range over the look-back) the
-          raw %K is ``0 / 0 = NaN`` when the close sits on that flat level (``+/-inf`` when it lies outside it), which
-          then propagates through both averages.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so no window spans series
-          boundaries, e.g. ``stochastic_slow(pl.col("high"), pl.col("low"), pl.col("close"), window_k=14,
-          window_slowing=3, window_d=3).over("ticker")``.
+        - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window_k`` non-null values).
+        - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
+        - **Degenerate denominator** — the highest ``high`` equals the lowest ``low`` over the look-back and the close
+          sits on that flat level, so the result is a ``0 / 0``, i.e. ``NaN`` — off that level it is ``+/-inf`` instead,
+          and either value then propagates through the slowing and %D averages.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`stochastic_fast`: The unsmoothed variant, whose raw %K this smooths.

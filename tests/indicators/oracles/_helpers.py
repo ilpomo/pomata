@@ -5,7 +5,7 @@ Polars-semantics helpers reused across more than one oracle module -- scalar com
 mean shared by the EMA and Wilder (RMA) oracles. Single-use helpers stay local to their oracle; only genuinely shared
 ones live here. The seeded exponential mean is computed as an explicit normalized weighted sum -- a derivation
 deliberately unrelated to the production forward recurrence -- so its agreement with the shipped code is genuine
-evidence of correctness, not a transcription of the same loop (see ``CORRECTNESS.md``).
+evidence of correctness, not a transcription of the same loop (see the documentation's Correctness page).
 """
 
 import math

@@ -78,11 +78,13 @@ def accumulation_distribution(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; ``CORRECTNESS.md`` gives the method and the float-conditioning
+        **Precision**
+
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Zero-range bars:**
+        **Zero-range bars**
 
         On a doji bar (``high == low``) the Money Flow Multiplier is ``0`` by convention, so the denominator never hits
         ``0 / 0`` and ``close`` does not enter the bar's contribution.
@@ -91,19 +93,17 @@ def accumulation_distribution(
         ``0`` and ``close`` does not enter the contribution. A ``null`` or ``NaN`` in any input instead leaves the range
         ``null`` or ``NaN`` (never ``== 0``), so missing data propagates rather than being silently zeroed.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
-        - **Null** — a row in which ``high``, ``low``, ``close``, or ``volume`` is ``null`` yields ``null`` at that
-          position and leaves the running total untouched (the cumulative sum skips it and continues from the prior
-          total). On a genuine doji bar (``high == low``, both finite) the multiplier is ``0`` and ``close`` is
-          irrelevant, so a ``null`` in ``close`` on such a bar still yields ``0`` rather than ``null``.
-        - **NaN** — a ``NaN`` in any operand that reaches the cumulative sum latches: once present, every later non-null
-          row of the line is ``NaN``. A bar whose ``high`` and ``low`` are both ``NaN`` does **not** take the doji
-          branch (``NaN - NaN`` is ``NaN``, never ``== 0``), so the ``NaN`` poisons the line rather than contributing
-          ``0``.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the cumulative sum restarts per
-          series and never spans series boundaries, e.g.
-          ``accumulation_distribution(pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume")).over("ticker")``
+        - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
+          ``null`` at that position while the recursion continues across the gap — on a genuine doji bar (``high ==
+          low``, both finite) the multiplier is ``0`` and ``close`` is irrelevant, so a ``null`` in ``close`` on such a
+          bar still yields ``0`` rather than ``null``.
+        - **NaN** — a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null position
+          — a bar whose ``high`` and ``low`` are both ``NaN`` does not take the doji branch (``NaN - NaN`` is ``NaN``,
+          never ``== 0``), so the ``NaN`` poisons the line rather than contributing ``0``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`accumulation_distribution_oscillator`: The Chaikin oscillator — fast minus slow EMA of this line.
@@ -211,20 +211,25 @@ def accumulation_distribution_oscillator(
         ValueError: If ``window_fast < 1``, ``window_slow < 1``, or ``window_fast > window_slow``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; ``CORRECTNESS.md`` gives the method and the float-conditioning
+        **Precision**
+
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Scaling:** homogeneous of degree ``1`` — the accumulation/distribution multiplier is scale-invariant in price
-        while the line scales with ``volume``, so multiplying all four inputs by ``k`` scales the oscillator by ``k``.
+        **Scaling**
 
-        **Edge-case behavior:**
+        Homogeneous of degree ``1`` — the accumulation/distribution multiplier is scale-invariant in price while the
+        line scales with ``volume``, so multiplying all four inputs by ``k`` scales the oscillator by ``k``.
 
-        - **Null** — a ``null`` is skipped and the accumulation/distribution line and its EMAs bridge the gap (only a
-          ``NaN`` latches).
-        - **NaN** — a ``NaN`` propagates through the line and the EMAs, yielding ``NaN``.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the running sum and the EMAs do
-          not span series boundaries.
+        **Edge-case behavior**
+
+        - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
+          ``null`` at that position while the recursion continues across the gap.
+        - **NaN** — a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null
+          position.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`accumulation_distribution`: The line this oscillates.
@@ -347,11 +352,13 @@ def chaikin_money_flow(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; ``CORRECTNESS.md`` gives the method and the float-conditioning
+        **Precision**
+
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Zero-range bars:**
+        **Zero-range bars**
 
         The zero-range convention applies only to a genuine equal-range bar (``high == low``), where the multiplier is
         ``0`` (it adds ``0`` to the numerator while its volume still counts in the denominator) — and on such a bar it
@@ -359,21 +366,21 @@ def chaikin_money_flow(
         absorbed into the zero flow. On a bar with a genuine range, a ``null`` or ``NaN`` in any input leaves that
         bar's money-flow volume ``null`` or ``NaN``, so missing data propagates rather than being silently zeroed.
 
-        **Edge-case behavior:**
+        **Clamp convention**
 
-        - **Null** — a window in which any of ``high`` / ``low`` / ``close`` / ``volume`` contains a ``null`` yields
-          ``null``; ``null`` takes precedence over ``NaN``.
-        - **NaN** — a window containing a ``NaN`` (and no ``null``) yields ``NaN``.
-        - **Zero volume** — a window whose volume is all zero is the ``0 / 0`` degenerate; the window is detected
-          exactly (the rolling maximum of the absolute volume is zero) and the result is ``NaN``, not the rounding noise
-          a sub-ULP residual in the rolling-sum denominator would otherwise produce. With non-negative volume this is
-          the only reachable division-by-zero case, since an all-zero volume window also zeroes the numerator.
-        - **Out-of-domain bar** — the result is clamped to its ``[-1, +1]`` bound: a malformed bar whose ``close``
-          prints outside its ``[low, high]`` range (pushing the multiplier past ``±1``) is pinned to the bound rather
-          than allowed to escape it.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so neither rolling sum spans
-          series boundaries, e.g.
-          ``chaikin_money_flow(pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), 20).over("ticker")``.
+        The result is clamped to its ``[-1, +1]`` bound: a malformed bar whose ``close`` prints outside its ``[low,
+        high]`` range (pushing the multiplier past ``±1``) is pinned to the bound rather than allowed to escape it.
+
+        **Edge-case behavior**
+
+        - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
+        - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
+        - **Degenerate denominator** — a window whose volume is all zero, so the result is a ``0 / 0``, i.e. ``NaN`` —
+          detected exactly via the rolling maximum of the absolute volume, so a sub-ULP residual in the rolling-sum
+          denominator cannot fake a finite reading (the only reachable division-by-zero case, since an all-zero volume
+          window also zeroes the numerator).
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`accumulation_distribution`: The cumulative (window-less) money-flow line.
@@ -448,7 +455,8 @@ def chaikin_money_flow(
     # gate preserves null precedence: a ``null`` in a price input nulls the weighted sum even though the all-zero
     # volume's rolling maximum is still ``0``, so such a window stays ``null`` rather than taking the guard's ``NaN``.
     # The clip pins the bound: the ratio is mathematically in [-1, 1] (so is the multiplier), so past a sane dynamic
-    # range a residual-dominated near-zero-volume window degrades but stays in range (see CORRECTNESS.md).
+    # range a residual-dominated near-zero-volume window degrades but stays in range (see the
+    # documentation's Correctness page).
     is_zero_volume = (volume.abs().rolling_max(window) == 0) & weighted_sum.is_not_null()
     return pl.when(is_zero_volume).then(float("nan")).otherwise(raw.clip(-1.0, 1.0)).name.keep()
 
@@ -499,34 +507,39 @@ def money_flow_index(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; ``CORRECTNESS.md`` gives the method and the float-conditioning
+        **Precision**
+
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Classification:**
+        **Classification**
 
         The up / down classification compares each typical price with the previous one, so a missing or undefined
         typical price taints two consecutive change positions (its own and the following one).
 
-        **Edge-case behavior:**
+        **Clamp convention**
 
-        - **Null** — a ``null`` in ``high``, ``low``, or ``close`` voids the typical price at that row and at the next
-          change, so any window reaching either yields ``null``; a ``null`` in ``volume`` voids only that row's money
-          flow. ``null`` takes precedence over ``NaN``.
-        - **NaN** — a ``NaN`` in any input contaminates the affected money flow and yields ``NaN`` for every window that
-          contains it. A ``NaN`` typical price makes both its own change and the next one undefined in sign, so each is
-          poisoned into the positive *and* the negative money flow as ``NaN``, voiding every window that reaches either
-          change (the same two-position taint as the ``null`` analog, but surfaced as ``NaN`` rather than ``null``).
-          One carve-out mirrors the flat-bar convention: on a bar whose typical price exactly equals the previous one,
-          the flow is ``0`` by definition regardless of volume, so a ``null`` or ``NaN`` volume there is absorbed into
-          the zero flow rather than voiding the window.
-        - **Division by zero** — a window with no negative money flow but non-zero positive flow has money ratio
-          ``+inf`` and the MFI saturates at ``100``; symmetrically an all-down window gives ``0``. A window in which
-          both flows are zero (the typical price never moves) leaves the money ratio at ``0 / 0`` and yields ``NaN`` --
-          the oscillator is genuinely undefined there.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so neither the difference nor the
-          rolling sums span series boundaries, e.g.
-          ``money_flow_index(pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), 14).over("ticker")``.
+        A window with no negative money flow but non-zero positive flow has money ratio ``+inf`` and the MFI saturates
+        at ``100``; symmetrically an all-down window (no positive flow) saturates at ``0``.
+
+        **Edge-case behavior**
+
+        - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values) —
+          a ``null`` in ``high``, ``low``, or ``close`` voids the typical price at that row and at the next change, so
+          any window reaching either is affected, while a ``null`` in ``volume`` voids only that row's money flow.
+        - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there — a ``NaN`` typical price makes both
+          its own change and the next one undefined in sign, so each is poisoned into the positive *and* the negative
+          money flow as ``NaN``, voiding every window that reaches either change; one carve-out mirrors the flat-bar
+          convention, where a bar whose typical price exactly equals the previous one has a flow of ``0`` by definition
+          regardless of volume, so a ``null`` or ``NaN`` volume there is absorbed into the zero flow rather than voiding
+          the window.
+        - **Degenerate denominator** — the typical price never moves over the window (both money flows are zero), so the
+          result is a ``0 / 0``, i.e. ``NaN``.
+        - **window == 1** — the rolling sums collapse to the single change, so each row reports ``100`` on an up move,
+          ``0`` on a down move, and ``NaN`` on no move.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`rsi`: The price-only analog (no volume weighting).
@@ -631,7 +644,7 @@ def money_flow_index(
     # exactly 0. A null/NaN change makes the rolling maxima null/NaN (never == 0), so no guard fires and the
     # null-precedence and NaN-poisoning above are unchanged. The clip pins the [0, 100] bound for the mixed windows:
     # beyond a sane dynamic range a residual-dominated near-flat window degrades but stays in range rather than
-    # escaping (see CORRECTNESS.md).
+    # escaping (see the documentation's Correctness page).
     is_flat = typical_change.abs().rolling_max(window) == 0
     no_negative_change = (-typical_change).clip(lower_bound=0.0).rolling_max(window) == 0
     no_positive_change = typical_change.clip(lower_bound=0.0).rolling_max(window) == 0
@@ -693,23 +706,24 @@ def obv(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; ``CORRECTNESS.md`` gives the method and the float-conditioning
+        **Precision**
+
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
-        - **Null** — a ``null`` close zeroes the direction both at its own row and at the following row (each ``diff``
-          touching the ``null`` is itself ``null`` and is filled to ``0``), so those bars contribute nothing while the
-          running total carries on. A ``null`` volume makes that bar's contribution ``null`` (``0 * null`` is ``null``,
-          so this holds even on the first or a flat bar where the direction is ``0``): the output is ``null`` at exactly
-          that row while the cumulative sum skips it and continues from the prior total.
-        - **NaN** — a ``NaN`` close (via ``diff``) or a ``NaN`` volume poisons the contribution at its row and, once
-          summed, latches the running total to ``NaN`` for every subsequent row; because ``0 * NaN`` is ``NaN`` under
-          IEEE-754, a ``NaN`` volume contaminates the total even on a flat or first bar where the direction is ``0``. A
-          ``null``-contribution row still emits ``null`` at its own position even after the latch.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so neither the ``diff`` nor the
-          cumulative sum spans series boundaries, e.g. ``obv(pl.col("close"), pl.col("volume")).over("ticker")``.
+        - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
+          ``null`` at that position while the recursion continues across the gap — a ``null`` ``close`` zeroes the
+          direction at its own row and at the following row (each ``diff`` touching it is filled to ``0``), while a
+          ``null`` ``volume`` nulls that bar's contribution directly (``0 * null`` is ``null``, even on a flat or first
+          bar).
+        - **NaN** — a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null position
+          — a ``NaN`` ``volume`` contaminates the total even on a flat or first bar (``0 * NaN`` is ``NaN`` under
+          IEEE-754), and a row whose own contribution is ``null`` still emits ``null`` there even after the latch.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`accumulation_distribution`: Another cumulative volume line.
@@ -799,30 +813,39 @@ def vwap(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision** -- agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on
-        any finite input within a sane dynamic range; ``CORRECTNESS.md`` gives the method and the conditioning limit of
-        the long cumulative sums beyond it.
+        **Precision**
 
-        **Anchoring:** VWAP accumulates from the start of the partition, so wrap the call in ``.over(session_key)`` to
-        reset it per session (e.g. one trading day): ``vwap(...).over("session")``. Without an anchor it accumulates
-        across the whole series, the classic VWAP misuse.
+        Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
+        within a sane dynamic range; the documentation's *Correctness* page gives the method and the conditioning limit
+        of the long cumulative sums beyond it.
 
-        **Inputs:**
+        **Anchoring**
+
+        VWAP accumulates from the start of the partition, so wrap the call in ``.over(session_key)`` to reset it per
+        session (e.g. one trading day): ``vwap(...).over("session")``. Without an anchor it accumulates across the whole
+        series, the classic VWAP misuse.
+
+        **Inputs**
 
         ``high`` / ``low`` / ``close`` / ``volume`` must share a length and alignment; ``volume`` is expected
         non-negative (a negative volume is summed as-is, with no guard -- garbage in, garbage out).
 
-        **Edge-case behavior:**
+        **Seeding**
 
-        - **Zero volume** — at the head a zero cumulative volume gives ``0 / 0 == NaN`` until volume accrues; an
-          interior zero-volume bar adds nothing (the prefix sums carry forward, with no subtract-on-exit residual).
-        - **Null** — a ``null`` in any input nulls that bar's contribution at its own row; both cumulative sums skip the
-          bar together (a ``null`` price input drops its volume from the denominator too), so the bar is a clean
-          missing observation, not a denominator-only contribution.
-        - **NaN** — a ``NaN`` in any input poisons the cumulative sum from its row onward (it cannot be subtracted
-          out) — unless a ``null`` sits on the same row: the ``null`` masks the whole row out of both sums first, so
-          nothing is poisoned (``null`` takes precedence over ``NaN``, here as everywhere).
-        - **Partitioning** — see Anchoring above; ``.over(...)`` is the intended use, not an afterthought.
+        At the head a zero cumulative volume gives ``0 / 0 == NaN`` until volume accrues; an interior zero-volume bar
+        adds nothing (the prefix sums carry forward, with no subtract-on-exit residual).
+
+        **Edge-case behavior**
+
+        - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
+          ``null`` at that position while the recursion continues across the gap — both cumulative sums skip the bar
+          together (a ``null`` price input drops its volume from the denominator too), so the bar is a clean missing
+          observation, not a denominator-only contribution.
+        - **NaN** — a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null position
+          — unless a ``null`` sits on the same row, which masks the whole row out of both sums first, so nothing is
+          poisoned.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`vwma`: The windowed volume-weighted moving average, for a rolling rather than anchored weight.

@@ -303,21 +303,24 @@ def dominant_cycle_period(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision** -- the fixed FIR smoothing and quadrature stages are computed independently, but the adaptive
-        dominant-cycle period feeds back into its own measurement and the stages built on it, so the reference oracle
-        replays Ehlers' pipeline and confirms its internal consistency rather than independence; the independent witness
-        is the set of frozen golden masters, plus TA-Lib parity on the converged tail (the differential tier compares
-        the whole cycle cluster — every HT_* counterpart plus MAMA — against the C reference). Where measurable the
-        oracle agrees to ten significant figures (a ``1e-10`` band) on any finite input within a sane dynamic
-        range — a flat or period-two (even-lag) series included, though there the reading itself is physically
-        meaningless (the Hilbert quadrature is a pure cancellation residual: there is no cycle to measure).
-        ``CORRECTNESS.md`` gives the method and the float-conditioning limit beyond it.
+        **Precision**
 
-        **Edge-case behavior:**
+        The fixed FIR smoothing and quadrature stages are computed independently, but the adaptive dominant-cycle period
+        feeds back into its own measurement and the stages built on it, so the reference oracle replays Ehlers' pipeline
+        and confirms its internal consistency rather than independence; the independent witness is the set of frozen
+        golden masters, plus TA-Lib parity on the converged tail (the differential tier compares the whole cycle cluster
+        — every HT_* counterpart plus MAMA — against the C reference). Where measurable the oracle agrees to ten
+        significant figures (a ``1e-10`` band) on any finite input within a sane dynamic range — a flat or period-two
+        (even-lag) series included, though there the reading itself is physically meaningless (the Hilbert quadrature is
+        a pure cancellation residual: there is no cycle to measure). The documentation's *Correctness* page gives the
+        method and the float-conditioning limit beyond it.
 
-        - **Null / NaN / inf** — a ``null``, ``NaN``, or ``inf`` price latches ``null`` for every row from there.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursion re-seeds per
-          series and never spans series boundaries, e.g. ``dominant_cycle_period(pl.col("close")).over("ticker")``.
+        **Edge-case behavior**
+
+        - **Null** — a ``null`` price latches ``null`` for every row from there.
+        - **NaN** — a ``NaN`` price latches ``null`` for every row from there, as any non-finite value does.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`dominant_cycle_phase`: The phase of the same dominant cycle.
@@ -365,30 +368,30 @@ def dominant_cycle_phase(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision** -- the fixed FIR smoothing and quadrature stages are computed independently, but the adaptive
-        dominant-cycle period feeds back into its own measurement and the stages built on it, so the reference oracle
-        replays Ehlers' pipeline and confirms its internal consistency rather than independence; the independent witness
-        is the set of frozen golden masters, plus TA-Lib parity on the converged tail (the differential tier compares
-        the whole cycle cluster — every HT_* counterpart plus MAMA — against the C reference). Where measurable the
-        oracle agrees to ten significant figures (a ``1e-10`` band) on any finite input within a sane dynamic
-        range, except on a flat or period-two (even-lag) series, where the Hilbert quadrature is a pure cancellation
-        residual and the measurement
-        is ill-conditioned (there is no cycle to measure). ``CORRECTNESS.md`` gives the method and the
-        float-conditioning limit beyond it.
+        **Precision**
 
-        **When it breaks:**
+        The fixed FIR smoothing and quadrature stages are computed independently, but the adaptive dominant-cycle period
+        feeds back into its own measurement and the stages built on it, so the reference oracle replays Ehlers' pipeline
+        and confirms its internal consistency rather than independence; the independent witness is the set of frozen
+        golden masters, plus TA-Lib parity on the converged tail (the differential tier compares the whole cycle cluster
+        — every HT_* counterpart plus MAMA — against the C reference). Where measurable the oracle agrees to ten
+        significant figures (a ``1e-10`` band) on any finite input within a sane dynamic range, except on a flat or
+        period-two (even-lag) series, where the Hilbert quadrature is a pure cancellation residual and the measurement
+        is ill-conditioned (there is no cycle to measure). The documentation's *Correctness* page gives the method and
+        the float-conditioning limit beyond it.
 
-        On a constant (flat) price the discrete transform's projections are pure cancellation residuals, so the phase
-        is numerically arbitrary — there is no cycle to measure. The phase branch guards an *exact* zero of the cosine
-        projection (saturating to ``±90`` as that projection vanishes), rather than the inventor's fixed ``0.001``
-        absolute cutoff; this is the continuous limit and keeps the phase invariant under a lossless rescale of the
-        price, whereas a fixed threshold would be scale-dependent.
+        **Edge-case behavior**
 
-        **Edge-case behavior:**
-
-        - **Null / NaN / inf** — a ``null``, ``NaN``, or ``inf`` price latches ``null`` for every row from there.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursion re-seeds per
-          series and never spans series boundaries, e.g. ``dominant_cycle_phase(pl.col("close")).over("ticker")``.
+        - **Null** — a ``null`` price latches ``null`` for every row from there.
+        - **NaN** — a ``NaN`` price latches ``null`` for every row from there, as any non-finite value does.
+        - **Stability** — on a constant (flat) price, or any sustained even-lag run, the discrete transform's
+          projections are pure cancellation residuals, so the phase is numerically arbitrary — there is no cycle to
+          measure. The phase branch guards an *exact* zero of the cosine projection (saturating to ``±90`` as that
+          projection vanishes), rather than the inventor's fixed ``0.001`` absolute cutoff; this is the continuous
+          limit and keeps the phase invariant under a lossless rescale of the price, whereas a fixed threshold would be
+          scale-dependent.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`dominant_cycle_period`: The length of the same dominant cycle.
@@ -440,22 +443,24 @@ def hilbert_phasor(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision** -- the fixed FIR smoothing and quadrature stages are computed independently, but the adaptive
-        dominant-cycle period feeds back into its own measurement and the stages built on it, so the reference oracle
-        replays Ehlers' pipeline and confirms its internal consistency rather than independence; the independent witness
-        is the set of frozen golden masters, plus TA-Lib parity on the converged tail (the differential tier compares
-        the whole cycle cluster — every HT_* counterpart plus MAMA — against the C reference). Where measurable the
-        oracle agrees to ten significant figures (a ``1e-10`` band) on any finite input within a sane dynamic
-        range, except on a flat or period-two (even-lag) series, where the Hilbert quadrature is a pure cancellation
-        residual and the measurement
-        is ill-conditioned (there is no cycle to measure). ``CORRECTNESS.md`` gives the method and the
-        float-conditioning limit beyond it.
+        **Precision**
 
-        **Edge-case behavior:**
+        The fixed FIR smoothing and quadrature stages are computed independently, but the adaptive dominant-cycle period
+        feeds back into its own measurement and the stages built on it, so the reference oracle replays Ehlers' pipeline
+        and confirms its internal consistency rather than independence; the independent witness is the set of frozen
+        golden masters, plus TA-Lib parity on the converged tail (the differential tier compares the whole cycle cluster
+        — every HT_* counterpart plus MAMA — against the C reference). Where measurable the oracle agrees to ten
+        significant figures (a ``1e-10`` band) on any finite input within a sane dynamic range, except on a flat or
+        period-two (even-lag) series, where the Hilbert quadrature is a pure cancellation residual and the measurement
+        is ill-conditioned (there is no cycle to measure). The documentation's *Correctness* page gives the method and
+        the float-conditioning limit beyond it.
 
-        - **Null / NaN / inf** — a ``null``, ``NaN``, or ``inf`` price latches ``null`` for every row from there.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursion re-seeds per
-          series and never spans series boundaries, e.g. ``hilbert_phasor(pl.col("close")).over("ticker")``.
+        **Edge-case behavior**
+
+        - **Null** — a ``null`` price latches ``null`` for every row from there.
+        - **NaN** — a ``NaN`` price latches ``null`` for every row from there, as any non-finite value does.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`dominant_cycle_period`: Measured from this phasor by the homodyne discriminator.
@@ -506,21 +511,24 @@ def hilbert_trendline(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision** -- the fixed FIR smoothing and quadrature stages are computed independently, but the adaptive
-        dominant-cycle period feeds back into its own measurement and the stages built on it, so the reference oracle
-        replays Ehlers' pipeline and confirms its internal consistency rather than independence; the independent witness
-        is the set of frozen golden masters, plus TA-Lib parity on the converged tail (the differential tier compares
-        the whole cycle cluster — every HT_* counterpart plus MAMA — against the C reference). Where measurable the
-        oracle agrees to ten significant figures (a ``1e-10`` band) on any finite input within a sane dynamic
-        range — a flat or period-two (even-lag) series included, though there the reading itself is physically
-        meaningless (the Hilbert quadrature is a pure cancellation residual: there is no cycle to measure).
-        ``CORRECTNESS.md`` gives the method and the float-conditioning limit beyond it.
+        **Precision**
 
-        **Edge-case behavior:**
+        The fixed FIR smoothing and quadrature stages are computed independently, but the adaptive dominant-cycle period
+        feeds back into its own measurement and the stages built on it, so the reference oracle replays Ehlers' pipeline
+        and confirms its internal consistency rather than independence; the independent witness is the set of frozen
+        golden masters, plus TA-Lib parity on the converged tail (the differential tier compares the whole cycle cluster
+        — every HT_* counterpart plus MAMA — against the C reference). Where measurable the oracle agrees to ten
+        significant figures (a ``1e-10`` band) on any finite input within a sane dynamic range — a flat or period-two
+        (even-lag) series included, though there the reading itself is physically meaningless (the Hilbert quadrature is
+        a pure cancellation residual: there is no cycle to measure). The documentation's *Correctness* page gives the
+        method and the float-conditioning limit beyond it.
 
-        - **Null / NaN / inf** — a ``null``, ``NaN``, or ``inf`` price latches ``null`` for every row from there.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursion re-seeds per
-          series and never spans series boundaries, e.g. ``hilbert_trendline(pl.col("close")).over("ticker")``.
+        **Edge-case behavior**
+
+        - **Null** — a ``null`` price latches ``null`` for every row from there.
+        - **NaN** — a ``NaN`` price latches ``null`` for every row from there, as any non-finite value does.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`trend_mode`: Uses the price's deviation from this trendline.
@@ -593,29 +601,35 @@ def mama(
             false upper bound.
 
     Note:
-        **Precision** -- the fixed FIR smoothing and quadrature stages are computed independently, but the adaptive
-        dominant-cycle period feeds back into its own measurement and the stages built on it, so the reference oracle
-        replays Ehlers' pipeline and confirms its internal consistency rather than independence; the independent witness
-        is the set of frozen golden masters, plus TA-Lib parity on the converged tail (the differential tier compares
-        the whole cycle cluster — every HT_* counterpart plus MAMA — against the C reference). Where measurable the
-        oracle agrees to ten significant figures (a ``1e-10`` band) on any finite input within a sane dynamic
-        range, except on a flat or period-two (even-lag) series, where the Hilbert quadrature is a pure cancellation
-        residual and the measurement
-        is ill-conditioned (there is no cycle to measure). ``CORRECTNESS.md`` gives the method and the
-        float-conditioning limit beyond it.
+        **Precision**
 
-        **Seeding:**
+        The fixed FIR smoothing and quadrature stages are computed independently, but the adaptive dominant-cycle period
+        feeds back into its own measurement and the stages built on it, so the reference oracle replays Ehlers' pipeline
+        and confirms its internal consistency rather than independence; the independent witness is the set of frozen
+        golden masters, plus TA-Lib parity on the converged tail (the differential tier compares the whole cycle cluster
+        — every HT_* counterpart plus MAMA — against the C reference). Where measurable the oracle agrees to ten
+        significant figures (a ``1e-10`` band) on any finite input within a sane dynamic range, except on a flat or
+        period-two (even-lag) series, where the Hilbert quadrature is a pure cancellation residual and the measurement
+        is ill-conditioned (there is no cycle to measure). The documentation's *Correctness* page gives the method and
+        the float-conditioning limit beyond it.
+
+        **Seeding**
 
         Both lines are seeded at the price prefix — ``MAMA`` and ``FAMA`` start from the price and the recurrence runs
         from there. Ehlers' original presentation instead zero-initializes both lines, so the two report different
         values across the warm-up region before the exponential weighting washes the seed out; pomata's price seed is
         the saner choice for a price-level average. Port warm-up-sensitive logic accordingly.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
-        - **Null / NaN / inf** — a ``null``, ``NaN``, or ``inf`` price latches ``null`` for every row from there.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursion re-seeds per
-          series and never spans series boundaries, e.g. ``mama(pl.col("close")).over("ticker")``.
+        - **Null** — a ``null`` price latches ``null`` for every row from there.
+        - **NaN** — a ``NaN`` price latches ``null`` for every row from there, as any non-finite value does.
+        - **Stability** — on a sustained even-lag run (a flat price or a period-two alternation) Ehlers' six-tap
+          quadrature filter reads the four-bar smooth at even lags, so the in-phase component collapses to a
+          cancellation residual and the phasor branch — and with it the adaptive smoothing constant — turns numerically
+          arbitrary; there is no cycle to adapt to.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`hilbert_phasor`: The phasor whose phase rate sets the smoothing constant.
@@ -681,27 +695,29 @@ def sine_wave(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision** -- the fixed FIR smoothing and quadrature stages are computed independently, but the adaptive
-        dominant-cycle period feeds back into its own measurement and the stages built on it, so the reference oracle
-        replays Ehlers' pipeline and confirms its internal consistency rather than independence; the independent witness
-        is the set of frozen golden masters, plus TA-Lib parity on the converged tail (the differential tier compares
-        the whole cycle cluster — every HT_* counterpart plus MAMA — against the C reference). Where measurable the
-        oracle agrees to ten significant figures (a ``1e-10`` band) on any finite input within a sane dynamic
-        range, except on a flat or period-two (even-lag) series, where the Hilbert quadrature is a pure cancellation
-        residual and the measurement
-        is ill-conditioned (there is no cycle to measure). ``CORRECTNESS.md`` gives the method and the
-        float-conditioning limit beyond it.
+        **Precision**
 
-        **Edge-case behavior:**
+        The fixed FIR smoothing and quadrature stages are computed independently, but the adaptive dominant-cycle period
+        feeds back into its own measurement and the stages built on it, so the reference oracle replays Ehlers' pipeline
+        and confirms its internal consistency rather than independence; the independent witness is the set of frozen
+        golden masters, plus TA-Lib parity on the converged tail (the differential tier compares the whole cycle cluster
+        — every HT_* counterpart plus MAMA — against the C reference). Where measurable the oracle agrees to ten
+        significant figures (a ``1e-10`` band) on any finite input within a sane dynamic range, except on a flat or
+        period-two (even-lag) series, where the Hilbert quadrature is a pure cancellation residual and the measurement
+        is ill-conditioned (there is no cycle to measure). The documentation's *Correctness* page gives the method and
+        the float-conditioning limit beyond it.
 
-        - **Null / NaN / inf** — a ``null``, ``NaN``, or ``inf`` price latches ``null`` for every row from there.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursion re-seeds per
-          series and never spans series boundaries, e.g. ``sine_wave(pl.col("close")).over("ticker")``.
+        **Edge-case behavior**
 
-        The underlying phase branch guards an *exact* zero of the cosine projection (saturating to ``±90`` as that
-        projection vanishes), rather than the inventor's fixed ``0.001`` absolute cutoff; this is the continuous limit
-        and keeps the sine invariant under a lossless rescale of the price, whereas a fixed threshold would be
-        scale-dependent.
+        - **Null** — a ``null`` price latches ``null`` for every row from there.
+        - **NaN** — a ``NaN`` price latches ``null`` for every row from there, as any non-finite value does.
+        - **Stability** — on a sustained even-lag run (a flat price or a period-two alternation) the phase branch that
+          fixes both lines genuinely flips, so the reading is numerically arbitrary — there is no cycle to measure.
+          That branch guards an *exact* zero of the cosine projection (saturating to ``±90`` as that projection
+          vanishes), rather than the inventor's fixed ``0.001`` absolute cutoff; this is the continuous limit and keeps
+          the sine invariant under a lossless rescale of the price, whereas a fixed threshold would be scale-dependent.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`dominant_cycle_phase`: The phase these are the sine of.
@@ -755,22 +771,24 @@ def trend_mode(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision** -- the fixed FIR smoothing and quadrature stages are computed independently, but the adaptive
-        dominant-cycle period feeds back into its own measurement and the stages built on it, so the reference oracle
-        replays Ehlers' pipeline and confirms its internal consistency rather than independence; the independent witness
-        is the set of frozen golden masters, plus TA-Lib parity on the converged tail (the differential tier compares
-        the whole cycle cluster — every HT_* counterpart plus MAMA — against the C reference). Where measurable the
-        oracle agrees to ten significant figures (a ``1e-10`` band) on any finite input within a sane dynamic
-        range, except on a flat or period-two (even-lag) series, where the Hilbert quadrature is a pure cancellation
-        residual and the measurement
-        is ill-conditioned (there is no cycle to measure). ``CORRECTNESS.md`` gives the method and the
-        float-conditioning limit beyond it.
+        **Precision**
 
-        **Edge-case behavior:**
+        The fixed FIR smoothing and quadrature stages are computed independently, but the adaptive dominant-cycle period
+        feeds back into its own measurement and the stages built on it, so the reference oracle replays Ehlers' pipeline
+        and confirms its internal consistency rather than independence; the independent witness is the set of frozen
+        golden masters, plus TA-Lib parity on the converged tail (the differential tier compares the whole cycle cluster
+        — every HT_* counterpart plus MAMA — against the C reference). Where measurable the oracle agrees to ten
+        significant figures (a ``1e-10`` band) on any finite input within a sane dynamic range, except on a flat or
+        period-two (even-lag) series, where the Hilbert quadrature is a pure cancellation residual and the measurement
+        is ill-conditioned (there is no cycle to measure). The documentation's *Correctness* page gives the method and
+        the float-conditioning limit beyond it.
 
-        - **Null / NaN / inf** — a ``null``, ``NaN``, or ``inf`` price latches ``null`` for every row from there.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so the recursion re-seeds per
-          series and never spans series boundaries, e.g. ``trend_mode(pl.col("close")).over("ticker")``.
+        **Edge-case behavior**
+
+        - **Null** — a ``null`` price latches ``null`` for every row from there.
+        - **NaN** — a ``NaN`` price latches ``null`` for every row from there, as any non-finite value does.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
         The underlying phase branch guards an *exact* zero of the cosine projection (saturating to ``±90`` as that
         projection vanishes), rather than the inventor's fixed ``0.001`` absolute cutoff; this is the continuous limit
