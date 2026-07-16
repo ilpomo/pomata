@@ -48,11 +48,12 @@ def cumulative_pnl(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data,
         boundaries, and warm-up where applicable) is given a defined behavior.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
           ``null`` at that position while the recursion continues across the gap.
@@ -61,7 +62,7 @@ def cumulative_pnl(
         - **Non-finite input** — an ``inf`` return follows IEEE-754 through the arithmetic, and a canceling opposite
           infinity latches the running total to ``NaN`` (the sign, and any ``inf - inf = NaN``, included).
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``cumulative_pnl(pl.col("returns")).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`equity_curve`: The compounded (reinvested) return-flow cumulation, a product of one-plus-returns.
@@ -135,18 +136,19 @@ def dividend(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data,
         boundaries, and warm-up where applicable) is given a defined behavior.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` quantity makes that row ``null`` (``null`` takes precedence over ``NaN``).
         - **NaN** — a ``NaN`` quantity yields ``NaN`` for that row.
         - **Non-finite input** — an ``inf`` quantity follows IEEE-754 through the arithmetic, so the flow signs with
           ``quantity * dividend_per_share`` (the sign, and any ``inf - inf = NaN``, included).
         - **Partitioning** — already correct on a multi-series panel: ``.over(...)`` partitions identically and is
-          therefore optional here, unlike the lagged / cumulative functions.
+          therefore optional here.
 
     See Also:
         - :func:`pnl_gross`: The gross position PnL this dividend income is added to.
@@ -234,11 +236,12 @@ def equity_curve(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data,
         boundaries, and warm-up where applicable) is given a defined behavior.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
           ``null`` at that position while the recursion continues across the gap.
@@ -247,7 +250,7 @@ def equity_curve(
         - **Non-finite input** — an ``inf`` return follows IEEE-754 through the arithmetic, where a later opposite-sign
           infinite factor flips the running product's sign (the sign, and any ``inf - inf = NaN``, included).
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``equity_curve(pl.col("returns")).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`cumulative_pnl`: The additive (fixed-notional) twin, a cumulative sum of returns.
@@ -329,18 +332,19 @@ def pnl_gross(
         ValueError: If ``multiplier`` is not a finite number ``> 0`` (i.e. ``<= 0``, ``NaN``, or ``±inf``).
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data,
         boundaries, and warm-up where applicable) is given a defined behavior.
 
-        **No lookahead (alignment is the caller's):**
+        **No lookahead (alignment is the caller's)**
 
         The PnL assumes ``quantity`` at row ``t`` is the position held over the price change into row ``t``. To stay
         lookahead-free, that quantity must depend only on information available before that price; if it is decided on
         the same bar's close, lag it by one bar (``pnl_gross(quantity.shift(1), price)``). Nothing is shifted for you,
         so a quantity you have already aligned is never double-shifted.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` quantity makes that row ``null`` (``null`` takes precedence over ``NaN``) — a ``null``
           ``price`` also nulls the next bar, as the previous ``price`` there.
@@ -349,7 +353,7 @@ def pnl_gross(
         - **Non-finite input** — an ``inf`` quantity follows IEEE-754 through the arithmetic, and an infinite ``price``
           propagates through the one-bar change (the sign, and any ``inf - inf = NaN``, included).
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``pnl_gross(pl.col("quantity"), pl.col("price")).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`returns_gross`: The return-flow counterpart (weight times asset return).
@@ -452,18 +456,19 @@ def pnl_gross_inverse(
         ValueError: If ``multiplier`` is not a finite number ``> 0`` (i.e. ``<= 0``, ``NaN``, or ``±inf``).
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data,
         boundaries, and warm-up where applicable) is given a defined behavior.
 
-        **No lookahead (alignment is the caller's):**
+        **No lookahead (alignment is the caller's)**
 
         The PnL assumes ``quantity`` at row ``t`` is the position held over the price change into row ``t``. To stay
         lookahead-free, that quantity must depend only on information available before that price; if it is decided on
         the same bar's close, lag it by one bar (``pnl_gross_inverse(quantity.shift(1), price)``). Nothing is shifted
         for you, so a quantity you have already aligned is never double-shifted.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` quantity makes that row ``null`` (``null`` takes precedence over ``NaN``) — a ``null``
           ``price`` also nulls the next bar, as the previous ``price`` there.
@@ -477,7 +482,7 @@ def pnl_gross_inverse(
           ``price`` contributes ``1 / inf = 0`` to the reciprocal change (the sign, and any ``inf - inf = NaN``,
           included).
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``pnl_gross_inverse(pl.col("quantity"), pl.col("price")).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`pnl_gross`: The linear (quote-margined) counterpart; use it when the contract settles in the quote
@@ -574,18 +579,19 @@ def pnl_net(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data,
         boundaries, and warm-up where applicable) is given a defined behavior.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` gross P&L makes that row ``null`` (``null`` takes precedence over ``NaN``).
         - **NaN** — a ``NaN`` gross P&L yields ``NaN`` for that row.
         - **Non-finite input** — an ``inf`` gross P&L follows IEEE-754 through the arithmetic (the sign, and any
           ``inf - inf = NaN``, included).
         - **Partitioning** — already correct on a multi-series panel: ``.over(...)`` partitions identically and is
-          therefore optional here, unlike the lagged / cumulative functions.
+          therefore optional here.
 
     See Also:
         - :func:`pnl_gross`: The gross position PnL this nets costs from.
@@ -677,11 +683,12 @@ def returns_gross(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data,
         boundaries, and warm-up where applicable) is given a defined behavior.
 
-        **No lookahead (alignment is the caller's):**
+        **No lookahead (alignment is the caller's)**
 
         The product assumes ``weight`` at row ``t`` is the weight held over ``asset_returns`` at row ``t``. To stay
         lookahead-free, that weight must depend only on information available **before** that return; if your weight is
@@ -689,14 +696,14 @@ def returns_gross(
         asset_returns)`` -- so the weight reflects only the prior close. Nothing is shifted for you, so a weight you
         have already aligned is never double-shifted.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` weight makes that row ``null`` (``null`` takes precedence over ``NaN``).
         - **NaN** — a ``NaN`` weight yields ``NaN`` for that row.
         - **Non-finite input** — an ``inf`` weight follows IEEE-754 through the arithmetic, so the return signs with
           ``weight * asset_returns`` (the sign, and any ``inf - inf = NaN``, included).
         - **Partitioning** — already correct on a multi-series panel: ``.over(...)`` partitions identically and is
-          therefore optional here, unlike the lagged / cumulative functions.
+          therefore optional here.
 
     See Also:
         - :func:`returns_simple`: The usual source of ``asset_returns``.
@@ -788,18 +795,19 @@ def returns_net(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data,
         boundaries, and warm-up where applicable) is given a defined behavior.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` gross return makes that row ``null`` (``null`` takes precedence over ``NaN``).
         - **NaN** — a ``NaN`` gross return yields ``NaN`` for that row.
         - **Non-finite input** — an ``inf`` gross return follows IEEE-754 through the arithmetic (the sign, and any
           ``inf - inf = NaN``, included).
         - **Partitioning** — already correct on a multi-series panel: ``.over(...)`` partitions identically and is
-          therefore optional here, unlike the lagged / cumulative functions.
+          therefore optional here.
 
     See Also:
         - :func:`returns_gross`: The gross return this nets costs from.
@@ -887,16 +895,17 @@ def turnover(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data,
         boundaries, and warm-up where applicable) is given a defined behavior.
 
-        **Flat start:**
+        **Flat start**
 
         The weight before the series is taken as ``0``, so the first row is ``|weight_0|`` rather than ``null``;
         establishing the initial weight from cash is a real trade and carries its cost.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` weight makes that row ``null`` (``null`` takes precedence over ``NaN``) — and, via the
           one-bar difference, the next row too, then turnover resumes.
@@ -904,7 +913,7 @@ def turnover(
         - **Non-finite input** — an ``inf`` weight follows IEEE-754 through the arithmetic, where a single infinite
           ``weight`` carries ``|inf| = inf`` forward (the sign, and any ``inf - inf = NaN``, included).
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``turnover(pl.col("weight")).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`cost_proportional`: The proportional transaction cost this turnover scales.

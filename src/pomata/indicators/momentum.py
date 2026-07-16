@@ -66,24 +66,25 @@ def absolute_price_oscillator(
             the shorter one; ``window_fast == window_slow`` is allowed and gives an identically-zero oscillator).
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Moving average:**
+        **Moving average**
 
         Both legs use the exponential :func:`ema` (not a simple average), so APO is the MACD line without the signal;
         compose :func:`sma` directly for a simple-average oscillator.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
           ``null`` at that position while the recursion continues across the gap.
         - **NaN** — a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null
           position.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``absolute_price_oscillator(pl.col("close")).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`percentage_price_oscillator`: The same gap expressed as a percentage of the slow EMA.
@@ -168,22 +169,23 @@ def aroon(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Tie-break and seeding:**
+        **Tie-break and seeding**
 
         When the extreme is attained more than once in the look-back, the most recent occurrence is used, so the line
         reads higher.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there (it is not treated as an extreme).
-        - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries, e.g.
-          ``aroon(pl.col("high"), pl.col("low"), 25).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`aroon_oscillator`: The difference ``up - down`` as a single line.
@@ -291,19 +293,20 @@ def aroon_oscillator(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
         - **window == 1** — the look-back collapses to the last two bars, so each Aroon line is ``0`` or ``100`` and the
           oscillator takes only ``-100``, ``0``, or ``+100``.
-        - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries, e.g.
-          ``aroon_oscillator(pl.col("high"), pl.col("low"), 25).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`aroon`: The two-line indicator this collapses into one.
@@ -402,16 +405,17 @@ def awesome_oscillator(
             the shorter one; ``window_fast == window_slow`` is allowed and gives an identically-zero oscillator).
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Inputs:**
+        **Inputs**
 
         ``high`` and ``low`` must share a length and alignment (the same row index is one bar).
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window_fast`` non-null
           values).
@@ -419,7 +423,8 @@ def awesome_oscillator(
         - **Insufficient sample** — a slow window longer than the series never completes, so the result is ``null``.
         - **Degenerate denominator** — over a constant median run there is no spread between the two averages, so the
           oscillator is exactly ``0``.
-        - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`absolute_price_oscillator`: The same fast-minus-slow shape on the close, with exponential averages.
@@ -506,18 +511,19 @@ def balance_of_power(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Inputs:**
+        **Inputs**
 
         ``open``, ``high``, ``low``, and ``close`` are the canonical OHLC roles in that positional order and must
         share a length and alignment (the same row index is one bar). ``balance_of_power`` is scale-invariant:
         multiplying all four by a common factor leaves it unchanged.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` price makes that row ``null`` (``null`` takes precedence over ``NaN``).
         - **NaN** — a ``NaN`` price yields ``NaN`` for that row.
@@ -526,7 +532,7 @@ def balance_of_power(
           flat bar reads ``0`` even when ``open`` or ``close`` is ``null``, and only a ``null`` ``high`` or ``low``
           (which leaves the range itself ``null``) still yields ``null`` on a flat bar.
         - **Partitioning** — already correct on a multi-series panel: ``.over(...)`` partitions identically and is
-          therefore optional here — unlike the windowed indicators, where ``.over`` is required.
+          therefore optional here.
 
     See Also:
         - :func:`price_average`: Another per-bar OHLC summary, the equal-weighted mean of the four prices.
@@ -639,12 +645,13 @@ def cci(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
@@ -654,8 +661,8 @@ def cci(
           equals its rolling minimum) rather than the rounding noise a sub-ULP denominator residual would produce.
         - **window == 1** — every one-bar window is trivially flat, so every non-null result is ``NaN`` (a ``null`` row
           stays ``null``).
-        - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries, e.g.
-          ``cci(pl.col("high"), pl.col("low"), pl.col("close"), 20).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`price_typical`: The typical price the index is built on.
@@ -767,7 +774,8 @@ def chande_momentum_oscillator(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it. For this oscillator the limit is concrete: the windowed gain / loss sums ride Polars'
@@ -775,7 +783,7 @@ def chande_momentum_oscillator(
         already slid out can inherit a stale residue; the clamp keeps the output inside ``[-100, 100]``, and no real
         market series builds that spread.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
@@ -786,8 +794,8 @@ def chande_momentum_oscillator(
           range, degrades in precision (see the precision note above).
         - **window == 1** — the rolling sums collapse to the single change, so each row reports ``+100`` on an up
           move, ``-100`` on a down move, and ``NaN`` on no move.
-        - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries, e.g.
-          ``chande_momentum_oscillator(pl.col("close"), 14).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`rsi`: The Wilder-smoothed sibling, bounded in ``[0, 100]``.
@@ -925,7 +933,8 @@ def fisher_transform(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
@@ -933,19 +942,19 @@ def fisher_transform(
         It is invariant under a positive affine rescaling of the inputs: the channel normalization ``(p - \min)/(\max -
         \min)`` cancels any common scale, so the transform depends only on the price's *shape*, not its level or units.
 
-        **Clamp convention:**
+        **Clamp convention**
 
         The smoothed position is held to a symmetric ``[-0.999, 0.999]`` -- a monotone clamp at the threshold, keeping
         the argument strictly inside the log's domain. Ehlers' original snaps any value past ``\pm 0.99`` straight to
         ``\pm 0.999``; pomata uses the monotone form (the modern convention), which agrees everywhere except on the thin
         ``(0.99, 0.999)`` band the original discontinuously lifts (at ``0.999`` both map to ``0.999``).
 
-        **Seeding:**
+        **Seeding**
 
         Both recursions start from ``0`` (the bar before the first defined row contributes ``0`` to each), matching
         Ehlers' zero-initialized series; the smoothing then washes the seed out geometrically.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values) —
           the recursion bridges those rows and resumes once the window clears.
@@ -955,8 +964,8 @@ def fisher_transform(
           the result is a ``0 / 0``, i.e. ``NaN``.
         - **window == 1** — the channel spans a single bar, so ``max == min`` makes it flat by construction and
           ``fisher`` is ``NaN`` from the first row.
-        - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries, e.g.
-          ``fisher_transform(pl.col("high"), pl.col("low")).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`williams_r`: The raw channel position the transform sharpens.
@@ -1063,24 +1072,25 @@ def macd(
             identically-zero MACD line, signal, and histogram).
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Scaling:**
+        **Scaling**
 
         Every field is homogeneous of degree ``1`` in ``expr`` (the EMAs and their differences all scale with the
         price), so multiplying the close by ``k`` scales all three fields by ``k``.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
           ``null`` at that position while the recursion continues across the gap.
         - **NaN** — a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null
           position.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``macd(pl.col("close")).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`absolute_price_oscillator`: The Absolute Price Oscillator, the MACD line without the signal and
@@ -1171,12 +1181,13 @@ def mom(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` value makes that row ``null`` (``null`` takes precedence over ``NaN``).
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there — a fixed-lag difference, not a
@@ -1185,8 +1196,8 @@ def mom(
         - **Degenerate denominator** — a flat look-back leaves ``x_t == x_{t-n}``, so the difference is exactly ``0``.
         - **window == 1** — the look-back is a single bar, so ``mom`` is the one-step first difference
           ``x_t - x_{t-1}``.
-        - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries, e.g.
-          ``mom(pl.col("close"), 10).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`roc`: The percentage-change sibling (scale-invariant).
@@ -1261,17 +1272,18 @@ def percentage_price_oscillator(
             the shorter one; ``window_fast == window_slow`` is allowed and gives an identically-zero oscillator).
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Moving average:**
+        **Moving average**
 
         Both legs use the exponential :func:`ema`. Being scale-free, PPO is invariant to the price's unit — multiplying
         the close by a constant leaves it unchanged.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
           ``null`` at that position while the recursion continues across the gap.
@@ -1280,7 +1292,7 @@ def percentage_price_oscillator(
         - **Degenerate denominator** — when both the gap and the slow EMA are ``0`` the ratio is indeterminate, so the
           result is a ``0 / 0``, i.e. ``NaN`` — a non-zero gap over a zero slow EMA is ``+/-inf``.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``percentage_price_oscillator(pl.col("close")).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`absolute_price_oscillator`: The same gap in price units, before dividing by the slow EMA.
@@ -1362,12 +1374,13 @@ def roc(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` value makes that row ``null`` (``null`` takes precedence over ``NaN``).
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
@@ -1376,8 +1389,8 @@ def roc(
           so the result is a ``0 / 0``, i.e. ``NaN`` — a non-zero change over a zero lagged value is ``+/-inf`` (the
           sign tracks the change relative to the signed zero).
         - **window == 1** — the look-back is a single bar, so ``roc`` is the one-period simple return in percent.
-        - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries, e.g.
-          ``roc(pl.col("close"), 12).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`mom`: The absolute-difference sibling.
@@ -1460,17 +1473,18 @@ def rsi(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Seeding:**
+        **Seeding**
 
         The gain and loss averages use Wilder's :func:`rma`, seeded with the simple average of the first ``window``
         gains and losses -- Wilder's canonical initialization, exact from the first emitted value.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
           ``null`` at that position while the recursion continues across the gap — the one-bar difference reads the
@@ -1484,7 +1498,7 @@ def rsi(
         - **window == 1** — the smoothing vanishes: each row reports ``100`` on an up move, ``0`` on a down move, and
           ``NaN`` on no move.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``rsi(pl.col("close"), 14).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`rma`: Wilder's moving average that smooths the gains and losses RSI is built on.
@@ -1579,7 +1593,8 @@ def rsi_stochastic(
         ValueError: If ``window_rsi < 1``, ``window_k < 1``, or ``window_d < 1``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
@@ -1587,13 +1602,13 @@ def rsi_stochastic(
         Both lines lie in ``[0, 100]``. Because the underlying :func:`rsi` is already scale-invariant, so is this; there
         is no homogeneity to test.
 
-        **Composition:**
+        **Composition**
 
         Built from :func:`rsi` (whose recursive Wilder seeding it inherits — see that function's ``Seeding`` note),
         then the %K range ratio, then the :func:`sma` of %K, so every stage's warm-up and ``null`` / ``NaN`` handling
         stacks.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
           ``null`` at that position while the recursion continues across the gap.
@@ -1603,7 +1618,7 @@ def rsi_stochastic(
           e.g. a sustained trend pinning the RSI) the ``%K`` normalization is indeterminate, so the result is a
           ``0 / 0``, i.e. ``NaN``.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``rsi_stochastic(pl.col("close")).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`rsi`: The oscillator this is the stochastic of.
@@ -1688,12 +1703,13 @@ def trix(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
           ``null`` at that position while the recursion continues across the gap.
@@ -1704,7 +1720,7 @@ def trix(
           reported, not clipped — the moment it moves off it.
         - **window == 1** — each EMA pass is the identity, so TRIX is the one-period rate of change of ``expr``.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``trix(pl.col("close"), 15).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`ema`: The exponential moving average chained three times.
@@ -1800,7 +1816,8 @@ def ultimate_oscillator(
             ``window_short <= window_medium <= window_long`` (the three windows must run shortest to longest).
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
@@ -1808,11 +1825,11 @@ def ultimate_oscillator(
         It is scale-invariant under a positive common rescaling of ``high``, ``low``, and ``close`` (each averaged term
         is a ratio of price ranges).
 
-        **Seeding:**
+        **Seeding**
 
         Row ``0`` has no previous close, so the true low and true high fall back to that bar's own low and high.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` in a single ``high`` / ``low`` / ``close`` drops only the terms that reference it (the
           true low / high follow ``pl.min_horizontal`` / ``pl.max_horizontal``, which skip nulls); a ``null`` reaching
@@ -1829,8 +1846,8 @@ def ultimate_oscillator(
           missing-``low`` fallback) is left to IEEE-754 as ``+/-inf``, and a near-flat range is reported, not clipped
           (the ``[0, 100]`` bound is conditional on well-formed bars, so past a sane dynamic range its precision
           degrades — see the precision note above).
-        - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries, e.g.
-          ``ultimate_oscillator(pl.col("high"), pl.col("low"), pl.col("close")).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`rsi`: The single-period momentum oscillator this generalizes across three.
@@ -1972,17 +1989,18 @@ def williams_r(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Warm-up:**
+        **Warm-up**
 
         The warm-up is the canonical ``window - 1`` leading nulls of the rolling family, and the ``null`` / ``NaN``
         contract below matches the simple moving average.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values) —
           this covers ``high`` and ``low``; the ``close`` enters elementwise, so a ``null`` ``close`` nulls only its own
@@ -1995,8 +2013,8 @@ def williams_r(
           ``0 / 0``, i.e. ``NaN`` — a non-zero numerator over the zero range is ``+/-inf``.
         - **window == 1** — the highest high and lowest low collapse to the single bar's own ``high`` and ``low``, so
           :math:`\%R = -100\,(H - C) / (H - L)`.
-        - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries, e.g.
-          ``williams_r(pl.col("high"), pl.col("low"), pl.col("close"), 14).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`stochastic_fast`: The Fast Stochastic %K this oscillator inverts.

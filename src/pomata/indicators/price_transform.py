@@ -42,22 +42,23 @@ def price_average(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Inputs:**
+        **Inputs**
 
         ``open``, ``high``, ``low``, and ``close`` are taken as the canonical OHLC roles in that positional order and
         must share a length and alignment (the same row index is one bar).
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` price makes that row ``null`` (``null`` takes precedence over ``NaN``).
         - **NaN** — a ``NaN`` price yields ``NaN`` for that row.
         - **Partitioning** — already correct on a multi-series panel: ``.over(...)`` partitions identically and is
-          therefore optional here — the transform is elementwise (each row uses only its own bar).
+          therefore optional here.
 
     See Also:
         - :func:`price_median`: The midpoint of the bar's range, ``(high + low) / 2``.
@@ -150,22 +151,23 @@ def price_median(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Inputs:**
+        **Inputs**
 
         ``high`` and ``low`` are taken as the canonical OHLC roles in that positional order and must share a length and
         alignment (the same row index is one bar).
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` price makes that row ``null`` (``null`` takes precedence over ``NaN``).
         - **NaN** — a ``NaN`` price yields ``NaN`` for that row.
         - **Partitioning** — already correct on a multi-series panel: ``.over(...)`` partitions identically and is
-          therefore optional here — the transform is elementwise (each row uses only its own bar).
+          therefore optional here.
 
     See Also:
         - :func:`midprice`: The rolling midpoint of the high-low range over a window.
@@ -254,22 +256,23 @@ def price_typical(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Inputs:**
+        **Inputs**
 
         ``high``, ``low``, and ``close`` are taken as the canonical OHLC roles in that positional order and must share a
         length and alignment (the same row index is one bar).
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` price makes that row ``null`` (``null`` takes precedence over ``NaN``).
         - **NaN** — a ``NaN`` price yields ``NaN`` for that row.
         - **Partitioning** — already correct on a multi-series panel: ``.over(...)`` partitions identically and is
-          therefore optional here — the transform is elementwise (each row uses only its own bar).
+          therefore optional here.
 
     See Also:
         - :func:`cci`: The Commodity Channel Index, built on the typical price.
@@ -362,22 +365,23 @@ def price_weighted_close(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Inputs:**
+        **Inputs**
 
         ``high``, ``low``, and ``close`` are taken as the canonical OHLC roles in that positional order and must share a
         length and alignment (the same row index is one bar).
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` price makes that row ``null`` (``null`` takes precedence over ``NaN``).
         - **NaN** — a ``NaN`` price yields ``NaN`` for that row.
         - **Partitioning** — already correct on a multi-series panel: ``.over(...)`` partitions identically and is
-          therefore optional here — the transform is elementwise (each row uses only its own bar).
+          therefore optional here.
 
     See Also:
         - :func:`price_average`: The equal-weighted mean of the four OHLC prices.

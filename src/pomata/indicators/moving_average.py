@@ -118,12 +118,13 @@ def dema(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
           ``null`` at that position while the recursion continues across the gap.
@@ -131,8 +132,8 @@ def dema(
           position.
         - **Insufficient sample** — a series no longer than the warm-up, so the result is ``null``.
         - **window == 1** — each EMA reduces to the identity, so the expression reproduces the input.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on
-          its own history, e.g. ``dema(pl.col("close"), 20).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`ema`: The single exponential pass this is built from.
@@ -215,17 +216,18 @@ def ema(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Seeding:**
+        **Seeding**
 
         The unadjusted recursion (the default) is seeded with the simple average of the first ``window`` observations,
         the canonical EMA initialization; the adjusted form is exact from the first observation.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
           ``null`` at that position while the recursion continues across the gap (a leading run consumes no warm-up
@@ -235,8 +237,8 @@ def ema(
           position (a ``NaN`` still inside the warm-up shows as that warm-up's ``null`` on its own row, then latches
           from the first emitted row).
         - **window == 1** — the smoothing factor is ``1``, so the EMA reduces to the identity and reproduces the input.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on
-          its own history, e.g. ``ema(pl.col("close"), 20).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`rma`: Wilder's variant, with smoothing factor ``1 / window``.
@@ -322,12 +324,13 @@ def hma(
             at ``window == 1`` and the HMA degenerates there, so the smallest meaningful window is ``2``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Period rounding:**
+        **Period rounding**
 
         The two period reductions use round-half-**up** (``floor(window / 2 + 0.5)`` and ``floor(sqrt(window) + 0.5)``),
         not Python's built-in ``round`` (which rounds half to even). The two disagree on the half-period only for an
@@ -336,13 +339,13 @@ def hma(
         even floor. For ``window`` congruent to ``3`` modulo ``4`` (``3``, ``7``, ``11``, ...) the half still lands on
         a ``.5`` boundary but both round alike.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values)
           — propagated through every composing :func:`wma`.
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
-        - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries, e.g.
-          ``hma(pl.col("close"), 16).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`wma`: The weighted mean this composes.
@@ -467,7 +470,8 @@ def kama(
         ValueError: If ``window < 1``, ``window_fast < 1``, ``window_slow < 1``, or ``window_fast > window_slow``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         The efficiency ratio and adaptive smoothing constant are checked against an independent reference, but the
         seeded recurrence they drive is one-shape with the implementation, so the oracle confirms its internal
         consistency, not its independence; the independent witnesses are the TA-Lib differential and frozen hand-derived
@@ -478,7 +482,7 @@ def kama(
         It is homogeneous of degree ``1`` (the efficiency ratio is scale-invariant — a ratio of absolute moves — and
         the recurrence is linear in the input, so ``kama(k * x) == k * kama(x)``).
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
           ``null`` at that position while the recursion continues across the gap — whether the ``null`` reaches the
@@ -487,8 +491,8 @@ def kama(
           position.
         - **Degenerate denominator** — when there is no bar-to-bar travel the efficiency ratio is taken as ``0``
           (avoiding the ``0 / 0`` degenerate), so the smoothing constant sits at the slow bound and KAMA barely moves.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on
-          its own history, e.g. ``kama(pl.col("close"), window=10, window_fast=2, window_slow=30).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`ema`: The fixed-smoothing exponential average KAMA adapts between.
@@ -584,12 +588,13 @@ def rma(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
           ``null`` at that position while the recursion continues across the gap (a leading run consumes no warm-up
@@ -598,8 +603,8 @@ def rma(
         - **NaN** — a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null
           position.
         - **window == 1** — the smoothing factor is ``1``, the warm-up vanishes, and the result reproduces the input.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on
-          its own history, e.g. ``rma(pl.col("close"), 14).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`ema`: The same recursion with smoothing factor ``2 / (window + 1)``.
@@ -669,20 +674,21 @@ def sma(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there (``null`` takes precedence over
           ``NaN``).
         - **Insufficient sample** — a series shorter than ``window`` observations, so the result is ``null``.
         - **window == 1** — the one-point mean is the input itself, so the SMA reproduces the input.
-        - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries, e.g.
-          ``sma(pl.col("close"), 20).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`ema`: The exponentially-weighted analog, more responsive to recent values.
@@ -780,16 +786,17 @@ def t3(
         ValueError: If ``window < 1``, or if ``volume_factor`` is not a finite number.
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Seeding:**
+        **Seeding**
 
         The recursive EMA is seeded with the SMA of the first ``window`` observations.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
           ``null`` at that position while the recursion continues across the gap.
@@ -798,8 +805,8 @@ def t3(
         - **Insufficient sample** — a series no longer than the warm-up, so the result is ``null``.
         - **window == 1** — each EMA reduces to the identity, so the expression reproduces the input up to a
           floating-point rounding (unlike ``dema`` / ``tema``, the coefficient form does not cancel exactly).
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on
-          its own history, e.g. ``t3(pl.col("close"), 5).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`dema`: The double-EMA lag-reduced average.
@@ -928,20 +935,21 @@ def tema(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
           ``null`` at that position while the recursion continues across the gap.
         - **NaN** — a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null
           position.
         - **window == 1** — each EMA reduces to the identity, so the expression reproduces the input.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on
-          its own history, e.g. ``tema(pl.col("close"), 20).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`dema`: The double-EMA sibling.
@@ -1018,12 +1026,13 @@ def trima(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values)
           — built from two :func:`sma` passes, each holding to that same ``min_samples=window`` contract.
@@ -1031,8 +1040,8 @@ def trima(
           it composes.
         - **Insufficient sample** — a series shorter than ``window`` observations, so the result is ``null``.
         - **window == 1** — both sub-windows are ``1``, so the TRIMA reduces to the identity and reproduces the input.
-        - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries, e.g.
-          ``trima(pl.col("close"), 20).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`sma`: The single-pass simple moving average this double-smooths.
@@ -1104,12 +1113,13 @@ def vwma(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values)
           — whether the ``null`` is in ``expr`` or in ``volume``.
@@ -1122,8 +1132,8 @@ def vwma(
         - **window == 1** — with non-zero volume the single ``(price, volume)`` pair reduces to ``expr`` itself, so
           the VWMA reproduces the price to within a rounding ULP (``(p * v) / v`` is one float multiply-divide, not
           an identity copy — its siblings' bit-exact ``window == 1`` identity does not apply here).
-        - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries, e.g.
-          ``vwma(pl.col("close"), pl.col("volume"), 20).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`sma`: The equal-weight mean it reduces to when volume is constant.
@@ -1216,20 +1226,21 @@ def wma(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there (``null`` takes precedence over
           ``NaN``).
         - **Insufficient sample** — a series shorter than ``window`` observations, so the result is ``null``.
         - **window == 1** — the single weight normalizes to one, so the WMA reproduces the input.
-        - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries, e.g.
-          ``wma(pl.col("close"), 20).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`sma`: The unweighted analog.

@@ -43,7 +43,8 @@ def adx(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
@@ -51,11 +52,11 @@ def adx(
         It is scale-invariant under a positive common rescaling of ``high``, ``low``, and ``close`` (it is built from
         ratios of directional movement to the average true range).
 
-        **Seeding:**
+        **Seeding**
 
         The warm-up inherits the recursive Wilder seeding of :func:`rma` used throughout the cluster.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
           ``null`` at that position while the recursion continues across the gap.
@@ -64,8 +65,8 @@ def adx(
           latches: the ``NaN`` clears once it leaves the inputs' finite reach.
         - **Degenerate denominator** — ``di+`` and ``di-`` are both zero, so the result is a ``0 / 0``, i.e.
           ``NaN`` — the underlying :func:`dx` is the immediate ``0 / 0``, which then poisons the ADX recursion.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on
-          its own history, e.g. ``adx(pl.col("high"), pl.col("low"), pl.col("close"), 14).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`dx`: The directional index this smooths.
@@ -160,24 +161,25 @@ def adxr(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
         It is scale-invariant under a positive common rescaling of ``high``, ``low``, and ``close``.
 
-        **Seeding:**
+        **Seeding**
 
         The warm-up inherits the recursive Wilder seeding of :func:`rma` used throughout the cluster.
 
-        **Documented TA-Lib divergence:**
+        **Documented TA-Lib divergence**
 
         TA-Lib averages the current ADX with the ADX from ``window - 1`` bars back; pomata uses ``window`` bars back,
         Wilder's book convention, so the two never agree even at steady state and the differential tier holds ADXR out
         as a documented divergence.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
           ``null`` at that position while the recursion continues across the gap — inherited from :func:`adx`; a row
@@ -187,9 +189,8 @@ def adxr(
         - **Degenerate denominator** — ``di+`` and ``di-`` are both zero, so the result is a ``0 / 0``, i.e.
           ``NaN`` — inherited from :func:`adx`, which then poisons the averaging of the current and ``window``-ago
           values.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on
-          its own history — neither the recursion nor the ``window``-ago look-back spans series boundaries, e.g. by
-          wrapping the whole call in ``.over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`adx`: The trend-strength index this averages with its own past.
@@ -284,7 +285,8 @@ def di_minus(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
@@ -292,11 +294,11 @@ def di_minus(
         It is scale-invariant under a positive common rescaling of ``high``, ``low``, and ``close`` (the smoothed
         movement and the average true range scale together).
 
-        **Seeding:**
+        **Seeding**
 
         The warm-up inherits the recursive Wilder seeding of :func:`rma` used throughout the cluster.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
           ``null`` at that position while the recursion continues across the gap — a ``null`` prior close drops the
@@ -310,8 +312,8 @@ def di_minus(
           ``NaN``; a merely local flat patch after earlier movement leaves the ATR small-but-positive and the DI
           finite, while at ``window == 1`` there is no memory, so a single bar with zero range and zero gap already
           triggers it.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on
-          its own history, e.g. ``di_minus(pl.col("high"), pl.col("low"), pl.col("close"), 14).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`di_plus`: The plus counterpart.
@@ -405,7 +407,8 @@ def di_plus(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
@@ -413,11 +416,11 @@ def di_plus(
         It is scale-invariant under a positive common rescaling of ``high``, ``low``, and ``close`` (the smoothed
         movement and the average true range scale together).
 
-        **Seeding:**
+        **Seeding**
 
         The warm-up inherits the recursive Wilder seeding of :func:`rma` used throughout the cluster.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
           ``null`` at that position while the recursion continues across the gap — a ``null`` prior close drops the
@@ -431,8 +434,8 @@ def di_plus(
           ``NaN``; a merely local flat patch after earlier movement leaves the ATR small-but-positive and the DI
           finite, while at ``window == 1`` there is no memory, so a single bar with zero range and zero gap already
           triggers it.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on
-          its own history, e.g. ``di_plus(pl.col("high"), pl.col("low"), pl.col("close"), 14).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`di_minus`: The minus counterpart.
@@ -530,7 +533,8 @@ def dm_minus(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
@@ -538,7 +542,7 @@ def dm_minus(
         It is homogeneous of degree ``1`` in a positive common rescaling of ``high`` and ``low`` (a range expansion in
         price units).
 
-        **Seeding:**
+        **Seeding**
 
         Row ``0`` has no previous bar, so its raw movement is ``0`` and seeds the smoothing. The raw directional
         movement is then smoothed by Wilder's :func:`rma`, the mean-scale recursion
@@ -550,7 +554,7 @@ def dm_minus(
         convention throughout. The factor cancels in :func:`di_minus`, :func:`dx`, and :func:`adx`, which are therefore
         unaffected.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` in ``high`` or ``low`` makes the affected raw movement ``0`` for the rows whose
           difference it touches, so the raw movement carries no interior nulls and the only nulls emitted are the
@@ -560,9 +564,8 @@ def dm_minus(
           the ``NaN`` clears once it leaves the differencing's one-bar reach); a ``NaN`` in ``high`` (the opposing
           side) instead makes the directional comparison false, so the affected raw movement is sent to ``0`` and
           genuine downward movement is silently dropped there.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on
-          its own history — neither the differencing nor the recursion spans series boundaries, e.g.
-          ``dm_minus(pl.col("high"), pl.col("low"), 14).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`dm_plus`: The plus counterpart.
@@ -656,7 +659,8 @@ def dm_plus(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
@@ -664,7 +668,7 @@ def dm_plus(
         It is homogeneous of degree ``1`` in a positive common rescaling of ``high`` and ``low`` (a range expansion in
         price units).
 
-        **Seeding:**
+        **Seeding**
 
         Row ``0`` has no previous bar, so its raw movement is ``0`` and seeds the smoothing. The raw directional
         movement is then smoothed by Wilder's :func:`rma`, the mean-scale recursion
@@ -676,7 +680,7 @@ def dm_plus(
         convention throughout. The factor cancels in :func:`di_plus`, :func:`dx`, and :func:`adx`, which are therefore
         unaffected.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` in ``high`` or ``low`` makes the affected raw movement ``0`` for the rows whose
           difference it touches, so the raw movement carries no interior nulls and the only nulls emitted are the
@@ -686,9 +690,8 @@ def dm_plus(
           the ``NaN`` clears once it leaves the differencing's one-bar reach); a ``NaN`` in ``low`` (the opposing
           side) instead makes the directional comparison false, so the affected raw movement is sent to ``0`` and
           genuine upward movement is silently dropped there.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on
-          its own history — neither the differencing nor the recursion spans series boundaries, e.g.
-          ``dm_plus(pl.col("high"), pl.col("low"), 14).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`dm_minus`: The minus counterpart.
@@ -780,18 +783,19 @@ def dx(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
         It is scale-invariant under a positive common rescaling of ``high``, ``low``, and ``close``.
 
-        **Seeding:**
+        **Seeding**
 
         The warm-up inherits the recursive Wilder seeding of :func:`rma` used throughout the cluster.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
           ``null`` at that position while the recursion continues across the gap.
@@ -800,8 +804,8 @@ def dx(
           clears once it leaves the one-bar reach of the differencing and the true range.
         - **Degenerate denominator** — ``+DI`` and ``-DI`` are both zero (no movement either way), so the result is a
           ``0 / 0``, i.e. ``NaN``.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on
-          its own history, e.g. ``dx(pl.col("high"), pl.col("low"), pl.col("close"), 14).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`di_plus`: The plus directional indicator.
@@ -907,16 +911,17 @@ def vortex(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Inputs:**
+        **Inputs**
 
         ``high`` / ``low`` / ``close`` must share a length and alignment (the same row index is one bar).
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values)
           — including via the one-bar lag, which makes the first movement ``null``.
@@ -928,8 +933,8 @@ def vortex(
           past a sane dynamic range.
         - **window == 1** — each line reduces to a single bar's vortex movement over its own true range; the first
           row is ``null`` (there is no prior bar for the lag).
-        - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries (neither
-          does the one-bar lag).
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`di_plus`: The Wilder directional indicator, the same movement-over-range idea, exponentially smoothed.

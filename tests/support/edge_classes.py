@@ -29,6 +29,7 @@ from pomata._policy import POLICIES, NanPolicy, NullPolicy
 __all__ = (
     "BULLET_CANON",
     "DEVIANT_BULLETS",
+    "PARTITIONING_CANON",
     "PIN_CLASS_MARKERS",
     "ROLE_NOUNS",
     "STRUCTURAL_OUTCOMES",
@@ -350,6 +351,21 @@ STRUCTURAL_OUTCOMES: Mapping[str, tuple[str, ...]] = {
 }
 
 
+# The two canonical Partitioning sentences: a function with cross-row memory (a window, a recurrence, a shift, a
+# cumulation) must be partitioned so each series is computed on its own history, while an elementwise transform is
+# already correct because ``.over`` partitions it identically. A Partitioning bullet must be byte-equal to exactly
+# one of these — no per-function slot, no trailing clause, no usage example.
+PARTITIONING_CANON: frozenset[str] = frozenset(
+    {
+        "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        (
+            "already correct on a multi-series panel: ``.over(...)`` partitions identically and is therefore "
+            "optional here."
+        ),
+    }
+)
+
+
 # Bullets whose truthful wording resists the shared canon and is pinned as itself. The absorbed-movement pair
 # (``dm_plus`` / ``dm_minus``) maps a ``null`` / ``NaN`` in the own vs. opposing side to a zeroed raw movement rather
 # than a propagated miss; ``ultimate_oscillator`` documents its asymmetric ``pl.min_horizontal`` /
@@ -434,7 +450,7 @@ def bullet_matches(spec: Spec, label: str, text: str) -> bool:
     Whether one Note bullet's ``text`` is the canonical wording its ``label`` demands. A ``Null`` / ``NaN`` bullet
     must be the canon skeleton (``null_canon_key`` / ``nan_canon_key``) with its free slot filled and at most one
     sanctioned trailing clause; a structural bullet is held only to naming a canonical outcome fragment for its
-    class. ``Partitioning`` is not phrase-checked here — its presence and closing position are the ordering sweep's.
+    class; a ``Partitioning`` bullet must be byte-equal to one of the three ``PARTITIONING_CANON`` sentences.
     """
     if label == "Null":
         return re.match(_canon_pattern(null_canon_key(spec), spec), text) is not None
@@ -442,6 +458,8 @@ def bullet_matches(spec: Spec, label: str, text: str) -> bool:
         return re.match(_canon_pattern(nan_canon_key(spec), spec), text) is not None
     if label in STRUCTURAL_OUTCOMES:
         return any(fragment in text for fragment in STRUCTURAL_OUTCOMES[label])
+    if label == "Partitioning":
+        return text in PARTITIONING_CANON
     return True
 
 
@@ -449,7 +467,8 @@ def expected_bullet(spec: Spec, label: str) -> str:
     """
     The canonical form ``label`` demands for ``spec``, as a failure message an author can copy. For ``Null`` / ``NaN``
     the skeleton with its free position rendered as ``<trigger>``; for a structural class the outcome fragments one of
-    which must appear; the empty string where phrasing is not enforced.
+    which must appear; for ``Partitioning`` the three canon sentences one of which must be reproduced verbatim; the
+    empty string where phrasing is not enforced.
     """
     if label == "Null":
         return _render_canon(null_canon_key(spec), spec)
@@ -457,4 +476,6 @@ def expected_bullet(spec: Spec, label: str) -> str:
         return _render_canon(nan_canon_key(spec), spec)
     if label in STRUCTURAL_OUTCOMES:
         return "text naming one of: " + ", ".join(STRUCTURAL_OUTCOMES[label])
+    if label == "Partitioning":
+        return "one of, verbatim:\n  " + "\n  ".join(sorted(PARTITIONING_CANON))
     return ""

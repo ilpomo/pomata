@@ -303,7 +303,8 @@ def dominant_cycle_period(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         The fixed FIR smoothing and quadrature stages are computed independently, but the adaptive dominant-cycle period
         feeds back into its own measurement and the stages built on it, so the reference oracle replays Ehlers' pipeline
         and confirms its internal consistency rather than independence; the independent witness is the set of frozen
@@ -314,12 +315,12 @@ def dominant_cycle_period(
         a pure cancellation residual: there is no cycle to measure). The documentation's *Correctness* page gives the
         method and the float-conditioning limit beyond it.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` price latches ``null`` for every row from there.
         - **NaN** — a ``NaN`` price latches ``null`` for every row from there, as any non-finite value does.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on
-          its own history, e.g. ``dominant_cycle_period(pl.col("close")).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`dominant_cycle_phase`: The phase of the same dominant cycle.
@@ -367,7 +368,8 @@ def dominant_cycle_phase(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         The fixed FIR smoothing and quadrature stages are computed independently, but the adaptive dominant-cycle period
         feeds back into its own measurement and the stages built on it, so the reference oracle replays Ehlers' pipeline
         and confirms its internal consistency rather than independence; the independent witness is the set of frozen
@@ -378,7 +380,7 @@ def dominant_cycle_phase(
         is ill-conditioned (there is no cycle to measure). The documentation's *Correctness* page gives the method and
         the float-conditioning limit beyond it.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` price latches ``null`` for every row from there.
         - **NaN** — a ``NaN`` price latches ``null`` for every row from there, as any non-finite value does.
@@ -388,8 +390,8 @@ def dominant_cycle_phase(
           projection vanishes), rather than the inventor's fixed ``0.001`` absolute cutoff; this is the continuous
           limit and keeps the phase invariant under a lossless rescale of the price, whereas a fixed threshold would be
           scale-dependent.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on
-          its own history, e.g. ``dominant_cycle_phase(pl.col("close")).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`dominant_cycle_period`: The length of the same dominant cycle.
@@ -441,7 +443,8 @@ def hilbert_phasor(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         The fixed FIR smoothing and quadrature stages are computed independently, but the adaptive dominant-cycle period
         feeds back into its own measurement and the stages built on it, so the reference oracle replays Ehlers' pipeline
         and confirms its internal consistency rather than independence; the independent witness is the set of frozen
@@ -452,12 +455,12 @@ def hilbert_phasor(
         is ill-conditioned (there is no cycle to measure). The documentation's *Correctness* page gives the method and
         the float-conditioning limit beyond it.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` price latches ``null`` for every row from there.
         - **NaN** — a ``NaN`` price latches ``null`` for every row from there, as any non-finite value does.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on
-          its own history, e.g. ``hilbert_phasor(pl.col("close")).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`dominant_cycle_period`: Measured from this phasor by the homodyne discriminator.
@@ -508,7 +511,8 @@ def hilbert_trendline(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         The fixed FIR smoothing and quadrature stages are computed independently, but the adaptive dominant-cycle period
         feeds back into its own measurement and the stages built on it, so the reference oracle replays Ehlers' pipeline
         and confirms its internal consistency rather than independence; the independent witness is the set of frozen
@@ -519,12 +523,12 @@ def hilbert_trendline(
         a pure cancellation residual: there is no cycle to measure). The documentation's *Correctness* page gives the
         method and the float-conditioning limit beyond it.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` price latches ``null`` for every row from there.
         - **NaN** — a ``NaN`` price latches ``null`` for every row from there, as any non-finite value does.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on
-          its own history, e.g. ``hilbert_trendline(pl.col("close")).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`trend_mode`: Uses the price's deviation from this trendline.
@@ -597,7 +601,8 @@ def mama(
             false upper bound.
 
     Note:
-        **Precision:**
+        **Precision**
+
         The fixed FIR smoothing and quadrature stages are computed independently, but the adaptive dominant-cycle period
         feeds back into its own measurement and the stages built on it, so the reference oracle replays Ehlers' pipeline
         and confirms its internal consistency rather than independence; the independent witness is the set of frozen
@@ -608,14 +613,14 @@ def mama(
         is ill-conditioned (there is no cycle to measure). The documentation's *Correctness* page gives the method and
         the float-conditioning limit beyond it.
 
-        **Seeding:**
+        **Seeding**
 
         Both lines are seeded at the price prefix — ``MAMA`` and ``FAMA`` start from the price and the recurrence runs
         from there. Ehlers' original presentation instead zero-initializes both lines, so the two report different
         values across the warm-up region before the exponential weighting washes the seed out; pomata's price seed is
         the saner choice for a price-level average. Port warm-up-sensitive logic accordingly.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` price latches ``null`` for every row from there.
         - **NaN** — a ``NaN`` price latches ``null`` for every row from there, as any non-finite value does.
@@ -623,8 +628,8 @@ def mama(
           quadrature filter reads the four-bar smooth at even lags, so the in-phase component collapses to a
           cancellation residual and the phasor branch — and with it the adaptive smoothing constant — turns numerically
           arbitrary; there is no cycle to adapt to.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on
-          its own history, e.g. ``mama(pl.col("close")).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`hilbert_phasor`: The phasor whose phase rate sets the smoothing constant.
@@ -690,7 +695,8 @@ def sine_wave(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         The fixed FIR smoothing and quadrature stages are computed independently, but the adaptive dominant-cycle period
         feeds back into its own measurement and the stages built on it, so the reference oracle replays Ehlers' pipeline
         and confirms its internal consistency rather than independence; the independent witness is the set of frozen
@@ -701,7 +707,7 @@ def sine_wave(
         is ill-conditioned (there is no cycle to measure). The documentation's *Correctness* page gives the method and
         the float-conditioning limit beyond it.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` price latches ``null`` for every row from there.
         - **NaN** — a ``NaN`` price latches ``null`` for every row from there, as any non-finite value does.
@@ -710,8 +716,8 @@ def sine_wave(
           That branch guards an *exact* zero of the cosine projection (saturating to ``±90`` as that projection
           vanishes), rather than the inventor's fixed ``0.001`` absolute cutoff; this is the continuous limit and keeps
           the sine invariant under a lossless rescale of the price, whereas a fixed threshold would be scale-dependent.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on
-          its own history, e.g. ``sine_wave(pl.col("close")).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`dominant_cycle_phase`: The phase these are the sine of.
@@ -765,7 +771,8 @@ def trend_mode(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         The fixed FIR smoothing and quadrature stages are computed independently, but the adaptive dominant-cycle period
         feeds back into its own measurement and the stages built on it, so the reference oracle replays Ehlers' pipeline
         and confirms its internal consistency rather than independence; the independent witness is the set of frozen
@@ -776,12 +783,12 @@ def trend_mode(
         is ill-conditioned (there is no cycle to measure). The documentation's *Correctness* page gives the method and
         the float-conditioning limit beyond it.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` price latches ``null`` for every row from there.
         - **NaN** — a ``NaN`` price latches ``null`` for every row from there, as any non-finite value does.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on
-          its own history, e.g. ``trend_mode(pl.col("close")).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
         The underlying phase branch guards an *exact* zero of the cosine projection (saturating to ``±90`` as that
         projection vanishes), rather than the inventor's fixed ``0.001`` absolute cutoff; this is the continuous limit

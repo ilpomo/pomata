@@ -130,7 +130,8 @@ def parabolic_sar(
             ``acceleration > maximum``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         The parabolic SAR is a path-dependent stop-and-reverse recurrence, so its reference oracle necessarily mirrors
         the implementation's state machine and confirms internal consistency, not independence; the independent witness
         is the set of golden masters hand-computed from Wilder's published rules. Agreement holds to ten significant
@@ -140,12 +141,12 @@ def parabolic_sar(
         It is homogeneous of degree ``1`` under a positive common rescaling of ``high`` and ``low`` (the stop is a price
         level and the recurrence and crossings are linear in price).
 
-        **Seeding:**
+        **Seeding**
 
         Wilder's original leaves the initial trend unspecified; here it is taken long when the first bar-to-bar up-move
         is at least the down-move, else short, and the first stop is the prior low (long) or high (short).
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` price makes that row ``null`` (``null`` takes precedence over ``NaN``) — the running
           trend state bridges the gap and resumes on the next complete bar, later rows reconverging as the stop
@@ -153,8 +154,8 @@ def parabolic_sar(
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there — the raw high/low feed the kernel
           directly with no recurrence to latch onto, so the running trend state bridges the gap and resumes on the next
           complete bar.
-        - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries, e.g.
-          ``parabolic_sar(pl.col("high"), pl.col("low")).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`supertrend`: The other trailing-stop trend tool, ATR-scaled rather than accelerating.
@@ -328,7 +329,8 @@ def supertrend(
             ``±inf``).
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
@@ -336,13 +338,13 @@ def supertrend(
         The ``line`` is homogeneous of degree ``1`` under a positive common rescaling of ``high`` / ``low`` / ``close``
         (a price level), while ``direction`` is scale-invariant (the crossings compare like-scaled quantities).
 
-        **Tie-break and seeding:**
+        **Tie-break and seeding**
 
         A flip needs a *strict* cross, so a close exactly on the active band holds the current trend; over a flat series
         the bands collapse onto the midpoint and the line tracks it. The trend seeds short when the first valid close is
         at or below the lower band, else long -- chosen so the line sits on the correct side of price from row one.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
           ``null`` at that position while the recursion continues across the gap (on both struct fields, the running
@@ -351,7 +353,7 @@ def supertrend(
           (on both struct fields; a later ``null`` row shows ``null`` there only — nothing flushes the poisoned state).
         - **window == 1** — the ATR has no memory term, so a ``NaN`` self-heals once the true range is finite again.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``supertrend(pl.col("high"), pl.col("low"), pl.col("close")).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`parabolic_sar`: The other trailing-stop trend tool, accelerating rather than ATR-scaled.
