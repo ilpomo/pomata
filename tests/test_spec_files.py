@@ -169,7 +169,7 @@ def test_spec_kwargs_follow_the_field_order(name: str) -> None:
 
 @pytest.mark.parametrize("name", _SPEC_FILE_NAMES)
 def test_declared_bands_carry_a_rationale(name: str) -> None:
-    """Verifies every ``oracle_*_tol`` departure sits under a one-line comment saying why (CORRECTNESS.md's rule)."""
+    """Verifies every ``oracle_*_tol`` departure sits under a one-line comment saying why (tests/README.md's rule)."""
     lines = _SPEC_FILES[name].read_text(encoding="utf-8").splitlines()
     for index, line in enumerate(lines):
         stripped = line.lstrip()

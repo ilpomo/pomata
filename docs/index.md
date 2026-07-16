@@ -54,7 +54,7 @@ report = (
 ```
 
 The indicator feeds the signal, the signal feeds the PnL, the PnL feeds the metrics — every arrow is a `pl.Expr`, so
-it all fuses into one Polars query (eager or lazy, a single series or a multi-asset {term}`panel` via `.over`).
+it all fuses into one Polars query (eager or lazy, a single series or a multi-asset panel via `.over`).
 
 The `.shift(1)` is the whole no-look-ahead story: a signal computed at the close acts on the next bar, by construction.
 
@@ -72,7 +72,6 @@ no order fills, no event loop, no lot accounting.
 - **{doc}`trust`** — what pomata tests, and the precision it is confident to guarantee.
 - **The families** — {doc}`indicators <families/indicators>` · {doc}`pnl <families/pnl>` · {doc}`metrics <families/metrics>`: the catalogs, and how `pomata` solves the classic pains.
 - **{doc}`API reference <api/index>`** — every function, generated from the docstrings.
-- **Guides** — {doc}`faq` · {doc}`troubleshooting` · {doc}`versioning` · {doc}`glossary`.
 
 ```{toctree}
 :hidden:
@@ -91,16 +90,6 @@ trust
 families/indicators
 families/pnl
 families/metrics
-```
-
-```{toctree}
-:hidden:
-:caption: Guides
-
-faq
-troubleshooting
-versioning
-glossary
 ```
 
 ```{toctree}

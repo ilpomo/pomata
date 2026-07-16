@@ -998,7 +998,8 @@ def vortex(
     # zero true range is left to IEEE-754 as inf -- coherent bars reach it too (the movement legs read the PRIOR bar's
     # low/high, so a window-long flat run pinned at a wide bar's close sums zero range but non-zero movement), not
     # only impossible ones. The near-flat residual is reported as-is, not clipped: VI+ is unbounded above, so there
-    # is no range to clip to (beyond a sane dynamic range the streaming quotient degrades -- see CORRECTNESS.md).
+    # is no range to clip to (beyond a sane dynamic range the streaming quotient degrades -- see the
+    # documentation's Correctness page).
     range_flat = range_per_bar.rolling_max(window) == 0
     plus_flat = range_flat & (plus_per_bar.rolling_max(window) == 0)
     minus_flat = range_flat & (minus_per_bar.rolling_max(window) == 0)

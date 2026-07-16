@@ -616,8 +616,9 @@ def fuzz_frames(spec: Spec, *, missing: bool) -> st.SearchStrategy[pl.DataFrame]
 
 
 # The bit-constant battery: every column one repeated constant — the exact regime where the shipped kernels pin a
-# zero dispersion to exactly zero (the float-residue closures of CORRECTNESS.md) while a naive two-pass mean can keep
-# a rounding residue. The constants are values whose k-copy Python mean rounds AWAY from the constant at some series
+# zero dispersion to exactly zero (the float-residue closures tests/README.md documents) while a naive two-pass mean can
+# keep a rounding residue. The constants are values whose k-copy Python mean rounds AWAY from the constant at some
+# series
 # lengths (three copies of 0.8 average to 0.8000000000000001; a power of two would divide back exactly at every
 # length and never exercise the regime), and the lengths sweep the warm-up neighborhood because that rounding is
 # length-dependent (seven copies of 0.8 average back exactly; three do not).

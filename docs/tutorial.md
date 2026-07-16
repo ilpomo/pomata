@@ -105,10 +105,10 @@ shape: (7, 5)
 └────────────────────────────────┴───────┴───────┴───────┴──────────┘
 ```
 
-Two things to read. `slow` is `null` until its tenth bar — the {term}`warm-up`: the window has not filled, so `pomata` leaves the cell empty
-instead of seeding it with a zero that would quietly wreck everything downstream. And `position` is the comparison
-`.shift(1)`-ed — the cross you can see at the 16th's close is acted on the next bar, the 17th, never the same day.
-That one shift is the whole no-look-ahead story, and the `.over("ticker")` on it stops the shift at the ticker
+Two things to read. `slow` is `null` until its tenth bar — the warm-up: the window has not filled, so `pomata` leaves
+the cell empty instead of seeding it with a zero that would quietly wreck everything downstream. And `position` is the
+comparison `.shift(1)`-ed — the cross you can see at the 16th's close is acted on the next bar, the 17th, never the same
+day. That one shift is the whole no-look-ahead story, and the `.over("ticker")` on it stops the shift at the ticker
 boundary instead of carrying one ticker's first position back onto another's last row.
 
 ## From a signal to a verdict
@@ -221,5 +221,5 @@ number, twice and from two different layouts, without leaving Polars and without
 
 Swap `ema` for anything in the [indicator catalog](families/indicators.md), change the fee model from the
 [pnl family](families/pnl.md), or pull more figures from the [metrics catalog](families/metrics.md) — the shape of the
-query does not move. Nor does it move when the {term}`panel` grows: put five hundred tickers in `wide` and the same
+query does not move. Nor does it move when the panel grows: put five hundred tickers in `wide` and the same
 `.over("ticker")` that kept three of them apart keeps five hundred apart.

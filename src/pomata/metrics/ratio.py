@@ -1156,10 +1156,10 @@ def sharpe_ratio_rolling(
         - **Degenerate denominator** — a constant window has zero dispersion, so the ratio is ``+/-inf`` (or ``NaN``
           when the mean excess is also zero, the exact-zero rolling mean pinning the numerator so no slid-out residue
           rides above it), reported rather than clipped.
-        - **Stability** — a near-constant (non-bit-identical) window sits at the float-conditioning limit
-          ``CORRECTNESS.md`` documents: the one-pass rolling standard deviation and a two-pass recomputation can round
-          a vanishing dispersion apart there. The bit-constant window is pinned exactly (the ``+/-inf`` / ``NaN``
-          above); real return windows are far from the regime.
+        - **Stability** — a near-constant (non-bit-identical) window sits at the float-conditioning limit the
+          documentation's *Correctness* page documents: the one-pass rolling standard deviation and a two-pass
+          recomputation can round a vanishing dispersion apart there. The bit-constant window is pinned exactly (the
+          ``+/-inf`` / ``NaN`` above); real return windows are far from the regime.
         - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries.
 
     See Also:
