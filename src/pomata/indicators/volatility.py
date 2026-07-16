@@ -61,24 +61,25 @@ def atr(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Scaling:**
+        **Scaling**
 
         Scaling is homogeneous of degree ``1`` only for a positive factor: multiplying every price by ``k > 0`` scales
         the ATR by ``k``. A negative factor makes the bar incoherent (``high`` falls below ``low``), so it is not a
         clean rescale.
 
-        **Seeding:**
+        **Seeding**
 
         The Wilder smoothing (:func:`rma`) is seeded with the simple average of the first ``window`` true ranges --
         Wilder's canonical initialization. The first true range is the bar's high-low range (no prior close extends
         it), so the seed and warm-up include it.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
           ``null`` at that position while the recursion continues across the gap — the true range is ``null`` only
@@ -89,8 +90,8 @@ def atr(
         - **window == 1** — the smoothing factor is ``1`` and the warm-up vanishes, so the ATR reproduces the true
           range exactly: the ``max_horizontal``-reduced true range (not a textbook three-term true range whenever a
           candidate term is dropped by a ``null``).
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on
-          its own history, e.g. ``atr(pl.col("high"), pl.col("low"), pl.col("close"), 14).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`true_range`: The per-bar range this Wilder-smooths.
@@ -183,7 +184,8 @@ def atr_normalized(
         ValueError: If ``window < 1``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
@@ -191,7 +193,7 @@ def atr_normalized(
         It is scale-invariant under a positive common rescaling of ``high``, ``low``, and ``close`` (the ATR and the
         close scale together).
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
           ``null`` at that position while the recursion continues across the gap — inherited from :func:`atr`, with a
@@ -199,8 +201,8 @@ def atr_normalized(
         - **NaN** — a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null
           position — inherited from :func:`atr`, with a ``NaN`` ``close`` also yielding ``NaN`` for the ratio at that
           row.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on
-          its own history, e.g. ``atr_normalized(pl.col("high"), pl.col("low"), pl.col("close"), 14).over("t")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`atr`: The raw (price-unit) average true range this normalizes.
@@ -306,17 +308,18 @@ def bollinger_bands(
             ``±inf``).
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Composition:**
+        **Composition**
 
         The bands are built from :func:`sma` (center) and the population :func:`standard_deviation_rolling` (width), so
         they inherit the warm-up and missing-data behavior of both — identically on every field of the struct.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values)
           — on all three fields.
@@ -324,8 +327,8 @@ def bollinger_bands(
         - **Degenerate denominator** — a window of equal values has zero standard deviation (see
           :func:`standard_deviation_rolling`), so all three bands collapse onto the constant — even at
           ``window == 1``, or just after a much larger value has left the window.
-        - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries, e.g.
-          ``bollinger_bands(pl.col("close"), 20).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`sma`: The center band.
@@ -416,17 +419,18 @@ def true_range(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Precision:**
+        **Precision**
+
         Agrees with its independent reference oracle to ten significant figures (a ``1e-10`` band) on any finite input
         within a sane dynamic range; the documentation's *Correctness* page gives the method and the float-conditioning
         limit beyond it.
 
-        **Inputs:**
+        **Inputs**
 
         ``high``, ``low``, and ``close`` are taken as the canonical OHLC roles in that positional order and must share a
         length and alignment (the same row index is one bar).
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — ``null`` handling follows ``pl.max_horizontal``, which **skips** ``null`` candidates rather than
           propagating them: a ``null`` in ``high`` or ``low`` (or a ``null`` previous ``close``) simply drops that
@@ -437,8 +441,8 @@ def true_range(
           the row on its own.
         - **NaN** — a ``NaN`` price yields ``NaN`` for that row — it is not skipped like a ``null`` (it dominates
           the maximum), so a ``NaN`` ``close`` also contaminates the two gap terms of the next row.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on
-          its own history, e.g. ``true_range(pl.col("high"), pl.col("low"), pl.col("close")).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`atr`: The Wilder-smoothed average of this per-bar range.

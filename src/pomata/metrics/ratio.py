@@ -105,11 +105,12 @@ def adjusted_sharpe_ratio(
         ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite or is ``< -1``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data
         and boundaries) is given a defined behavior.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` return is skipped (excluded from every moment); an all-null (or empty) series yields
           ``null``.
@@ -123,7 +124,7 @@ def adjusted_sharpe_ratio(
           ill-conditioned ``0 / 0``, and the reference and implementation can round apart. The exactly-constant sample
           is pinned (the ``NaN`` above); real return samples are far from the regime.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``adjusted_sharpe_ratio(pl.col("returns"), periods_per_year=252).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`sharpe_ratio`: The base ratio this adjusts.
@@ -208,14 +209,15 @@ def burke_ratio(
         ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data
         and boundaries) is given a defined behavior.
 
         The denominator is the sum (not the mean) of the squared drawdowns, taken over the per-period drawdown series
         (not the maxima of distinct decline episodes, as in some Burke variants), so it grows with the record length.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` equity is skipped (excluded from both the growth and the drawdown energy); an all-null
           (or empty) series yields ``null``.
@@ -225,7 +227,7 @@ def burke_ratio(
         - **Degenerate denominator** — a monotonically non-decreasing curve has zero drawdown energy, so the ratio is
           ``+/-inf`` (or ``NaN`` when the excess growth is also zero), reported rather than clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``burke_ratio(pl.col("equity"), periods_per_year=252).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`ulcer_index`: The root-mean-square drawdown penalty.
@@ -304,11 +306,12 @@ def calmar_ratio(
         ValueError: If ``periods_per_year < 1``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data
         and boundaries) is given a defined behavior.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` equity is skipped (excluded from both the growth and the drawdown); an all-null (or
           empty) series yields ``null``.
@@ -318,7 +321,7 @@ def calmar_ratio(
         - **Degenerate denominator** — a monotonically non-decreasing curve has zero maximum drawdown, so the ratio is
           ``+/-inf`` (or ``NaN`` when the growth is also zero), reported rather than clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``calmar_ratio(pl.col("equity"), periods_per_year=252).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`cagr`: The numerator (annualized growth).
@@ -388,11 +391,12 @@ def common_sense_ratio(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data
         and boundaries) is given a defined behavior.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` return is skipped; an all-null (or empty) series yields ``null``.
         - **NaN** — a ``NaN`` return propagates, yielding ``NaN``.
@@ -402,7 +406,7 @@ def common_sense_ratio(
           losses (the profit factor diverges) or a zero left tail (the tail ratio diverges), and ``NaN`` where a
           ``0 * inf`` arises; all reported rather than clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``common_sense_ratio(pl.col("returns")).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`profit_factor`: The aggregate gain-to-loss factor.
@@ -467,14 +471,15 @@ def gain_to_pain_ratio(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data
         and boundaries) is given a defined behavior.
 
         It is computed on the return series as given, with no calendar resampling and no risk-free adjustment (the pure
         Schwager ratio).
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` return is skipped; an all-null (or empty) series yields ``null``.
         - **NaN** — a ``NaN`` return propagates, yielding ``NaN``.
@@ -483,7 +488,7 @@ def gain_to_pain_ratio(
         - **Degenerate denominator** — with no negative returns the total loss is zero, so the ratio is ``+inf`` (or
           ``NaN`` when the net return is also zero), reported rather than clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``gain_to_pain_ratio(pl.col("returns")).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`profit_factor`: The gross-gain to gross-loss counterpart.
@@ -557,11 +562,12 @@ def omega_ratio(
         ValueError: If ``threshold`` is not finite.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data
         and boundaries) is given a defined behavior.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` return is skipped; an all-null (or empty) series yields ``null``.
         - **NaN** — a ``NaN`` return propagates, yielding ``NaN``.
@@ -571,7 +577,7 @@ def omega_ratio(
           ``+inf`` (or ``NaN`` when every return sits exactly at the threshold, a ``0 / 0``); with no return above it
           the mean gain is zero, so the ratio is an exact ``0`` — all reported rather than clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``omega_ratio(pl.col("returns")).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`gain_to_pain_ratio`: The net-return over total-loss sibling about a zero threshold.
@@ -652,18 +658,20 @@ def omega_ratio_rolling(
         ValueError: If ``window < 1``, or if ``threshold`` is not finite.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         Each window matches an independent reference oracle (the reducing :func:`omega_ratio` recomputed over the
         window).
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
         - **Degenerate denominator** — a window with no return below the threshold has zero mean loss (forced exactly to
           zero, never a slid-out residue), so the ratio is ``+inf`` (or ``NaN`` when every return sits at the threshold,
           a ``0 / 0``), reported rather than clipped.
-        - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`omega_ratio`: The whole-series reducing form.
@@ -754,11 +762,12 @@ def pain_ratio(
         ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data
         and boundaries) is given a defined behavior.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` equity is skipped (excluded from both the growth and the pain index); an all-null (or
           empty) series yields ``null``.
@@ -768,7 +777,7 @@ def pain_ratio(
         - **Degenerate denominator** — a monotonically non-decreasing curve has a zero pain index, so the ratio is
           ``+/-inf`` (or ``NaN`` when the excess growth is also zero), reported rather than clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``pain_ratio(pl.col("equity"), periods_per_year=252).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`pain_index`: The denominator (average drawdown depth).
@@ -857,7 +866,8 @@ def probabilistic_sharpe_ratio(
             ``risk_free_rate < -1``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data
         and boundaries) is given a defined behavior.
 
@@ -865,7 +875,7 @@ def probabilistic_sharpe_ratio(
         normal sample (:math:`\gamma_4 = 3`) recovers the classic Lo standard error :math:`\sqrt{(1 + \mathrm{SR}^2 / 2)
         / (n - 1)}`.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` return is skipped (excluded from every moment); an all-null (or empty) series yields
           ``null``.
@@ -880,7 +890,7 @@ def probabilistic_sharpe_ratio(
           (a measure-zero boundary) yields the limiting ``0`` or ``1``, reported rather than forced into range. The
           exactly-constant sample is pinned (the ``NaN`` above); real return samples are far from the regime.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``probabilistic_sharpe_ratio(pl.col("returns"), periods_per_year=252).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`sharpe_ratio`: The point estimate this attaches a confidence level to.
@@ -966,14 +976,15 @@ def recovery_ratio(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data
         and boundaries) is given a defined behavior.
 
         Only the drawdown denominator is taken in magnitude; the total-return numerator keeps its sign, so a losing
         curve (a negative total return) reports a negative recovery factor.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` equity is skipped; an all-null (or empty) series yields ``null``.
         - **NaN** — a ``NaN`` equity propagates, yielding ``NaN``.
@@ -983,7 +994,7 @@ def recovery_ratio(
           ``+/-inf`` with the sign of the total return (or ``NaN`` when the total return is also zero), reported rather
           than clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``recovery_ratio(pl.col("equity")).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`total_return`: The numerator (overall growth).
@@ -1059,11 +1070,12 @@ def sharpe_ratio(
         ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite or is ``< -1``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data
         and boundaries) is given a defined behavior.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` return is skipped (excluded from the mean and the standard deviation); an all-null (or
           empty) series yields ``null``.
@@ -1073,7 +1085,7 @@ def sharpe_ratio(
         - **Degenerate denominator** — a constant excess series has zero dispersion, so the ratio is ``+/-inf`` (or
           ``NaN`` when the mean excess is also zero), reported rather than clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``sharpe_ratio(pl.col("returns"), periods_per_year=252).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`sortino_ratio`: The downside-only counterpart (penalizes only harmful volatility).
@@ -1157,11 +1169,12 @@ def sharpe_ratio_rolling(
         ValueError: If ``window < 2``, ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite or is ``< -1``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         Each window matches an independent reference oracle (the reducing :func:`sharpe_ratio` recomputed over the
         window).
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
@@ -1172,7 +1185,8 @@ def sharpe_ratio_rolling(
           documentation's *Correctness* page documents: the one-pass rolling standard deviation and a two-pass
           recomputation can round a vanishing dispersion apart there. The bit-constant window is pinned exactly (the
           ``+/-inf`` / ``NaN`` above); real return windows are far from the regime.
-        - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`sharpe_ratio`: The whole-series reducing form.
@@ -1262,11 +1276,12 @@ def sortino_ratio(
         ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite or is ``< -1``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data
         and boundaries) is given a defined behavior.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` return is skipped (excluded from the mean and the downside deviation); an all-null (or
           empty) series yields ``null``.
@@ -1274,7 +1289,7 @@ def sortino_ratio(
         - **Degenerate denominator** — when every excess return is at or above the target the downside deviation is
           zero, so the ratio is ``+/-inf`` (or ``NaN`` when the mean excess is also zero), reported rather than clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``sortino_ratio(pl.col("returns"), periods_per_year=252).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`sharpe_ratio`: The two-sided counterpart (penalizes all volatility).
@@ -1363,18 +1378,20 @@ def sortino_ratio_rolling(
         ValueError: If ``window < 1``, ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite or is ``< -1``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         Each window matches an independent reference oracle (the reducing :func:`sortino_ratio` recomputed over the
         window).
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
         - **Degenerate denominator** — a window with every excess return at or above the target has zero downside
           deviation, so the ratio is ``+/-inf`` (or ``NaN`` when the mean excess is also zero), reported rather than
           clipped.
-        - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`sortino_ratio`: The whole-series reducing form.
@@ -1472,11 +1489,12 @@ def sterling_ratio(
             finite number ``>= 0``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data
         and boundaries) is given a defined behavior.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` equity is skipped (excluded from both the growth and the average drawdown); an all-null
           (or empty) series yields ``null``.
@@ -1486,7 +1504,7 @@ def sterling_ratio(
           of zero on a drawdown-free curve gives ``+/-inf`` (or ``NaN`` when the excess growth is also zero), reported
           rather than clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``sterling_ratio(pl.col("equity"), periods_per_year=252).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`pain_index`: The average drawdown in the denominator.
@@ -1565,11 +1583,12 @@ def ulcer_performance_ratio(
         ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data
         and boundaries) is given a defined behavior.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` equity is skipped (excluded from both the growth and the ulcer index); an all-null (or
           empty) series yields ``null``.
@@ -1579,7 +1598,7 @@ def ulcer_performance_ratio(
         - **Degenerate denominator** — a monotonically non-decreasing curve has a zero ulcer index, so the ratio is
           ``+/-inf`` (or ``NaN`` when the excess growth is also zero), reported rather than clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``ulcer_performance_ratio(pl.col("equity"), periods_per_year=252).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`ulcer_index`: The denominator (depth-and-duration drawdown).

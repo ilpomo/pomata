@@ -229,22 +229,23 @@ def conditional_value_at_risk(
         ValueError: If ``confidence`` is not in the open interval ``(0, 1)``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data
         and boundaries) is given a defined behavior.
 
-        **Historical, not parametric:**
+        **Historical, not parametric**
 
         The shortfall is taken over the empirical return distribution, with no normality or other distributional
         assumption.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` return is skipped (excluded from the count ``n`` and the tail average); an all-null
           (or empty) series yields ``null``.
         - **NaN** — a ``NaN`` return propagates, yielding ``NaN``.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``conditional_value_at_risk(pl.col("returns")).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`value_at_risk`: The tail cutoff quantile; this coherent average of the tail is always at least as deep.
@@ -351,11 +352,12 @@ def downside_deviation(
         ValueError: If ``periods_per_year < 1``, or if ``threshold`` is not finite.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data
         and boundaries) is given a defined behavior.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` return is skipped (excluded from the mean); an all-null (or empty) series yields
           ``null``.
@@ -363,7 +365,7 @@ def downside_deviation(
         - **Degenerate denominator** — when every return is at or above the threshold the shortfall is all zero, so the
           result is exactly ``0``.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``downside_deviation(pl.col("returns"), periods_per_year=252).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`sortino_ratio`: The risk-adjusted return that divides excess return by this.
@@ -445,17 +447,19 @@ def downside_deviation_rolling(
         ValueError: If ``window < 1``, ``periods_per_year < 1``, or if ``threshold`` is not finite.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         Each window matches an independent reference oracle (the reducing :func:`downside_deviation` recomputed over the
         window).
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
         - **Degenerate denominator** — a window with every return at or above the threshold has zero shortfall, so the
           result is exactly ``0``.
-        - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`downside_deviation`: The whole-series reducing form.
@@ -549,14 +553,15 @@ def kelly_criterion(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data
         and boundaries) is given a defined behavior.
 
         This is the **discrete win/loss** form (from the win rate and payoff ratio). A common alternative for continuous
         returns is the ratio of the mean return to its variance; the two coincide only under specific assumptions.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` return is skipped; an all-null (or empty) series yields ``null``.
         - **NaN** — a ``NaN`` return propagates, yielding ``NaN``.
@@ -565,7 +570,7 @@ def kelly_criterion(
         - **Degenerate denominator** — with no winning or no losing returns the payoff ratio is undefined, and with no
           non-zero returns the win rate is undefined, so the result is ``null``.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``kelly_criterion(pl.col("returns")).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`win_rate`: The win probability ``p``.
@@ -651,11 +656,12 @@ def kurtosis(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data
         and boundaries) is given a defined behavior.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` return is skipped; an all-null (or empty) series yields ``null``.
         - **NaN** — a ``NaN`` return propagates, yielding ``NaN``.
@@ -666,7 +672,7 @@ def kurtosis(
           computation resolve apart; that band is excluded from the property tiers, and the value is reported as
           computed.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``kurtosis(pl.col("returns")).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`skewness`: The third-moment companion (asymmetry).
@@ -755,10 +761,11 @@ def kurtosis_rolling(
         ValueError: If ``window < 2``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         Each window matches an independent reference oracle (the reducing :func:`kurtosis` recomputed over the window).
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
@@ -769,7 +776,8 @@ def kurtosis_rolling(
           while a smaller exit onto a window whose own spread has collapsed can amplify that residue through the
           near-zero variance into a wrong finite value — reported, not clipped (the tail of pola-rs/polars#28290,
           fixed upstream in #28309).
-        - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`kurtosis`: The whole-series reducing form.
@@ -857,18 +865,19 @@ def payoff_ratio(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data
         and boundaries) is given a defined behavior.
 
         This is a **bar-level** statistic: each return observation is treated as one win or loss. It is not a per-trade
         statistic -- true per-trade payoff needs trade-level fill data, which is outside this toolkit's scope.
 
-        **Zero return:**
+        **Zero return**
 
         A return of exactly ``0`` is neither a win nor a loss and is excluded from both means.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` return is skipped; an all-null (or empty) series yields ``null``.
         - **NaN** — a ``NaN`` return propagates, yielding ``NaN``.
@@ -876,7 +885,7 @@ def payoff_ratio(
         - **Degenerate denominator** — with no winning (or no losing) returns one side of the ratio is undefined, so
           the result is ``null``.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``payoff_ratio(pl.col("returns")).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`win_rate`: The companion frequency (how often returns win).
@@ -960,14 +969,15 @@ def profit_factor(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data
         and boundaries) is given a defined behavior.
 
         This is a **bar-level** statistic: each return observation is treated as one gain or loss. It is not a per-trade
         statistic -- true per-trade profit factor needs trade-level fill data, which is outside this toolkit's scope.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` return is skipped; an all-null (or empty) series yields ``null``.
         - **NaN** — a ``NaN`` return propagates, yielding ``NaN``.
@@ -976,7 +986,7 @@ def profit_factor(
         - **Degenerate denominator** — with no negative returns the total loss is zero, so the ratio is ``+inf`` (or
           ``NaN`` when an all-``0`` series also has zero gross gain, a ``0 / 0``), reported rather than clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``profit_factor(pl.col("returns")).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`payoff_ratio`: The average-win to average-loss counterpart.
@@ -1063,7 +1073,8 @@ def risk_of_ruin(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data
         and boundaries) is given a defined behavior.
 
@@ -1074,7 +1085,7 @@ def risk_of_ruin(
         counts only decisive (non-zero) bars, while ``n`` counts every non-null bar, so padding a series with flat
         ``0`` bars raises ``n`` without moving ``p``.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` return is skipped; an all-null (or empty) series yields ``null``.
         - **NaN** — a ``NaN`` return propagates, yielding ``NaN``.
@@ -1084,7 +1095,7 @@ def risk_of_ruin(
           ``>= 1`` and the probability saturates at ``1`` (an all-losing ``p = 0`` divides by zero and clips to
           ``1``), while an all-winning ``p = 1`` gives ``0``.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``risk_of_ruin(pl.col("returns")).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`win_rate`: The win probability the model is built on.
@@ -1156,11 +1167,12 @@ def skewness(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data
         and boundaries) is given a defined behavior.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` return is skipped; an all-null (or empty) series yields ``null``.
         - **NaN** — a ``NaN`` return propagates, yielding ``NaN``.
@@ -1173,7 +1185,7 @@ def skewness(
           computation resolve apart; that band is excluded from the property tiers, and the value is reported as
           computed.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``skewness(pl.col("returns")).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`kurtosis`: The fourth-moment companion (tailedness).
@@ -1261,10 +1273,11 @@ def skewness_rolling(
         ValueError: If ``window < 2``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         Each window matches an independent reference oracle (the reducing :func:`skewness` recomputed over the window).
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
@@ -1275,7 +1288,8 @@ def skewness_rolling(
           while a smaller exit onto a window whose own spread has collapsed can amplify that residue through the
           near-zero variance into a wrong finite value — reported, not clipped (the tail of pola-rs/polars#28290,
           fixed upstream in #28309).
-        - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`skewness`: The whole-series reducing form.
@@ -1363,11 +1377,12 @@ def tail_ratio(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data
         and boundaries) is given a defined behavior.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` return is skipped; an all-null (or empty) series yields ``null``.
         - **NaN** — a ``NaN`` return propagates, yielding ``NaN``.
@@ -1375,7 +1390,7 @@ def tail_ratio(
           (an all-``0`` series is the ``0 / 0`` exception, yielding ``NaN``); when the 5th-percentile return is exactly
           ``0`` against a non-zero 95th the ratio is ``+inf`` — reported, not clipped, following IEEE division.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``tail_ratio(pl.col("returns")).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`tail_ratio_rolling`: The rolling (windowed) form.
@@ -1446,17 +1461,19 @@ def tail_ratio_rolling(
         ValueError: If ``window < 1``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         Each window matches an independent reference oracle (the reducing :func:`tail_ratio` recomputed over the
         window).
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
         - **Degenerate denominator** — when a window's 5th-percentile return is exactly ``0`` against a non-zero 95th
           the ratio is ``+inf`` (or ``NaN`` when the 95th is also ``0``) — reported, not clipped.
-        - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`tail_ratio`: The whole-series reducing form.
@@ -1550,26 +1567,27 @@ def value_at_risk(
         ValueError: If ``confidence`` is not in the open interval ``(0, 1)``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data
         and boundaries) is given a defined behavior.
 
-        **Sign convention:**
+        **Sign convention**
 
         Returned as the signed return quantile (negative for a loss), not a positive loss magnitude; negate it if a
         positive figure is wanted.
 
-        **Historical, not parametric:**
+        **Historical, not parametric**
 
         The quantile is taken over the empirical return distribution, with no normality or other distributional
         assumption.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` return is skipped; an all-null (or empty) series yields ``null``.
         - **NaN** — a ``NaN`` return propagates, yielding ``NaN``.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``value_at_risk(pl.col("returns")).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`conditional_value_at_risk`: The mean loss beyond this threshold (expected shortfall).
@@ -1647,11 +1665,12 @@ def value_at_risk_modified(
         ValueError: If ``confidence`` is not in the open interval ``(0, 1)``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data
         and boundaries) is given a defined behavior.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` return is skipped (excluded from every moment); an all-null (or empty) series yields
           ``null``.
@@ -1669,7 +1688,7 @@ def value_at_risk_modified(
           rounding-dominated ``0 / 0``; that near-constant band is excluded from the property tiers, and the value is
           reported as computed.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``value_at_risk_modified(pl.col("returns")).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`value_at_risk_parametric`: The Gaussian form this corrects.
@@ -1792,16 +1811,17 @@ def value_at_risk_parametric(
         ValueError: If ``confidence`` is not in the open interval ``(0, 1)``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data
         and boundaries) is given a defined behavior.
 
-        **Gaussian assumption:**
+        **Gaussian assumption**
 
         The estimate assumes normally distributed returns; for fat tails see :func:`value_at_risk_modified`
         (Cornish-Fisher) or :func:`value_at_risk` (historical).
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` return is skipped (excluded from the mean and the standard deviation); an all-null (or
           empty) series yields ``null``.
@@ -1811,7 +1831,7 @@ def value_at_risk_parametric(
         - **Degenerate denominator** — a constant series has zero dispersion, so ``z * sigma`` vanishes and the result
           is the mean itself.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``value_at_risk_parametric(pl.col("returns")).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`value_at_risk`: The historical (empirical) form.
@@ -1886,19 +1906,21 @@ def value_at_risk_rolling(
         ValueError: If ``window < 1``, or if ``confidence`` is not in the open interval ``(0, 1)``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         Each window matches an independent reference oracle (the reducing :func:`value_at_risk` recomputed over the
         window).
 
-        **Sign convention:**
+        **Sign convention**
 
         Returned as the signed return quantile (negative for a loss), not a positive loss.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
-        - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`value_at_risk`: The whole-series reducing form.
@@ -1992,11 +2014,12 @@ def volatility(
         ValueError: If ``periods_per_year < 1``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data
         and boundaries) is given a defined behavior.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` return is skipped (excluded from the standard deviation); an all-null (or empty) series
           yields ``null``.
@@ -2005,7 +2028,7 @@ def volatility(
           is ``null``.
         - **Degenerate denominator** — a constant series has zero dispersion, so the result is exactly ``0``.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``volatility(pl.col("returns"), periods_per_year=252).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`volatility_rolling`: The rolling (windowed) form.
@@ -2079,11 +2102,12 @@ def volatility_rolling(
         ValueError: If ``window < 2``, or if ``periods_per_year < 1``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         Each window matches an independent reference oracle (the reducing :func:`volatility` recomputed over the
         window).
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
@@ -2091,7 +2115,8 @@ def volatility_rolling(
         - **Stability** — the incremental one-pass rolling standard deviation carries running sums, so once a much
           larger value exits the window a near-constant remainder (relative spread below the conditioning floor) can
           diverge from a fresh two-pass computation — the excluded tail, reported as computed.
-        - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`volatility`: The whole-series reducing form.
@@ -2183,25 +2208,26 @@ def win_rate(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data
         and boundaries) is given a defined behavior.
 
         This is a **bar-level** statistic: each return observation is treated as one win or loss. It is not a per-trade
         statistic -- true per-trade win rate needs trade-level fill data, which is outside this toolkit's scope.
 
-        **Zero return:**
+        **Zero return**
 
         A return of exactly ``0`` is neither a win nor a loss and is excluded from the denominator.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` return is skipped; an all-null (or empty) series yields ``null``.
         - **NaN** — a ``NaN`` return propagates, yielding ``NaN``.
         - **Degenerate denominator** — a series with no decisive (non-zero) returns — an all-``0`` series, say — has an
           empty denominator, so the result is ``null``.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``win_rate(pl.col("returns")).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`payoff_ratio`: The average size of a win versus a loss.

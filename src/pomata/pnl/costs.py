@@ -55,15 +55,16 @@ def cost_borrow(
         ValueError: If ``rate`` is not a finite number ``>= 0`` (i.e. ``< 0``, ``NaN``, or ``±inf``).
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data,
         boundaries, and warm-up where applicable) is given a defined behavior.
 
-        **Long / flat:**
+        **Long / flat**
 
         A non-negative quantity has zero borrow cost (only the short part is charged).
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` quantity makes that row ``null`` (``null`` takes precedence over ``NaN``).
         - **NaN** — a ``NaN`` quantity yields ``NaN`` for that row.
@@ -71,7 +72,7 @@ def cost_borrow(
           frees an infinite long (``0``) and an infinite short notional charges an ``inf`` fee (the sign, and any
           ``inf - inf = NaN``, included).
         - **Partitioning** — already correct on a multi-series panel: ``.over(...)`` partitions identically and is
-          therefore optional here, unlike the turnover-based / cumulative functions.
+          therefore optional here.
 
     See Also:
         - :func:`dividend`: The equity holding cashflow on the income side.
@@ -164,16 +165,17 @@ def cost_fixed(
         ValueError: If ``fee`` is not a finite number ``>= 0`` (i.e. ``< 0``, ``NaN``, or ``±inf``).
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data,
         boundaries, and warm-up where applicable) is given a defined behavior.
 
-        **Flat start:**
+        **Flat start**
 
         The pre-series quantity is taken as ``0`` (via :func:`turnover`), so the first row charges the ``fee`` (entering
         the initial position is a trade).
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` quantity makes that row ``null`` (``null`` takes precedence over ``NaN``).
         - **NaN** — a ``NaN`` quantity yields ``NaN`` for that row.
@@ -181,7 +183,7 @@ def cost_fixed(
           difference, whose ``inf`` marks a trade and charges the flat ``fee`` (the sign, and any ``inf - inf = NaN``,
           included).
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``cost_fixed(pl.col("quantity"), fee=1.0).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`cost_per_share`: A per-unit-traded commission.
@@ -264,27 +266,28 @@ def cost_funding(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data,
         boundaries, and warm-up where applicable) is given a defined behavior.
 
-        **Sign:**
+        **Sign**
 
         The cost follows ``sign(quantity) * sign(funding_rate)``: a long pays a positive rate and is rebated by a
         negative one; a short is the mirror image.
 
-        **Off-funding bars:**
+        **Off-funding bars**
 
         Pass ``funding_rate = 0`` on bars with no funding event; the cost is then ``0`` there.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` quantity makes that row ``null`` (``null`` takes precedence over ``NaN``).
         - **NaN** — a ``NaN`` quantity yields ``NaN`` for that row.
         - **Non-finite input** — an ``inf`` quantity follows IEEE-754 through the arithmetic, the signed triple product
           ``quantity * price * funding_rate`` (the sign, and any ``inf - inf = NaN``, included).
         - **Partitioning** — already correct on a multi-series panel: ``.over(...)`` partitions identically and is
-          therefore optional here, unlike the turnover-based / cumulative functions.
+          therefore optional here.
 
     See Also:
         - :func:`cost_borrow`: The short-borrow holding cost on the equity side.
@@ -383,22 +386,23 @@ def cost_notional(
         ValueError: If ``rate`` is not a finite number ``>= 0`` (i.e. ``< 0``, ``NaN``, or ``±inf``).
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data,
         boundaries, and warm-up where applicable) is given a defined behavior.
 
-        **Flat start:**
+        **Flat start**
 
         The pre-series quantity is taken as ``0`` (via :func:`turnover`), so the first row charges on the entry trade.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` quantity makes that row ``null`` (``null`` takes precedence over ``NaN``).
         - **NaN** — a ``NaN`` quantity yields ``NaN`` for that row.
         - **Non-finite input** — an ``inf`` quantity follows IEEE-754 through the arithmetic of the turnover
           difference, an infinite move charging an ``inf`` cost (the sign, and any ``inf - inf = NaN``, included).
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``cost_notional(pl.col("quantity"), pl.col("price"), rate=0.001).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`cost_per_share`: A per-unit-traded commission.
@@ -486,23 +490,24 @@ def cost_per_share(
         ValueError: If ``fee`` is not a finite number ``>= 0`` (i.e. ``< 0``, ``NaN``, or ``±inf``).
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data,
         boundaries, and warm-up where applicable) is given a defined behavior.
 
-        **Flat start:**
+        **Flat start**
 
         The pre-series quantity is taken as ``0`` (via :func:`turnover`), so the first row charges on ``|quantity_0|``
         (entering the initial position is a trade).
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` quantity makes that row ``null`` (``null`` takes precedence over ``NaN``).
         - **NaN** — a ``NaN`` quantity yields ``NaN`` for that row.
         - **Non-finite input** — an ``inf`` quantity follows IEEE-754 through the arithmetic of the turnover
           difference, an infinite move charging an ``inf`` cost (the sign, and any ``inf - inf = NaN``, included).
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``cost_per_share(pl.col("quantity"), fee=0.01).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`cost_fixed`: A flat charge per trade.
@@ -578,23 +583,24 @@ def cost_proportional(
         ValueError: If ``rate`` is not a finite number ``>= 0`` (i.e. ``< 0``, ``NaN``, or ``±inf``).
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data,
         boundaries, and warm-up where applicable) is given a defined behavior.
 
-        **Flat start:**
+        **Flat start**
 
         The weight before the series is taken as ``0`` (via :func:`turnover`), so the first row is ``|weight_0| *
         rate``: establishing the initial weight carries its cost.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` weight makes that row ``null`` (``null`` takes precedence over ``NaN``).
         - **NaN** — a ``NaN`` weight yields ``NaN`` for that row.
         - **Non-finite input** — an ``inf`` weight follows IEEE-754 through the arithmetic of the turnover difference,
           an infinite move charging an ``inf`` cost (the sign, and any ``inf - inf = NaN``, included).
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``cost_proportional(pl.col("weight"), rate=0.001).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`cost_slippage`: The fixed half-spread cost, the complementary per-trade leg; sum the two for both.
@@ -675,23 +681,24 @@ def cost_slippage(
         ValueError: If ``half_spread`` is not a finite number ``>= 0`` (i.e. ``< 0``, ``NaN``, or ``±inf``).
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data,
         boundaries, and warm-up where applicable) is given a defined behavior.
 
-        **Flat start:**
+        **Flat start**
 
         The weight before the series is taken as ``0`` (via :func:`turnover`), so the first row is ``|weight_0| *
         half_spread``: establishing the initial weight crosses the spread.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` weight makes that row ``null`` (``null`` takes precedence over ``NaN``).
         - **NaN** — a ``NaN`` weight yields ``NaN`` for that row.
         - **Non-finite input** — an ``inf`` weight follows IEEE-754 through the arithmetic of the turnover difference,
           an infinite move charging an ``inf`` cost (the sign, and any ``inf - inf = NaN``, included).
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``cost_slippage(pl.col("weight"), half_spread=0.002).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`cost_proportional`: The proportional broker fee, the complementary per-trade leg; sum the two for both.

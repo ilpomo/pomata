@@ -39,11 +39,12 @@ def returns_log(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data,
         boundaries, and warm-up where applicable) is given a defined behavior.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` price makes that row ``null`` (``null`` takes precedence over ``NaN``) — reading two
           endpoints, a ``null`` at the current or the previous row voids the output that references it.
@@ -60,8 +61,8 @@ def returns_log(
         - **Non-finite input** — an ``inf`` price follows IEEE-754 through the ratio and its logarithm, where two
           consecutive same-sign infinite prices divide to ``inf / inf = NaN`` (the sign, and that indeterminate
           ``inf / inf``, included).
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on
-          its own history, e.g. ``returns_log(pl.col("close")).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`returns_simple`: The arithmetic sibling, which aggregates across assets rather than across time.
@@ -134,11 +135,12 @@ def returns_simple(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data,
         boundaries, and warm-up where applicable) is given a defined behavior.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` price makes that row ``null`` (``null`` takes precedence over ``NaN``) — reading two
           endpoints, a ``null`` at the current or the previous row voids the output that references it.
@@ -152,7 +154,7 @@ def returns_simple(
           consecutive same-sign infinite prices divide to ``inf / inf = NaN`` (the sign, and that indeterminate
           ``inf / inf``, included).
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
-          own history, e.g. ``returns_simple(pl.col("close")).over("ticker")``.
+          own history.
 
     See Also:
         - :func:`returns_log`: The logarithmic sibling, which aggregates across time rather than across assets.

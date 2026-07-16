@@ -48,11 +48,12 @@ def cagr(
         ValueError: If ``periods_per_year < 1``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data
         and boundaries) is given a defined behavior.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` equity is skipped; an all-null (or empty) series yields ``null`` — the rate uses the
           last defined equity and the count of defined observations.
@@ -62,8 +63,8 @@ def cagr(
         - **Insufficient sample** — annualizing a handful of periods extrapolates aggressively (e.g. one period at
           ``periods_per_year = 252`` raises the growth to the 252nd power, which can overflow to ``+inf`` —
           reported, not clipped); this is the defined geometric behavior, not an error.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on
-          its own history, e.g. ``cagr(pl.col("equity"), periods_per_year=252).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`total_return`: The un-annualized total growth this is the per-year rate of.
@@ -149,10 +150,11 @@ def cagr_rolling(
         ValueError: If ``window < 2``, or if ``periods_per_year < 1``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         Each window matches an independent reference oracle (the endpoint ratio annualized).
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` equity makes that row ``null`` (``null`` takes precedence over ``NaN``) — being an
           endpoint quantity, an interior ``null`` does not affect the result.
@@ -161,7 +163,8 @@ def cagr_rolling(
           the result is a loud ``NaN`` — never a plausible wrong number.
         - **Degenerate denominator** — a window starting exactly at zero blows the endpoint ratio to ``+inf`` —
           reported, not clipped.
-        - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`cagr`: The whole-series reducing form.
@@ -237,11 +240,12 @@ def stability(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data
         and boundaries) is given a defined behavior.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` return is skipped; an all-null (or empty) series yields ``null`` (the time index is
           taken over the retained observations, so an interior gap does not leave a hole in the regression).
@@ -252,8 +256,8 @@ def stability(
           result is ``null``.
         - **Degenerate denominator** — an all-zero (or otherwise perfectly flat) cumulative log has no variance to
           explain, so the result is a ``0 / 0``, i.e. ``NaN``.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on
-          its own history, e.g. ``stability(pl.col("returns")).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`cagr`: The growth rate whose steadiness this measures.
@@ -355,17 +359,18 @@ def total_return(
         TypeError: If any input is not a ``pl.Expr``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         The result is checked against an independent reference oracle on every input, and every edge case (missing data
         and boundaries) is given a defined behavior.
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` equity is skipped; an all-null (or empty) series yields ``null`` — the result uses
           the last defined equity.
         - **NaN** — a ``NaN`` equity propagates, yielding ``NaN``.
-        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on
-          its own history, e.g. ``total_return(pl.col("equity")).over("ticker")``.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`cagr`: The annualized (per-year) form of this total growth.
@@ -436,15 +441,17 @@ def total_return_rolling(
         ValueError: If ``window < 2``.
 
     Note:
-        **Correctness:**
+        **Correctness**
+
         Each window matches an independent reference oracle (the endpoint ratio less one).
 
-        **Edge-case behavior:**
+        **Edge-case behavior**
 
         - **Null** — a ``null`` equity makes that row ``null`` (``null`` takes precedence over ``NaN``) — being an
           endpoint quantity, an interior ``null`` does not affect the result.
         - **NaN** — a ``NaN`` at either endpoint propagates, yielding ``NaN``.
-        - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries.
+        - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
+          own history.
 
     See Also:
         - :func:`total_return`: The whole-series reducing form.
