@@ -119,5 +119,12 @@ CHANDE_MOMENTUM_OSCILLATOR = Spec(
             expected=(None, None, None, -100.0, -100.0),
             reason="an all-down window (zero gain) saturates at exactly -100",
         ),
+        SpecPin(
+            label="window_one_is_move_direction",
+            inputs={"price": (1.0, 3.0, 2.0, 5.0)},
+            params_override={"window": 1},
+            expected=(None, 100.0, -100.0, 100.0),
+            reason="window=1 collapses the rolling gain/loss sums to the raw move direction: +100 up, -100 down",
+        ),
     ),
 )

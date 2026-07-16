@@ -52,11 +52,10 @@ def returns_log(
         - **Domain** — a negative price relative (the prices straddle zero) is outside the logarithm's
           strictly-positive domain, so the result is a loud ``NaN`` — except with both prices negative, where the ratio
           is positive and the log is silently finite, an economically meaningless number the caller must screen for.
-        - **Degenerate denominator** — both the price and the previous price are zero, so the result is a ``0 / 0``,
-          i.e. ``NaN`` (the logarithm then carries the ``NaN`` through).
-        - **Overflow** — a zero price relative logs to ``-inf`` and a positive price over a zero previous price logs
-          to ``+inf`` — reported, not clipped (a negative-zero ``-0.0`` previous price swaps which zero case applies
-          but does not arise from real price data).
+        - **Degenerate denominator** — both the price and the previous price zero give a ``0 / 0``, i.e. ``NaN`` (the
+          logarithm then carries the ``NaN`` through); a zero price relative logs to ``-inf`` and a positive price over
+          a zero previous price logs to ``+inf`` — reported, not clipped (a negative-zero ``-0.0`` previous price swaps
+          which zero case applies but does not arise from real price data).
         - **Non-finite input** — an ``inf`` price follows IEEE-754 through the ratio and its logarithm, where two
           consecutive same-sign infinite prices divide to ``inf / inf = NaN`` (the sign, and that indeterminate
           ``inf / inf``, included).

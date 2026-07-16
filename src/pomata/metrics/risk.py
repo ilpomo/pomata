@@ -960,10 +960,10 @@ def profit_factor(
 
         - **Null** — a ``null`` return is skipped; an all-null (or empty) series yields ``null``.
         - **NaN** — a ``NaN`` return propagates, yielding ``NaN``.
-        - **Degenerate denominator** — an all-``0`` series has zero gross gain and zero gross loss, so the result is a
-          ``0 / 0``, i.e. ``NaN``.
-        - **Overflow** — with no negative returns the total loss is zero, so the ratio is ``+inf`` — reported, not
+        - **Insufficient sample** — a single gain has no offsetting loss, so the result is ``+inf`` — reported, not
           clipped.
+        - **Degenerate denominator** — with no negative returns the total loss is zero, so the ratio is ``+inf`` (or
+          ``NaN`` when an all-``0`` series also has zero gross gain, a ``0 / 0``), reported rather than clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history, e.g. ``profit_factor(pl.col("returns")).over("ticker")``.
 
@@ -1151,8 +1151,10 @@ def skewness(
 
         - **Null** — a ``null`` return is skipped; an all-null (or empty) series yields ``null``.
         - **NaN** — a ``NaN`` return propagates, yielding ``NaN``.
-        - **Degenerate denominator** — a constant series (or a single value) has zero variance, so the standardized
-          moment is a ``0 / 0``, i.e. ``NaN``.
+        - **Insufficient sample** — a single observation has zero variance, so the standardized moment is a ``0 / 0``,
+          i.e. ``NaN``.
+        - **Degenerate denominator** — a constant series has zero variance, so the standardized moment is a ``0 / 0``,
+          i.e. ``NaN``.
         - **Stability** — on a near-constant series (relative spread far below the property tests' conditioning floor)
           the standardized moment is a rounding-dominated ``0 / 0`` where the one-pass kernel and a two-pass
           computation resolve apart; that band is excluded from the property tiers, and the value is reported as
@@ -1356,9 +1358,8 @@ def tail_ratio(
         - **Null** — a ``null`` return is skipped; an all-null (or empty) series yields ``null``.
         - **NaN** — a ``NaN`` return propagates, yielding ``NaN``.
         - **Degenerate denominator** — a constant series has equal 5th and 95th percentiles, so the ratio is ``1.0``
-          (an all-``0`` series is the ``0 / 0`` exception, yielding ``NaN``).
-        - **Overflow** — when the 5th-percentile return is exactly ``0`` against a non-zero 95th the ratio is ``+inf``
-          — reported, not clipped, following IEEE division.
+          (an all-``0`` series is the ``0 / 0`` exception, yielding ``NaN``); when the 5th-percentile return is exactly
+          ``0`` against a non-zero 95th the ratio is ``+inf`` — reported, not clipped, following IEEE division.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history, e.g. ``tail_ratio(pl.col("returns")).over("ticker")``.
 
@@ -1438,8 +1439,8 @@ def tail_ratio_rolling(
 
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
-        - **Overflow** — when a window's 5th-percentile return is exactly ``0`` against a non-zero 95th the ratio is
-          ``+inf`` (or ``NaN`` when the 95th is also ``0``) — reported, not clipped.
+        - **Degenerate denominator** — when a window's 5th-percentile return is exactly ``0`` against a non-zero 95th
+          the ratio is ``+inf`` (or ``NaN`` when the 95th is also ``0``) — reported, not clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` so the window never spans series boundaries.
 
     See Also:
@@ -2165,8 +2166,8 @@ def win_rate(
 
         - **Null** — a ``null`` return is skipped; an all-null (or empty) series yields ``null``.
         - **NaN** — a ``NaN`` return propagates, yielding ``NaN``.
-        - **Insufficient sample** — a series with no decisive (non-zero) returns has an empty denominator, so the
-          result is ``null``.
+        - **Degenerate denominator** — a series with no decisive (non-zero) returns — an all-``0`` series, say — has an
+          empty denominator, so the result is ``null``.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history, e.g. ``win_rate(pl.col("returns")).over("ticker")``.
 
