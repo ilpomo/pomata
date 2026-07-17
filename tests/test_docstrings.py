@@ -17,7 +17,7 @@ import ast
 import inspect
 import operator
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from types import ModuleType
 
 import polars as pl
@@ -32,6 +32,7 @@ from tests.support.edge_classes import (
     degenerate_witness_kinds,
     expected_bullet,
     required_classes,
+    scenario_witnesses,
 )
 from tests.support.talib_coverage import DOCUMENTED_DIVERGENCES
 
@@ -305,6 +306,158 @@ def test_examples_open_with_the_canonical_imports(name: str) -> None:
         )
     else:
         assert header == ["import polars as pl", expected_self], f"{name}: header {header}"
+
+
+# --- the Examples edge scenarios: every demanded witness demonstrated, in the canonical shape -----------------
+
+# A demanded scenario whose executed block is byte-identical to one already shown for an earlier class of the same
+# function (a single-row window-one witness is its own insufficient-sample witness): the duplicate block is not
+# repeated under a second heading, so the class stays documented in the Note without its own Examples witness.
+# Shrink-only: an entry whose class heading appears anyway fails the sweep loudly.
+_MERGED_SCENARIOS: frozenset[tuple[str, str, str]] = frozenset(
+    {
+        ("common_sense_ratio", "Degenerate denominator", "single_row_all_loss"),
+        ("dema", "window == 1", "single_row_window_one"),
+        ("fisher_transform", "window == 1", "window_one_single_row_is_flat_nan"),
+        ("roc", "window == 1", "single_row_window_one"),
+        ("sma", "window == 1", "single_row_window_one_identity"),
+        ("trima", "window == 1", "single_row_window_one_identity"),
+        ("vwma", "window == 1", "single_row_window_one_identity"),
+        ("williams_r", "window == 1", "single_row_window_one"),
+    }
+)
+
+_SCENARIO_INTRO = re.compile(
+    r"^    \*\*(Domain|Insufficient sample|Degenerate denominator|Non-finite input|window == 1)\*\* — ",
+    re.MULTILINE,
+)
+
+# The token each asserted outcome kind must show in a scenario's printed output line. The ``zero`` pattern matches
+# an exact ``0.0`` / ``-0.0`` lane without matching the digits of an ordinary value such as ``10.0`` or ``0.01``.
+_KIND_TOKENS: dict[str, str] = {
+    "null": r"None",
+    "nan": r"nan",
+    "inf": r"inf",
+    "zero": r"(?<![\d.])-?0\.0(?![\d])",
+}
+
+
+def _examples_text(name: str) -> str:
+    """The Examples section body, indented as ``inspect.getdoc`` yields it."""
+    return _doc(name).split("\nExamples:\n", 1)[1]
+
+
+def _scenario_segments(name: str) -> list[tuple[str, str]]:
+    """Each bold-labeled edge scenario as ``(class label, segment text)``, in order of appearance."""
+    text = _examples_text(name)
+    matches = list(_SCENARIO_INTRO.finditer(text))
+    segments: list[tuple[str, str]] = []
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        segments.append((match.group(1), text[match.start() : end]))
+    return segments
+
+
+@pytest.mark.parametrize("name", _NAMES)
+def test_examples_demonstrate_every_asserted_outcome(name: str) -> None:
+    """Each edge scenario the spec demands is shown, labeled, in taxonomy order, with its outcome printed."""
+    demanded = [
+        (edge_class, label, kinds)
+        for edge_class, label, kinds in scenario_witnesses(_SPECS[name])
+        if (name, edge_class.value, label) not in _MERGED_SCENARIOS
+    ]
+    merged_labels = {
+        edge_value
+        for spec_name, edge_value, _ in _MERGED_SCENARIOS
+        if spec_name == name and not any(entry[0].value == edge_value for entry in demanded)
+    }
+    segments = _scenario_segments(name)
+    shown = [label for label, _ in segments]
+    assert shown == [edge_class.value for edge_class, _, _ in demanded], (
+        f"{name}: scenario labels {shown} != demanded {[entry[0].value for entry in demanded]}"
+    )
+    assert not (merged_labels & set(shown)), f"{name}: a merged scenario exists anyway — shrink _MERGED_SCENARIOS"
+    for (edge_class, label, kinds), (_, segment) in zip(demanded, segments, strict=True):
+        output = segment.strip().splitlines()[-1]
+        for kind in kinds:
+            assert re.search(_KIND_TOKENS[kind], output), (
+                f"{name}: the {edge_class.value} scenario ({label}) prints {output!r}, not the asserted {kind}"
+            )
+
+
+@pytest.mark.parametrize("name", _NAMES)
+def test_examples_carry_no_alias(name: str) -> None:
+    """Example expressions land through kwarg aliasing, never ``.alias(...)``."""
+    assert ".alias(" not in _examples_text(name), f"{name}: .alias( in Examples — use the kwarg form"
+
+
+def _example_statements(name: str) -> list[str]:
+    """The Examples block's doctest statements, continuation lines joined."""
+    statements: list[str] = []
+    for line in _examples_text(name).splitlines():
+        stripped = line.strip()
+        if stripped.startswith(">>> "):
+            statements.append(stripped[4:])
+        elif stripped.startswith("... ") and statements:
+            statements[-1] += "\n" + stripped[4:]
+    return statements
+
+
+def _landing_kwargs(tree: ast.AST) -> Iterator[str]:
+    """Every kwarg name a ``select`` / ``with_columns`` call lands on a frame — module-level ``pl.select(...)``
+    synthesizes an input column and is not a landing site.
+    """
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr in {"select", "with_columns"}
+            and not (isinstance(node.func.value, ast.Name) and node.func.value.id == "pl")
+        ):
+            for keyword in node.keywords:
+                if keyword.arg is not None:
+                    yield keyword.arg
+
+
+@pytest.mark.parametrize("name", _NAMES)
+def test_example_output_columns_follow_the_naming_rule(name: str) -> None:
+    """A landed column is named after the function (or its import alias) or after a declared struct field."""
+    spec = _SPECS[name]
+    allowed = {name, *spec.fields}
+    for statement in _examples_import_header(name):
+        if statement.startswith("from ") and " as " in statement:
+            allowed.add(statement.rsplit(" as ", 1)[1])
+    for statement in _example_statements(name):
+        for kwarg in _landing_kwargs(ast.parse(statement)):
+            assert kwarg in allowed, f"{name}: an example lands column {kwarg!r}; allowed: {sorted(allowed)}"
+
+
+@pytest.mark.parametrize("name", _NAMES)
+def test_example_frames_expand_multikey_dicts(name: str) -> None:
+    """A multi-key ``pl.DataFrame`` literal spans one key per line; a single-key literal stays inline."""
+    for statement in _example_statements(name):
+        for node in ast.walk(ast.parse(statement)):
+            if not (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and node.func.attr == "DataFrame"
+                and node.args
+                and isinstance(node.args[0], ast.Dict)
+            ):
+                continue
+            literal = node.args[0]
+            key_lines = [key.lineno for key in literal.keys if key is not None]
+            if len(key_lines) > 1:
+                assert len(set(key_lines)) == len(key_lines), (
+                    f"{name}: a multi-key frame literal shares a line between keys — one key per line"
+                )
+            elif node.lineno != node.end_lineno:
+                # a single-key frame call may only wrap when its inline form cannot fit the docstring line budget
+                # (8-space body indent + the ">>> " prompt + the statement itself within 120 columns)
+                inline = f"frame = pl.DataFrame({ast.unparse(literal)})"
+                assert len(inline) > 120 - 8 - 4, (
+                    f"{name}: a single-key frame call spans multiple lines but fits inline — keep it on one line"
+                )
 
 
 # --- the source-form conventions: the factory body and its docstring literal, swept from the same registry ---
