@@ -113,13 +113,12 @@ source = ["pomata"]
 [tool.hatch.build.targets.sdist]
 # Explicit allowlist: the source distribution ships only the project files needed to build, test, and verify from
 # source -- no local working notes, IDE settings, or caches. The docs sources and CONTRIBUTING.md ride along because
-# the shipped test suite reads them (test_docs_surface.py, test_versions.py); CORRECTNESS.md ships as the correctness
-# method of record the docs and the oracle docstrings point to; hatchling respects .gitignore, so a
+# the shipped test suite reads them (test_docs_surface.py, test_versions.py); the correctness method of record ships
+# inside them (docs/correctness.md and tests/README.md); hatchling respects .gitignore, so a
 # local docs/_build never ships. (hatchling always additionally vendors a few of its own metadata files, including
 # the repo .gitignore, which an allowlist cannot exclude.)
 include = [
     "/CONTRIBUTING.md",
-    "/CORRECTNESS.md",
     "/LICENSE",
     "/README.md",
     "/docs",
