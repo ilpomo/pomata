@@ -24,7 +24,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import cast
 
-from tests.support.spec import Spec
+from tests.support.spec import Spec, SpecPin
 
 from pomata._policy import POLICIES, NanPolicy, NullPolicy
 
@@ -42,6 +42,7 @@ __all__ = (
     "expected_bullet",
     "outcome_clause",
     "required_classes",
+    "scenario_witnesses",
 )
 
 
@@ -559,6 +560,76 @@ def degenerate_witness_kinds(spec: Spec) -> set[str]:
         if _matches(pin.label, EdgeClass.DEGENERATE_DENOMINATOR):
             kinds |= _pin_kinds(pin.expected)
     return kinds
+
+
+# The classes whose activation demands a demonstration scenario in the Examples block: Null, NaN, and Partitioning
+# ride the three canonical usage scenarios every function opens with, and Stability states a precision regime with
+# no byte-exact outcome a doctest could print.
+_SCENARIO_CLASSES: tuple[EdgeClass, ...] = (
+    EdgeClass.DOMAIN,
+    EdgeClass.INSUFFICIENT_SAMPLE,
+    EdgeClass.DEGENERATE_DENOMINATOR,
+    EdgeClass.NON_FINITE_INPUT,
+    EdgeClass.WINDOW_ONE,
+)
+
+# The fixed order the Degenerate-denominator kind collapse walks, so the demanded scenario sequence is deterministic.
+_DEGENERATE_KIND_ORDER: tuple[str, ...] = ("null", "nan", "inf", "zero")
+
+
+def _class_witnesses(spec: Spec, edge_class: EdgeClass) -> list[SpecPin]:
+    """The pins that witness ``edge_class`` for an Examples demonstration, in spec order — the ``_pin_classes``
+    triage with the domain-marked pins reserved to the Domain class.
+    """
+    witnesses: list[SpecPin] = []
+    for pin in spec.pins:
+        if _has_inf(pin.inputs):
+            if edge_class is EdgeClass.NON_FINITE_INPUT:
+                witnesses.append(pin)
+            continue
+        if edge_class is EdgeClass.WINDOW_ONE and _matches(pin.label, EdgeClass.WINDOW_ONE):
+            witnesses.append(pin)
+            continue
+        if edge_class is EdgeClass.DOMAIN:
+            if _degenerate_outcome(pin.expected) and _matches(pin.label, EdgeClass.DOMAIN):
+                witnesses.append(pin)
+            continue
+        if _matches(pin.label, EdgeClass.DOMAIN):
+            continue
+        if edge_class is EdgeClass.INSUFFICIENT_SAMPLE and _matches(pin.label, EdgeClass.INSUFFICIENT_SAMPLE):
+            witnesses.append(pin)
+        if edge_class is EdgeClass.DEGENERATE_DENOMINATOR and _matches(pin.label, EdgeClass.DEGENERATE_DENOMINATOR):
+            witnesses.append(pin)
+    return witnesses
+
+
+def scenario_witnesses(spec: Spec) -> tuple[tuple[EdgeClass, str, frozenset[str]], ...]:
+    """
+    The ordered edge scenarios ``spec`` demands of its Examples block, as ``(class, pin label, outcome kinds)``:
+    for each conditional class the spec's pins activate, one demonstration per witnessing pin — collapsed, for the
+    Degenerate-denominator class, to one scenario per distinct witnessed outcome kind (``null`` / ``nan`` / ``inf``
+    / ``zero``), each carried by the first pin in spec order that shows it. A required class none of whose
+    witnesses shows a degenerate outcome (the parametric VaR's mean collapse) demands one scenario from its first
+    witness, with no asserted kind.
+    """
+    active = set(required_classes(spec))
+    demanded: list[tuple[EdgeClass, str, frozenset[str]]] = []
+    for edge_class in _SCENARIO_CLASSES:
+        if edge_class not in active:
+            continue
+        pins = _class_witnesses(spec, edge_class)
+        if edge_class is EdgeClass.DEGENERATE_DENOMINATOR:
+            seen: set[str] = set()
+            for pin in pins:
+                new = [kind for kind in _DEGENERATE_KIND_ORDER if kind in _pin_kinds(pin.expected) - seen]
+                if new:
+                    seen.update(new)
+                    demanded.append((edge_class, pin.label, frozenset(new)))
+            if not seen and pins:
+                demanded.append((edge_class, pins[0].label, frozenset()))
+        elif pins:
+            demanded.append((edge_class, pins[0].label, frozenset()))
+    return tuple(demanded)
 
 
 # The two canonical Partitioning sentences: a function with cross-row memory (a window, a recurrence, a shift, a
