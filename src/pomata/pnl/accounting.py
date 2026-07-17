@@ -154,7 +154,7 @@ def dividend(
         - **Null** — a ``null`` quantity makes that row ``null`` (``null`` takes precedence over ``NaN``).
         - **NaN** — a ``NaN`` quantity yields ``NaN`` for that row.
         - **Non-finite input** — an ``inf`` quantity follows IEEE-754 through the arithmetic, so the flow signs with
-          ``quantity * dividend_per_share`` (the sign, and any ``inf - inf = NaN``, included).
+          ``quantity * dividend_per_share`` (the sign included).
         - **Partitioning** — already correct on a multi-series panel: ``.over(...)`` partitions identically and is
           therefore optional here.
 
@@ -268,7 +268,7 @@ def equity_curve(
         - **NaN** — a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null
           position.
         - **Non-finite input** — an ``inf`` return follows IEEE-754 through the arithmetic, where a later opposite-sign
-          infinite factor flips the running product's sign (the sign, and any ``inf - inf = NaN``, included).
+          infinite factor flips the running product's sign (the sign included).
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -775,7 +775,7 @@ def returns_gross(
         - **Null** — a ``null`` weight makes that row ``null`` (``null`` takes precedence over ``NaN``).
         - **NaN** — a ``NaN`` weight yields ``NaN`` for that row.
         - **Non-finite input** — an ``inf`` weight follows IEEE-754 through the arithmetic, so the return signs with
-          ``weight * asset_returns`` (the sign, and any ``inf - inf = NaN``, included).
+          ``weight * asset_returns`` (the sign included).
         - **Partitioning** — already correct on a multi-series panel: ``.over(...)`` partitions identically and is
           therefore optional here.
 
