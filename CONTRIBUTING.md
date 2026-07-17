@@ -39,7 +39,7 @@ uv run sphinx-build -W -b html docs docs/_build/html                           #
 uv run sphinx-build -b doctest docs docs/_build/doctest                        # docs-page doctests (gates every PR)
 ```
 
-CI additionally runs `uv run ty check` as an advisory (non-gating) type check.
+CI additionally runs `uv run ty check --error-on-warning` as an advisory (non-gating) type check.
 
 Optionally, install the pre-commit hooks — they mirror the lint/format gate and keep `uv.lock` in sync:
 
@@ -82,7 +82,8 @@ conventional-commit subject.
 
 Every pull request carries exactly one **type** label mirroring its conventional-commit title prefix 1:1 (`feat`,
 `fix`, `perf`, `docs`, `refactor`, `style`, `test`, `build`, `ci`, `chore` — plus `breaking` whenever the title
-carries `!`), enforced fail-closed by `.github/workflows/labels.yml`; the **area** labels (`indicators` / `metrics` /
+carries `!` or the body carries a `**BREAKING**` / `BREAKING CHANGE` marker), enforced fail-closed by
+`.github/workflows/labels.yml`; the **area** labels (`indicators` / `metrics` /
 `pnl`) mirror the title scope and are triage-only. Releases use GitHub's native release notes: tag a SemVer version
 and **Generate release notes**, which `.github/release.yml` groups by those type labels — breaking changes first,
 Dependabot under `dependencies`. The tag is the single source of the version (`hatch-vcs` stamps the package from

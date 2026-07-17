@@ -394,12 +394,11 @@ OUTCOME_CANON: Mapping[EdgeClass, tuple[str, ...]] = {
         "the result is a ``0 / 0``, i.e. ``NaN`` — a non-zero numerator over the zero range is ``+/-inf``.",
     ),
     EdgeClass.NON_FINITE_INPUT: (
-        "an ``inf`` quantity follows IEEE-754 through the arithmetic, where the short-only clip frees an infinite "
-        "long (``0``) and an infinite short notional charges an ``inf`` fee.",
+        "a flat or long bar at an infinite ``price`` is ``0 * inf``, i.e. ``NaN``.",
+        "a flat bar at an infinite ``price`` is ``0 * inf``, i.e. ``NaN``.",
+        "a held bar at an infinite ``price`` is ``0 * inf``, i.e. ``NaN``.",
         "an ``inf`` quantity follows IEEE-754 through the arithmetic of the turnover difference, whose ``inf`` marks "
         "a trade and charges the flat ``fee``.",
-        "an ``inf`` quantity follows IEEE-754 through the arithmetic, the signed triple product ``quantity * price * "
-        "funding_rate``.",
         "an ``inf`` quantity follows IEEE-754 through the arithmetic of the turnover difference, an infinite move "
         "charging an ``inf`` cost.",
         "an ``inf`` weight follows IEEE-754 through the arithmetic of the turnover difference, an infinite move "

@@ -28,7 +28,13 @@ the return and equity series that `metrics` consumes.
 Signal, PnL, and metrics are all plain `pl.Expr`, so an entire study is a single Polars pipeline — no glue code, no
 DataFrame ping-pong, no second dependency between the steps:
 
-```python
+```{testsetup}
+import polars as pl
+
+ohlcv = pl.read_parquet("docs/_static/ohlcv_sample.parquet").filter(pl.col("ticker") == "AAPL")
+```
+
+```{testcode}
 import polars as pl
 from pomata.indicators import rsi
 from pomata.pnl import returns_simple, returns_gross, returns_net, cost_proportional, equity_curve

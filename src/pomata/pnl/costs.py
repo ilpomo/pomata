@@ -69,8 +69,8 @@ def cost_borrow(
         - **Null** — a ``null`` quantity makes that row ``null`` (``null`` takes precedence over ``NaN``).
         - **NaN** — a ``NaN`` quantity yields ``NaN`` for that row.
         - **Non-finite input** — an ``inf`` quantity follows IEEE-754 through the arithmetic, where the short-only clip
-          frees an infinite long (``0``) and an infinite short notional charges an ``inf`` fee (the sign, and any
-          ``inf - inf = NaN``, included).
+          frees an infinite long (``0``) and an infinite short notional charges an ``inf`` fee; a flat or long bar at
+          an infinite ``price`` is ``0 * inf``, i.e. ``NaN`` (the sign included).
         - **Partitioning** — already correct on a multi-series panel: ``.over(...)`` partitions identically and is
           therefore optional here.
 
@@ -304,7 +304,8 @@ def cost_funding(
         - **Null** — a ``null`` quantity makes that row ``null`` (``null`` takes precedence over ``NaN``).
         - **NaN** — a ``NaN`` quantity yields ``NaN`` for that row.
         - **Non-finite input** — an ``inf`` quantity follows IEEE-754 through the arithmetic, the signed triple product
-          ``quantity * price * funding_rate`` (the sign, and any ``inf - inf = NaN``, included).
+          ``quantity * price * funding_rate``; a flat bar at an infinite ``price`` is ``0 * inf``, i.e. ``NaN`` (the
+          sign included).
         - **Partitioning** — already correct on a multi-series panel: ``.over(...)`` partitions identically and is
           therefore optional here.
 
@@ -433,7 +434,8 @@ def cost_notional(
         - **Null** — a ``null`` quantity makes that row ``null`` (``null`` takes precedence over ``NaN``).
         - **NaN** — a ``NaN`` quantity yields ``NaN`` for that row.
         - **Non-finite input** — an ``inf`` quantity follows IEEE-754 through the arithmetic of the turnover
-          difference, an infinite move charging an ``inf`` cost (the sign, and any ``inf - inf = NaN``, included).
+          difference, an infinite move charging an ``inf`` cost; a held bar at an infinite ``price`` is ``0 * inf``,
+          i.e. ``NaN`` (the sign, and any ``inf - inf = NaN``, included).
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
