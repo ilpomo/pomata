@@ -48,7 +48,7 @@ def regenerate() -> int:
             import_lines.append(f"from tests.indicators.oracles.{module} import (\n{wrapped}\n)")
     imports = "\n".join(import_lines)
     exports = "\n".join(f'    "{function}",' for function in sorted(function for _, function in entries))
-    init.write_text(preamble + "\n" + imports + "\n\n__all__ = (\n" + exports + "\n)\n")
+    init.write_text(preamble + "\n" + imports + "\n\n__all__ = (\n" + exports + "\n)\n", encoding="utf-8")
     return len(entries)
 
 

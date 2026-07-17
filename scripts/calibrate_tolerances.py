@@ -7,7 +7,7 @@ Run from the repo root::
 
 For a representative set of well-conditioned indicators, this draws many random price-like series across several seeds,
 runs each indicator against its independent reference oracle, and reports the worst realized *relative* residual on the
-defined outputs -- the measurement behind CORRECTNESS.md's claim that the agreement sits comfortably inside the 1e-10
+defined outputs -- the measurement behind docs/correctness.md's claim that the agreement sits comfortably inside the 1e-10
 guarantee. It prints a per-indicator table and the overall worst case, and exits non-zero if any well-conditioned
 residual breaches 1e-10. The oracles and indicators are the same ones the test suite uses, so the figure is recomputable
 from a clean clone rather than asserted.
@@ -39,7 +39,7 @@ from tests.indicators.oracles import (  # noqa: E402
 GUARANTEE = 1e-10
 SEEDS = (1, 7, 424242)
 DRAWS_PER_SEED = 64
-OUTPUT_FLOOR = 1e-6  # skip near-zero outputs: the relative band is ill-conditioned there (documented in CORRECTNESS.md)
+OUTPUT_FLOOR = 1e-6  # skip near-zero outputs: the relative band is ill-conditioned there (see docs/correctness.md)
 
 Indicator = Callable[[pl.Expr, int], pl.Expr]
 Oracle = Callable[[Sequence[float], int], list[float | None]]
