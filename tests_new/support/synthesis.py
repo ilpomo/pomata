@@ -13,13 +13,14 @@ deterministic and small (a handful of rows), with the distinctly-named per-role 
 import math
 from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import cast
 
 import polars as pl
 from hypothesis import strategies as st
 
 from tests_new.support.declaration import Declaration, probe_length, widest_warmup
 from tests_new.support.frames import probe_frame
-from tests_new.support.strategies import finite_floats, missing_data_floats
+from tests_new.support.strategies import apply_missing, finite_floats, missing_data_floats
 
 # A tiny extra tail past the warm-up: an interior injection at ``widest_warmup + 2`` still leaves rows to observe the
 # flow play out, while the whole frame stays within the handful-of-rows contract the pnl dialect keeps.
@@ -245,6 +246,39 @@ def _independent_frame(
     )
 
 
+# The equity-curve shape draws a positive growth path, not independent draws: a compounded series of small steps stays
+# strictly positive (a growth factor is always > 0), so a drawdown-family metric and its oracle agree on the domain they
+# are defined on, and its magnitude stays modest so an annualizing power never overflows.
+_EQUITY_STEP = st.floats(min_value=-0.1, max_value=0.1, allow_nan=False, allow_infinity=False)
+
+
+def _cumulative_growth(steps: list[float]) -> list[float]:
+    """A strictly-positive equity path: the running product of ``1 + step`` from a unit start (each step in ±0.1)."""
+    path: list[float] = []
+    level = 1.0
+    for step in steps:
+        level *= 1.0 + step
+        path.append(level)
+    return path
+
+
+def _equity_frames(length: st.SearchStrategy[int], *, missing: bool) -> st.SearchStrategy[pl.DataFrame]:
+    """Frames of one positive ``equity_curve`` column; when ``missing``, null / NaN are punched into the grown path."""
+
+    def column(n: int) -> st.SearchStrategy[list[float | None]]:
+        path = st.lists(_EQUITY_STEP, min_size=n, max_size=n).map(_cumulative_growth)
+        if not missing:
+            return cast("st.SearchStrategy[list[float | None]]", path)
+        masks = st.lists(st.sampled_from((0, 1, 2)), min_size=n, max_size=n)
+        return st.tuples(path, masks).map(
+            lambda drawn: [apply_missing(value, choice) for value, choice in zip(drawn[0], drawn[1], strict=True)]
+        )
+
+    return length.flatmap(
+        lambda n: column(n).map(lambda values: pl.DataFrame({"equity_curve": pl.Series(values, dtype=pl.Float64)}))
+    )
+
+
 def _single_input_frame(role: str, length: st.SearchStrategy[int], *, missing: bool) -> st.SearchStrategy[pl.DataFrame]:
     """A one-column frame drawn from the role's domain: modest returns, positive prices, or the general finite band."""
     if role == "returns":
@@ -275,6 +309,8 @@ def fuzz_frames(declaration: Declaration, *, missing: bool) -> st.SearchStrategy
     """
     minimum = widest_warmup(declaration) + 4
     length = st.integers(min_value=minimum, max_value=minimum + 24)
+    if declaration.inputs == ("equity_curve",):
+        return _equity_frames(length, missing=missing)
     if len(declaration.inputs) == 1:
         return _single_input_frame(declaration.inputs[0], length, missing=missing)
     if declaration.inputs in _FUZZ_SHAPES:
