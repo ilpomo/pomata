@@ -1,13 +1,15 @@
-"""Spec for ``pomata.metrics.skewness`` — reducing, the standardized third moment, scale-invariant."""
+"""Declaration for ``pomata.metrics.skewness`` — reducing, the standardized third moment, scale-invariant."""
 
 import math
 
 import polars as pl
-from tests.metrics.oracles import skewness_reference
-from tests.support import well_spread
-from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import skewness
+from tests.metrics.enums import Annualization, BehaviorNan, BehaviorNull, Degenerate
+from tests.metrics.harness import suite_metrics
+from tests.metrics.oracles import reference_skewness
+from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.strategies import well_spread
 
 
 def _well_spread(frame: pl.DataFrame) -> bool:
@@ -21,34 +23,35 @@ def _well_spread(frame: pl.DataFrame) -> bool:
     return well_spread(frame.to_series(0).to_list())
 
 
-SKEWNESS = Spec(
+SKEWNESS = suite_metrics(
     factory=skewness,
     inputs=("returns",),
     params={},
-    shape=Shape.REDUCING,
-    oracle=skewness_reference,
+    null=BehaviorNull.SKIPPED,
+    nan=BehaviorNan.POISONS,
+    annualization=Annualization.NONE,
+    degenerate=Degenerate.ZERO_DISPERSION_IS_NAN,
+    oracle=reference_skewness,
+    scaling=(ScaleAxis(roles=("returns",), degree=0),),
     conditioning=_well_spread,
-    # A standardized moment is scale-invariant, degree 0
-    scale=(ScaleAxis(roles=("returns",), degree=0),),
-    golden_input={"returns": (0.01, -0.02, 0.015, -0.03, 0.005, -0.01, 0.02)},
-    golden_output=(-0.384,),
+    golden=Golden(inputs={"returns": (0.01, -0.02, 0.015, -0.03, 0.005, -0.01, 0.02)}, output=(-0.384,)),
     pins=(
-        SpecPin(
+        Pin(
             label="single_row",
             inputs={"returns": (0.05,)},
             expected=(math.nan,),
             reason="one observation has zero variance, so the standardized third moment is 0/0, i.e. NaN ",
         ),
-        SpecPin(
+        Pin(
             label="constant_is_nan",
             inputs={"returns": (0.01, 0.01, 0.01)},
             expected=(math.nan,),
-            reason="a constant series has zero variance, so the standardized moment is 0/0, i.e. NaN — the exact "
-            "core of the near-constant regime the conditioning filter excludes from the property tiers "
-            "",
+            reason="a constant series has zero variance, so the standardized moment is 0/0, i.e. NaN — the "
+            "exact core of the near-constant regime the conditioning filter excludes from the "
+            "property tiers",
             covers_conditioning=True,
         ),
-        SpecPin(
+        Pin(
             label="subnormal_magnitude_is_nan",
             inputs={"returns": (0.0, 1e-160, 2e-160)},
             expected=(math.nan,),

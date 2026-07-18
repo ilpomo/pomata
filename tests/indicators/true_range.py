@@ -1,42 +1,49 @@
-"""Spec for ``pomata.indicators.true_range`` — Wilder's single-bar True Range, windowless, absorbing, degree-1."""
+"""
+Declaration for ``pomata.indicators.true_range`` — Wilder's single-bar True Range, windowless, absorbing, degree-1.
+"""
 
 import math
 
-from tests.indicators.oracles import true_range_reference
-from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
-
 from pomata.indicators import true_range
+from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
+from tests.indicators.harness import suite_indicators
+from tests.indicators.oracles import reference_true_range
+from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
 
-TRUE_RANGE = Spec(
+TRUE_RANGE = suite_indicators(
     factory=true_range,
     inputs=("high", "low", "close"),
     params={},
+    null=BehaviorNull.ABSORBED,
+    nan=BehaviorNan.PROPAGATES,
     shape=Shape.SERIES,
-    warmup=None,
-    oracle=true_range_reference,
-    # The bar's range, homogeneous of degree 1.
-    scale=(ScaleAxis(roles=("high", "low", "close"), degree=1),),
-    golden_input={
-        "high": (10.0, 12.0, 11.5, 13.0, 12.5),
-        "low": (9.0, 10.5, 10.0, 11.0, 11.5),
-        "close": (9.5, 11.0, 10.5, 12.5, 12.0),
-    },
-    golden_output=(1.0, 2.5, 1.5, 2.5, 1.0),
+    warmup=Warmup.NONE,
+    oracle=reference_true_range,
+    scaling=(ScaleAxis(roles=("high", "low", "close"), degree=1),),
+    talib=RelationTalib.MATCHES,
+    golden=Golden(
+        inputs={
+            "high": (10.0, 12.0, 11.5, 13.0, 12.5),
+            "low": (9.0, 10.5, 10.0, 11.0, 11.5),
+            "close": (9.5, 11.0, 10.5, 12.5, 12.0),
+        },
+        output=(1.0, 2.5, 1.5, 2.5, 1.0),
+    ),
     pins=(
-        SpecPin(
+        Pin(
             label="null_high_drops_its_candidates",
             inputs={"high": (10.0, None, 11.0), "low": (9.0, 10.5, 10.0), "close": (9.5, 11.0, 10.5)},
             expected=(1.0, 1.0, 1.0),
             reason="a null high drops the two candidate terms it appears in, so the row resolves from the survivor "
             "|low - prev_close|",
         ),
-        SpecPin(
+        Pin(
             label="null_previous_close_falls_back_to_range",
             inputs={"high": (10.0, 12.0, 11.0, 13.0), "low": (9.0, 10.5, 10.0, 11.0), "close": (9.5, None, 10.5, 12.0)},
             expected=(1.0, 2.5, 1.0, 2.5),
             reason="a null previous close drops the two gap terms and the row falls back to high - low",
         ),
-        SpecPin(
+        Pin(
             label="nan_close_poisons_next_row_only",
             inputs={
                 "high": (10.0, 12.0, 11.0, 13.0),
@@ -47,7 +54,7 @@ TRUE_RANGE = Spec(
             reason="a NaN close is finite at its own row (high - low) but poisons the next row's gap terms to NaN, "
             "then recovers",
         ),
-        SpecPin(
+        Pin(
             label="high_equals_low_gap_terms_drive_range",
             inputs={"high": (10.0, 10.0, 10.0), "low": (10.0, 10.0, 10.0), "close": (10.0, 8.0, 12.0)},
             expected=(0.0, 0.0, 2.0),

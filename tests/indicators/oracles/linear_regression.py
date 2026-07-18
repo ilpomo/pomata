@@ -5,18 +5,18 @@ Naive reference oracle for ``pomata.indicators.linear_regression``.
 import math
 from collections.abc import Sequence
 
-from tests.indicators.oracles.linear_regression_slope import linear_regression_slope_reference
-from tests.indicators.oracles.sma import sma_reference
+from tests.indicators.oracles.linear_regression_slope import reference_linear_regression_slope
+from tests.indicators.oracles.sma import reference_sma
 
 
-def linear_regression_reference(
+def reference_linear_regression(
     expr: Sequence[float | None],
     window: int,
 ) -> list[float | None]:
     """
     Naive Linear Regression endpoint over a Python list.
 
-    The window mean (:func:`sma_reference`) plus ``slope * (window - 1) / 2`` (the fitted line at the most recent bar),
+    The window mean (:func:`reference_sma`) plus ``slope * (window - 1) / 2`` (the fitted line at the most recent bar),
     recomputed as the oracle for :func:`pomata.indicators.linear_regression`.
 
     Args:
@@ -31,8 +31,8 @@ def linear_regression_reference(
     """
     if window < 2:
         raise ValueError(f"window must be >= 2, got {window}")
-    mean = sma_reference(expr, window)
-    slope = linear_regression_slope_reference(expr, window)
+    mean = reference_sma(expr, window)
+    slope = reference_linear_regression_slope(expr, window)
     results: list[float | None] = []
     for mean_value, slope_value in zip(mean, slope, strict=True):
         if mean_value is None or slope_value is None:

@@ -14,10 +14,17 @@ import math
 
 import polars as pl
 import pytest
-from tests.indicators.oracles import atr_reference, ema_reference, macd_reference, rsi_reference, sma_reference
-from tests.support import RELATIVE_TOLERANCE_REFERENCE, assert_matches
 
 from pomata.indicators import atr, ema, macd, rsi, sma
+from tests.indicators.oracles import (
+    reference_atr,
+    reference_ema,
+    reference_macd,
+    reference_rsi,
+    reference_sma,
+)
+from tests.support.compare import assert_matches
+from tests.support.tolerances import TOLERANCE_RELATIVE_REFERENCE
 
 N = 400
 CLOSE = [100.0 + 10.0 * math.sin(i / 9.0) + 4.0 * math.cos(i / 23.0) + 0.03 * i for i in range(N)]
@@ -47,11 +54,11 @@ _POMATA: dict[str, float] = {
     "macd(12,26,9)": _pomata_last(_MACD_LINE),
 }
 _ORACLE: dict[str, float] = {
-    "sma(20)": _last(sma_reference(CLOSE, 20)),
-    "ema(20)": _last(ema_reference(CLOSE, 20)),
-    "rsi(14)": _last(rsi_reference(CLOSE, 14)),
-    "atr(14)": _last(atr_reference(HIGH, LOW, CLOSE, 14)),
-    "macd(12,26,9)": _last(macd_reference(CLOSE, 12, 26, 9)["macd"]),
+    "sma(20)": _last(reference_sma(CLOSE, 20)),
+    "ema(20)": _last(reference_ema(CLOSE, 20)),
+    "rsi(14)": _last(reference_rsi(CLOSE, 14)),
+    "atr(14)": _last(reference_atr(HIGH, LOW, CLOSE, 14)),
+    "macd(12,26,9)": _last(reference_macd(CLOSE, 12, 26, 9)["macd"]),
 }
 # The ``pomata`` column published in ``docs/correctness.md``, frozen so any indicator (or table) change fails the suite.
 _PUBLISHED: dict[str, float] = {
@@ -74,14 +81,14 @@ class TestPrecisionTable:
         Verifies the indicator's final value still equals the figure published in the ``docs/correctness.md`` precision
         table.
         """
-        assert_matches([_POMATA[name]], [_PUBLISHED[name]], rel_tol=RELATIVE_TOLERANCE_REFERENCE)
+        assert_matches([_POMATA[name]], [_PUBLISHED[name]], rel_tol=TOLERANCE_RELATIVE_REFERENCE)
 
     @pytest.mark.parametrize("name", list(_PUBLISHED))
     def test_matches_reference_oracle(self, name: str) -> None:
         """
         Verifies the indicator agrees with the independent reference oracle on the series, to the precision promise.
         """
-        assert_matches([_POMATA[name]], [_ORACLE[name]], rel_tol=RELATIVE_TOLERANCE_REFERENCE)
+        assert_matches([_POMATA[name]], [_ORACLE[name]], rel_tol=TOLERANCE_RELATIVE_REFERENCE)
 
 
 def residual_cell(actual: float, expected: float) -> str:

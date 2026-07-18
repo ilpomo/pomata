@@ -5,10 +5,10 @@ Naive reference oracle for ``pomata.indicators.absolute_price_oscillator``.
 import math
 from collections.abc import Sequence
 
-from tests.indicators.oracles.ema import ema_reference
+from tests.indicators.oracles.ema import reference_ema
 
 
-def absolute_price_oscillator_reference(
+def reference_absolute_price_oscillator(
     close: Sequence[float | None],
     window_fast: int,
     window_slow: int,
@@ -16,7 +16,7 @@ def absolute_price_oscillator_reference(
     """
     Naive Absolute Price Oscillator over a Python list.
 
-    The difference of a fast and a slow exponential moving average (:func:`ema_reference`), recomputed from scratch as
+    The difference of a fast and a slow exponential moving average (:func:`reference_ema`), recomputed from scratch as
     the oracle for :func:`pomata.indicators.absolute_price_oscillator`.
 
     Args:
@@ -32,8 +32,8 @@ def absolute_price_oscillator_reference(
     """
     if window_fast < 1 or window_slow < 1:
         raise ValueError(f"window_fast and window_slow must be >= 1, got {window_fast} and {window_slow}")
-    fast = ema_reference(close, window_fast)
-    slow = ema_reference(close, window_slow)
+    fast = reference_ema(close, window_fast)
+    slow = reference_ema(close, window_slow)
     results: list[float | None] = []
     for fast_value, slow_value in zip(fast, slow, strict=True):
         if fast_value is None or slow_value is None:

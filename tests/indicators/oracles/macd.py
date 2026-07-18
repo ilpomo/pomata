@@ -5,7 +5,7 @@ Naive reference oracle for ``pomata.indicators.macd``.
 import math
 from collections.abc import Sequence
 
-from tests.indicators.oracles.ema import ema_reference
+from tests.indicators.oracles.ema import reference_ema
 
 
 def difference(
@@ -26,7 +26,7 @@ def difference(
     return result
 
 
-def macd_reference(
+def reference_macd(
     close: Sequence[float | None],
     window_fast: int = 12,
     window_slow: int = 26,
@@ -35,7 +35,7 @@ def macd_reference(
     """
     Naive MACD over a Python list.
 
-    The fast-minus-slow :func:`ema_reference` gap (the MACD line), its further EMA (the signal line), and their
+    The fast-minus-slow :func:`reference_ema` gap (the MACD line), its further EMA (the signal line), and their
     difference (the histogram), recomputed from scratch as the oracle for :func:`pomata.indicators.macd`.
 
     Args:
@@ -56,9 +56,9 @@ def macd_reference(
             f"window_fast, window_slow, and window_signal must be >= 1, "
             f"got {window_fast}, {window_slow}, and {window_signal}"
         )
-    ema_fast = ema_reference(close, window_fast)
-    ema_slow = ema_reference(close, window_slow)
+    ema_fast = reference_ema(close, window_fast)
+    ema_slow = reference_ema(close, window_slow)
     macd_line = difference(ema_fast, ema_slow)
-    signal = ema_reference(macd_line, window_signal)
+    signal = reference_ema(macd_line, window_signal)
     histogram = difference(macd_line, signal)
     return {"macd": macd_line, "signal": signal, "histogram": histogram}

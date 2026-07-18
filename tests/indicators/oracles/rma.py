@@ -4,10 +4,10 @@ Naive reference oracle for ``pomata.indicators.rma``.
 
 from collections.abc import Sequence
 
-from tests.indicators.oracles._helpers import seeded_recursive_mean_reference
+from tests.indicators.oracles._helpers import reference_seeded_recursive_mean
 
 
-def rma_reference(
+def reference_rma(
     expr: Sequence[float | None],
     window: int,
 ) -> list[float | None]:
@@ -16,7 +16,7 @@ def rma_reference(
 
     Wilder's recursive moving average (``alpha = 1 / window``, unadjusted), recomputed as the oracle for
     :func:`pomata.indicators.rma`. The recurrence is seeded with the simple average of the first ``window``
-    observations -- Wilder's canonical initialization -- through the common :func:`seeded_recursive_mean_reference`
+    observations -- Wilder's canonical initialization -- through the common :func:`reference_seeded_recursive_mean`
     engine, where the null/NaN and warm-up contract is made precise.
 
     Args:
@@ -45,4 +45,4 @@ def rma_reference(
         raise ValueError(f"window must be >= 1, got {window}")
     if window == 1:
         return list(expr)
-    return seeded_recursive_mean_reference(expr, 1.0 / window, window)
+    return reference_seeded_recursive_mean(expr, 1.0 / window, window)

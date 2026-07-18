@@ -1,34 +1,42 @@
-"""Spec for ``pomata.indicators.hma`` — Hull's lag-reduced weighted mean, window-nulling, degree-1 homogeneous."""
-
-from tests.indicators.oracles import hma_reference
-from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
+"""
+Declaration for ``pomata.indicators.hma`` — Hull's lag-reduced weighted mean, window-nulling, degree-1 homogeneous.
+"""
 
 from pomata.indicators import hma
+from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
+from tests.indicators.harness import suite_indicators
+from tests.indicators.oracles import reference_hma
+from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
 
-HMA = Spec(
+HMA = suite_indicators(
     factory=hma,
     inputs=("expr",),
     params={"window": 4},
+    null=BehaviorNull.IN_WINDOW_IS_NULL,
+    nan=BehaviorNan.PROPAGATES,
     shape=Shape.SERIES,
-    warmup=4,
+    warmup=Warmup.WINDOW,
+    oracle=reference_hma,
+    scaling=(ScaleAxis(roles=("expr",), degree=1),),
+    talib=RelationTalib.NO_EQUIVALENT,
+    talib_reason="TA-Lib has no Hull moving average.",
     raises=(
         ({"window": 1}, r"window must be >= 2"),
         ({"window": 0}, r"window must be >= 2"),
     ),
-    oracle=hma_reference,
-    # A linear combination of WMAs scales linearly with the series.
-    scale=(ScaleAxis(roles=("expr",), degree=1),),
-    golden_input={"expr": (1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0)},
-    golden_output=(None, None, None, None, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0),
+    golden=Golden(
+        inputs={"expr": (1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0)},
+        output=(None, None, None, None, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0),
+    ),
     pins=(
-        SpecPin(
+        Pin(
             label="golden_master_overshoot",
             inputs={"expr": (1.0, 1.0, 1.0, 10.0, 10.0, 10.0, 10.0, 10.0)},
             expected=(None, None, None, None, 11.599999999999998, 11.5, 10.299999999999999, 10.0),
             reason="the lag correction 2*WMA(x,half) - WMA(x,window) over- and under-shoots the input range before the "
             "final smoothing settles",
         ),
-        SpecPin(
+        Pin(
             label="golden_master_round_half_up",
             inputs={"expr": (1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0)},
             expected=(

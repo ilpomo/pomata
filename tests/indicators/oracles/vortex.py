@@ -5,7 +5,7 @@ Naive reference oracle for ``pomata.indicators.vortex``.
 import math
 from collections.abc import Sequence
 
-from tests.indicators.oracles.true_range import true_range_reference
+from tests.indicators.oracles.true_range import reference_true_range
 
 
 def _lagged_abs_diff(current: Sequence[float | None], previous: Sequence[float | None]) -> list[float | None]:
@@ -59,7 +59,7 @@ def _divide(numerator: float | None, denominator: float | None) -> float | None:
     return numerator / denominator
 
 
-def vortex_reference(
+def reference_vortex(
     high: Sequence[float | None],
     low: Sequence[float | None],
     close: Sequence[float | None],
@@ -69,7 +69,7 @@ def vortex_reference(
     Naive Vortex Indicator over aligned Python lists.
 
     The summed positive (``|high_t - low_{t-1}|``) and negative (``|low_t - high_{t-1}|``) vortex movements over the
-    summed :func:`true_range_reference`, recomputed from scratch as the oracle for :func:`pomata.indicators.vortex`. The
+    summed :func:`reference_true_range`, recomputed from scratch as the oracle for :func:`pomata.indicators.vortex`. The
     rolling sums match Polars (the warm-up and any window holding a ``None`` yields ``None``, any holding a ``nan``
     yields ``nan``), and each ratio follows IEEE (``0 / 0`` is ``nan``).
 
@@ -90,7 +90,7 @@ def vortex_reference(
         raise ValueError(f"window must be >= 1, got {window}")
     if not high:
         return {"plus": [], "minus": []}
-    range_sum = _rolling_sum(true_range_reference(high, low, close), window)
+    range_sum = _rolling_sum(reference_true_range(high, low, close), window)
     plus_sum = _rolling_sum(_lagged_abs_diff(high, low), window)
     minus_sum = _rolling_sum(_lagged_abs_diff(low, high), window)
     plus = [_divide(movement, denominator) for movement, denominator in zip(plus_sum, range_sum, strict=True)]

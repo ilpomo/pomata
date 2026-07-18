@@ -5,7 +5,7 @@ Naive reference oracle for ``pomata.indicators.stochastic_fast``.
 import math
 from collections.abc import Callable, Sequence
 
-from tests.indicators.oracles.sma import sma_reference
+from tests.indicators.oracles.sma import reference_sma
 
 
 def _rolling_extreme(
@@ -32,7 +32,7 @@ def _rolling_extreme(
     return result
 
 
-def stochastic_fast_reference(
+def reference_stochastic_fast(
     high: Sequence[float | None],
     low: Sequence[float | None],
     close: Sequence[float | None],
@@ -43,7 +43,7 @@ def stochastic_fast_reference(
     Naive Fast Stochastic Oscillator over aligned Python lists.
 
     ``%K = 100 * (close - LL) / (HH - LL)`` with ``LL`` / ``HH`` the rolling lowest low / highest high over
-    ``window_k``, and ``%D`` the :func:`sma_reference` of ``%K`` over ``window_d``, recomputed as the oracle for
+    ``window_k``, and ``%D`` the :func:`reference_sma` of ``%K`` over ``window_d``, recomputed as the oracle for
     :func:`pomata.indicators.stochastic_fast`.
 
     Args:
@@ -82,4 +82,4 @@ def stochastic_fast_reference(
                     percent_k.append(math.copysign(math.inf, sign))
             else:
                 percent_k.append(numerator / denominator)
-    return {"k": percent_k, "d": sma_reference(percent_k, window_d)}
+    return {"k": percent_k, "d": reference_sma(percent_k, window_d)}

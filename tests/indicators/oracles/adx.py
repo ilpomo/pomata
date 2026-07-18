@@ -4,11 +4,11 @@ Naive reference oracle for ``pomata.indicators.adx``.
 
 from collections.abc import Sequence
 
-from tests.indicators.oracles.dx import dx_reference
-from tests.indicators.oracles.rma import rma_reference
+from tests.indicators.oracles.dx import reference_dx
+from tests.indicators.oracles.rma import reference_rma
 
 
-def adx_reference(
+def reference_adx(
     high: Sequence[float | None],
     low: Sequence[float | None],
     close: Sequence[float | None],
@@ -17,7 +17,7 @@ def adx_reference(
     """
     Naive Average Directional Index over aligned Python lists.
 
-    The Wilder moving average (:func:`rma_reference`) of the directional index (:func:`dx_reference`), recomputed as the
+    The Wilder moving average (:func:`reference_rma`) of the directional index (:func:`reference_dx`), recomputed as the
     oracle for :func:`pomata.indicators.adx`.
 
     Args:
@@ -34,4 +34,4 @@ def adx_reference(
     """
     if window < 1:
         raise ValueError(f"window must be >= 1, got {window}")
-    return rma_reference(dx_reference(high, low, close, window), window)
+    return reference_rma(reference_dx(high, low, close, window), window)

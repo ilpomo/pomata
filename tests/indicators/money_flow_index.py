@@ -1,42 +1,42 @@
-"""Spec for ``pomata.indicators.money_flow_index`` — the volume-weighted RSI, window-nulling, scale-invariant."""
+"""Declaration for ``pomata.indicators.money_flow_index`` — the volume-weighted RSI, window-nulling, scale-invariant."""
 
 import math
 
-from tests.indicators.oracles import money_flow_index_reference
-from tests.support import ABSOLUTE_TOLERANCE_ROLLING_ORACLE, RELATIVE_TOLERANCE_ROLLING_ORACLE
-from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
-
 from pomata.indicators import money_flow_index
+from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
+from tests.indicators.harness import suite_indicators
+from tests.indicators.oracles import reference_money_flow_index
+from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.tolerances import TOLERANCE_ABSOLUTE_ROLLING_ORACLE, TOLERANCE_RELATIVE_ROLLING_ORACLE
 
-MONEY_FLOW_INDEX = Spec(
+MONEY_FLOW_INDEX = suite_indicators(
     factory=money_flow_index,
     inputs=("high", "low", "close", "volume"),
     params={"window": 3},
+    null=BehaviorNull.IN_WINDOW_IS_NULL,
+    nan=BehaviorNan.PROPAGATES,
     shape=Shape.SERIES,
-    warmup=3,
-    raises=(({"window": 0}, r"window must be >= 1"),),
-    oracle=money_flow_index_reference,
-    # The mixed-window quotient is a pair of one-pass rolling sums: after an extreme-magnitude flow exits, their
-    # sub-ULP residue moves the reading by up to ~1e-8 relative, so the oracle band is the declared rolling-oracle
-    # tier; the documented exact answers (0 / 100 / the flat NaN) are held exactly by the residual-free guards and
-    # the saturation pin.
-    oracle_rel_tol=RELATIVE_TOLERANCE_ROLLING_ORACLE,
-    oracle_abs_tol=ABSOLUTE_TOLERANCE_ROLLING_ORACLE,
-    # A bounded ratio in [0, 100], scale-INVARIANT in the price legs and in volume independently, degree 0
-    #
-    scale=(
+    warmup=Warmup.WINDOW,
+    oracle=reference_money_flow_index,
+    scaling=(
         ScaleAxis(roles=("high", "low", "close"), degree=0),
         ScaleAxis(roles=("volume",), degree=0),
     ),
-    golden_input={
-        "high": (10.0, 11.0, 12.0, 11.0, 13.0, 14.0, 13.0, 15.0),
-        "low": (8.0, 9.0, 10.0, 9.0, 11.0, 12.0, 11.0, 13.0),
-        "close": (9.0, 10.0, 11.0, 10.0, 12.0, 13.0, 12.0, 14.0),
-        "volume": (100.0, 150.0, 120.0, 130.0, 110.0, 160.0, 140.0, 170.0),
-    },
-    golden_output=(None, None, None, 68.4466, 67.0051, 72.3404, 66.9291, 72.6384),
+    talib=RelationTalib.MATCHES,
+    raises=(({"window": 0}, r"window must be >= 1"),),
+    oracle_rel_tol=TOLERANCE_RELATIVE_ROLLING_ORACLE,
+    oracle_abs_tol=TOLERANCE_ABSOLUTE_ROLLING_ORACLE,
+    golden=Golden(
+        inputs={
+            "high": (10.0, 11.0, 12.0, 11.0, 13.0, 14.0, 13.0, 15.0),
+            "low": (8.0, 9.0, 10.0, 9.0, 11.0, 12.0, 11.0, 13.0),
+            "close": (9.0, 10.0, 11.0, 10.0, 12.0, 13.0, 12.0, 14.0),
+            "volume": (100.0, 150.0, 120.0, 130.0, 110.0, 160.0, 140.0, 170.0),
+        },
+        output=(None, None, None, 68.4466, 67.0051, 72.3404, 66.9291, 72.6384),
+    ),
     pins=(
-        SpecPin(
+        Pin(
             label="saturation_after_outlier_exit_is_exact",
             inputs={
                 "high": (538.0, 197.0, 518.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0),
@@ -50,7 +50,7 @@ MONEY_FLOW_INDEX = Spec(
             "the changes, never the flow sums, whose sub-ULP residue would otherwise drag the reading to ~99.999998 "
             "(the flat stretch in between is the documented 0/0 NaN, and the all-down prefix the exact 0)",
         ),
-        SpecPin(
+        Pin(
             label="window_one_is_up_or_down",
             inputs={
                 "high": (10.0, 11.0, 12.0, 11.0, 13.0),
@@ -62,7 +62,7 @@ MONEY_FLOW_INDEX = Spec(
             expected=(None, 100.0, 100.0, 0.0, 100.0),
             reason="with window=1 each bar is fully up (100) or fully down (0)",
         ),
-        SpecPin(
+        Pin(
             label="all_up_saturates_at_one_hundred",
             inputs={
                 "high": (10.0, 11.0, 12.0, 13.0, 14.0),
@@ -73,7 +73,7 @@ MONEY_FLOW_INDEX = Spec(
             expected=(None, None, None, 100.0, 100.0),
             reason="a strictly rising typical price (zero negative flow) saturates MFI at 100",
         ),
-        SpecPin(
+        Pin(
             label="all_down_saturates_at_zero",
             inputs={
                 "high": (14.0, 13.0, 12.0, 11.0, 10.0),
@@ -84,7 +84,7 @@ MONEY_FLOW_INDEX = Spec(
             expected=(None, None, None, 0.0, 0.0),
             reason="a strictly falling typical price (zero positive flow) saturates MFI at 0",
         ),
-        SpecPin(
+        Pin(
             label="constant_typical_is_nan",
             inputs={
                 "high": (10.0, 10.0, 10.0, 10.0, 10.0),
@@ -95,7 +95,7 @@ MONEY_FLOW_INDEX = Spec(
             expected=(None, None, None, math.nan, math.nan),
             reason="a window whose typical price never moves leaves the money ratio at the genuine 0/0 NaN",
         ),
-        SpecPin(
+        Pin(
             label="nan_typical_price_poisons_successor_change",
             inputs={
                 "high": (20.0, math.nan, 12.0, 11.0),
@@ -107,7 +107,7 @@ MONEY_FLOW_INDEX = Spec(
             expected=(None, math.nan, math.nan, 0.0),
             reason="a NaN typical price poisons both its own change and the successor change into NaN",
         ),
-        SpecPin(
+        Pin(
             label="null_in_price_propagates",
             inputs={
                 "high": (10.0, 11.0, 12.0, 11.0, 13.0),
@@ -120,7 +120,7 @@ MONEY_FLOW_INDEX = Spec(
             reason="a null in one price column voids the typical price and the next change; the tail never clears a "
             "full clean window here",
         ),
-        SpecPin(
+        Pin(
             label="null_in_volume_voids_only_its_row",
             inputs={
                 "high": (10.0, 11.0, 12.0, 11.0, 13.0),
@@ -132,7 +132,7 @@ MONEY_FLOW_INDEX = Spec(
             expected=(None, None, None, None, 50.38167938931298),
             reason="a null volume voids only that row's money-flow contribution, the difference survives",
         ),
-        SpecPin(
+        Pin(
             label="nan_in_price_propagates",
             inputs={
                 "high": (10.0, 11.0, math.nan, 11.0, 13.0),
@@ -144,7 +144,7 @@ MONEY_FLOW_INDEX = Spec(
             expected=(None, None, math.nan, math.nan, math.nan),
             reason="a NaN in one price column contaminates the typical price and both its own and the successor change",
         ),
-        SpecPin(
+        Pin(
             label="nan_in_volume_propagates",
             inputs={
                 "high": (10.0, 11.0, 12.0, 11.0, 13.0),
@@ -156,7 +156,7 @@ MONEY_FLOW_INDEX = Spec(
             expected=(None, None, math.nan, math.nan, 50.38167938931298),
             reason="a NaN volume contaminates only that row's money flow, so the series recovers",
         ),
-        SpecPin(
+        Pin(
             label="all_nan",
             inputs={
                 "high": (math.nan, math.nan, math.nan, math.nan),
@@ -169,7 +169,7 @@ MONEY_FLOW_INDEX = Spec(
             reason="an all-NaN input exercises the NaN leg of the flow partition: the first two rows stay null "
             "(flow[0] is always null), then NaN propagates",
         ),
-        SpecPin(
+        Pin(
             label="leading_null_defers_warmup",
             inputs={
                 "high": (None, 11.0, 12.0, 13.0, 14.0, 15.0),
@@ -181,7 +181,7 @@ MONEY_FLOW_INDEX = Spec(
             expected=(None, None, None, 100.0, 100.0, 100.0),
             reason="a leading null extends the null run past the declared warm-up",
         ),
-        SpecPin(
+        Pin(
             label="huge_then_dust_flow_stays_bounded",
             inputs={
                 "high": (
@@ -289,7 +289,7 @@ MONEY_FLOW_INDEX = Spec(
             reason="a ~1e7 typical-price dynamic range with volume spanning to 1e-9: the raw ratio transiently escapes "
             "[0, 100] and the clip pulls every value back in",
         ),
-        SpecPin(
+        Pin(
             label="flat_tail_after_movement_is_nan",
             inputs={
                 "high": (

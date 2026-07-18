@@ -5,11 +5,11 @@ Naive reference oracle for ``pomata.indicators.keltner_channels``.
 import math
 from collections.abc import Sequence
 
-from tests.indicators.oracles.atr import atr_reference
-from tests.indicators.oracles.ema import ema_reference
+from tests.indicators.oracles.atr import reference_atr
+from tests.indicators.oracles.ema import reference_ema
 
 
-def keltner_channels_reference(
+def reference_keltner_channels(
     high: Sequence[float | None],
     low: Sequence[float | None],
     close: Sequence[float | None],
@@ -20,7 +20,7 @@ def keltner_channels_reference(
     """
     Naive Keltner Channels over Python lists.
 
-    The center band is the :func:`ema_reference` of ``close``; the outer bands sit ``multiplier`` :func:`atr_reference`
+    The center band is the :func:`reference_ema` of ``close``; the outer bands sit ``multiplier`` :func:`reference_atr`
     average true ranges away. Recomputed from the certified leg references as the oracle for
     :func:`pomata.indicators.keltner_channels`. The midline reads only ``close`` while the outer bands also read the
     ATR, so missing values propagate per band.
@@ -51,8 +51,8 @@ def keltner_channels_reference(
     if not math.isfinite(multiplier) or multiplier <= 0.0:
         raise ValueError(f"multiplier must be a finite number > 0, got {multiplier}")
 
-    center = ema_reference(close, window)
-    ranges = atr_reference(high, low, close, window_atr)
+    center = reference_ema(close, window)
+    ranges = reference_atr(high, low, close, window_atr)
     lower: list[float | None] = []
     middle: list[float | None] = []
     upper: list[float | None] = []

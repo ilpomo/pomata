@@ -6,7 +6,7 @@ import math
 from collections.abc import Sequence
 
 
-def mom_reference(
+def reference_mom(
     expr: Sequence[float | None],
     window: int,
 ) -> list[float | None]:

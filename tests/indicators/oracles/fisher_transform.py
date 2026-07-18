@@ -44,7 +44,7 @@ def _position(price: float | None, lowest: float | None, highest: float | None) 
     return 2.0 * (price - lowest) / (highest - lowest) - 1.0
 
 
-def fisher_transform_reference(
+def reference_fisher_transform(
     high: Sequence[float | None],
     low: Sequence[float | None],
     window: int,

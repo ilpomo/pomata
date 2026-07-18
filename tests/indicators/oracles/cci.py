@@ -5,10 +5,10 @@ Naive reference oracle for ``pomata.indicators.cci``.
 import math
 from collections.abc import Sequence
 
-from tests.indicators.oracles.sma import sma_reference
+from tests.indicators.oracles.sma import reference_sma
 
 
-def cci_reference(
+def reference_cci(
     high: Sequence[float | None],
     low: Sequence[float | None],
     close: Sequence[float | None],
@@ -21,7 +21,7 @@ def cci_reference(
     ``TP = (high + low + close) / 3``, recomputed as the oracle for :func:`pomata.indicators.cci`. Its one non-obvious
     point is that the mean absolute deviation is taken about the *current* rolling mean ``SMA(TP)_t`` (the same value
     for every term in the window), not about each point's own mean; warm-up and ``null`` / ``NaN`` are inherited
-    from :func:`sma_reference`, detailed below.
+    from :func:`reference_sma`, detailed below.
 
     Args:
         high: The high-price observations (may contain ``None`` and ``float('nan')``).
@@ -64,7 +64,7 @@ def cci_reference(
         else:
             typical_values.append((value_high + value_low + value_close) / 3.0)
 
-    typical_mean = sma_reference(typical_values, window)
+    typical_mean = reference_sma(typical_values, window)
 
     results: list[float | None] = []
     for index in range(len(typical_values)):

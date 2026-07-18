@@ -1,42 +1,47 @@
-"""Spec for ``pomata.metrics.downside_deviation`` — reducing, the annualized RMS of shortfall, degree-1 homogeneous."""
+"""
+Declaration for ``pomata.metrics.downside_deviation`` — reducing, the annualized RMS of shortfall, degree-1
+homogeneous.
+"""
 
 import math
 
-from tests.metrics.oracles import downside_deviation_reference
-from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
-
 from pomata.metrics import downside_deviation
+from tests.metrics.enums import Annualization, BehaviorNan, BehaviorNull, Degenerate
+from tests.metrics.harness import suite_metrics
+from tests.metrics.oracles import reference_downside_deviation
+from tests.support.declaration import Golden, Pin, ScaleAxis
 
-DOWNSIDE_DEVIATION = Spec(
+DOWNSIDE_DEVIATION = suite_metrics(
     factory=downside_deviation,
     inputs=("returns",),
     params={"periods_per_year": 252},
-    shape=Shape.REDUCING,
+    null=BehaviorNull.SKIPPED,
+    nan=BehaviorNan.POISONS,
+    annualization=Annualization.SQRT_TIME,
+    degenerate=Degenerate.EXACT_ZERO,
+    oracle=reference_downside_deviation,
+    scaling=(ScaleAxis(roles=("returns",), degree=1),),
     raises=(
         ({"periods_per_year": 0}, r"periods_per_year must be >= 1"),
         ({"threshold": math.nan}, r"threshold must be a finite number"),
         ({"threshold": math.inf}, r"threshold must be a finite number"),
         ({"threshold": -math.inf}, r"threshold must be a finite number"),
     ),
-    oracle=downside_deviation_reference,
-    # Degree-1 homogeneous in the returns at threshold=0
-    scale=(ScaleAxis(roles=("returns",), degree=1),),
-    golden_input={"returns": (0.02, -0.04, 0.01, -0.06, 0.03)},
-    golden_output=(0.5119,),
+    golden=Golden(inputs={"returns": (0.02, -0.04, 0.01, -0.06, 0.03)}, output=(0.5119,)),
     pins=(
-        SpecPin(
+        Pin(
             label="single_row",
             inputs={"returns": (-0.02,)},
             expected=(0.3174901573277509,),
             reason="a one-element downside series annualizes its shortfall RMS ",
         ),
-        SpecPin(
+        Pin(
             label="no_downside_is_zero",
             inputs={"returns": (0.01, 0.02, 0.0, 0.03)},
             expected=(0.0,),
             reason="returns all at or above the threshold have zero downside, so the deviation is 0 ",
         ),
-        SpecPin(
+        Pin(
             label="threshold_nonzero",
             inputs={"returns": (0.012, -0.008, 0.02, -0.015, 0.005, 0.0, -0.02, 0.018)},
             expected=(0.24936118382779626,),

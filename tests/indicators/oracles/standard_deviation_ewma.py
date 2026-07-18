@@ -5,10 +5,10 @@ Naive reference oracle for ``pomata.indicators.standard_deviation_ewma``.
 import math
 from collections.abc import Sequence
 
-from tests.indicators.oracles.variance_ewma import variance_ewma_reference
+from tests.indicators.oracles.variance_ewma import reference_variance_ewma
 
 
-def standard_deviation_ewma_reference(
+def reference_standard_deviation_ewma(
     expr: Sequence[float | None],
     window: int,
     *,
@@ -18,7 +18,7 @@ def standard_deviation_ewma_reference(
     """
     Naive Exponentially-Weighted Standard Deviation over a Python list.
 
-    The square root of :func:`variance_ewma_reference`, recomputed as the oracle for
+    The square root of :func:`reference_variance_ewma`, recomputed as the oracle for
     :func:`pomata.indicators.standard_deviation_ewma`. The variance is itself a direct two-pass evaluation of the
     published weighted-variance definition (explicit per-observation weights, then a weighted mean and weighted sum of
     squared deviations), so this oracle is independent of the engine's internal running recurrence.
@@ -40,7 +40,7 @@ def standard_deviation_ewma_reference(
     """
     if window < 2:
         raise ValueError(f"window must be >= 2, got {window}")
-    variance = variance_ewma_reference(expr, window, adjust=adjust, bias=bias)
+    variance = reference_variance_ewma(expr, window, adjust=adjust, bias=bias)
     results: list[float | None] = []
     for value in variance:
         if value is None:

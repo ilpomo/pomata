@@ -1,28 +1,33 @@
-"""Spec for ``pomata.indicators.trend_mode`` — Ehlers' trend / cycle flag, latching, scale-invariant."""
+"""Declaration for ``pomata.indicators.trend_mode`` — Ehlers' trend / cycle flag, latching, scale-invariant."""
 
 import math
 
-from tests.indicators.oracles import trend_mode_reference
-from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
-
 from pomata.indicators import trend_mode
+from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
+from tests.indicators.harness import suite_indicators
+from tests.indicators.oracles import reference_trend_mode
+from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
 
-# A clean 20-bar-period carrier: 80 bars leave 17 emitted flags past the 63-bar settling warm-up.
 _SAMPLE = tuple(100.0 + 10.0 * math.sin(2 * math.pi * index / 20) for index in range(80))
 
-TREND_MODE = Spec(
+TREND_MODE = suite_indicators(
     factory=trend_mode,
     inputs=("expr",),
     params={},
+    null=BehaviorNull.LATCHES,
+    nan=BehaviorNan.LATCHES,
     shape=Shape.SERIES,
-    warmup=63,
-    oracle=trend_mode_reference,
-    # A 0/1 trend-vs-cycle flag: scale-INVARIANT, degree 0.
-    scale=(ScaleAxis(roles=("expr",), degree=0),),
-    golden_input={"expr": _SAMPLE},
-    golden_output=(None,) * 63 + (1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0),
+    warmup=Warmup.EXPR,
+    warmup_value=63,
+    oracle=reference_trend_mode,
+    scaling=(ScaleAxis(roles=("expr",), degree=0),),
+    talib=RelationTalib.MATCHES,
+    golden=Golden(
+        inputs={"expr": _SAMPLE},
+        output=(None,) * 63 + (1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0),
+    ),
     pins=(
-        SpecPin(
+        Pin(
             label="flat_run_flags_trend",
             inputs={"expr": (100.0,) * 80},
             expected=(None,) * 63 + (1.0,) * 17,

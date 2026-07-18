@@ -5,10 +5,10 @@ Naive reference oracle for ``pomata.indicators.tema``.
 import math
 from collections.abc import Sequence
 
-from tests.indicators.oracles.ema import ema_reference
+from tests.indicators.oracles.ema import reference_ema
 
 
-def tema_reference(
+def reference_tema(
     expr: Sequence[float | None],
     window: int,
     *,
@@ -18,7 +18,7 @@ def tema_reference(
     Naive Triple Exponential Moving Average over a Python list.
 
     Mulloy's triple EMA, ``3 * EMA1 - 3 * EMA2 + EMA3`` over three same-``window`` passes, recomputed as the oracle for
-    :func:`pomata.indicators.tema`. Each pass is the EMA oracle (:func:`ema_reference`), SMA-seeded for the unadjusted
+    :func:`pomata.indicators.tema`. Each pass is the EMA oracle (:func:`reference_ema`), SMA-seeded for the unadjusted
     form, so chaining three compounds the warm-up to ``3 * (window - 1)``; the null / NaN behavior is detailed below.
 
     Args:
@@ -51,9 +51,9 @@ def tema_reference(
     if window == 1:
         return list(expr)
 
-    ema_first = ema_reference(expr, window, adjust=adjust)
-    ema_second = ema_reference(ema_first, window, adjust=adjust)
-    ema_third = ema_reference(ema_second, window, adjust=adjust)
+    ema_first = reference_ema(expr, window, adjust=adjust)
+    ema_second = reference_ema(ema_first, window, adjust=adjust)
+    ema_third = reference_ema(ema_second, window, adjust=adjust)
 
     results: list[float | None] = []
     for value_first, value_second, value_third in zip(ema_first, ema_second, ema_third, strict=True):

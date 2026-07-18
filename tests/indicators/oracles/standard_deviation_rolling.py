@@ -5,10 +5,10 @@ Naive reference oracle for ``pomata.indicators.standard_deviation_rolling``.
 import math
 from collections.abc import Sequence
 
-from tests.indicators.oracles.variance_rolling import variance_rolling_reference
+from tests.indicators.oracles.variance_rolling import reference_variance_rolling
 
 
-def standard_deviation_rolling_reference(
+def reference_standard_deviation_rolling(
     expr: Sequence[float | None],
     window: int,
     ddof: int = 0,
@@ -16,7 +16,7 @@ def standard_deviation_rolling_reference(
     """
     Naive rolling standard deviation over a Python list.
 
-    The square root of :func:`variance_rolling_reference`, recomputed from scratch as the oracle for
+    The square root of :func:`reference_variance_rolling`, recomputed from scratch as the oracle for
     :func:`pomata.indicators.standard_deviation_rolling`.
 
     Args:
@@ -33,7 +33,7 @@ def standard_deviation_rolling_reference(
         ValueError: If ``window < 1``, or if ``ddof >= window`` (the divisor ``window - ddof`` would be non-positive).
     """
     results: list[float | None] = []
-    for value in variance_rolling_reference(expr, window, ddof):
+    for value in reference_variance_rolling(expr, window, ddof):
         if value is None or math.isnan(value):
             results.append(value)
         else:

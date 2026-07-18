@@ -5,11 +5,11 @@ Naive reference oracle for ``pomata.indicators.accumulation_distribution_oscilla
 import math
 from collections.abc import Sequence
 
-from tests.indicators.oracles.accumulation_distribution import accumulation_distribution_reference
-from tests.indicators.oracles.ema import ema_reference
+from tests.indicators.oracles.accumulation_distribution import reference_accumulation_distribution
+from tests.indicators.oracles.ema import reference_ema
 
 
-def accumulation_distribution_oscillator_reference(
+def reference_accumulation_distribution_oscillator(
     high: Sequence[float | None],
     low: Sequence[float | None],
     close: Sequence[float | None],
@@ -20,7 +20,7 @@ def accumulation_distribution_oscillator_reference(
     """
     Naive Accumulation/Distribution Oscillator over aligned Python lists.
 
-    The fast minus slow :func:`ema_reference` of the :func:`accumulation_distribution_reference` line, recomputed as the
+    The fast minus slow :func:`reference_ema` of the :func:`reference_accumulation_distribution` line, recomputed as the
     oracle for :func:`pomata.indicators.accumulation_distribution_oscillator`.
 
     Args:
@@ -42,9 +42,9 @@ def accumulation_distribution_oscillator_reference(
         raise ValueError(f"window_fast and window_slow must be >= 1, got {window_fast} and {window_slow}")
     if window_fast > window_slow:
         raise ValueError(f"windows must be ordered window_fast <= window_slow, got {window_fast} and {window_slow}")
-    line = accumulation_distribution_reference(high, low, close, volume)
-    ema_fast = ema_reference(line, window_fast)
-    ema_slow = ema_reference(line, window_slow)
+    line = reference_accumulation_distribution(high, low, close, volume)
+    ema_fast = reference_ema(line, window_fast)
+    ema_slow = reference_ema(line, window_slow)
     result: list[float | None] = []
     for fast_value, slow_value in zip(ema_fast, ema_slow, strict=True):
         if fast_value is None or slow_value is None:

@@ -6,7 +6,7 @@ import math
 from collections.abc import Sequence
 
 
-def accumulation_distribution_reference(
+def reference_accumulation_distribution(
     high: Sequence[float | None],
     low: Sequence[float | None],
     close: Sequence[float | None],

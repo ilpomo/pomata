@@ -129,7 +129,7 @@ def _pipeline(prices: list[float], fast_limit: float, slow_limit: float) -> dict
     }
 
 
-def dominant_cycle_period_reference(values: Sequence[float | None]) -> list[float | None]:
+def reference_dominant_cycle_period(values: Sequence[float | None]) -> list[float | None]:
     """
     Naive Ehlers dominant-cycle period, the oracle for :func:`pomata.indicators.dominant_cycle_period`.
 
@@ -143,7 +143,7 @@ def dominant_cycle_period_reference(values: Sequence[float | None]) -> list[floa
     return _mask(_pipeline(prices, 0.5, 0.05)["period"], len(values), _DIRECT_WARMUP)
 
 
-def dominant_cycle_phase_reference(values: Sequence[float | None]) -> list[float | None]:
+def reference_dominant_cycle_phase(values: Sequence[float | None]) -> list[float | None]:
     """
     Naive Ehlers dominant-cycle phase, the oracle for :func:`pomata.indicators.dominant_cycle_phase`.
 
@@ -157,7 +157,7 @@ def dominant_cycle_phase_reference(values: Sequence[float | None]) -> list[float
     return _mask(_pipeline(prices, 0.5, 0.05)["phase"], len(values), _PHASE_WARMUP)
 
 
-def hilbert_phasor_reference(values: Sequence[float | None]) -> dict[str, list[float | None]]:
+def reference_hilbert_phasor(values: Sequence[float | None]) -> dict[str, list[float | None]]:
     """
     Naive Ehlers in-phase / quadrature phasor, the oracle for :func:`pomata.indicators.hilbert_phasor`.
 
@@ -174,7 +174,7 @@ def hilbert_phasor_reference(values: Sequence[float | None]) -> dict[str, list[f
     return {field: _mask(pipeline[field], length, _DIRECT_WARMUP) for field in ("in_phase", "quadrature")}
 
 
-def sine_wave_reference(values: Sequence[float | None]) -> dict[str, list[float | None]]:
+def reference_sine_wave(values: Sequence[float | None]) -> dict[str, list[float | None]]:
     """
     Naive Ehlers sine / lead-sine wave, the oracle for :func:`pomata.indicators.sine_wave`.
 
@@ -191,7 +191,7 @@ def sine_wave_reference(values: Sequence[float | None]) -> dict[str, list[float 
     return {field: _mask(pipeline[field], length, _PHASE_WARMUP) for field in ("sine", "lead_sine")}
 
 
-def trend_mode_reference(values: Sequence[float | None]) -> list[float | None]:
+def reference_trend_mode(values: Sequence[float | None]) -> list[float | None]:
     """
     Naive Ehlers trend / cycle flag, the oracle for :func:`pomata.indicators.trend_mode`.
 
@@ -205,7 +205,7 @@ def trend_mode_reference(values: Sequence[float | None]) -> list[float | None]:
     return _mask(_pipeline(prices, 0.5, 0.05)["trend_mode"], len(values), _PHASE_WARMUP)
 
 
-def hilbert_trendline_reference(values: Sequence[float | None]) -> list[float | None]:
+def reference_hilbert_trendline(values: Sequence[float | None]) -> list[float | None]:
     """
     Naive Ehlers instantaneous trendline, the oracle for :func:`pomata.indicators.hilbert_trendline`.
 
@@ -219,10 +219,10 @@ def hilbert_trendline_reference(values: Sequence[float | None]) -> list[float | 
     return _mask(_pipeline(prices, 0.5, 0.05)["trendline"], len(values), _PHASE_WARMUP)
 
 
-def mama_reference(
+def reference_mama(
     values: Sequence[float | None],
-    fast_limit: float = 0.5,
-    slow_limit: float = 0.05,
+    limit_fast: float = 0.5,
+    limit_slow: float = 0.05,
 ) -> dict[str, list[float | None]]:
     """
     Naive Ehlers MESA adaptive moving average and its companion, the oracle for :func:`pomata.indicators.mama`.
@@ -234,6 +234,6 @@ def mama_reference(
     every row from the first ``None``, ``NaN``, or ``inf`` onward is ``None`` on both the ``mama`` and ``fama`` lanes.
     """
     prices = _prefix(values)
-    pipeline = _pipeline(prices, fast_limit, slow_limit)
+    pipeline = _pipeline(prices, limit_fast, limit_slow)
     length = len(values)
     return {field: _mask(pipeline[field], length, _DIRECT_WARMUP) for field in ("mama", "fama")}

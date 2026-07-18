@@ -1,21 +1,28 @@
-"""Spec for ``pomata.indicators.linear_regression_slope`` — the rolling least-squares slope, degree-1 homogeneous."""
-
-from tests.indicators.oracles import linear_regression_slope_reference
-from tests.support.spec import ScaleAxis, Shape, Spec
+"""
+Declaration for ``pomata.indicators.linear_regression_slope`` — the rolling least-squares slope, degree-1 homogeneous.
+"""
 
 from pomata.indicators import linear_regression_slope
+from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
+from tests.indicators.harness import suite_indicators
+from tests.indicators.oracles import reference_linear_regression_slope
+from tests.support.declaration import Golden, ScaleAxis, Shape
 
-LINEAR_REGRESSION_SLOPE = Spec(
+LINEAR_REGRESSION_SLOPE = suite_indicators(
     factory=linear_regression_slope,
     inputs=("expr",),
     params={"window": 14},
+    null=BehaviorNull.IN_WINDOW_IS_NULL,
+    nan=BehaviorNan.PROPAGATES,
     shape=Shape.SERIES,
-    warmup=13,
+    warmup=Warmup.WINDOW_MINUS_ONE,
+    oracle=reference_linear_regression_slope,
+    scaling=(ScaleAxis(roles=("expr",), degree=1),),
+    talib=RelationTalib.MATCHES,
     raises=(({"window": 1}, r"window must be >= 2"),),
-    oracle=linear_regression_slope_reference,
-    # The slope of the window's least-squares line (per-bar rise), homogeneous of degree 1
-    scale=(ScaleAxis(roles=("expr",), degree=1),),
-    golden_params={"window": 3},
-    golden_input={"expr": (10.0, 11.0, 13.0, 12.0, 14.0, 13.0, 15.0)},
-    golden_output=(None, None, 1.5, 0.5, 0.5, 0.5, 0.5),
+    golden=Golden(
+        inputs={"expr": (10.0, 11.0, 13.0, 12.0, 14.0, 13.0, 15.0)},
+        output=(None, None, 1.5, 0.5, 0.5, 0.5, 0.5),
+        params={"window": 3},
+    ),
 )
