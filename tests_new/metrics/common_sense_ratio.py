@@ -4,7 +4,9 @@ Declaration for ``pomata.metrics.common_sense_ratio`` — reducing, profit facto
 
 import math
 
-from pomata.metrics import common_sense_ratio
+import polars as pl
+
+from pomata.metrics import common_sense_ratio, profit_factor, tail_ratio
 from tests_new.metrics.enums import Annualization, BehaviorNan, BehaviorNull, Degenerate
 from tests_new.metrics.harness import suite_metrics
 from tests_new.metrics.oracles import reference_common_sense_ratio
@@ -19,6 +21,7 @@ COMMON_SENSE_RATIO = suite_metrics(
     annualization=Annualization.NONE,
     degenerate=Degenerate.RATIO_SIGNED_INF_OR_NAN,
     oracle=reference_common_sense_ratio,
+    recomposition=lambda: profit_factor(pl.col("returns")) * tail_ratio(pl.col("returns")),
     scaling=(ScaleAxis(roles=("returns",), degree=0),),
     golden=Golden(inputs={"returns": (0.03, -0.01, 0.02, -0.015, 0.01, 0.005, -0.02)}, output=(2.1081,)),
     pins=(

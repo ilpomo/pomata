@@ -5,7 +5,9 @@ exempt.
 
 import math
 
-from pomata.metrics import ulcer_performance_ratio
+import polars as pl
+
+from pomata.metrics import cagr, ulcer_index, ulcer_performance_ratio
 from tests_new.metrics.enums import Annualization, BehaviorNan, BehaviorNull, Degenerate
 from tests_new.metrics.harness import suite_metrics
 from tests_new.metrics.oracles import reference_ulcer_performance_ratio
@@ -20,6 +22,9 @@ ULCER_PERFORMANCE_RATIO = suite_metrics(
     annualization=Annualization.GEOMETRIC,
     degenerate=Degenerate.RATIO_SIGNED_INF_OR_NAN,
     oracle=reference_ulcer_performance_ratio,
+    recomposition=lambda: (
+        (cagr(pl.col("equity_curve"), periods_per_year=252) - 0.0) / ulcer_index(pl.col("equity_curve"))
+    ),
     scaling=ScaleExempt(
         reason="a normalized growth-factor curve run through CAGR over a scale-invariant ulcer index — "
         "neither invariant nor homogeneous"

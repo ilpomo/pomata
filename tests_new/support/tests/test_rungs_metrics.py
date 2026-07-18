@@ -312,14 +312,14 @@ class TestInWindowShape:
         """A rolling PROPAGATES-NaN metric passes on the interior-NaN flow probe."""
         rungs.check_behavior_nan(VOLATILITY_ROLLING)
 
-    def test_in_window_declared_propagates_red(self) -> None:
-        """An IN_WINDOW metric wrongly declared PROPAGATES goes red — a whole window it overlaps stays null."""
-        wrong = dataclasses.replace(VOLATILITY_ROLLING, behavior_null=BehaviorNull.PROPAGATES)
-        with pytest.raises(AssertionError, match=r"beyond the horizon .* the lane must equal the clean run"):
+    def test_in_window_declared_reducing_null_is_fail_closed(self) -> None:
+        """A rolling SERIES metric declared with the reducing-only SKIPPED member has no series shape — fail-closed."""
+        wrong = dataclasses.replace(VOLATILITY_ROLLING, behavior_null=BehaviorNull.SKIPPED)
+        with pytest.raises(AssertionError, match=r"no structural contract for behavior 'SKIPPED'"):
             rungs.check_behavior_null(wrong)
 
-    def test_struct_flow_is_fail_closed(self) -> None:
-        """A STRUCT flow is still fail-closed — the structural contract lands with the indicators family."""
+    def test_struct_flow_runs_per_field(self) -> None:
+        """A STRUCT flow runs the SERIES shape once per declared field — both fields held to the declared contract."""
 
         def two_field_struct(equity_curve: pl.Expr) -> pl.Expr:
             return pl.struct(a=equity_curve, b=equity_curve * 2.0)
@@ -345,8 +345,8 @@ class TestInWindowShape:
             oracle=reference_two_field_struct,
             scaling=(ScaleAxis(roles=("equity_curve",), degree={"a": 1, "b": 1}),),
         )
-        with pytest.raises(NotImplementedError, match=r"structural flow contracts for Shape.STRUCT"):
-            rungs.check_behavior_null(struct_decl)
+        rungs.check_behavior_null(struct_decl)
+        rungs.check_behavior_nan(struct_decl)
 
 
 # ======================================================================================================================

@@ -5,7 +5,9 @@ exempt.
 
 import math
 
-from pomata.metrics import sterling_ratio
+import polars as pl
+
+from pomata.metrics import cagr, pain_index, sterling_ratio
 from tests_new.metrics.enums import Annualization, BehaviorNan, BehaviorNull, Degenerate
 from tests_new.metrics.harness import suite_metrics
 from tests_new.metrics.oracles import reference_sterling_ratio
@@ -20,6 +22,9 @@ STERLING_RATIO = suite_metrics(
     annualization=Annualization.GEOMETRIC,
     degenerate=Degenerate.RATIO_SIGNED_INF_OR_NAN,
     oracle=reference_sterling_ratio,
+    recomposition=lambda: (
+        (cagr(pl.col("equity_curve"), periods_per_year=252) - 0.0) / (pain_index(pl.col("equity_curve")) + 0.10)
+    ),
     scaling=ScaleExempt(
         reason="a normalized growth factor over a scale-invariant average drawdown — neither homogeneous nor invariant"
     ),

@@ -144,6 +144,11 @@ class Declaration:
     golden: Golden | None = None  # the frozen golden master; the recommended hand-computed anchor
     # Crafted-input cases: the data home for exact values the synthesis and the oracle cannot derive.
     pins: tuple[Pin, ...] = ()
+    # The recomposition identity: a zero-arg callable returning the ``pl.Expr`` that rebuilds this function out of other
+    # public functions (a ratio metric as its numerator over its denominator, an oscillator as a difference of two
+    # lines). When set, the recomposition rung holds the factory's output equal to the recomposition's on the probe
+    # frame, lane by lane; ``None`` for a function with no such identity.
+    recomposition: Callable[[], pl.Expr] | None = None
     # The documented answer to a degenerate regime (currently the all-null input); ``None`` means the ordinary answer.
     deviant: Deviant | None = None
     degenerate: enum.Enum | None = None  # the declared degenerate-denominator regime (family dialect); ``None`` if none
@@ -167,6 +172,27 @@ class Declaration:
     oracle_abs_tol: float | None = None
     reference: str = ""  # the literature citation for the definition (fed to the generated docstring at cutover)
     wikipedia: str = ""  # the encyclopedic reference URL (fed to the generated docstring at cutover)
+    # The TA-Lib relation (the indicators dialect), read by the differential tier to partition the public surface:
+    # a matching twin is compared bar for bar, a documented divergence and a no-equivalent are accounted for but not
+    # compared. ``None`` for a family with no TA-Lib comparison (pnl, metrics).
+    talib: enum.Enum | None = None
+    # The reason a function documents a divergence from, or has no, TA-Lib twin: the pure data the old
+    # ``talib_coverage`` registry held, now on the declaration so a non-``talib`` reader sees it. Non-empty exactly for
+    # the divergence / no-equivalent relations, empty for a matching twin (enforced in ``__post_init__``).
+    talib_reason: str = ""
+    # The recursion's seeding convention (the indicators dialect): forward metadata for the Phase-B generated
+    # docstring, recorded but not yet read by any rung. ``None`` where the family declares none.
+    seeding: enum.Enum | None = None
+    # A reason a function's interior-missing-bar flow is input-dependent and so cannot be held by a single behavior
+    # shape: a directional-movement guard turns a fully-missing bar into neutral 0 movement (absorbed, the recurrence
+    # continues at 0) while a single-column NaN on the driving leg still latches — two behaviors one declared shape
+    # cannot hold. Non-empty skips the two structural flow rungs; the flow is pinned and covered by the missing-data
+    # property tier instead. Empty = the flow rungs apply.
+    flow_deviation: str = ""
+    # Rows past an interior missing bar beyond which the declared flow must have played out; ``-1`` derives it from the
+    # warm-up and the widest window. A positive value is declared only where an output is displaced further (a long
+    # contracting recursion — the parabolic SAR cold start, the Ehlers Fisher pipeline).
+    flow_horizon: int = -1
 
     def __post_init__(self) -> None:
         """Conditional requirements, checked loudly at construction (import time) — the one obvious place they live."""
@@ -179,6 +205,7 @@ class Declaration:
         self._check_pins()
         self._check_deviant()
         self._check_rolling()
+        self._check_talib()
         if self.params and not self.raises:
             msg = f"{self.name}: declares params but no raises counterexamples — the validation rung would be a no-op"
             raise ValueError(msg)
@@ -291,6 +318,20 @@ class Declaration:
             )
             raise ValueError(msg)
 
+    def _check_talib(self) -> None:
+        if self.talib is None:
+            if self.talib_reason:
+                msg = f"{self.name}: a talib_reason needs a talib relation to justify"
+                raise ValueError(msg)
+            return
+        documented = self.talib.name in ("DOCUMENTED_DIVERGENCE", "NO_EQUIVALENT")
+        if documented and not self.talib_reason.strip():
+            msg = f"{self.name}: talib={self.talib.name} must carry a non-empty talib_reason"
+            raise ValueError(msg)
+        if not documented and self.talib_reason:
+            msg = f"{self.name}: talib={self.talib.name} is a matching twin and takes no talib_reason"
+            raise ValueError(msg)
+
     # --- derived, never declared: read off the factory ---
 
     @property
@@ -372,6 +413,8 @@ def window_length(declaration: Declaration) -> int:
 
 def horizon(declaration: Declaration) -> int:
     """Rows past an interior missing bar beyond which the declared flow must have played out."""
+    if declaration.flow_horizon >= 0:
+        return declaration.flow_horizon
     return widest_warmup(declaration) + widest_window(declaration) + 2
 
 

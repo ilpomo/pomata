@@ -4,7 +4,9 @@ Declaration for ``pomata.metrics.burke_ratio`` — reducing, excess CAGR per uni
 
 import math
 
-from pomata.metrics import burke_ratio
+import polars as pl
+
+from pomata.metrics import burke_ratio, cagr, drawdown
 from tests_new.metrics.enums import Annualization, BehaviorNan, BehaviorNull, Degenerate
 from tests_new.metrics.harness import suite_metrics
 from tests_new.metrics.oracles import reference_burke_ratio
@@ -19,6 +21,10 @@ BURKE_RATIO = suite_metrics(
     annualization=Annualization.GEOMETRIC,
     degenerate=Degenerate.RATIO_SIGNED_INF_OR_NAN,
     oracle=reference_burke_ratio,
+    recomposition=lambda: (
+        (cagr(pl.col("equity_curve"), periods_per_year=252) - 0.0)
+        / (drawdown(pl.col("equity_curve")) ** 2).sum().sqrt()
+    ),
     scaling=ScaleExempt(
         reason="a normalized growth factor (CAGR) over a scale-invariant drawdown energy — neither "
         "homogeneous nor invariant"

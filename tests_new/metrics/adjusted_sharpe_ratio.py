@@ -7,7 +7,7 @@ import math
 
 import polars as pl
 
-from pomata.metrics import adjusted_sharpe_ratio
+from pomata.metrics import adjusted_sharpe_ratio, sharpe_ratio
 from tests_new.metrics.enums import Annualization, BehaviorNan, BehaviorNull, Degenerate
 from tests_new.metrics.harness import suite_metrics
 from tests_new.metrics.oracles import reference_adjusted_sharpe_ratio
@@ -25,6 +25,14 @@ def _well_spread(frame: pl.DataFrame) -> bool:
     return well_spread(frame.to_series(0).to_list())
 
 
+def _adjusted_component() -> pl.Expr:
+    """Recomposed from the public ``sharpe_ratio`` factory plus the skew/kurtosis correction, at the default params."""
+    annualization = math.sqrt(252)
+    sharpe = sharpe_ratio(pl.col("returns"), periods_per_year=252, risk_free_rate=0.0) / annualization
+    correction = 1.0 + pl.col("returns").skew() / 6.0 * sharpe - pl.col("returns").kurtosis() / 24.0 * sharpe**2
+    return annualization * sharpe * correction
+
+
 ADJUSTED_SHARPE_RATIO = suite_metrics(
     factory=adjusted_sharpe_ratio,
     inputs=("returns",),
@@ -34,6 +42,7 @@ ADJUSTED_SHARPE_RATIO = suite_metrics(
     annualization=Annualization.SQRT_TIME,
     degenerate=Degenerate.ZERO_DISPERSION_IS_NAN,
     oracle=reference_adjusted_sharpe_ratio,
+    recomposition=_adjusted_component,
     scaling=(ScaleAxis(roles=("returns",), degree=0),),
     raises=(
         ({"periods_per_year": 0}, r"periods_per_year must be >= 1"),

@@ -5,7 +5,9 @@ exempt.
 
 import math
 
-from pomata.metrics import recovery_ratio
+import polars as pl
+
+from pomata.metrics import max_drawdown, recovery_ratio, total_return
 from tests_new.metrics.enums import Annualization, BehaviorNan, BehaviorNull, Degenerate
 from tests_new.metrics.harness import suite_metrics
 from tests_new.metrics.oracles import reference_recovery_ratio
@@ -20,6 +22,7 @@ RECOVERY_RATIO = suite_metrics(
     annualization=Annualization.NONE,
     degenerate=Degenerate.RATIO_SIGNED_INF_OR_NAN,
     oracle=reference_recovery_ratio,
+    recomposition=lambda: total_return(pl.col("equity_curve")) / max_drawdown(pl.col("equity_curve")).abs(),
     scaling=ScaleExempt(
         reason="a normalized growth-factor total return over a scale-invariant max-drawdown magnitude — "
         "neither invariant nor homogeneous"
