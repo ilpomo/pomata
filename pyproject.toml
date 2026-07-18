@@ -166,6 +166,7 @@ module = [
     "tests.support.spec",
     "tests.support.synthesis",
     "tests.test_differential",
+    "tests_new.support.declaration",
 ]
 
 [tool.pyrefly]
@@ -176,7 +177,7 @@ python-version = "3.12"
 
 [tool.pyright]
 extraPaths = ["."]
-include = ["src", "tests"]
+include = ["src", "tests", "tests_new"]
 pythonVersion = "3.12"
 typeCheckingMode = "strict"
 venv = ".venv"
@@ -196,7 +197,7 @@ markers = [
     "differential: non-gating checks against TA-Lib (the C reference); requires the 'differential' dependency group.",
 ]
 pythonpath = "."
-testpaths = ["tests"]
+testpaths = ["tests", "tests_new"]
 
 [tool.ruff]
 line-length = 120
@@ -267,6 +268,7 @@ max-complexity = 16
 # Test files are deliberately namespace packages (pytest importlib mode needs no ``__init__.py``); their magic numbers
 # (windows, tolerances, golden values) are inherent; oracle/test helpers may take boolean positional flags.
 "tests/**" = ["FBT001", "FBT002", "INP001", "PLR2004", "S101"]
+"tests_new/**" = ["FBT001", "FBT002", "INP001", "PLR2004", "S101"]
 # The oracle regeneration script is a CLI tool: it prints.
 "tests/indicators/oracles/_regenerate.py" = ["T201"]
 # The Sphinx config is a module-style script, not a package (no __init__.py).
