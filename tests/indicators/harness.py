@@ -96,8 +96,6 @@ def suite_indicators(  # noqa: PLR0913
     flow_horizon: int = -1,
     oracle_rel_tol: float | None = None,
     oracle_abs_tol: float | None = None,
-    reference: str = "",
-    wikipedia: str = "",
 ) -> Declaration:
     """
     Build, register, and return the :class:`Declaration` for one public ``pomata.indicators`` function.
@@ -166,7 +164,5 @@ def suite_indicators(  # noqa: PLR0913
         talib=talib,
         talib_reason=talib_reason,
         seeding=seeding,
-        reference=reference,
-        wikipedia=wikipedia,
     )
     return register(declaration)

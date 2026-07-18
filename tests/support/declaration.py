@@ -133,7 +133,7 @@ class Declaration:
     # IEEE-flow probes — a family that does not contract ``±inf`` flow (a metric's reduction over an infinite input is
     # an implementation-defined artifact the naive oracle does not model) simply declares no such contract.
     space: enum.Enum | None = None  # the units the output lives in (e.g. cash flow vs returns flow)
-    sign: enum.Enum | None = None  # the sign convention the payoff follows
+    sign: enum.Enum | None = None  # the sign convention the payoff follows; recorded, not read by any rung
     nonfinite: enum.Enum | None = None  # how the function carries ``±inf`` inputs; drives the IEEE-flow probes
     # Exact leading-null count under ``params``: an int for a windowed series, a per-field mapping for a struct, or
     # ``None`` for a reduction or an unwindowed transform (there is nothing to warm up).
@@ -151,7 +151,7 @@ class Declaration:
     recomposition: Callable[[], pl.Expr] | None = None
     # The documented answer to a degenerate regime (currently the all-null input); ``None`` means the ordinary answer.
     deviant: Deviant | None = None
-    degenerate: enum.Enum | None = None  # the declared degenerate-denominator regime (family dialect); ``None`` if none
+    degenerate: enum.Enum | None = None  # the degenerate-denominator regime; recorded, its coverage rides the pins
     # The annualization convention the output follows (family dialect); drives the closed-form annualization rung, which
     # is a no-op when this is ``None``.
     annualization: enum.Enum | None = None
@@ -170,8 +170,6 @@ class Declaration:
     # two-pass oracle. ``None`` uses the tier default.
     oracle_rel_tol: float | None = None
     oracle_abs_tol: float | None = None
-    reference: str = ""  # the literature citation for the definition (for the generated docstring)
-    wikipedia: str = ""  # the encyclopedic reference URL (for the generated docstring)
     # The TA-Lib relation (the indicators dialect), read by the differential tier to partition the public surface:
     # a matching twin is compared bar for bar, a documented divergence and a no-equivalent are accounted for but not
     # compared. ``None`` for a family with no TA-Lib comparison (pnl, metrics).
@@ -367,12 +365,16 @@ def flat(declaration: Declaration, frame: pl.DataFrame) -> list[pl.Series]:
     return lane_series(frame.select(build_expr(declaration).alias("out")))
 
 
-def actual_lanes(declaration: Declaration, frame: pl.DataFrame) -> dict[str, list[float | None]]:
-    """The expression's output as one named lane per line: struct field names for a struct, else ``{"out": ...}``."""
-    lanes = flat(declaration, frame)
+def named_lanes(lanes: list[pl.Series]) -> dict[str, list[float | None]]:
+    """Computed lanes as one named list per lane: struct field names for a struct, else ``{"out": ...}``."""
     if len(lanes) > 1:
         return {lane.name: lane.to_list() for lane in lanes}
     return {"out": lanes[0].to_list()}
+
+
+def actual_lanes(declaration: Declaration, frame: pl.DataFrame) -> dict[str, list[float | None]]:
+    """The expression's output as one named lane per line, through :func:`named_lanes`."""
+    return named_lanes(flat(declaration, frame))
 
 
 def reference_lanes(declaration: Declaration, frame: pl.DataFrame) -> dict[str, list[float | None]]:

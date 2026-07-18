@@ -102,7 +102,7 @@ class TestDescribeFailure:
             triage=triage_for_enum("gizmo", _BehaviorNan.LATCHES),
         )
         assert "gizmo (pnl): check_behavior_nan disagreed." in message
-        assert "expected (oracle):  [1.0, 2.0, nan, 4.0]" in message
+        assert "expected (oracle): [1.0, 2.0, nan, 4.0]" in message
         assert "observed (factory): [1.0, 2.0, 3.0, 4.0]" in message
         assert "first divergence at index 2: expected nan vs observed 3.0" in message
         assert "Triage:" in message
