@@ -6,7 +6,7 @@ import math
 from collections.abc import Sequence
 
 
-def variance_ewma_reference(
+def reference_variance_ewma(
     expr: Sequence[float | None],
     window: int,
     *,

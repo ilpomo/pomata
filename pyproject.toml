@@ -156,16 +156,13 @@ strict_bytes = true
 warn_unreachable = true
 warn_unused_configs = true
 
-# Explicit ``Any`` is unavoidable in three test modules: the differential tier bridges the untyped TA-Lib C library
-# (no stubs, called dynamically) and numpy, synthesize_call reflects over the heterogeneous factory signatures
-# (an arbitrary-parameter ``Callable[..., pl.Expr]``), and the spec engine carries the same reflective surface. It
-# stays disallowed everywhere else.
+# Explicit ``Any`` is unavoidable in one test module: the declaration engine's factory and oracle fields are
+# reflective ``Callable[..., ...]`` surfaces over the heterogeneous public signatures. It stays disallowed
+# everywhere else.
 [[tool.mypy.overrides]]
 disallow_any_explicit = false
 module = [
-    "tests.support.spec",
-    "tests.support.synthesis",
-    "tests.test_differential",
+    "tests.support.declaration",
 ]
 
 [tool.pyrefly]
@@ -264,11 +261,9 @@ ban-relative-imports = "all"
 max-complexity = 16
 
 [tool.ruff.lint.per-file-ignores]
-# Test files are deliberately namespace packages (pytest importlib mode needs no ``__init__.py``); their magic numbers
-# (windows, tolerances, golden values) are inherent; oracle/test helpers may take boolean positional flags.
-"tests/**" = ["FBT001", "FBT002", "INP001", "PLR2004", "S101"]
-# The oracle regeneration script is a CLI tool: it prints.
-"tests/indicators/oracles/_regenerate.py" = ["T201"]
+# Test magic numbers (windows, tolerances, golden values) are inherent; oracle/test helpers may take boolean
+# positional flags; ``assert`` is the test idiom.
+"tests/**" = ["FBT001", "FBT002", "PLR2004", "S101"]
 # The Sphinx config is a module-style script, not a package (no __init__.py).
 "docs/conf.py" = ["INP001"]
 

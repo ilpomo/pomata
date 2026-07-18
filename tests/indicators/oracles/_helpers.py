@@ -40,7 +40,7 @@ def greater(left: float | None, right: float | None) -> bool | None:
     return left > right
 
 
-def seeded_recursive_mean_reference(
+def reference_seeded_recursive_mean(
     expr: Sequence[float | None],
     alpha: float,
     window: int,
@@ -48,7 +48,7 @@ def seeded_recursive_mean_reference(
     """
     SMA-of-first-window-seeded exponential mean over a Python list, by an independent closed-form derivation.
 
-    The shared engine of the unadjusted :func:`ema_reference` (``alpha = 2 / (window + 1)``) and :func:`rma_reference`
+    The shared engine of the unadjusted :func:`reference_ema` (``alpha = 2 / (window + 1)``) and :func:`reference_rma`
     (``alpha = 1 / window``). The shipped code carries a renormalized running state forward one bar at a time; this
     oracle instead unrolls that recurrence into an explicit weighted sum -- each output is computed directly from the
     seed and the observation history, with no running state carried between rows -- so the two are genuinely unrelated

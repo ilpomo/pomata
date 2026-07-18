@@ -5,7 +5,7 @@ Naive reference oracle for ``pomata.indicators.balance_of_power``.
 from collections.abc import Sequence
 
 
-def balance_of_power_reference(
+def reference_balance_of_power(
     open: Sequence[float | None],
     high: Sequence[float | None],
     low: Sequence[float | None],

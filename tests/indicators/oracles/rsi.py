@@ -5,10 +5,10 @@ Naive reference oracle for ``pomata.indicators.rsi``.
 import math
 from collections.abc import Sequence
 
-from tests.indicators.oracles.rma import rma_reference
+from tests.indicators.oracles.rma import reference_rma
 
 
-def rsi_reference(
+def reference_rsi(
     expr: Sequence[float | None],
     window: int,
 ) -> list[float | None]:
@@ -16,7 +16,7 @@ def rsi_reference(
     Naive Relative Strength Index over a Python list.
 
     Wilder's RSI, ``100 - 100 / (1 + RMA(gain) / RMA(loss))`` over the one-step gains and losses, recomputed as the
-    oracle for :func:`pomata.indicators.rsi` by composing :func:`rma_reference`. Its delicate points are the ``window``
+    oracle for :func:`pomata.indicators.rsi` by composing :func:`reference_rma`. Its delicate points are the ``window``
     -row warm-up (the index-0 difference is ``None``) and the relative-strength saturations (``0 / 0`` is ``nan``, no
     losses gives ``100``, no gains gives ``0``), detailed below.
 
@@ -74,8 +74,8 @@ def rsi_reference(
             gain.append(max(0.0, difference))
             loss.append(-difference if difference < 0.0 else 0.0)
 
-    average_gain = rma_reference(gain, window)
-    average_loss = rma_reference(loss, window)
+    average_gain = reference_rma(gain, window)
+    average_loss = reference_rma(loss, window)
 
     results: list[float | None] = []
     for value_gain, value_loss in zip(average_gain, average_loss, strict=True):

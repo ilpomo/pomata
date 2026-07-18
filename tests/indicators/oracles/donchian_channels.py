@@ -31,7 +31,7 @@ def _midline(top: float | None, bottom: float | None) -> float | None:
     return (top + bottom) / 2
 
 
-def donchian_channels_reference(
+def reference_donchian_channels(
     high: Sequence[float | None],
     low: Sequence[float | None],
     window: int,

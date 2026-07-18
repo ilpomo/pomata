@@ -1,28 +1,36 @@
-"""Spec for ``pomata.indicators.midprice`` — the rolling high/low midprice of a bar series, window-nulling, degree-1."""
-
-from tests.indicators.oracles import midprice_reference
-from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
+"""
+Declaration for ``pomata.indicators.midprice`` — the rolling high/low midprice of a bar series, window-nulling,
+degree-1.
+"""
 
 from pomata.indicators import midprice
+from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
+from tests.indicators.harness import suite_indicators
+from tests.indicators.oracles import reference_midprice
+from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
 
-MIDPRICE = Spec(
+MIDPRICE = suite_indicators(
     factory=midprice,
     inputs=("high", "low"),
     params={"window": 14},
+    null=BehaviorNull.IN_WINDOW_IS_NULL,
+    nan=BehaviorNan.PROPAGATES,
     shape=Shape.SERIES,
-    warmup=13,
+    warmup=Warmup.WINDOW_MINUS_ONE,
+    oracle=reference_midprice,
+    scaling=(ScaleAxis(roles=("high", "low"), degree=1),),
+    talib=RelationTalib.MATCHES,
     raises=(({"window": 0}, r"window must be >= 1"),),
-    oracle=midprice_reference,
-    # The mean of the window's highest high and lowest low, homogeneous of degree 1
-    scale=(ScaleAxis(roles=("high", "low"), degree=1),),
-    golden_params={"window": 3},
-    golden_input={
-        "high": (11.0, 12.0, 13.0, 12.5, 14.0),
-        "low": (9.0, 10.0, 11.0, 11.0, 12.0),
-    },
-    golden_output=(None, None, 11.0, 11.5, 12.5),
+    golden=Golden(
+        inputs={
+            "high": (11.0, 12.0, 13.0, 12.5, 14.0),
+            "low": (9.0, 10.0, 11.0, 11.0, 12.0),
+        },
+        output=(None, None, 11.0, 11.5, 12.5),
+        params={"window": 3},
+    ),
     pins=(
-        SpecPin(
+        Pin(
             label="window_one_is_price_median",
             inputs={"high": (11.0, 12.0, 13.0), "low": (9.0, 10.0, 11.0)},
             params_override={"window": 1},

@@ -5,11 +5,11 @@ Naive reference oracle for ``pomata.indicators.dx``.
 import math
 from collections.abc import Sequence
 
-from tests.indicators.oracles.di_minus import di_minus_reference
-from tests.indicators.oracles.di_plus import di_plus_reference
+from tests.indicators.oracles.di_minus import reference_di_minus
+from tests.indicators.oracles.di_plus import reference_di_plus
 
 
-def dx_reference(
+def reference_dx(
     high: Sequence[float | None],
     low: Sequence[float | None],
     close: Sequence[float | None],
@@ -18,7 +18,7 @@ def dx_reference(
     """
     Naive Directional Index over aligned Python lists.
 
-    ``100 * |di_plus - di_minus| / (di_plus + di_minus)`` (:func:`di_plus_reference`, :func:`di_minus_reference`),
+    ``100 * |di_plus - di_minus| / (di_plus + di_minus)`` (:func:`reference_di_plus`, :func:`reference_di_minus`),
     recomputed as the oracle for :func:`pomata.indicators.dx`. A zero total (both indicators zero) yields ``NaN``.
 
     Args:
@@ -35,8 +35,8 @@ def dx_reference(
     """
     if window < 1:
         raise ValueError(f"window must be >= 1, got {window}")
-    plus = di_plus_reference(high, low, close, window)
-    minus = di_minus_reference(high, low, close, window)
+    plus = reference_di_plus(high, low, close, window)
+    minus = reference_di_minus(high, low, close, window)
     result: list[float | None] = []
     for plus_value, minus_value in zip(plus, minus, strict=True):
         if plus_value is None or minus_value is None:

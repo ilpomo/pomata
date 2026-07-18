@@ -1,29 +1,37 @@
-"""Spec for ``pomata.indicators.dominant_cycle_period`` — Ehlers' Hilbert dominant-cycle length, latching, invariant."""
+"""
+Declaration for ``pomata.indicators.dominant_cycle_period`` — Ehlers' Hilbert dominant-cycle length, latching,
+invariant.
+"""
 
 import math
 
-from tests.indicators.oracles import dominant_cycle_period_reference
-from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
-
 from pomata.indicators import dominant_cycle_period
+from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
+from tests.indicators.harness import suite_indicators
+from tests.indicators.oracles import reference_dominant_cycle_period
+from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
 
-# A clean 20-bar-period carrier: 40 bars leave 8 emitted values past the 32-bar settling warm-up.
 _SAMPLE = tuple(100.0 + 10.0 * math.sin(2 * math.pi * index / 20) for index in range(40))
 
-DOMINANT_CYCLE_PERIOD = Spec(
+DOMINANT_CYCLE_PERIOD = suite_indicators(
     factory=dominant_cycle_period,
     inputs=("expr",),
     params={},
+    null=BehaviorNull.LATCHES,
+    nan=BehaviorNan.LATCHES,
     shape=Shape.SERIES,
-    warmup=32,
-    oracle=dominant_cycle_period_reference,
-    # A cycle length in bars, clamped to [6, 50]: scale-INVARIANT, degree 0.
-    scale=(ScaleAxis(roles=("expr",), degree=0),),
-    golden_input={"expr": _SAMPLE},
-    golden_output=(None,) * 32 + (19.0186, 19.3994, 19.7391, 20.051, 20.3271, 20.5471, 20.6936, 20.7611),
+    warmup=Warmup.EXPR,
+    warmup_value=32,
+    oracle=reference_dominant_cycle_period,
+    scaling=(ScaleAxis(roles=("expr",), degree=0),),
+    talib=RelationTalib.MATCHES,
+    golden=Golden(
+        inputs={"expr": _SAMPLE},
+        output=(None,) * 32 + (19.0186, 19.3994, 19.7391, 20.051, 20.3271, 20.5471, 20.6936, 20.7611),
+    ),
     pins=(
-        SpecPin(
-            label="flat_run_matches_reference",
+        Pin(
+            label="reference_flat_run_matches",
             inputs={"expr": (100.0,) * 48},
             expected=(None,) * 32
             + (

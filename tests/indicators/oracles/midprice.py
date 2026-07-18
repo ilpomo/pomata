@@ -6,7 +6,7 @@ import math
 from collections.abc import Sequence
 
 
-def midprice_reference(
+def reference_midprice(
     high: Sequence[float | None],
     low: Sequence[float | None],
     window: int,

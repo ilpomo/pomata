@@ -5,10 +5,10 @@ Naive reference oracle for ``pomata.indicators.hma``.
 import math
 from collections.abc import Sequence
 
-from tests.indicators.oracles.wma import wma_reference
+from tests.indicators.oracles.wma import reference_wma
 
 
-def hma_reference(
+def reference_hma(
     expr: Sequence[float | None],
     window: int,
 ) -> list[float | None]:
@@ -16,7 +16,7 @@ def hma_reference(
     Naive Hull Moving Average over a Python list.
 
     Hull's moving average, ``WMA(2 * WMA(x, window / 2) - WMA(x, window), sqrt(window))``, recomputed as the oracle for
-    :func:`pomata.indicators.hma` by composing :func:`wma_reference`. Its one non-obvious point is the
+    :func:`pomata.indicators.hma` by composing :func:`reference_wma`. Its one non-obvious point is the
     round-half-**up** period reduction (``floor(x + 0.5)``, unlike Python's round-half-to-even); warm-up and
     ``null`` / ``NaN`` are inherited from the composing weighted means, detailed below.
 
@@ -36,7 +36,7 @@ def hma_reference(
         Edge-case behavior:
 
         - **Null** — a window containing a ``None`` yields ``None`` at that position, propagated through every
-          composing :func:`wma_reference`.
+          composing :func:`reference_wma`.
         - **NaN** — a window containing a ``nan`` (and no ``None``) yields ``nan`` at that position.
     """
     if window < 2:
@@ -44,8 +44,8 @@ def hma_reference(
 
     half_window = math.floor(window / 2 + 0.5)
     smoothing_window = math.floor(math.sqrt(window) + 0.5)
-    wma_half_values = wma_reference(expr, half_window)
-    wma_full_values = wma_reference(expr, window)
+    wma_half_values = reference_wma(expr, half_window)
+    wma_full_values = reference_wma(expr, window)
 
     raw_values: list[float | None] = []
     for value_half, value_full in zip(wma_half_values, wma_full_values, strict=True):
@@ -56,4 +56,4 @@ def hma_reference(
         else:
             raw_values.append(2.0 * value_half - value_full)
 
-    return wma_reference(raw_values, smoothing_window)
+    return reference_wma(raw_values, smoothing_window)

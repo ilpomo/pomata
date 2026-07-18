@@ -55,10 +55,10 @@ Every public function is a pure `pl.Expr` factory, and ships with:
   `Args`/`Returns`/`Raises`, a `Note`
   on null/NaN/warm-up behavior, a `References` section, and a runnable `Examples` block;
 - a naive reference implementation used as an independent oracle in the tests;
-- a declarative spec — one frozen-dataclass file under `tests/<family>/<name>.py`, registered by an explicit
-  import in `tests/all_specs.py` — whose declared facts the shared ladder checks across every tier (contract,
-  edge, correctness versus the oracle and a frozen golden master, and properties: scale behavior, bounds,
-  behavior under missing data);
+- a declaration — one `suite_<family>(...)` call under `tests/<family>/<name>.py`, self-registering, with the
+  behavior axes picked from the family's closed enum vocabulary — whose declared facts the derived rungs check
+  across every tier (contract, edge, correctness versus the oracle and a golden anchor, and properties: scale
+  behavior, bounds, behavior under missing data);
 - 100% branch coverage;
 - a line in the family catalog (`README.md`'s collapsible list and the `docs/families/*.md` page — both are
   parity-checked against `__all__` by `tests/test_docs_surface.py`).

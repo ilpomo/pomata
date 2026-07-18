@@ -1,13 +1,15 @@
-"""Spec for ``pomata.indicators.chande_momentum_oscillator`` — the gain/loss momentum ratio, window-nulling."""
+"""Declaration for ``pomata.indicators.chande_momentum_oscillator`` — the gain/loss momentum ratio, window-nulling."""
 
 import math
 
 import polars as pl
-from tests.indicators.oracles import chande_momentum_oscillator_reference
-from tests.support import windows_well_spread
-from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import chande_momentum_oscillator
+from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
+from tests.indicators.harness import suite_indicators
+from tests.indicators.oracles import reference_chande_momentum_oscillator
+from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.strategies import windows_well_spread
 
 
 def _windows_well_spread(frame: pl.DataFrame) -> bool:
@@ -23,22 +25,26 @@ def _windows_well_spread(frame: pl.DataFrame) -> bool:
     return windows_well_spread(frame.to_series(0).to_list(), 3)
 
 
-CHANDE_MOMENTUM_OSCILLATOR = Spec(
+CHANDE_MOMENTUM_OSCILLATOR = suite_indicators(
     factory=chande_momentum_oscillator,
     inputs=("price",),
     params={"window": 3},
+    null=BehaviorNull.IN_WINDOW_IS_NULL,
+    nan=BehaviorNan.PROPAGATES,
     shape=Shape.SERIES,
-    warmup=3,
+    warmup=Warmup.WINDOW,
+    oracle=reference_chande_momentum_oscillator,
+    scaling=(ScaleAxis(roles=("price",), degree=0),),
+    talib=RelationTalib.DOCUMENTED_DIVERGENCE,
+    talib_reason="pomata uses Chande's original fixed-window sums; TA-Lib uses Wilder smoothing (CMO == 2*RSI - 100).",
     raises=(({"window": 0}, r"window must be >= 1"),),
-    oracle=chande_momentum_oscillator_reference,
     conditioning=_windows_well_spread,
-    # A normalized gain/loss ratio, scale-INVARIANT, degree 0
-    #
-    scale=(ScaleAxis(roles=("price",), degree=0),),
-    golden_input={"price": (10.0, 11.0, 12.0, 11.0, 13.0, 14.0, 13.0, 15.0)},
-    golden_output=(None, None, None, 33.3333, 50.0, 50.0, 50.0, 50.0),
+    golden=Golden(
+        inputs={"price": (10.0, 11.0, 12.0, 11.0, 13.0, 14.0, 13.0, 15.0)},
+        output=(None, None, None, 33.3333, 50.0, 50.0, 50.0, 50.0),
+    ),
     pins=(
-        SpecPin(
+        Pin(
             label="flat_window_is_nan",
             inputs={"price": (10.0, 10.0, 10.0, 10.0, 10.0)},
             expected=(None, None, None, math.nan, math.nan),
@@ -46,7 +52,7 @@ CHANDE_MOMENTUM_OSCILLATOR = Spec(
             "exact core of the near-flat regime the conditioning filter excludes from the property tiers",
             covers_conditioning=True,
         ),
-        SpecPin(
+        Pin(
             label="flat_tail_after_movement_is_nan",
             inputs={
                 "price": (
@@ -107,19 +113,19 @@ CHANDE_MOMENTUM_OSCILLATOR = Spec(
             "resolve to the streaming quotient until the window is entirely inside the flat tail, where it is the 0/0 "
             "degenerate",
         ),
-        SpecPin(
+        Pin(
             label="saturates_up",
             inputs={"price": (10.0, 11.0, 12.0, 13.0, 14.0)},
             expected=(None, None, None, 100.0, 100.0),
             reason="an all-up window (zero loss) saturates at exactly +100",
         ),
-        SpecPin(
+        Pin(
             label="saturates_down",
             inputs={"price": (14.0, 13.0, 12.0, 11.0, 10.0)},
             expected=(None, None, None, -100.0, -100.0),
             reason="an all-down window (zero gain) saturates at exactly -100",
         ),
-        SpecPin(
+        Pin(
             label="window_one_is_move_direction",
             inputs={"price": (1.0, 3.0, 2.0, 5.0)},
             params_override={"window": 1},

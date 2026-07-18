@@ -6,7 +6,7 @@ import math
 from collections.abc import Sequence
 
 
-def vwma_reference(
+def reference_vwma(
     price: Sequence[float | None],
     volume: Sequence[float | None],
     window: int,

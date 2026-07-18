@@ -5,10 +5,10 @@ Naive reference oracle for ``pomata.indicators.aroon_oscillator``.
 import math
 from collections.abc import Sequence
 
-from tests.indicators.oracles.aroon import aroon_reference
+from tests.indicators.oracles.aroon import reference_aroon
 
 
-def aroon_oscillator_reference(
+def reference_aroon_oscillator(
     high: Sequence[float | None],
     low: Sequence[float | None],
     window: int,
@@ -16,7 +16,7 @@ def aroon_oscillator_reference(
     """
     Naive Aroon Oscillator over aligned Python lists.
 
-    Aroon Up minus Aroon Down (:func:`aroon_reference`), recomputed as the oracle for
+    Aroon Up minus Aroon Down (:func:`reference_aroon`), recomputed as the oracle for
     :func:`pomata.indicators.aroon_oscillator`.
 
     Args:
@@ -30,7 +30,7 @@ def aroon_oscillator_reference(
     Raises:
         ValueError: If ``window < 1`` or the inputs differ in length.
     """
-    bands = aroon_reference(high, low, window)
+    bands = reference_aroon(high, low, window)
     result: list[float | None] = []
     for up_value, down_value in zip(bands["up"], bands["down"], strict=True):
         if up_value is None or down_value is None:

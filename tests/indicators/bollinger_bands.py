@@ -1,20 +1,29 @@
-"""Spec for ``pomata.indicators.bollinger_bands`` — the SMA-and-deviation band struct, window-nulling, degree-1."""
+"""
+Declaration for ``pomata.indicators.bollinger_bands`` — the SMA-and-deviation band struct, window-nulling, degree-1.
+"""
 
 import math
 
-from tests.indicators.oracles import bollinger_bands_reference
-from tests.support import ABSOLUTE_TOLERANCE_ROLLING_ORACLE, RELATIVE_TOLERANCE_ROLLING_ORACLE
-from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
-
 from pomata.indicators import bollinger_bands
+from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
+from tests.indicators.harness import suite_indicators
+from tests.indicators.oracles import reference_bollinger_bands
+from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.tolerances import TOLERANCE_ABSOLUTE_ROLLING_ORACLE, TOLERANCE_RELATIVE_ROLLING_ORACLE
 
-BOLLINGER_BANDS = Spec(
+BOLLINGER_BANDS = suite_indicators(
     factory=bollinger_bands,
     inputs=("price",),
     params={"window": 20, "multiplier": 2.0},
+    null=BehaviorNull.IN_WINDOW_IS_NULL,
+    nan=BehaviorNan.PROPAGATES,
     shape=Shape.STRUCT,
     fields=("lower", "middle", "upper"),
-    warmup={"lower": 19, "middle": 19, "upper": 19},
+    warmup=Warmup.PER_FIELD,
+    warmup_value={"lower": 19, "middle": 19, "upper": 19},
+    oracle=reference_bollinger_bands,
+    scaling=(ScaleAxis(roles=("price",), degree={"lower": 1, "middle": 1, "upper": 1}),),
+    talib=RelationTalib.MATCHES,
     raises=(
         ({"window": 0}, r"window must be >= 1"),
         ({"multiplier": 0.0}, r"multiplier must be a finite number > 0"),
@@ -23,22 +32,19 @@ BOLLINGER_BANDS = Spec(
         ({"multiplier": math.inf}, r"multiplier must be a finite number > 0"),
         ({"multiplier": -math.inf}, r"multiplier must be a finite number > 0"),
     ),
-    oracle=bollinger_bands_reference,
-    # The bands ride a one-pass rolling deviation against a two-pass oracle: the fixed streaming band over the
-    # well-conditioned domain, matching every other one-pass moment family.
-    oracle_rel_tol=RELATIVE_TOLERANCE_ROLLING_ORACLE,
-    oracle_abs_tol=ABSOLUTE_TOLERANCE_ROLLING_ORACLE,
-    # Every band is a price level (mean plus/minus a dispersion), homogeneous of degree 1
-    scale=(ScaleAxis(roles=("price",), degree={"lower": 1, "middle": 1, "upper": 1}),),
-    golden_params={"window": 2},
-    golden_input={"price": (2.0, 4.0, 4.0, 8.0)},
-    golden_output={
-        "lower": (None, 1.0, 4.0, 2.0),
-        "middle": (None, 3.0, 4.0, 6.0),
-        "upper": (None, 5.0, 4.0, 10.0),
-    },
+    oracle_rel_tol=TOLERANCE_RELATIVE_ROLLING_ORACLE,
+    oracle_abs_tol=TOLERANCE_ABSOLUTE_ROLLING_ORACLE,
+    golden=Golden(
+        inputs={"price": (2.0, 4.0, 4.0, 8.0)},
+        output={
+            "lower": (None, 1.0, 4.0, 2.0),
+            "middle": (None, 3.0, 4.0, 6.0),
+            "upper": (None, 5.0, 4.0, 10.0),
+        },
+        params={"window": 2},
+    ),
     pins=(
-        SpecPin(
+        Pin(
             label="multiplier_one_halves_the_band_width",
             inputs={"price": (2.0, 4.0, 4.0, 8.0)},
             params_override={"window": 2, "multiplier": 1.0},
@@ -50,7 +56,7 @@ BOLLINGER_BANDS = Spec(
             reason="the band half-width is linear in the multiplier: at multiplier=1 it is half of the default, the "
             "arithmetic a single default-multiplier golden cannot exercise",
         ),
-        SpecPin(
+        Pin(
             label="constant_window_collapses_bands_after_large_value",
             inputs={"price": (1000000.0, 0.1, 0.1, 0.1, 0.1)},
             params_override={"window": 3},

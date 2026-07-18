@@ -1,12 +1,11 @@
 """
-Shared Hypothesis element strategies for the test suite.
+Shared Hypothesis element strategies for the suite.
 
 Each element strategy draws a single element; callers wrap them in ``st.lists(...)`` to build a series. They are the
-canonical, one-home input domains for the fuzz engine (:func:`tests.support.spec.fuzz_frames`) and the bespoke
-property tests, so the same ``null`` / ``NaN`` / magnitude regimes are exercised identically across the suite.
-The cycle-cluster predicate (:func:`spans_even_lag_run`) instead reads a whole series at once, since its
-guarantee is about a sustained run; the conditioning predicates (:func:`well_spread` and friends) read whole
-series or windows for the same reason.
+canonical, one-home input domains for the fuzz engine (:func:`tests.support.synthesis.fuzz_frames`), so the same
+``null`` / ``NaN`` / magnitude regimes are exercised identically across the suite. The cycle-cluster predicate
+(:func:`spans_even_lag_run`) instead reads a whole series at once, since its guarantee is about a sustained run; the
+conditioning predicates (:func:`well_spread` and friends) read whole series or windows for the same reason.
 """
 
 import math
@@ -16,29 +15,27 @@ from hypothesis import strategies as st
 
 # Magnitude floor for finite draws: below it a squared or EWM-derived quantity underflows into the subnormal range,
 # where the one-pass form and the two-pass oracle round apart (see subnormal_safe_floats). One place to tune.
-SUBNORMAL_FLOOR = 1e-100
+FLOOR_SUBNORMAL = 1e-100
 
-# Per-window conditioning floor: a trailing window whose variance is below ``scale ** 2 * CONDITIONING_FLOOR`` is too
+# Per-window conditioning floor: a trailing window whose variance is below ``scale ** 2 * FLOOR_CONDITIONING`` is too
 # near-constant for a one-pass rolling ratio (a slope or standardized moment) to track the two-pass oracle. One place
 # to tune.
-CONDITIONING_FLOOR = 1e-2
+FLOOR_CONDITIONING = 1e-2
 
 # Magnitude floor for standardized-moment draws (skewness / kurtosis): these normalize by ``m2 ** p`` with ``p >= 1.5``,
-# so the variance is raised above a plain square and underflows at a LARGER input magnitude than SUBNORMAL_FLOOR guards
-# against (kurtosis' ``m2 ** 2`` underflows to zero around an input scale of ``1e-80``). Flooring ``|v|`` here keeps
-# the standardized moment well-conditioned even after a modest rescale of the draw (see standardized_moment_floats).
-STANDARDIZED_MOMENT_FLOOR = 1e-60
+# so the variance is raised above a plain square and underflows at a LARGER input magnitude than FLOOR_SUBNORMAL guards
+# against (kurtosis' ``m2 ** 2`` underflows to zero around an input scale of ``1e-80``). Flooring ``|v|`` here keeps the
+# standardized moment well-conditioned even after a modest rescale of the draw (see standardized_moment_floats).
+FLOOR_STANDARDIZED_MOMENT = 1e-60
 
 
 def finite_floats(bound: float = 1e6) -> st.SearchStrategy[float]:
     """
     Finite floats in ``[-bound, bound]``, the shared element strategy for the ordinary-input property tiers.
 
-    This is the canonical "well-behaved finite value" domain: the fuzz engine and the bespoke property tests draw a
-    series from it to exercise a function against its naive oracle on inputs with no missing data. The ``bound`` is
-    the caller's safe magnitude -- the largest scale at which the implementation stays well-conditioned (wider for a
-    linear function, tighter where a difference of large terms would cancel) -- so it is passed in, never hard-coded
-    here.
+    This is the canonical "well-behaved finite value" domain: the fuzz engine draws a series from it to exercise a
+    function against its naive oracle on inputs with no missing data. The ``bound`` is the caller's safe magnitude --
+    the largest scale at which the implementation stays well-conditioned -- so it is passed in, never hard-coded here.
 
     Args:
         bound: The symmetric magnitude bound; values are drawn from ``[-bound, bound]`` (default ``1e6``).
@@ -54,21 +51,18 @@ def missing_data_floats(min_magnitude: float = 0.0) -> st.SearchStrategy[float |
     A Hypothesis strategy drawing finite floats in ``[-1e6, 1e6]`` freely interleaved with ``None`` and ``NaN``.
 
     This is the shared element strategy for the missing-data robustness tier: drawing a list from it mixes Polars
-    ``null`` (Python ``None``), ``float('nan')``, and ordinary finite values in one stream, so the indicators' interior
-    ``null`` / ``NaN`` paths are exercised against their naive reference oracles rather than only on hand-picked
-    literals.
+    ``null`` (Python ``None``), ``float('nan')``, and ordinary finite values in one stream, so the interior ``null`` /
+    ``NaN`` paths are exercised against the naive reference oracles rather than only on hand-picked literals.
 
     Where a squared or EWM-derived quantity would underflow into the subnormal range on a tiny draw, pass
-    ``min_magnitude=SUBNORMAL_FLOOR`` so the finite draws are floored away from it (see
-    :func:`subnormal_safe_floats`); otherwise a one-pass streaming form and its two-pass oracle can diverge on a tiny
-    value — a pure floating-point artifact.
+    ``min_magnitude=FLOOR_SUBNORMAL`` so the finite draws are floored away from it; otherwise a one-pass streaming form
+    and its two-pass oracle can diverge on a tiny value — a pure floating-point artifact.
 
     Args:
         min_magnitude: When ``> 0``, finite draws are restricted to ``|v| >= min_magnitude`` (default ``0.0``).
 
     Returns:
-        A strategy producing ``None``, ``float('nan')``, or a finite ``float`` in ``[-1e6, 1e6]`` (with ``|v| >=
-        min_magnitude`` when set).
+        A strategy producing ``None``, ``float('nan')``, or a finite ``float`` in ``[-1e6, 1e6]``.
     """
     finite = st.floats(min_value=-1e6, max_value=1e6, allow_nan=False, allow_infinity=False)
     if min_magnitude > 0.0:
@@ -79,19 +73,16 @@ def missing_data_floats(min_magnitude: float = 0.0) -> st.SearchStrategy[float |
 def spans_even_lag_run(series: Sequence[float | None], min_run: int = 6) -> bool:
     """
     Whether ``series`` contains a SUSTAINED run of at least ``min_run`` consecutive even-lag equalities
-    (``x[i] == x[i - 2]`` at ``min_run`` consecutive indices) — the regime where the cycle pipeline's phasor branch
+    (``x[i] == x[i - 2]`` at ``min_run`` consecutive indices) — the regime where a cycle pipeline's phasor branch
     genuinely flips.
 
-    The whole-series conditioning predicate for the cycle indicators that read the phase branch (mama, sine_wave,
-    dominant_cycle_phase). The cut targets the SUSTAINED run, never the isolated tie: an isolated even-lag tie —
-    the overwhelming majority of even-lag coincidences under fuzzing — never produces real disagreement (worst
-    measured deviation ~1e-14 for mama, ≤2.6e-10 on unit-bounded sine_wave lanes, inside the property tiers'
-    absolute band), while real branch-flip disagreement needs the four-bar smooth to repeat across an even lag for
-    a sustained stretch: measured onset at ~9 structured bars for sine_wave (probabilistic, the norm by 11-14),
-    ~14 for mama, and a whole-series flat run for dominant_cycle_phase. A run of ``k`` consecutive even-lag
-    equalities corresponds to ``k + 2`` such bars, so the default ``min_run=6`` (≈ 8 bars) sits one bar below the
-    earliest measured onset,
-    rejecting every sustained flat run or period-two alternation while re-admitting the isolated coincidences.
+    The whole-series conditioning predicate for the cycle indicators that read the phase branch. The cut targets the
+    SUSTAINED run, never the isolated tie: an isolated even-lag tie never produces real disagreement (inside the
+    property tiers' absolute band), while real branch-flip disagreement needs the four-bar smooth to repeat across an
+    even lag for a sustained stretch. A run of ``k`` consecutive even-lag equalities corresponds to ``k + 2`` such bars,
+    so the
+    default ``min_run=6`` (≈ 8 bars) sits one bar below the earliest measured onset, rejecting every sustained flat run
+    or period-two alternation while re-admitting the isolated coincidences.
 
     Args:
         series: The candidate price series (the finite list a property tier would feed the indicator).
@@ -110,59 +101,48 @@ def spans_even_lag_run(series: Sequence[float | None], min_run: int = 6) -> bool
 
 def subnormal_safe_floats(bound: float = 1e3) -> st.SearchStrategy[float]:
     """
-    Finite floats in ``[-bound, bound]`` whose magnitude is floored at ``SUBNORMAL_FLOOR``, for a bespoke property
-    test that draws over an unrestricted magnitude domain and checks its result against a magnitude-relative
-    tolerance (:func:`tests.support.tolerances.streaming_abs_tol`), which would otherwise collapse toward zero on a
-    subnormal-magnitude draw and fail on a pure floating-point artifact rather than a bug — currently the
-    value-at-risk / conditional-value-at-risk boundedness properties in ``tests/metrics/test_bespoke.py``.
-
-    The ladder's own declarative specs do not need it: the squaring indicators (variance, standard deviation,
-    Bollinger bands) draw their property tiers from a bounded, strictly-positive price domain that never approaches
-    the subnormal range even squared, and the recursive EWM means (ema, rma, dema, tema, t3) are compared at a fixed
-    property tolerance that absorbs subnormal-scale rounding noise; the degenerate all-zero window is pinned as a
-    fixed case. For draws that mix missing values, pass ``min_magnitude=SUBNORMAL_FLOOR`` to
-    :func:`missing_data_floats` for the same reason.
+    Finite floats in ``[-bound, bound]`` whose magnitude is floored at ``FLOOR_SUBNORMAL``, for a property test that
+    draws over an unrestricted magnitude domain and checks its result against a magnitude-relative tolerance
+    (:func:`tests.support.tolerances.streaming_abs_tol`), which would otherwise collapse toward zero on a
+    subnormal-magnitude draw and fail on a pure floating-point artifact rather than a bug.
 
     Args:
         bound: The symmetric magnitude bound; values are drawn from ``[-bound, bound]``.
 
     Returns:
-        A strategy producing finite ``float`` values with ``SUBNORMAL_FLOOR <= |v| <= bound``.
+        A strategy producing finite ``float`` values with ``FLOOR_SUBNORMAL <= |v| <= bound``.
     """
     return st.floats(min_value=-bound, max_value=bound, allow_nan=False, allow_infinity=False).filter(
-        lambda value: abs(value) >= SUBNORMAL_FLOOR
+        lambda value: abs(value) >= FLOOR_SUBNORMAL
     )
 
 
 def standardized_moment_floats(bound: float = 1e3) -> st.SearchStrategy[float]:
     """
-    Finite floats in ``[-bound, bound]`` whose magnitude is floored at ``STANDARDIZED_MOMENT_FLOOR``, for a standardized
+    Finite floats in ``[-bound, bound]`` whose magnitude is floored at ``FLOOR_STANDARDIZED_MOMENT``, for a standardized
     moment (skewness, kurtosis) whose property tiers would otherwise round apart from their two-pass oracle on a
     subnormal-magnitude input by a pure floating-point artifact rather than a bug.
 
-    A standardized moment divides a central moment by ``m2 ** p`` with ``p >= 1.5`` (``1.5`` for skewness, ``2`` for
-    kurtosis), so the variance is raised above a plain square: at an input scale near ``1e-80`` that power underflows to
-    ``0`` and the value collapses to ``nan``. The plain :func:`subnormal_safe_floats` floor (``1e-100``) guards only a
-    square and is too low here -- after even a modest down-rescale of the draw a ``1e-100`` value still underflows.
-    Flooring ``|v|`` at ``STANDARDIZED_MOMENT_FLOOR`` keeps ``m2 ** p`` (and a modestly rescaled ``k * v``)
-    comfortably inside the normal range while still spanning a wide magnitude. The subnormal
-    collapse itself is pinned deterministically in the edge tier.
+    A standardized moment divides a central moment by ``m2 ** p`` with ``p >= 1.5``, so the variance is raised above a
+    plain square: at an input scale near ``1e-80`` that power underflows to ``0`` and the value collapses to ``nan``.
+    Flooring ``|v|`` at ``FLOOR_STANDARDIZED_MOMENT`` keeps ``m2 ** p`` comfortably inside the normal range while still
+    spanning a wide magnitude. The subnormal collapse itself is pinned deterministically in the edge tier.
 
     Args:
         bound: The symmetric magnitude bound; values are drawn from ``[-bound, bound]``.
 
     Returns:
-        A strategy producing finite ``float`` values with ``STANDARDIZED_MOMENT_FLOOR <= |v| <= bound``.
+        A strategy producing finite ``float`` values with ``FLOOR_STANDARDIZED_MOMENT <= |v| <= bound``.
     """
     return st.floats(min_value=-bound, max_value=bound, allow_nan=False, allow_infinity=False).filter(
-        lambda value: abs(value) >= STANDARDIZED_MOMENT_FLOOR
+        lambda value: abs(value) >= FLOOR_STANDARDIZED_MOMENT
     )
 
 
 def _population_variance_and_scale(finite: Sequence[float]) -> tuple[float, float]:
     """
-    The population variance of ``finite`` and its magnitude scale (the largest absolute value) — the shared core of
-    the spread predicates below.
+    The population variance of ``finite`` and its magnitude scale (the largest absolute value) — the shared core of the
+    spread predicates below.
     """
     mean = sum(finite) / len(finite)
     variance = sum((value - mean) ** 2 for value in finite) / len(finite)
@@ -175,11 +155,9 @@ def well_spread(values: Sequence[float | None]) -> bool:
     (skewness, kurtosis) is well-conditioned rather than a ``0 / 0`` artifact.
 
     An exactly- or near-constant sample has a variance that is pure floating-point rounding noise, and the two
-    transcriptions resolve it oppositely: the implementation's one-pass moment collapses to ``nan`` while the two-pass
-    oracle's mean rounds the deviations to a uniform tiny offset and reports a spurious finite value (a constant series'
-    "skewness" of ``1``). The paths cannot agree across that degeneracy, so the standardized-moment property tiers
-    filter it out with this predicate and pin the constant case deterministically in the edge tier. Fewer than two
-    finite values is left to the metric's own empty / single-value handling, where both paths already agree.
+    transcriptions resolve it oppositely, so the standardized-moment property tiers filter it out with this predicate
+    and pin the constant case deterministically in the edge tier. Fewer than two finite values is left to the metric's
+    own empty / single-value handling, where both paths already agree.
 
     Args:
         values: The candidate series (the finite-or-missing list a property tier would feed the metric).
@@ -205,17 +183,16 @@ def windows_well_spread(values: Sequence[float | None], window: int) -> bool:
     return all(well_spread(values[index - window + 1 : index + 1]) for index in range(window - 1, len(values)))
 
 
-def windows_well_conditioned(values: Sequence[float | None], window: int, floor: float = CONDITIONING_FLOOR) -> bool:
+def windows_well_conditioned(values: Sequence[float | None], window: int, floor: float = FLOOR_CONDITIONING) -> bool:
     """
     Whether every trailing ``window``'s variance is a real fraction of its magnitude (a well-conditioned slope or
     standardized moment).
 
-    A window whose variance is below ``scale ** 2 * floor`` is too near-constant for a one-pass rolling ratio to
-    track the two-pass oracle; the rolling moment-ratio and benchmark-relative property tiers filter it out and pin
-    the degenerate case deterministically in the edge tier. Fewer than two finite values is skipped (both paths
-    already agree there). The ``floor`` defaults to the shared conservative ``CONDITIONING_FLOOR``; a spec whose
-    empirical disagreement onset was measured (see each spec's conditioning wrapper) passes its own tighter,
-    spec-local floor instead — the shared constant itself is never retuned per spec.
+    A window whose variance is below ``scale ** 2 * floor`` is too near-constant for a one-pass rolling ratio to track
+    the two-pass oracle; the rolling moment-ratio and benchmark-relative property tiers filter it out and pin the
+    degenerate case deterministically in the edge tier. Fewer than two finite values is skipped. The ``floor`` defaults
+    to the shared conservative ``FLOOR_CONDITIONING``; a declaration whose empirical disagreement onset was measured
+    passes its own tighter, spec-local floor instead — the shared constant itself is never retuned per declaration.
     """
     for index in range(window - 1, len(values)):
         finite = [
@@ -230,43 +207,33 @@ def windows_well_conditioned(values: Sequence[float | None], window: int, floor:
     return True
 
 
-# Coherent OHLC bars. A bar must be coherent -- ``low <= open, close <= high`` -- because any indicator that divides by
-# the bar range ``high - low`` (the accumulation / distribution money-flow multiplier and everything built on it) is
-# unbounded on an impossible bar (``high < low``, or ``close`` outside ``[low, high]``): a tiny or negative denominator
-# the numerator escapes, so the one-pass form and the multi-pass oracle diverge by far more than any tolerance. That is
-# out-of-domain input, not a bug; real bars are always coherent (a flat ``high == low`` bar IS coherent and stays
-# exercised). Each bar is drawn as ONE batched ``st.tuples`` of independent primitives, then assembled in pure Python:
-# ``@st.composite`` re-enters the draw machinery on every interactive ``draw()``, so a per-bar composite generates ~30x
-# slower than a flat tuple of the same primitives -- and these OHLC tiers dominated the suite's wall-clock.
+# Coherent OHLC bars. A bar must be coherent -- ``low <= open, close <= high`` -- because any function that divides by
+# the bar range ``high - low`` is unbounded on an impossible bar: a tiny or negative denominator the numerator escapes,
+# so the one-pass form and the multi-pass oracle diverge by far more than any tolerance. That is out-of-domain input,
+# not a bug; real bars are always coherent (a flat ``high == low`` bar IS coherent and stays exercised). Each bar is
+# drawn as ONE batched ``st.tuples`` of independent primitives, then assembled in pure Python: ``@st.composite``
+# re-enters the draw machinery on every interactive ``draw()``, so a per-bar composite generates ~30x slower.
 _FRACTION = st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False)
 _MISSING = st.sampled_from((0, 1, 2))  # 0 keep, 1 -> None, 2 -> NaN; shrinks toward "keep"
 
 
 def _price(max_price: float) -> st.SearchStrategy[float]:
-    """
-    A positive finite price in ``[1.0, max_price]``.
-    """
+    """A positive finite price in ``[1.0, max_price]``."""
     return st.floats(min_value=1.0, max_value=max_price, allow_nan=False, allow_infinity=False)
 
 
 def _low_high(price_a: float, price_b: float) -> tuple[float, float]:
-    """
-    Order a price pair into ``(low, high)``.
-    """
+    """Order a price pair into ``(low, high)``."""
     return (price_a, price_b) if price_a <= price_b else (price_b, price_a)
 
 
 def _within(low: float, high: float, fraction: float) -> float:
-    """
-    The point ``low + fraction * (high - low)``, clamped to ``<= high`` so a rounding step never breaks coherence.
-    """
+    """The point ``low + fraction * (high - low)``, clamped to ``<= high`` so a rounding step never breaks coherence."""
     return min(high, low + fraction * (high - low))
 
 
 def apply_missing(value: float, choice: int) -> float | None:
-    """
-    Keep ``value`` (``0``), drop it to ``None`` (``1``), or replace it with ``NaN`` (``2``).
-    """
+    """Keep ``value`` (``0``), drop it to ``None`` (``1``), or replace it with ``NaN`` (``2``)."""
     if choice == 1:
         return None
     if choice == 2:
@@ -279,9 +246,7 @@ def _assemble_hl(pair: tuple[float, float]) -> tuple[float, float]:
 
 
 def coherent_hl(max_price: float = 1e3) -> st.SearchStrategy[tuple[float, float]]:
-    """
-    A coherent ``(high, low)`` bar (``high >= low``, both positive finite).
-    """
+    """A coherent ``(high, low)`` bar (``high >= low``, both positive finite)."""
     return st.tuples(_price(max_price), _price(max_price)).map(_assemble_hl)
 
 
@@ -292,9 +257,7 @@ def _assemble_hlc(raw: tuple[float, float, float]) -> tuple[float, float, float]
 
 
 def coherent_hlc(max_price: float = 1e3) -> st.SearchStrategy[tuple[float, float, float]]:
-    """
-    A coherent ``(high, low, close)`` bar (``low <= close <= high``, positive finite).
-    """
+    """A coherent ``(high, low, close)`` bar (``low <= close <= high``, positive finite)."""
     return st.tuples(_price(max_price), _price(max_price), _FRACTION).map(_assemble_hlc)
 
 
@@ -307,9 +270,7 @@ def _assemble_hlcv(raw: tuple[float, float, float, float]) -> tuple[float, float
 def coherent_hlcv(
     max_price: float = 1e3, max_volume: float = 1e6
 ) -> st.SearchStrategy[tuple[float, float, float, float]]:
-    """
-    A coherent ``(high, low, close, volume)`` bar (``low <= close <= high``, all positive finite).
-    """
+    """A coherent ``(high, low, close, volume)`` bar (``low <= close <= high``, all positive finite)."""
     return st.tuples(_price(max_price), _price(max_price), _FRACTION, _price(max_volume)).map(_assemble_hlcv)
 
 
@@ -320,9 +281,7 @@ def _assemble_ohlc(raw: tuple[float, float, float, float]) -> tuple[float, float
 
 
 def coherent_ohlc(max_price: float = 1e3) -> st.SearchStrategy[tuple[float, float, float, float]]:
-    """
-    A coherent ``(open, high, low, close)`` bar (``low <= open, close <= high``, all positive finite).
-    """
+    """A coherent ``(open, high, low, close)`` bar (``low <= open, close <= high``, all positive finite)."""
     return st.tuples(_price(max_price), _price(max_price), _FRACTION, _FRACTION).map(_assemble_ohlc)
 
 
@@ -333,9 +292,7 @@ def _assemble_hl_missing(raw: tuple[float, float, int, int]) -> tuple[float | No
 
 
 def coherent_hl_with_missing(max_price: float = 1e4) -> st.SearchStrategy[tuple[float | None, float | None]]:
-    """
-    A coherent ``(high, low)`` bar with each field independently kept, nulled, or set to ``NaN``.
-    """
+    """A coherent ``(high, low)`` bar with each field independently kept, nulled, or set to ``NaN``."""
     return st.tuples(_price(max_price), _price(max_price), _MISSING, _MISSING).map(_assemble_hl_missing)
 
 
@@ -351,9 +308,7 @@ def _assemble_hlc_missing(
 def coherent_hlc_with_missing(
     max_price: float = 1e4,
 ) -> st.SearchStrategy[tuple[float | None, float | None, float | None]]:
-    """
-    A coherent ``(high, low, close)`` bar with each field independently kept, nulled, or set to ``NaN``.
-    """
+    """A coherent ``(high, low, close)`` bar with each field independently kept, nulled, or set to ``NaN``."""
     return st.tuples(_price(max_price), _price(max_price), _FRACTION, _MISSING, _MISSING, _MISSING).map(
         _assemble_hlc_missing
     )
@@ -376,9 +331,7 @@ def _assemble_hlcv_missing(
 def coherent_hlcv_with_missing(
     max_price: float = 1e4, max_volume: float = 1e6
 ) -> st.SearchStrategy[tuple[float | None, float | None, float | None, float | None]]:
-    """
-    A coherent ``(high, low, close, volume)`` bar with each field independently kept, nulled, or set to ``NaN``.
-    """
+    """A coherent ``(high, low, close, volume)`` bar with each field independently kept, nulled, or set to ``NaN``."""
     return st.tuples(
         _price(max_price), _price(max_price), _FRACTION, _price(max_volume), _MISSING, _MISSING, _MISSING, _MISSING
     ).map(_assemble_hlcv_missing)
@@ -402,9 +355,7 @@ def _assemble_ohlc_missing(
 def coherent_ohlc_with_missing(
     max_price: float = 1e4,
 ) -> st.SearchStrategy[tuple[float | None, float | None, float | None, float | None]]:
-    """
-    A coherent ``(open, high, low, close)`` bar with each field independently kept, nulled, or set to ``NaN``.
-    """
+    """A coherent ``(open, high, low, close)`` bar with each field independently kept, nulled, or set to ``NaN``."""
     return st.tuples(
         _price(max_price), _price(max_price), _FRACTION, _FRACTION, _MISSING, _MISSING, _MISSING, _MISSING
     ).map(_assemble_ohlc_missing)

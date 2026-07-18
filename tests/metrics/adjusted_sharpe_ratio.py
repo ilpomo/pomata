@@ -1,13 +1,18 @@
-"""Spec for ``pomata.metrics.adjusted_sharpe_ratio`` — reducing, the skew/kurtosis-adjusted Sharpe, scale-invariant."""
+"""
+Declaration for ``pomata.metrics.adjusted_sharpe_ratio`` — reducing, the skew/kurtosis-adjusted Sharpe, scale-
+invariant.
+"""
 
 import math
 
 import polars as pl
-from tests.metrics.oracles import adjusted_sharpe_ratio_reference
-from tests.support import well_spread
-from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import adjusted_sharpe_ratio, sharpe_ratio
+from tests.metrics.enums import Annualization, BehaviorNan, BehaviorNull, Degenerate
+from tests.metrics.harness import suite_metrics
+from tests.metrics.oracles import reference_adjusted_sharpe_ratio
+from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.strategies import well_spread
 
 
 def _well_spread(frame: pl.DataFrame) -> bool:
@@ -28,38 +33,39 @@ def _adjusted_component() -> pl.Expr:
     return annualization * sharpe * correction
 
 
-ADJUSTED_SHARPE_RATIO = Spec(
+ADJUSTED_SHARPE_RATIO = suite_metrics(
     factory=adjusted_sharpe_ratio,
     inputs=("returns",),
     params={"periods_per_year": 252, "risk_free_rate": 0.0},
-    shape=Shape.REDUCING,
+    null=BehaviorNull.SKIPPED,
+    nan=BehaviorNan.POISONS,
+    annualization=Annualization.SQRT_TIME,
+    degenerate=Degenerate.ZERO_DISPERSION_IS_NAN,
+    oracle=reference_adjusted_sharpe_ratio,
+    recomposition=_adjusted_component,
+    scaling=(ScaleAxis(roles=("returns",), degree=0),),
     raises=(
         ({"periods_per_year": 0}, r"periods_per_year must be >= 1"),
         ({"risk_free_rate": math.nan}, r"risk_free_rate must be a finite number"),
+        ({"risk_free_rate": -2.0}, r"risk_free_rate must be >= -1"),
         ({"risk_free_rate": math.inf}, r"risk_free_rate must be a finite number"),
         ({"risk_free_rate": -math.inf}, r"risk_free_rate must be a finite number"),
     ),
-    oracle=adjusted_sharpe_ratio_reference,
     conditioning=_well_spread,
-    # Scale-invariant at risk_free_rate=0, degree 0
-    scale=(ScaleAxis(roles=("returns",), degree=0),),
-    golden_input={"returns": (0.03, -0.02, 0.04, -0.03, 0.02, -0.01, 0.025, -0.015)},
-    golden_output=(2.992,),
-    component_expr=_adjusted_component,
+    golden=Golden(inputs={"returns": (0.03, -0.02, 0.04, -0.03, 0.02, -0.01, 0.025, -0.015)}, output=(2.992,)),
     pins=(
-        SpecPin(
+        Pin(
             label="single_row",
             inputs={"returns": (0.05,)},
             expected=(None,),
             reason="a one-element series yields null (the sample Sharpe ratio needs two observations) ",
         ),
-        SpecPin(
+        Pin(
             label="zero_volatility",
             inputs={"returns": (0.01, 0.01, 0.01, 0.01)},
             expected=(math.nan,),
             reason="a constant series has undefined moments, so the result is NaN — the exact core of the "
-            "near-constant regime the conditioning filter excludes from the property tiers "
-            "",
+            "near-constant regime the conditioning filter excludes from the property tiers",
             covers_conditioning=True,
         ),
     ),

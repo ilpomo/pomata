@@ -6,7 +6,7 @@ import math
 from collections.abc import Sequence
 
 
-def trima_reference(
+def reference_trima(
     expr: Sequence[float | None],
     window: int,
 ) -> list[float | None]:

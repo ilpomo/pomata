@@ -4,10 +4,10 @@ Naive reference oracle for ``pomata.indicators.ema``.
 
 from collections.abc import Sequence
 
-from tests.indicators.oracles._helpers import seeded_recursive_mean_reference
+from tests.indicators.oracles._helpers import reference_seeded_recursive_mean
 
 
-def ema_reference(
+def reference_ema(
     expr: Sequence[float | None],
     window: int,
     *,
@@ -19,7 +19,7 @@ def ema_reference(
     The exponentially-weighted moving average (``alpha = 2 / (window + 1)``), recomputed as the oracle for
     :func:`pomata.indicators.ema`. The unadjusted form (``adjust=False``, the default) is seeded with the simple
     average of the first ``window`` observations -- the classical EMA initialization -- through the common
-    :func:`seeded_recursive_mean_reference` engine. The adjusted form (``adjust=True``) is the finite-window
+    :func:`reference_seeded_recursive_mean` engine. The adjusted form (``adjust=True``) is the finite-window
     unbiased weighting, exact from the first observation, with no seed to choose.
 
     Args:
@@ -52,7 +52,7 @@ def ema_reference(
     if window == 1:
         return list(expr)
     if not adjust:
-        return seeded_recursive_mean_reference(expr, 2.0 / (window + 1.0), window)
+        return reference_seeded_recursive_mean(expr, 2.0 / (window + 1.0), window)
 
     alpha = 2.0 / (window + 1.0)
     results: list[float | None] = []

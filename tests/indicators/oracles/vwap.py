@@ -5,7 +5,7 @@ Naive reference oracle for ``pomata.indicators.vwap``.
 import math
 from collections.abc import Sequence
 
-from tests.indicators.oracles.price_typical import price_typical_reference
+from tests.indicators.oracles.price_typical import reference_price_typical
 
 
 def _multiply(left: float | None, right: float | None) -> float | None:
@@ -41,7 +41,7 @@ def _cumulative_sum(values: Sequence[float | None]) -> list[float | None]:
     return result
 
 
-def vwap_reference(
+def reference_vwap(
     high: Sequence[float | None],
     low: Sequence[float | None],
     close: Sequence[float | None],
@@ -50,7 +50,7 @@ def vwap_reference(
     """
     Naive Volume-Weighted Average Price over Python lists.
 
-    The cumulative sum of the typical price (:func:`price_typical_reference`) times volume, over the cumulative sum of
+    The cumulative sum of the typical price (:func:`reference_price_typical`) times volume, over the cumulative sum of
     the volume masked to the same null bars, recomputed from scratch as the oracle for :func:`pomata.indicators.vwap`.
     Masking the denominator means a null in any price input drops that bar from both sums together (a clean missing
     observation), not just the numerator. The two cumulative sums replicate Polars' ``cum_sum`` exactly (``None``
@@ -69,7 +69,7 @@ def vwap_reference(
         A row is ``None`` where the numerator or denominator cumulative sum is ``None``; otherwise ``nan`` where either
         is ``nan`` or where the cumulative volume is zero (``0 / 0``).
     """
-    typical = price_typical_reference(high, low, close)
+    typical = reference_price_typical(high, low, close)
     weighted = [_multiply(t, v) for t, v in zip(typical, volume, strict=True)]
     # The denominator drops a bar exactly when the numerator does: a null weighted term (a null price or volume input)
     # nulls the bar's volume too, so both cumulative sums skip it together.

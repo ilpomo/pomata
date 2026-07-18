@@ -4,11 +4,11 @@ Naive reference oracle for ``pomata.indicators.atr``.
 
 from collections.abc import Sequence
 
-from tests.indicators.oracles.rma import rma_reference
-from tests.indicators.oracles.true_range import true_range_reference
+from tests.indicators.oracles.rma import reference_rma
+from tests.indicators.oracles.true_range import reference_true_range
 
 
-def atr_reference(
+def reference_atr(
     high: Sequence[float | None],
     low: Sequence[float | None],
     close: Sequence[float | None],
@@ -18,7 +18,7 @@ def atr_reference(
     Naive Average True Range over three Python lists.
 
     The Average True Range ``RMA(true_range, window)``, recomputed as the oracle for :func:`pomata.indicators.atr` by
-    composing :func:`true_range_reference` and :func:`rma_reference`. Its behavior — the ``max_horizontal`` true
+    composing :func:`reference_true_range` and :func:`reference_rma`. Its behavior — the ``max_horizontal`` true
     range, then Wilder smoothing's seed, warm-up, and null-bridging — is inherited from those two oracles, detailed
     below.
 
@@ -54,5 +54,5 @@ def atr_reference(
         raise ValueError(f"window must be >= 1, got {window}")
     if not (len(high) == len(low) == len(close)):
         raise ValueError(f"high, low, close must have equal length, got {len(high)}, {len(low)} and {len(close)}")
-    true_range_values = true_range_reference(high, low, close)
-    return rma_reference(true_range_values, window)
+    true_range_values = reference_true_range(high, low, close)
+    return reference_rma(true_range_values, window)

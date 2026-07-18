@@ -1,13 +1,17 @@
-"""Spec for ``pomata.metrics.kurtosis`` — reducing, the standardized fourth moment minus three, scale-invariant."""
+"""
+Declaration for ``pomata.metrics.kurtosis`` — reducing, the standardized fourth moment minus three, scale-invariant.
+"""
 
 import math
 
 import polars as pl
-from tests.metrics.oracles import kurtosis_reference
-from tests.support import well_spread
-from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import kurtosis
+from tests.metrics.enums import Annualization, BehaviorNan, BehaviorNull, Degenerate
+from tests.metrics.harness import suite_metrics
+from tests.metrics.oracles import reference_kurtosis
+from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.strategies import well_spread
 
 
 def _well_spread(frame: pl.DataFrame) -> bool:
@@ -21,37 +25,39 @@ def _well_spread(frame: pl.DataFrame) -> bool:
     return well_spread(frame.to_series(0).to_list())
 
 
-KURTOSIS = Spec(
+KURTOSIS = suite_metrics(
     factory=kurtosis,
     inputs=("returns",),
     params={},
-    shape=Shape.REDUCING,
-    oracle=kurtosis_reference,
+    null=BehaviorNull.SKIPPED,
+    nan=BehaviorNan.POISONS,
+    annualization=Annualization.NONE,
+    degenerate=Degenerate.ZERO_DISPERSION_IS_NAN,
+    oracle=reference_kurtosis,
+    scaling=(ScaleAxis(roles=("returns",), degree=0),),
     conditioning=_well_spread,
-    # A standardized moment is scale-invariant, degree 0
-    scale=(ScaleAxis(roles=("returns",), degree=0),),
-    golden_input={"returns": (0.01, -0.02, 0.015, -0.03, 0.005, -0.01, 0.02)},
-    golden_output=(-1.3223,),
+    golden=Golden(inputs={"returns": (0.01, -0.02, 0.015, -0.03, 0.005, -0.01, 0.02)}, output=(-1.3223,)),
     pins=(
-        SpecPin(
+        Pin(
             label="constant_is_nan",
             inputs={"returns": (0.01, 0.01, 0.01)},
             expected=(math.nan,),
-            reason="a constant series has zero variance, so the standardized fourth moment is 0/0, i.e. NaN — the "
-            "exact core of the near-constant regime the conditioning filter excludes from the property tiers "
-            "",
+            reason="a constant series has zero variance, so the standardized fourth moment is 0/0, i.e. NaN "
+            "— the exact core of the near-constant regime the conditioning filter excludes from the "
+            "property tiers",
             covers_conditioning=True,
         ),
-        SpecPin(
+        Pin(
             label="near_constant_diverges_from_reference",
-            inputs={"returns": (0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01 * (1.0 + 1e-11))},
+            inputs={"returns": (0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.0100000000001)},
             expected=(3.143213990994586,),
-            reason="deep inside the excluded band (stdev_rel ~3.3e-12) the one-pass moment and the two-pass oracle "
-            "genuinely diverge (impl 3.143213990994586 vs oracle 3.14273818915414, ~1.5e-4 relative — both pure "
-            "rounding artifacts of a quantity that is not there), the measured fact that keeps this filter "
-            "JUSTIFIED at the shared cut; pinned to the implementation's deterministic output",
+            reason="deep inside the excluded band (stdev_rel ~3.3e-12) the one-pass moment and the two-pass "
+            "oracle genuinely diverge (impl 3.143213990994586 vs oracle 3.14273818915414, ~1.5e-4 "
+            "relative — both pure rounding artifacts of a quantity that is not there), the measured "
+            "fact that keeps this filter JUSTIFIED at the shared cut; pinned to the implementation's "
+            "deterministic output",
         ),
-        SpecPin(
+        Pin(
             label="subnormal_magnitude_is_nan",
             inputs={"returns": (0.0, 1e-160, 2e-160)},
             expected=(math.nan,),

@@ -5,10 +5,10 @@ Naive reference oracle for ``pomata.indicators.t3``.
 import math
 from collections.abc import Sequence
 
-from tests.indicators.oracles.ema import ema_reference
+from tests.indicators.oracles.ema import reference_ema
 
 
-def t3_reference(
+def reference_t3(
     expr: Sequence[float | None],
     window: int,
     *,
@@ -20,7 +20,7 @@ def t3_reference(
 
     Tillson's T3, the coefficient combination ``c1 * e6 + c2 * e5 + c3 * e4 + c4 * e3`` of six chained EMAs
     (coefficients in the volume factor ``v``, summing to ``1``), recomputed as the oracle for
-    :func:`pomata.indicators.t3` by composing :func:`ema_reference`. Chaining six passes compounds the warm-up to
+    :func:`pomata.indicators.t3` by composing :func:`reference_ema`. Chaining six passes compounds the warm-up to
     ``6 * (window - 1)``; the null / NaN behavior is detailed below.
 
     Args:
@@ -59,12 +59,12 @@ def t3_reference(
     c3 = -6.0 * factor**2 - 3.0 * factor - 3.0 * factor**3
     c4 = 1.0 + 3.0 * factor + 3.0 * factor**2 + factor**3
 
-    e1 = ema_reference(expr, window, adjust=adjust)
-    e2 = ema_reference(e1, window, adjust=adjust)
-    e3 = ema_reference(e2, window, adjust=adjust)
-    e4 = ema_reference(e3, window, adjust=adjust)
-    e5 = ema_reference(e4, window, adjust=adjust)
-    e6 = ema_reference(e5, window, adjust=adjust)
+    e1 = reference_ema(expr, window, adjust=adjust)
+    e2 = reference_ema(e1, window, adjust=adjust)
+    e3 = reference_ema(e2, window, adjust=adjust)
+    e4 = reference_ema(e3, window, adjust=adjust)
+    e5 = reference_ema(e4, window, adjust=adjust)
+    e6 = reference_ema(e5, window, adjust=adjust)
 
     results: list[float | None] = []
     for value_e3, value_e4, value_e5, value_e6 in zip(e3, e4, e5, e6, strict=True):

@@ -6,7 +6,7 @@ import math
 from collections.abc import Sequence
 
 
-def midpoint_reference(
+def reference_midpoint(
     expr: Sequence[float | None],
     window: int,
 ) -> list[float | None]:

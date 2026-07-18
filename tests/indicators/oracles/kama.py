@@ -46,7 +46,7 @@ def _smoothing_constant(
     return (efficiency_ratio * (fast - slow) + slow) ** 2
 
 
-def kama_reference(
+def reference_kama(
     values: Sequence[float | None],
     window: int,
     window_fast: int = 2,

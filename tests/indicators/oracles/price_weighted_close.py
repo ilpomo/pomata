@@ -5,7 +5,7 @@ Naive reference oracle for ``pomata.indicators.price_weighted_close``.
 from collections.abc import Sequence
 
 
-def price_weighted_close_reference(
+def reference_price_weighted_close(
     high: Sequence[float | None],
     low: Sequence[float | None],
     close: Sequence[float | None],

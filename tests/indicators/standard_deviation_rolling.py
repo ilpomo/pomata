@@ -1,34 +1,33 @@
-"""Spec for ``pomata.indicators.standard_deviation_rolling`` — the rolling standard deviation, window-nulling."""
-
-from tests.indicators.oracles import standard_deviation_rolling_reference
-from tests.support import ABSOLUTE_TOLERANCE_ROLLING_ORACLE, RELATIVE_TOLERANCE_ROLLING_ORACLE
-from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
+"""Declaration for ``pomata.indicators.standard_deviation_rolling`` — the rolling standard deviation, window-nulling."""
 
 from pomata.indicators import standard_deviation_rolling
+from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
+from tests.indicators.harness import suite_indicators
+from tests.indicators.oracles import reference_standard_deviation_rolling
+from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.tolerances import TOLERANCE_ABSOLUTE_ROLLING_ORACLE, TOLERANCE_RELATIVE_ROLLING_ORACLE
 
-STANDARD_DEVIATION_ROLLING = Spec(
+STANDARD_DEVIATION_ROLLING = suite_indicators(
     factory=standard_deviation_rolling,
     inputs=("price",),
     params={"window": 14},
+    null=BehaviorNull.IN_WINDOW_IS_NULL,
+    nan=BehaviorNan.PROPAGATES,
     shape=Shape.SERIES,
-    warmup=13,
+    warmup=Warmup.WINDOW_MINUS_ONE,
+    oracle=reference_standard_deviation_rolling,
+    scaling=(ScaleAxis(roles=("price",), degree=1),),
+    talib=RelationTalib.MATCHES,
     raises=(
         ({"window": 0}, r"window must be >= 1"),
         ({"ddof": -1}, r"ddof must be >= 0"),
         ({"ddof": 14}, r"ddof must be < window"),
     ),
-    oracle=standard_deviation_rolling_reference,
-    # A one-pass rolling dispersion against a two-pass oracle (the square root of the rolling variance): the fixed
-    # streaming band over the well-conditioned domain, matching every other one-pass moment family.
-    oracle_rel_tol=RELATIVE_TOLERANCE_ROLLING_ORACLE,
-    oracle_abs_tol=ABSOLUTE_TOLERANCE_ROLLING_ORACLE,
-    # A dispersion in the price's units, homogeneous of degree 1.
-    scale=(ScaleAxis(roles=("price",), degree=1),),
-    golden_params={"window": 2},
-    golden_input={"price": (2.0, 4.0, 4.0, 8.0)},
-    golden_output=(None, 1.0, 0.0, 2.0),
+    oracle_rel_tol=TOLERANCE_RELATIVE_ROLLING_ORACLE,
+    oracle_abs_tol=TOLERANCE_ABSOLUTE_ROLLING_ORACLE,
+    golden=Golden(inputs={"price": (2.0, 4.0, 4.0, 8.0)}, output=(None, 1.0, 0.0, 2.0), params={"window": 2}),
     pins=(
-        SpecPin(
+        Pin(
             label="sample_deviation_ddof_one",
             inputs={"price": (1.0, 3.0, 5.0)},
             params_override={"window": 3, "ddof": 1},
@@ -36,14 +35,14 @@ STANDARD_DEVIATION_ROLLING = Spec(
             reason="the sample deviation (ddof=1) divides by window - 1, the second correctness branch a single "
             "population golden cannot carry",
         ),
-        SpecPin(
+        Pin(
             label="window_one_is_zero",
             inputs={"price": (1.0, 2.0, 3.0)},
             params_override={"window": 1},
             expected=(0.0, 0.0, 0.0),
             reason="window=1 has no spread, so the deviation is 0 at every row with no warm-up",
         ),
-        SpecPin(
+        Pin(
             label="constant_window_is_exactly_zero_after_large_value",
             inputs={"price": (1000000.0, 0.1, 0.1, 0.1, 0.1)},
             params_override={"window": 3},

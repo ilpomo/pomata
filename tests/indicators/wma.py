@@ -1,80 +1,84 @@
-"""Spec for ``pomata.indicators.wma`` — the linear-weighted rolling mean, window-nulling, degree-1 homogeneous."""
+"""
+Declaration for ``pomata.indicators.wma`` — the linear-weighted rolling mean, window-nulling, degree-1 homogeneous.
+"""
 
 import math
 
-from tests.indicators.oracles import wma_reference
-from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
-
 from pomata.indicators import wma
+from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
+from tests.indicators.harness import suite_indicators
+from tests.indicators.oracles import reference_wma
+from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
 
-WMA = Spec(
+WMA = suite_indicators(
     factory=wma,
     inputs=("expr",),
     params={"window": 3},
+    null=BehaviorNull.IN_WINDOW_IS_NULL,
+    nan=BehaviorNan.PROPAGATES,
     shape=Shape.SERIES,
-    warmup=2,
+    warmup=Warmup.WINDOW_MINUS_ONE,
+    oracle=reference_wma,
+    scaling=(ScaleAxis(roles=("expr",), degree=1),),
+    talib=RelationTalib.MATCHES,
     raises=(({"window": 0}, r"window must be >= 1"),),
-    oracle=wma_reference,
-    # A fixed linear-weight normalization scales linearly with the series.
-    scale=(ScaleAxis(roles=("expr",), degree=1),),
-    golden_input={"expr": (2.0, 4.0, 6.0, 8.0, 10.0)},
-    golden_output=(None, None, 4.6667, 6.6667, 8.6667),
+    golden=Golden(inputs={"expr": (2.0, 4.0, 6.0, 8.0, 10.0)}, output=(None, None, 4.6667, 6.6667, 8.6667)),
     pins=(
-        SpecPin(
+        Pin(
             label="null_in_window_is_null",
             inputs={"expr": (1.0, None, 3.0, 4.0)},
             expected=(None, None, None, 11.0 / 3.0),
             params_override={"window": 2},
             reason="a null inside the window yields null there, the value returns once the window clears",
         ),
-        SpecPin(
+        Pin(
             label="nan_propagates",
             inputs={"expr": (1.0, math.nan, 3.0, 4.0)},
             expected=(None, math.nan, math.nan, 11.0 / 3.0),
             params_override={"window": 2},
             reason="a NaN inside the window yields NaN there and recovers once the window clears",
         ),
-        SpecPin(
+        Pin(
             label="window_equals_length",
             inputs={"expr": (1.0, 2.0, 3.0)},
             expected=(None, None, 14.0 / 6.0),
             params_override={"window": 3},
             reason="the single defined value when window exactly equals the series length",
         ),
-        SpecPin(
+        Pin(
             label="window_one_is_identity",
             inputs={"expr": (1.0, 2.0, 3.0)},
             expected=(1.0, 2.0, 3.0),
             params_override={"window": 1},
             reason="window=1 reproduces the input exactly, the single weight normalizes to one",
         ),
-        SpecPin(
+        Pin(
             label="recency_weighting",
             inputs={"expr": (1.0, 1.0, 4.0)},
             expected=(None, None, 15.0 / 6.0),
             params_override={"window": 3},
             reason="the recency lean: 1,1,4 with weights 1,2,3 gives 15/6 rather than the plain mean 2.0",
         ),
-        SpecPin(
+        Pin(
             label="interior_null_propagates",
             inputs={"expr": (2.0, 4.0, None, 8.0, 10.0, 12.0)},
             expected=(None, None, None, None, None, 64.0 / 6.0),
             reason="an interior null nulls every overlapping window and warm-up resumes after the gap",
         ),
-        SpecPin(
+        Pin(
             label="single_row_window_one",
             inputs={"expr": (42.0,)},
             expected=(42.0,),
             params_override={"window": 1},
             reason="a one-element series with window=1 returns the value itself",
         ),
-        SpecPin(
+        Pin(
             label="single_row_window_exceeds",
             inputs={"expr": (42.0,)},
             expected=(None,),
             reason="a one-element series with window > length is all warm-up",
         ),
-        SpecPin(
+        Pin(
             label="constant_series",
             inputs={"expr": (5.0, 5.0, 5.0, 5.0, 5.0)},
             expected=(None, None, 5.0, 5.0, 5.0),

@@ -6,7 +6,7 @@ import math
 from collections.abc import Sequence
 
 
-def linear_regression_slope_reference(
+def reference_linear_regression_slope(
     expr: Sequence[float | None],
     window: int,
 ) -> list[float | None]:

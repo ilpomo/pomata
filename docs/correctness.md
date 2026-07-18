@@ -18,7 +18,7 @@ the proof below splits in two: indicators to the last figure, PnL and metrics at
 
 ## What every function survives
 
-The same four-tier ladder runs over all three families, under **100% branch coverage**:
+The same four-tier rung set runs over all three families, under **100% branch coverage**:
 
 ```{list-table}
 :header-rows: 1
@@ -141,7 +141,7 @@ rest on the independent oracle and their golden masters instead.
 ## PnL and metrics: proven at the edges, not in the digits
 
 Their math is simple; their correctness lives where the bad things happen, not in the fifteenth digit. The same
-machine applies — independent oracle, four-tier ladder, golden masters — but the characteristic invariants change:
+machine applies — independent oracle, four-tier rung set, golden masters — but the characteristic invariants change:
 
 - **PnL** — cost monotonicity (more cost, less PnL); the additive-vs-compounded split (`cumulative_pnl` sums currency
   P&L, `equity_curve` compounds returns); no look-ahead (every bar uses only past data); and a defined behavior
@@ -170,7 +170,7 @@ reason for its value, so a tolerance can never drift into superstition.
 None of this is something you have to take on faith. The full gate runs from a clean clone (`uv sync`, then the
 lint / type / test commands listed in `CONTRIBUTING.md`); the published figures regenerate from
 `scripts/precision_table.py`, and the realized headroom under the guarantee from `scripts/calibrate_tolerances.py`.
-The suite's own design — the declarative spec ladder, the derived test sizing, and exactly what each rung proves — is
+The suite's own design — the declaration language, the derived test sizing, and exactly what each rung proves — is
 documented alongside the tests in `tests/README.md`.
 </content>
 </invoke>

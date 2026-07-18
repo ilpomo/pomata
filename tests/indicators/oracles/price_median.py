@@ -5,7 +5,7 @@ Naive reference oracle for ``pomata.indicators.price_median``.
 from collections.abc import Sequence
 
 
-def price_median_reference(
+def reference_price_median(
     high: Sequence[float | None],
     low: Sequence[float | None],
 ) -> list[float | None]:

@@ -1,15 +1,19 @@
-"""Spec for ``pomata.indicators.dominant_cycle_phase`` — Ehlers' Hilbert dominant-cycle phase, latching, invariant."""
+"""
+Declaration for ``pomata.indicators.dominant_cycle_phase`` — Ehlers' Hilbert dominant-cycle phase, latching,
+invariant.
+"""
 
 import math
 
 import polars as pl
-from tests.indicators.oracles import dominant_cycle_phase_reference
-from tests.support import spans_even_lag_run
-from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.indicators import dominant_cycle_phase
+from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
+from tests.indicators.harness import suite_indicators
+from tests.indicators.oracles import reference_dominant_cycle_phase
+from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.strategies import spans_even_lag_run
 
-# A clean 20-bar-period carrier: 80 bars leave 17 emitted values past the 63-bar settling warm-up.
 _SAMPLE = tuple(100.0 + 10.0 * math.sin(2 * math.pi * index / 20) for index in range(80))
 
 
@@ -29,39 +33,44 @@ def _no_sustained_even_lag_run(frame: pl.DataFrame) -> bool:
     return not spans_even_lag_run(finite)
 
 
-DOMINANT_CYCLE_PHASE = Spec(
+DOMINANT_CYCLE_PHASE = suite_indicators(
     factory=dominant_cycle_phase,
     inputs=("expr",),
     params={},
+    null=BehaviorNull.LATCHES,
+    nan=BehaviorNan.LATCHES,
     shape=Shape.SERIES,
-    warmup=63,
-    oracle=dominant_cycle_phase_reference,
+    warmup=Warmup.EXPR,
+    warmup_value=63,
+    oracle=reference_dominant_cycle_phase,
+    scaling=(ScaleAxis(roles=("expr",), degree=0),),
+    talib=RelationTalib.MATCHES,
     conditioning=_no_sustained_even_lag_run,
-    # A phase in degrees: scale-INVARIANT, degree 0.
-    scale=(ScaleAxis(roles=("expr",), degree=0),),
-    golden_input={"expr": _SAMPLE},
-    golden_output=(None,) * 63
-    + (
-        54.1853,
-        72.1855,
-        90.1782,
-        108.1678,
-        126.1594,
-        144.1573,
-        162.1633,
-        180.1763,
-        198.1917,
-        216.204,
-        234.2083,
-        252.2035,
-        270.1915,
-        288.177,
-        306.1651,
-        -35.84,
-        -17.8363,
+    golden=Golden(
+        inputs={"expr": _SAMPLE},
+        output=(None,) * 63
+        + (
+            54.1853,
+            72.1855,
+            90.1782,
+            108.1678,
+            126.1594,
+            144.1573,
+            162.1633,
+            180.1763,
+            198.1917,
+            216.204,
+            234.2083,
+            252.2035,
+            270.1915,
+            288.177,
+            306.1651,
+            -35.84,
+            -17.8363,
+        ),
     ),
     pins=(
-        SpecPin(
+        Pin(
             label="flat_run_settles_on_the_zero_fixed_point",
             inputs={"expr": (0.0,) * 80},
             expected=(None,) * 63

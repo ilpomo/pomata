@@ -1,19 +1,27 @@
-"""Spec for ``pomata.metrics.treynor_ratio_rolling`` — annualized excess return per rolling beta, degree-1 at rf=0."""
+"""
+Declaration for ``pomata.metrics.treynor_ratio_rolling`` — annualized excess return per rolling beta, degree-1 at
+rf=0.
+"""
 
 import math
 from collections.abc import Sequence
 
 import polars as pl
-from tests.metrics.oracles import treynor_ratio_rolling_reference
-from tests.support import RELATIVE_TOLERANCE_ROLLING_ORACLE
-from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import treynor_ratio_rolling
+from tests.metrics.enums import BehaviorNan, BehaviorNull
+from tests.metrics.harness import suite_metrics
+from tests.metrics.oracles import reference_treynor_ratio_rolling
+from tests.metrics.treynor_ratio import TREYNOR_RATIO
+from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.tolerances import TOLERANCE_RELATIVE_ROLLING_ORACLE
 
 # Spec-local conditioning floors. Measured: impl-vs-oracle agreement holds down to 1e-6 on BOTH axes (benchmark
 # var_rel and |beta|) with the first breach at ~1e-8, so 1e-5 keeps a 10x margin above the last verified-agreeing
 # point on each axis.
 _VARIANCE_FLOOR = 1e-5
+
+
 _BETA_FLOOR = 1e-5
 
 
@@ -56,67 +64,70 @@ def _treynor_conditioning(frame: pl.DataFrame) -> bool:
     return _treynor_windows_conditioned(frame["returns"].to_list(), frame["benchmark"].to_list(), 4)
 
 
-TREYNOR_RATIO_ROLLING = Spec(
+TREYNOR_RATIO_ROLLING = suite_metrics(
     factory=treynor_ratio_rolling,
     inputs=("returns", "benchmark"),
     params={"window": 4, "periods_per_year": 252},
-    shape=Shape.SERIES,
+    null=BehaviorNull.IN_WINDOW_IS_NULL,
+    nan=BehaviorNan.PROPAGATES,
+    rolling_of=TREYNOR_RATIO,
+    window="window",
     warmup=3,
+    oracle=reference_treynor_ratio_rolling,
+    scaling=(ScaleAxis(roles=("returns", "benchmark"), degree=1),),
     raises=(
         ({"window": 1}, r"window must be >= 2"),
         ({"periods_per_year": 0}, r"periods_per_year must be >= 1"),
         ({"risk_free_rate": math.nan}, r"risk_free_rate must be a finite number"),
+        ({"risk_free_rate": -2.0}, r"risk_free_rate must be >= -1"),
         ({"risk_free_rate": math.inf}, r"risk_free_rate must be a finite number"),
         ({"risk_free_rate": -math.inf}, r"risk_free_rate must be a finite number"),
     ),
-    oracle=treynor_ratio_rolling_reference,
-    # A one-pass rolling beta denominator against a recompute-per-window two-pass oracle.
-    oracle_rel_tol=RELATIVE_TOLERANCE_ROLLING_ORACLE,
-    # Degree-1 homogeneous in a joint returns/benchmark rescale at the default risk_free_rate=0 (the params omit it):
-    # the linear annualization is degree-1 over a degree-0 rolling slope, per window — mirroring the reducing twin's
-    # default-scoped axis (downside_deviation's "at threshold=0" convention). A non-zero rate breaks it.
     conditioning=_treynor_conditioning,
-    scale=(ScaleAxis(roles=("returns", "benchmark"), degree=1),),
-    golden_params={"window": 4, "periods_per_year": 252},
-    golden_input={
-        "returns": (0.02, -0.01, 0.03, -0.02, 0.015, 0.005, -0.01, 0.02),
-        "benchmark": (0.015, -0.008, 0.025, -0.015, 0.01, 0.004, -0.012, 0.018),
-    },
-    golden_output=(None, None, None, 0.9993, 0.7483, 1.4938, -0.5003, 1.8295),
+    golden=Golden(
+        inputs={
+            "returns": (0.02, -0.01, 0.03, -0.02, 0.015, 0.005, -0.01, 0.02),
+            "benchmark": (0.015, -0.008, 0.025, -0.015, 0.01, 0.004, -0.012, 0.018),
+        },
+        output=(None, None, None, 0.9993, 0.7483, 1.4938, -0.5003, 1.8295),
+        params={"window": 4, "periods_per_year": 252},
+    ),
     pins=(
-        SpecPin(
+        Pin(
             label="null_in_constant_benchmark_window",
             inputs={"returns": (0.02, None, 0.03, 0.01, 0.02), "benchmark": (0.1, 0.1, 0.1, 0.1, 0.1)},
             expected=(None, None, None, None, math.nan),
             reason="a null in a window yields null (pairwise-complete gate) before the constant-benchmark NaN branch",
             params_override={"window": 3},
         ),
-        SpecPin(
+        Pin(
             label="constant_benchmark_window_is_nan",
             inputs={"returns": (0.01, -0.02, 0.03, -0.01), "benchmark": (0.1, 0.1, 0.1, 0.1)},
             expected=(None, None, math.nan, math.nan),
-            reason="a window whose benchmark is exactly constant makes the embedded slope NaN — the exact core of "
-            "the near-constant regime the filter's variance clause excludes from the property tiers",
+            reason="a window whose benchmark is exactly constant makes the embedded slope NaN — the exact "
+            "core of the near-constant regime the filter's variance clause excludes from the property "
+            "tiers",
             params_override={"window": 3},
             covers_conditioning=True,
         ),
-        SpecPin(
+        Pin(
             label="zero_beta_window_is_inf",
             inputs={"returns": (3.0, 3.0, 1.0, 1.0), "benchmark": (1.0, -1.0, 1.0, -1.0)},
             expected=(None, None, None, math.inf),
-            reason="a zero-beta window with a positive excess return gives +inf, reported not clipped — the exact "
-            "core of the vanishing-slope regime the filter's beta clause excludes from the property tiers",
+            reason="a zero-beta window with a positive excess return gives +inf, reported not clipped — the "
+            "exact core of the vanishing-slope regime the filter's beta clause excludes from the "
+            "property tiers",
             params_override={"window": 4},
             covers_conditioning=True,
         ),
-        SpecPin(
+        Pin(
             label="window_equals_length",
             inputs={"returns": (0.01, -0.02, 0.03, -0.01, 0.02), "benchmark": (0.008, -0.015, 0.025, -0.008, 0.018)},
             expected=(None, None, None, None, 1.2350516405135523),
             reason="window equals series length, so only the last row is defined",
             params_override={"window": 5},
         ),
-        SpecPin(
+        Pin(
             label="matches_reference_with_risk_free_rate",
             inputs={"returns": (0.01, -0.02, 0.03, -0.01, 0.02), "benchmark": (0.008, -0.015, 0.025, -0.008, 0.018)},
             expected=(None, None, 1.324869757686746, -0.015994608829144833, 2.7922196417697887),
@@ -125,4 +136,5 @@ TREYNOR_RATIO_ROLLING = Spec(
             params_override={"window": 3, "risk_free_rate": 0.02},
         ),
     ),
+    oracle_rel_tol=TOLERANCE_RELATIVE_ROLLING_ORACLE,
 )

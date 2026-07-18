@@ -6,7 +6,7 @@ import math
 from collections.abc import Sequence
 
 
-def true_range_reference(
+def reference_true_range(
     high: Sequence[float | None],
     low: Sequence[float | None],
     close: Sequence[float | None],

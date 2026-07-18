@@ -6,7 +6,7 @@ import math
 from collections.abc import Sequence
 
 
-def obv_reference(
+def reference_obv(
     close: Sequence[float | None],
     volume: Sequence[float | None],
 ) -> list[float | None]:

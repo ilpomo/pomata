@@ -1,50 +1,54 @@
-"""Spec for ``pomata.indicators.percentage_price_oscillator`` — the normalized EMA-difference, gap-bridging."""
+"""Declaration for ``pomata.indicators.percentage_price_oscillator`` — the normalized EMA-difference, gap-bridging."""
 
 import math
 
-from tests.indicators.oracles import percentage_price_oscillator_reference
-from tests.support import ABSOLUTE_TOLERANCE_ROLLING_ORACLE, RELATIVE_TOLERANCE_ROLLING_ORACLE
-from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
-
 from pomata.indicators import percentage_price_oscillator
+from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
+from tests.indicators.harness import suite_indicators
+from tests.indicators.oracles import reference_percentage_price_oscillator
+from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.tolerances import TOLERANCE_ABSOLUTE_ROLLING_ORACLE, TOLERANCE_RELATIVE_ROLLING_ORACLE
 
-PERCENTAGE_PRICE_OSCILLATOR = Spec(
+PERCENTAGE_PRICE_OSCILLATOR = suite_indicators(
     factory=percentage_price_oscillator,
     inputs=("price",),
     params={"window_fast": 12, "window_slow": 26},
+    null=BehaviorNull.BRIDGED,
+    nan=BehaviorNan.LATCHES,
     shape=Shape.SERIES,
-    warmup=25,
+    warmup=Warmup.EXPR,
+    warmup_value=25,
+    oracle=reference_percentage_price_oscillator,
+    scaling=(ScaleAxis(roles=("price",), degree=0),),
+    talib=RelationTalib.MATCHES,
     raises=(
         ({"window_fast": 0}, r"window_fast must be >= 1"),
         ({"window_slow": 0}, r"window_slow must be >= 1"),
         ({"window_fast": 5, "window_slow": 3}, r"windows must be ordered window_fast <= window_slow"),
     ),
-    oracle=percentage_price_oscillator_reference,
-    # A one-pass EMA ratio against a two-pass oracle: a magnitude-proportional band.
-    oracle_rel_tol=RELATIVE_TOLERANCE_ROLLING_ORACLE,
-    oracle_abs_tol=ABSOLUTE_TOLERANCE_ROLLING_ORACLE,
-    # PPO normalizes the EMA difference by the slow EMA, so it is scale-INVARIANT, degree 0
-    #
-    scale=(ScaleAxis(roles=("price",), degree=0),),
-    golden_params={"window_fast": 2, "window_slow": 3},
-    golden_input={"price": (10.0, 11.0, 12.0, 11.0, 13.0, 14.0, 13.0, 15.0)},
-    golden_output=(None, None, 4.5455, 1.5152, 3.2407, 3.5613, 1.1871, 2.7484),
+    oracle_rel_tol=TOLERANCE_RELATIVE_ROLLING_ORACLE,
+    oracle_abs_tol=TOLERANCE_ABSOLUTE_ROLLING_ORACLE,
+    golden=Golden(
+        inputs={"price": (10.0, 11.0, 12.0, 11.0, 13.0, 14.0, 13.0, 15.0)},
+        output=(None, None, 4.5455, 1.5152, 3.2407, 3.5613, 1.1871, 2.7484),
+        params={"window_fast": 2, "window_slow": 3},
+    ),
     pins=(
-        SpecPin(
+        Pin(
             label="equal_windows_are_zero",
             inputs={"price": (10.0, 11.0, 12.0)},
             params_override={"window_fast": 2, "window_slow": 2},
             expected=(None, 0.0, 0.0),
             reason="equal fast/slow windows produce identical EMAs so the oscillator cancels to exactly 0 ",
         ),
-        SpecPin(
+        Pin(
             label="zero_slow_ema_is_nan",
             inputs={"price": (0.0, 0.0, 0.0, 0.0)},
             params_override={"window_fast": 2, "window_slow": 3},
             expected=(None, None, math.nan, math.nan),
             reason="an all-zero series drives both EMAs to exactly 0.0, so the 0/0 boundary surfaces as NaN ",
         ),
-        SpecPin(
+        Pin(
             label="nonzero_gap_zero_slow_ema_is_inf",
             inputs={"price": (1.0, 1.0, -2.0)},
             params_override={"window_fast": 2, "window_slow": 3},

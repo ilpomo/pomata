@@ -5,18 +5,18 @@ Naive reference oracle for ``pomata.indicators.time_series_forecast``.
 import math
 from collections.abc import Sequence
 
-from tests.indicators.oracles.linear_regression_slope import linear_regression_slope_reference
-from tests.indicators.oracles.sma import sma_reference
+from tests.indicators.oracles.linear_regression_slope import reference_linear_regression_slope
+from tests.indicators.oracles.sma import reference_sma
 
 
-def time_series_forecast_reference(
+def reference_time_series_forecast(
     expr: Sequence[float | None],
     window: int,
 ) -> list[float | None]:
     """
     Naive Time Series Forecast over a Python list.
 
-    The window mean (:func:`sma_reference`) plus ``slope * (window + 1) / 2`` (the fitted line one bar beyond the
+    The window mean (:func:`reference_sma`) plus ``slope * (window + 1) / 2`` (the fitted line one bar beyond the
     window), recomputed as the oracle for :func:`pomata.indicators.time_series_forecast`.
 
     Args:
@@ -32,8 +32,8 @@ def time_series_forecast_reference(
     """
     if window < 2:
         raise ValueError(f"window must be >= 2, got {window}")
-    mean = sma_reference(expr, window)
-    slope = linear_regression_slope_reference(expr, window)
+    mean = reference_sma(expr, window)
+    slope = reference_linear_regression_slope(expr, window)
     results: list[float | None] = []
     for mean_value, slope_value in zip(mean, slope, strict=True):
         if mean_value is None or slope_value is None:

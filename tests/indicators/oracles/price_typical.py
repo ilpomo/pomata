@@ -5,7 +5,7 @@ Naive reference oracle for ``pomata.indicators.price_typical``.
 from collections.abc import Sequence
 
 
-def price_typical_reference(
+def reference_price_typical(
     high: Sequence[float | None],
     low: Sequence[float | None],
     close: Sequence[float | None],

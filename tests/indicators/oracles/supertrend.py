@@ -5,7 +5,7 @@ Naive reference oracle for ``pomata.indicators.supertrend``.
 import math
 from collections.abc import Sequence
 
-from tests.indicators.oracles.atr import atr_reference
+from tests.indicators.oracles.atr import reference_atr
 
 
 def _as_float(value: float | None) -> float:
@@ -24,12 +24,12 @@ def _basic_bands(
     multiplier: float,
 ) -> tuple[list[float | None], list[float | None]]:
     """
-    The basic upper / lower bands ``(high + low) / 2 +/- multiplier * ATR``, built on the independent ``atr_reference``.
+    The basic upper / lower bands ``(high + low) / 2 +/- multiplier * ATR``, built on the independent ``reference_atr``.
 
     A band is ``None`` where the ATR or either price is ``None``, ``nan`` where one is ``nan`` (and none ``None``), else
     the finite band -- matching how ``null`` / ``NaN`` flow through the implementation's native band arithmetic.
     """
-    atr_values = atr_reference(high, low, close, window)
+    atr_values = reference_atr(high, low, close, window)
     upper: list[float | None] = []
     lower: list[float | None] = []
     for index in range(len(close)):
@@ -51,7 +51,7 @@ def _basic_bands(
     return upper, lower
 
 
-def supertrend_reference(
+def reference_supertrend(
     high: Sequence[float | None],
     low: Sequence[float | None],
     close: Sequence[float | None],

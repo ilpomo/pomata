@@ -1,34 +1,35 @@
-"""Spec for ``pomata.indicators.variance_rolling`` — the rolling variance, window-nulling, degree-2 homogeneous."""
-
-from tests.indicators.oracles import variance_rolling_reference
-from tests.support import ABSOLUTE_TOLERANCE_ROLLING_ORACLE, RELATIVE_TOLERANCE_ROLLING_ORACLE
-from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
+"""
+Declaration for ``pomata.indicators.variance_rolling`` — the rolling variance, window-nulling, degree-2 homogeneous.
+"""
 
 from pomata.indicators import variance_rolling
+from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
+from tests.indicators.harness import suite_indicators
+from tests.indicators.oracles import reference_variance_rolling
+from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.tolerances import TOLERANCE_ABSOLUTE_ROLLING_ORACLE, TOLERANCE_RELATIVE_ROLLING_ORACLE
 
-VARIANCE_ROLLING = Spec(
+VARIANCE_ROLLING = suite_indicators(
     factory=variance_rolling,
     inputs=("price",),
     params={"window": 14},
+    null=BehaviorNull.IN_WINDOW_IS_NULL,
+    nan=BehaviorNan.PROPAGATES,
     shape=Shape.SERIES,
-    warmup=13,
+    warmup=Warmup.WINDOW_MINUS_ONE,
+    oracle=reference_variance_rolling,
+    scaling=(ScaleAxis(roles=("price",), degree=2),),
+    talib=RelationTalib.MATCHES,
     raises=(
         ({"window": 0}, r"window must be >= 1"),
         ({"ddof": -1}, r"ddof must be >= 0"),
         ({"ddof": 14}, r"ddof must be < window"),
     ),
-    oracle=variance_rolling_reference,
-    # A one-pass rolling second moment against a two-pass oracle: the fixed streaming band over the well-conditioned
-    # domain.
-    oracle_rel_tol=RELATIVE_TOLERANCE_ROLLING_ORACLE,
-    oracle_abs_tol=ABSOLUTE_TOLERANCE_ROLLING_ORACLE,
-    # A dispersion of the price, homogeneous of degree 2.
-    scale=(ScaleAxis(roles=("price",), degree=2),),
-    golden_params={"window": 2},
-    golden_input={"price": (2.0, 4.0, 4.0, 8.0)},
-    golden_output=(None, 1.0, 0.0, 4.0),
+    oracle_rel_tol=TOLERANCE_RELATIVE_ROLLING_ORACLE,
+    oracle_abs_tol=TOLERANCE_ABSOLUTE_ROLLING_ORACLE,
+    golden=Golden(inputs={"price": (2.0, 4.0, 4.0, 8.0)}, output=(None, 1.0, 0.0, 4.0), params={"window": 2}),
     pins=(
-        SpecPin(
+        Pin(
             label="sample_variance_ddof_one",
             inputs={"price": (1.0, 3.0, 5.0)},
             params_override={"window": 3, "ddof": 1},
@@ -36,7 +37,7 @@ VARIANCE_ROLLING = Spec(
             reason="the sample variance (ddof=1) divides by window - 1, the second correctness branch a single "
             "population golden cannot carry",
         ),
-        SpecPin(
+        Pin(
             label="constant_window_is_exactly_zero_after_large_value",
             inputs={"price": (1000000.0, 0.1, 0.1, 0.1, 0.1)},
             params_override={"window": 3},
@@ -44,7 +45,7 @@ VARIANCE_ROLLING = Spec(
             reason="a constant window has exactly zero dispersion even after a much larger value has left it, where "
             "an incremental rolling variance would leave a residue",
         ),
-        SpecPin(
+        Pin(
             label="window_one_is_zero",
             inputs={"price": (1.0, 2.0, 3.0)},
             params_override={"window": 1},

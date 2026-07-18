@@ -4,11 +4,11 @@ Naive reference oracle for ``pomata.indicators.rsi_stochastic``.
 
 from collections.abc import Sequence
 
-from tests.indicators.oracles.rsi import rsi_reference
-from tests.indicators.oracles.stochastic_fast import stochastic_fast_reference
+from tests.indicators.oracles.rsi import reference_rsi
+from tests.indicators.oracles.stochastic_fast import reference_stochastic_fast
 
 
-def rsi_stochastic_reference(
+def reference_rsi_stochastic(
     values: Sequence[float | None],
     window_rsi: int,
     window_k: int,
@@ -17,7 +17,7 @@ def rsi_stochastic_reference(
     """
     Naive Stochastic RSI over aligned Python lists.
 
-    The :func:`rsi_reference` over ``window_rsi``, fed as the high / low / close of :func:`stochastic_fast_reference`
+    The :func:`reference_rsi` over ``window_rsi``, fed as the high / low / close of :func:`reference_stochastic_fast`
     (so its %K places the RSI within its own ``window_k`` range, and %D is the average of that), recomputed as the
     oracle for :func:`pomata.indicators.rsi_stochastic`.
 
@@ -39,5 +39,5 @@ def rsi_stochastic_reference(
         raise ValueError(f"window_k must be >= 1, got {window_k}")
     if window_d < 1:
         raise ValueError(f"window_d must be >= 1, got {window_d}")
-    strength = rsi_reference(values, window_rsi)
-    return stochastic_fast_reference(strength, strength, strength, window_k, window_d)
+    strength = reference_rsi(values, window_rsi)
+    return reference_stochastic_fast(strength, strength, strength, window_k, window_d)
