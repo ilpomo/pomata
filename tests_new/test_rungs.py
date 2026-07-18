@@ -42,6 +42,12 @@ def test_pins(declaration: Declaration) -> None:
 
 
 @pytest.mark.parametrize("declaration", _DECLARATIONS, ids=_IDS)
+def test_recomposition(declaration: Declaration) -> None:
+    """The factory reproduces its recomposition from other public functions (skips where there is none)."""
+    rungs.check_recomposition(declaration)
+
+
+@pytest.mark.parametrize("declaration", _DECLARATIONS, ids=_IDS)
 def test_behavior_null(declaration: Declaration) -> None:
     """An interior null plays out exactly as the oracle plays it out."""
     rungs.check_behavior_null(declaration)

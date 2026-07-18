@@ -2,7 +2,9 @@
 
 import math
 
-from pomata.metrics import pain_ratio
+import polars as pl
+
+from pomata.metrics import cagr, pain_index, pain_ratio
 from tests_new.metrics.enums import Annualization, BehaviorNan, BehaviorNull, Degenerate
 from tests_new.metrics.harness import suite_metrics
 from tests_new.metrics.oracles import reference_pain_ratio
@@ -17,6 +19,9 @@ PAIN_RATIO = suite_metrics(
     annualization=Annualization.GEOMETRIC,
     degenerate=Degenerate.RATIO_SIGNED_INF_OR_NAN,
     oracle=reference_pain_ratio,
+    recomposition=lambda: (
+        (cagr(pl.col("equity_curve"), periods_per_year=252) - 0.0) / pain_index(pl.col("equity_curve"))
+    ),
     scaling=ScaleExempt(
         reason="a normalized growth-factor curve (excess CAGR over the average-drawdown pain index) — "
         "neither homogeneous nor invariant"

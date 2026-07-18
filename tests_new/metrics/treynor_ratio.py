@@ -8,7 +8,7 @@ from collections.abc import Sequence
 
 import polars as pl
 
-from pomata.metrics import treynor_ratio
+from pomata.metrics import beta, treynor_ratio
 from tests_new.metrics.enums import Annualization, BehaviorNan, BehaviorNull, Degenerate
 from tests_new.metrics.harness import suite_metrics
 from tests_new.metrics.oracles import reference_treynor_ratio
@@ -51,6 +51,12 @@ def _treynor_conditioning(frame: pl.DataFrame) -> bool:
     return _beta_nondegenerate(frame["returns"].to_list(), frame["benchmark"].to_list())
 
 
+def _treynor_component() -> pl.Expr:
+    """Treynor recomposed from the public ``beta`` factory at the spec's default params (rf 0.0, 252 periods)."""
+    rf_period = math.pow(1.0 + 0.0, 1.0 / 252) - 1.0
+    return (pl.col("returns") - rf_period).mean() * 252 / beta(pl.col("returns"), pl.col("benchmark"))
+
+
 TREYNOR_RATIO = suite_metrics(
     factory=treynor_ratio,
     inputs=("returns", "benchmark"),
@@ -60,6 +66,7 @@ TREYNOR_RATIO = suite_metrics(
     annualization=Annualization.LINEAR,
     degenerate=Degenerate.RATIO_SIGNED_INF_OR_NAN,
     oracle=reference_treynor_ratio,
+    recomposition=_treynor_component,
     scaling=(ScaleAxis(roles=("returns", "benchmark"), degree=1),),
     raises=(
         ({"periods_per_year": 0}, r"periods_per_year must be >= 1"),

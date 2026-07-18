@@ -2,11 +2,21 @@
 
 import math
 
-from pomata.metrics import modigliani_risk_adjusted_performance
+import polars as pl
+
+from pomata.metrics import modigliani_risk_adjusted_performance, sharpe_ratio, volatility
 from tests_new.metrics.enums import Annualization, BehaviorNan, BehaviorNull, Degenerate
 from tests_new.metrics.harness import suite_metrics
 from tests_new.metrics.oracles import reference_modigliani_risk_adjusted_performance
 from tests_new.support.declaration import Golden, Pin, ScaleAxis
+
+
+def _modigliani_component() -> pl.Expr:
+    """M-squared recomposed from the public ``sharpe_ratio`` and ``volatility`` factories at the default params."""
+    return 0.0 + sharpe_ratio(pl.col("returns"), periods_per_year=252, risk_free_rate=0.0) * volatility(
+        pl.col("benchmark"), periods_per_year=252
+    )
+
 
 MODIGLIANI_RISK_ADJUSTED_PERFORMANCE = suite_metrics(
     factory=modigliani_risk_adjusted_performance,
@@ -17,6 +27,7 @@ MODIGLIANI_RISK_ADJUSTED_PERFORMANCE = suite_metrics(
     annualization=Annualization.LINEAR,
     degenerate=Degenerate.RATIO_SIGNED_INF_OR_NAN,
     oracle=reference_modigliani_risk_adjusted_performance,
+    recomposition=_modigliani_component,
     scaling=(ScaleAxis(roles=("returns", "benchmark"), degree=1),),
     raises=(
         ({"periods_per_year": 0}, r"periods_per_year must be >= 1"),

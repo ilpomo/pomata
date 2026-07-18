@@ -5,11 +5,23 @@ exempt.
 
 import math
 
-from pomata.metrics import alpha
+import polars as pl
+
+from pomata.metrics import alpha, beta
 from tests_new.metrics.enums import Annualization, BehaviorNan, BehaviorNull, Degenerate
 from tests_new.metrics.harness import suite_metrics
 from tests_new.metrics.oracles import reference_alpha
 from tests_new.support.declaration import Golden, Pin, ScaleExempt
+
+
+def _alpha_component() -> pl.Expr:
+    """Jensen's alpha recomposed from the public ``beta`` factory at the spec's default params (rf 0.0, 252 periods)."""
+    rf_period = math.pow(1.0 + 0.0, 1.0 / 252) - 1.0
+    excess = (pl.col("returns") - rf_period) - beta(pl.col("returns"), pl.col("benchmark")) * (
+        pl.col("benchmark") - rf_period
+    )
+    return (1.0 + excess.mean()) ** 252 - 1.0
+
 
 ALPHA = suite_metrics(
     factory=alpha,
@@ -20,6 +32,7 @@ ALPHA = suite_metrics(
     annualization=Annualization.GEOMETRIC,
     degenerate=Degenerate.ZERO_DISPERSION_IS_NAN,
     oracle=reference_alpha,
+    recomposition=_alpha_component,
     scaling=ScaleExempt(
         reason="annualizes a return beyond a benchmark-explained baseline — neither scale-invariant nor homogeneous"
     ),

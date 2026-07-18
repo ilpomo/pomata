@@ -11,7 +11,7 @@ deterministic and small (a handful of rows), with the distinctly-named per-role 
 """
 
 import math
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import cast
 
@@ -19,8 +19,20 @@ import polars as pl
 from hypothesis import strategies as st
 
 from tests_new.support.declaration import Declaration, probe_length, widest_warmup
-from tests_new.support.frames import probe_frame
-from tests_new.support.strategies import apply_missing, finite_floats, missing_data_floats
+from tests_new.support.frames import probe_frame, split_pairs, split_quads, split_triples
+from tests_new.support.strategies import (
+    apply_missing,
+    coherent_hl,
+    coherent_hl_with_missing,
+    coherent_hlc,
+    coherent_hlc_with_missing,
+    coherent_hlcv,
+    coherent_hlcv_with_missing,
+    coherent_ohlc,
+    coherent_ohlc_with_missing,
+    finite_floats,
+    missing_data_floats,
+)
 
 # A tiny extra tail past the warm-up: an interior injection at ``widest_warmup + 2`` still leaves rows to observe the
 # flow play out, while the whole frame stays within the handful-of-rows contract the pnl dialect keeps.
@@ -300,19 +312,80 @@ def _single_input_frame(role: str, length: st.SearchStrategy[int], *, missing: b
     )
 
 
+def _bars_to_frames[T](
+    roles: tuple[str, ...],
+    bars: st.SearchStrategy[T],
+    length: st.SearchStrategy[int],
+    split: Callable[[list[T]], tuple[list[float | None], ...]],
+) -> st.SearchStrategy[pl.DataFrame]:
+    """A frame strategy: draw a list of coherent bars, then unzip it into the declared per-role columns."""
+    return length.flatmap(
+        lambda n: st.lists(bars, min_size=n, max_size=n).map(
+            lambda rows: pl.DataFrame(dict(zip(roles, split(rows), strict=True)))
+        )
+    )
+
+
+def _coherent_bar_frames(
+    inputs: tuple[str, ...], length: st.SearchStrategy[int], *, missing: bool
+) -> st.SearchStrategy[pl.DataFrame] | None:
+    """Frames of coherent OHLC-family bars for the price-bar input shapes, or ``None`` when the shape is not one.
+
+    The bar legs must stay coherent (``low <= open, close <= high``) so a function dividing by the bar range is not
+    fed an impossible bar it would diverge on — out-of-domain input, not a bug (see ``strategies.py``).
+    """
+    if inputs == ("high", "low"):
+        return _bars_to_frames(inputs, coherent_hl_with_missing() if missing else coherent_hl(), length, split_pairs)
+    if inputs == ("high", "low", "close"):
+        return _bars_to_frames(
+            inputs, coherent_hlc_with_missing() if missing else coherent_hlc(), length, split_triples
+        )
+    if inputs == ("high", "low", "close", "volume"):
+        return _bars_to_frames(
+            inputs, coherent_hlcv_with_missing() if missing else coherent_hlcv(), length, split_quads
+        )
+    if inputs == ("open", "high", "low", "close"):
+        return _bars_to_frames(
+            inputs, coherent_ohlc_with_missing() if missing else coherent_ohlc(), length, split_quads
+        )
+    return None
+
+
+def _price_volume_frames(length: st.SearchStrategy[int], *, missing: bool) -> st.SearchStrategy[pl.DataFrame]:
+    """Frames of a modest positive ``price`` and ``volume``: a one-pass rolling volume-weighted sum stays
+    well-conditioned against its two-pass oracle here, where a wide product range would drop a small window's
+    contribution into the accumulated sum's rounding.
+    """
+    element = _finite(1.0, 1e3)
+    column = st.one_of(st.none(), st.just(math.nan), element) if missing else element
+    return length.flatmap(
+        lambda n: st.tuples(st.lists(column, min_size=n, max_size=n), st.lists(column, min_size=n, max_size=n)).map(
+            lambda drawn: pl.DataFrame(
+                {"price": pl.Series(drawn[0], dtype=pl.Float64), "volume": pl.Series(drawn[1], dtype=pl.Float64)}
+            )
+        )
+    )
+
+
 def fuzz_frames(declaration: Declaration, *, missing: bool) -> st.SearchStrategy[pl.DataFrame]:
     """
     A Hypothesis strategy of well-formed input frames for the property tier, keyed on the declaration's input shape.
 
-    Covers the single-input shapes and the multi-input pnl / benchmark-relative shapes; an unlisted shape raises, so the
-    closed vocabulary can never silently under-test a new function.
+    Covers the single-input shapes, the coherent OHLC-family bar shapes, the ``price`` / ``volume`` pair, and the
+    multi-input pnl / benchmark-relative shapes; an unlisted shape raises, so the closed vocabulary can never silently
+    under-test a new function.
     """
     minimum = widest_warmup(declaration) + 4
     length = st.integers(min_value=minimum, max_value=minimum + 24)
+    bar_frames = _coherent_bar_frames(declaration.inputs, length, missing=missing)
+    if bar_frames is not None:
+        return bar_frames
     if declaration.inputs == ("equity_curve",):
         return _equity_frames(length, missing=missing)
     if len(declaration.inputs) == 1:
         return _single_input_frame(declaration.inputs[0], length, missing=missing)
+    if declaration.inputs == ("price", "volume"):
+        return _price_volume_frames(length, missing=missing)
     if declaration.inputs in _FUZZ_SHAPES:
         return _independent_frame(declaration.inputs, length, missing=missing)
     msg = f"{declaration.name}: no fuzz strategy for inputs {declaration.inputs}"  # extend when a new shape lands

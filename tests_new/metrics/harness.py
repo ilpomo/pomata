@@ -64,6 +64,7 @@ def suite_metrics(  # noqa: PLR0913
     raises: tuple[tuple[Mapping[str, ScalarParam], str], ...] = (),
     golden: Golden | None = None,
     pins: tuple[Pin, ...] = (),
+    recomposition: Callable[[], pl.Expr] | None = None,
     deviant: Deviant | None = None,
     conditioning: Callable[[pl.DataFrame], bool] | None = None,
     oracle_rel_tol: float | None = None,
@@ -97,6 +98,8 @@ def suite_metrics(  # noqa: PLR0913
         raises: Validation counterexamples, each ``(kwargs overriding params, the ValueError match regex)``.
         golden: The frozen golden master (the recommended hand-computed anchor), or ``None``.
         pins: Crafted-input cases for exact values the synthesis and the oracle cannot derive.
+        recomposition: A zero-argument callable returning the ``pl.Expr`` that rebuilds this metric from other public
+            functions (a ratio as its numerator over its denominator), or ``None`` when there is no such identity.
         deviant: The documented answer to the all-null regime, or ``None`` for the ordinary all-null answer.
         conditioning: An optional Hypothesis filter excluding an ill-conditioned input regime (paired with a covering
             pin), or ``None``.
@@ -131,6 +134,7 @@ def suite_metrics(  # noqa: PLR0913
         raises=raises,
         golden=golden,
         pins=pins,
+        recomposition=recomposition,
         deviant=deviant,
         conditioning=conditioning,
         oracle_rel_tol=oracle_rel_tol,

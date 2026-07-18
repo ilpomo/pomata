@@ -2,7 +2,9 @@
 
 import math
 
-from pomata.metrics import capture_ratio
+import polars as pl
+
+from pomata.metrics import capture_downside_ratio, capture_ratio, capture_upside_ratio
 from tests_new.metrics.enums import Annualization, BehaviorNan, BehaviorNull, Degenerate
 from tests_new.metrics.harness import suite_metrics
 from tests_new.metrics.oracles import reference_capture_ratio
@@ -17,6 +19,10 @@ CAPTURE_RATIO = suite_metrics(
     annualization=Annualization.GEOMETRIC,
     degenerate=Degenerate.RATIO_SIGNED_INF_OR_NAN,
     oracle=reference_capture_ratio,
+    recomposition=lambda: (
+        capture_upside_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252)
+        / capture_downside_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252)
+    ),
     scaling=ScaleExempt(reason="a ratio of two capture ratios — neither scale-homogeneous nor scale-invariant"),
     raises=(({"periods_per_year": 0}, r"periods_per_year must be >= 1"),),
     golden=Golden(

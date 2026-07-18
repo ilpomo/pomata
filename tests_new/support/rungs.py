@@ -34,6 +34,7 @@ from tests_new.support.declaration import (
     build_expr,
     horizon,
     lane_series,
+    probe_length,
     reference_lanes,
     widest_warmup,
     window_length,
@@ -213,18 +214,45 @@ def check_pins(declaration: Declaration) -> None:
         _check_one_pin(declaration, pin)
 
 
+def _named_lanes(lanes: list[pl.Series]) -> _Lanes:
+    """Name computed lanes as :func:`actual_lanes` does: struct field names for a struct, else ``{"out": ...}``."""
+    if len(lanes) > 1:
+        return {lane.name: lane.to_list() for lane in lanes}
+    return {"out": lanes[0].to_list()}
+
+
+def check_recomposition(declaration: Declaration) -> None:
+    """The factory reproduces its recomposition from other public functions, lane by lane, on the probe frame.
+
+    A ratio metric equals its numerator over its denominator, an oscillator equals a difference of two lines: where the
+    declaration states that identity as a zero-argument ``recomposition`` expression, the factory's output must equal
+    the recomposition's on the deterministic probe. The comparison is a deliberate tier mix — accumulation-order noise
+    between the two evaluations sits inside the property-tier relative band, while a near-zero lane (a struct's
+    difference field) needs the reference-tier absolute floor. Skips cleanly when no recomposition is declared.
+    """
+    recomposition = declaration.recomposition
+    if recomposition is None:
+        pytest.skip(f"{declaration.name}: no recomposition declared")
+    frame = probe_frame(declaration.inputs, probe_length(declaration))
+    actual = actual_lanes(declaration, frame)
+    expected = _named_lanes(lane_series(frame.select(recomposition().alias("out"))))
+    probe = synthesis.describe(declaration, frame, "the deterministic probe frame")
+    triage = messages.triage_generic(declaration.name, "recomposition")
+    _assert_lanes(
+        declaration,
+        "check_recomposition",
+        probe,
+        expected=expected,
+        actual=actual,
+        rel_tol=TOLERANCE_RELATIVE_PROPERTY,
+        abs_tol=TOLERANCE_ABSOLUTE_REFERENCE,
+        triage=triage,
+    )
+
+
 # ======================================================================================================================
 # Missing-data and non-finite flow
 # ======================================================================================================================
-
-
-def _lane_value_same(left: float | None, right: float | None) -> bool:
-    """Exact lane equality, ``None``-aware and ``NaN``-aware (a latch compares equal to a latch)."""
-    if left is None or right is None:
-        return left is None and right is None
-    if math.isnan(left) and math.isnan(right):
-        return True
-    return left == right
 
 
 def _lane_is_nan(value: float | None) -> bool:
@@ -239,75 +267,131 @@ class _FlowContext:
     poisoned: list[float | None]
     row: int  # the injected interior bar
     reach: int  # the horizon past which a bounded effect must have played out
-    window: int  # the declared window length (for the in-window null shape)
     # The tail-recovery band: a one-pass rolling lane recovers to the clean run within a sub-ULP once the missing bar
     # slides out of every window, not bit-for-bit, so the post-horizon comparison is kind-aware within tolerance.
     rel_tol: float
     abs_tol: float
 
 
-def _null_propagates(ctx: _FlowContext) -> str | None:
-    if ctx.clean[ctx.row] is not None and ctx.poisoned[ctx.row] is not None:
-        return f"declared PROPAGATES: the injected row {ctx.row} must be null"
+def _lane_still_missing(value: float | None) -> bool:
+    """A missing lane at a bar: a Polars null or a NaN, never a finite value."""
+    return value is None or _lane_is_nan(value)
+
+
+# The shape layer mirrors the old suite's ``_assert_flow``: a missing bar leaves a trace on the lane within the
+# horizon window, then the lane recovers past it. Two recoveries — back to the clean run within tolerance (a bounded
+# effect: PROPAGATES / IN_WINDOW / ABSORBED, and a NaN's clearing), or merely back to defined values (a recursion that
+# carried a different state across the gap: BRIDGED). The value layer has already proved factory and oracle agree on
+# the exact lanes, so the shape only classifies the recovery, never the interior null pattern — which differs per
+# struct field (a lagged signal, a one-bar direction flag, a per-field window).
+
+
+def _null_trace(ctx: _FlowContext) -> bool:
+    """Whether the missing bar left a ``null`` on some clean-defined lane inside the horizon window."""
+    upper = min(ctx.row + ctx.reach, len(ctx.poisoned))
+    return any(ctx.poisoned[j] is None for j in range(ctx.row, upper) if ctx.clean[j] is not None)
+
+
+def _nan_trace(ctx: _FlowContext) -> bool:
+    """Whether the missing bar left a ``NaN`` on the lane inside the horizon window."""
+    upper = min(ctx.row + ctx.reach, len(ctx.poisoned))
+    return any(_lane_is_nan(ctx.poisoned[j]) for j in range(ctx.row, upper))
+
+
+def _tail_diverges_from_clean(ctx: _FlowContext) -> int | None:
+    """The first post-horizon row where the poisoned lane leaves the clean run (within tolerance), or ``None``."""
+    start = ctx.row + ctx.reach + 1
+    index = first_mismatch(ctx.poisoned[start:], ctx.clean[start:], rel_tol=ctx.rel_tol, abs_tol=ctx.abs_tol)
+    return None if index is None else start + index
+
+
+def _tail_still_missing(ctx: _FlowContext) -> int | None:
+    """The first post-horizon row still missing on a clean-defined lane (did not recover), or ``None``."""
     for j in range(ctx.row + ctx.reach + 1, len(ctx.poisoned)):
-        if not _lane_value_same(ctx.poisoned[j], ctx.clean[j]):
-            return (
-                f"declared PROPAGATES: beyond the horizon (row {ctx.row} + {ctx.reach}) the lane must equal the clean "
-                f"run; row {j} differs"
-            )
+        if ctx.clean[j] is not None and _lane_still_missing(ctx.poisoned[j]):
+            return j
     return None
 
 
-def _null_bridged(ctx: _FlowContext) -> str | None:
-    if ctx.clean[ctx.row] is not None and ctx.poisoned[ctx.row] is not None:
-        return f"declared BRIDGED: the injected row {ctx.row} must be null"
-    tail = range(ctx.row + 1, len(ctx.poisoned))
-    if not any(ctx.poisoned[j] is not None for j in tail):
-        return f"declared BRIDGED: the flow must resume after row {ctx.row}, but every later lane is null"
-    if all(_lane_value_same(ctx.poisoned[j], ctx.clean[j]) for j in tail):
+def _recovers_to_clean(ctx: _FlowContext, member: str) -> str | None:
+    """A bounded missing bar leaves a null trace, then the lane returns to the clean run past the horizon."""
+    if not _null_trace(ctx):
+        return f"declared {member}: the missing bar left no null trace on the lane within the horizon"
+    row = _tail_diverges_from_clean(ctx)
+    if row is not None:
         return (
-            f"declared BRIDGED: the flow resumes identical to the clean run after row {ctx.row} — the missing bar's "
-            "contribution was not absorbed; that shape is PROPAGATES"
+            f"declared {member}: beyond the horizon (row {ctx.row} + {ctx.reach}) the lane must equal the clean run; "
+            f"row {row} differs"
         )
     return None
+
+
+def _null_propagates(ctx: _FlowContext) -> str | None:
+    return _recovers_to_clean(ctx, "PROPAGATES")
 
 
 def _null_in_window(ctx: _FlowContext) -> str | None:
-    upper = min(ctx.row + ctx.window, len(ctx.poisoned))
-    defined = [j for j in range(ctx.row, upper) if ctx.poisoned[j] is not None]
-    if defined:
+    return _recovers_to_clean(ctx, "IN_WINDOW_IS_NULL")
+
+
+def _null_bridged(ctx: _FlowContext) -> str | None:
+    """BRIDGED: a recursion steps over the gap (a null trace), then resumes at defined values — but its carried state
+    need not match the clean run (a cumulation stays permanently offset; a contracting recursion reconverges).
+    """
+    if not _null_trace(ctx):
+        return "declared BRIDGED: the missing bar left no null trace on the lane within the horizon"
+    row = _tail_still_missing(ctx)
+    if row is not None:
         return (
-            f"declared IN_WINDOW_IS_NULL: every window overlapping row {ctx.row} is null, so output rows "
-            f"[{ctx.row}, {upper - 1}] must be null; rows {defined[:4]} are not"
-        )
-    tail_start = ctx.row + ctx.reach + 1
-    index = first_mismatch(ctx.poisoned[tail_start:], ctx.clean[tail_start:], rel_tol=ctx.rel_tol, abs_tol=ctx.abs_tol)
-    if index is not None:
-        return (
-            f"declared IN_WINDOW_IS_NULL: beyond the horizon (row {ctx.row} + {ctx.reach}) the lane must equal the "
-            f"clean run; row {tail_start + index} differs"
+            f"declared BRIDGED: beyond the horizon (row {ctx.row} + {ctx.reach}) the recursion must carry across the "
+            f"gap and resume at defined values; row {row} is still missing"
         )
     return None
 
 
-def _nan_latches(ctx: _FlowContext) -> str | None:
+def _null_absorbed(ctx: _FlowContext) -> str | None:
+    """ABSORBED: a null candidate is dropped from the pointwise computation rather than nulling the whole row, so the
+    injected row carries no null-trace claim; past the horizon the lane returns to the clean run.
+    """
+    row = _tail_diverges_from_clean(ctx)
+    if row is not None:
+        return (
+            f"declared ABSORBED: beyond the horizon (row {ctx.row} + {ctx.reach}) the lane must equal the clean run; "
+            f"row {row} differs"
+        )
+    return None
+
+
+def _latch_violation(ctx: _FlowContext) -> str | None:
+    """The shared latch shape (null or NaN): from the injection on, every clean-defined lane stays missing.
+
+    A recursion that carries the contamination forward never recovers to a finite value. A NaN kernel latches a NaN
+    (an EWM mean, a MACD line) while a finite-guarded pipeline latches a null (the Ehlers cycle cluster drops the bad
+    prefix), so the shape accepts EITHER missing kind — the value layer has already proved factory and oracle agree on
+    which one it is.
+    """
     bad = [
-        j for j in range(ctx.row, len(ctx.poisoned)) if ctx.clean[j] is not None and not _lane_is_nan(ctx.poisoned[j])
+        j
+        for j in range(ctx.row, len(ctx.poisoned))
+        if ctx.clean[j] is not None and not _lane_still_missing(ctx.poisoned[j])
     ]
     if bad:
-        return f"declared LATCHES: every defined lane from row {ctx.row} on must be NaN; rows {bad[:4]} are not"
+        return (
+            f"declared LATCHES: every defined lane from row {ctx.row} on must stay missing (null or NaN); "
+            f"rows {bad[:4]} are not"
+        )
     return None
 
 
 def _nan_propagates(ctx: _FlowContext) -> str | None:
-    if ctx.clean[ctx.row] is not None and not _lane_is_nan(ctx.poisoned[ctx.row]):
-        return f"declared PROPAGATES: the injected row {ctx.row} must be NaN"
-    beyond = range(ctx.row + ctx.reach + 1, len(ctx.poisoned))
-    bad = [j for j in beyond if _lane_is_nan(ctx.poisoned[j]) and not _lane_is_nan(ctx.clean[j])]
-    if bad:
+    """PROPAGATES: a NaN leaves a NaN trace within the horizon, then the lane clears back to the clean run."""
+    if not _nan_trace(ctx):
+        return "declared PROPAGATES: the missing bar left no NaN trace on the lane within the horizon"
+    row = _tail_diverges_from_clean(ctx)
+    if row is not None:
         return (
-            f"declared PROPAGATES: beyond the horizon (row {ctx.row} + {ctx.reach}) no new NaN may appear; rows "
-            f"{bad[:4]} are contaminated"
+            f"declared PROPAGATES: beyond the horizon (row {ctx.row} + {ctx.reach}) the lane must clear back to the "
+            f"clean run; row {row} differs"
         )
     return None
 
@@ -317,8 +401,10 @@ _SHAPES_NULL: Mapping[str, _SeriesHandler] = {
     "PROPAGATES": _null_propagates,
     "BRIDGED": _null_bridged,
     "IN_WINDOW_IS_NULL": _null_in_window,
+    "LATCHES": _latch_violation,
+    "ABSORBED": _null_absorbed,
 }
-_SHAPES_NAN: Mapping[str, _SeriesHandler] = {"PROPAGATES": _nan_propagates, "LATCHES": _nan_latches}
+_SHAPES_NAN: Mapping[str, _SeriesHandler] = {"PROPAGATES": _nan_propagates, "LATCHES": _latch_violation}
 
 
 @dataclass(frozen=True)
@@ -386,7 +472,7 @@ def _assert_flow(
     The value layer proves the code and the naive reimplementation agree on the regime; the shape layer proves the
     DECLARATION tells the truth about it — a wrong behavior enum goes red here even when factory and oracle agree. The
     shape dialect is the declaration's: a SERIES lane recovers around the missing bar, a REDUCING scalar skips it,
-    poisons, or nulls; a STRUCT is fail-closed until the indicators family lands.
+    poisons, or nulls; a STRUCT runs the SERIES shape once per declared field, so every field is held to the contract.
     """
     rel, abs_ = _oracle_bands(declaration, TOLERANCE_RELATIVE_REFERENCE, TOLERANCE_ABSOLUTE_REFERENCE)
     expected = reference_lanes(declaration, pair.probe.frame)
@@ -395,17 +481,14 @@ def _assert_flow(
     _assert_lanes(
         declaration, check, pair.probe, expected=expected, actual=actual, rel_tol=rel, abs_tol=abs_, triage=triage
     )
-    if declaration.shape is Shape.SERIES:
-        _assert_series_flow(
-            declaration, check, pair, declared=declared, actual=actual, shapes=series_shapes, rel_tol=rel, abs_tol=abs_
-        )
-    elif declaration.shape is Shape.REDUCING:
+    if declaration.shape is Shape.REDUCING:
         _assert_reducing_flow(
             declaration, check, pair, declared=declared, actual=actual, shapes=reduce_shapes, rel_tol=rel, abs_tol=abs_
         )
-    else:
-        message = f"{declaration.name}: structural flow contracts for {declaration.shape} land with their family"
-        raise NotImplementedError(message)
+    else:  # SERIES and STRUCT: one per-lane series-flow contract, run over every declared field of a struct
+        _assert_series_flow(
+            declaration, check, pair, declared=declared, actual=actual, shapes=series_shapes, rel_tol=rel, abs_tol=abs_
+        )
 
 
 def _assert_series_flow(
@@ -419,17 +502,17 @@ def _assert_series_flow(
     rel_tol: float,
     abs_tol: float,
 ) -> None:
-    """The declared SERIES behavior's shape, per lane: the missing bar's footprint, then recovery to the clean run."""
+    """The declared behavior's SERIES shape, per lane — one lane for a SERIES, one per declared field for a STRUCT: the
+    missing bar's footprint on each lane, then its recovery to the clean run.
+    """
     clean = actual_lanes(declaration, pair.frame_clean)
     reach = horizon(declaration)
-    window = window_length(declaration)
     for name, lane_poisoned in actual.items():
         ctx = _FlowContext(
             clean=clean[name],
             poisoned=lane_poisoned,
             row=pair.row,
             reach=reach,
-            window=window,
             rel_tol=rel_tol,
             abs_tol=abs_tol,
         )
@@ -494,6 +577,8 @@ def _assert_reducing_flow(
 
 def check_behavior_null(declaration: Declaration) -> None:
     """An interior ``null`` plays out as the oracle plays it out AND as the declared null behavior promises."""
+    if declaration.flow_deviation:
+        pytest.skip(f"{declaration.name}: flow deviation — {declaration.flow_deviation}")
     _assert_flow(
         declaration,
         "check_behavior_null",
@@ -506,6 +591,8 @@ def check_behavior_null(declaration: Declaration) -> None:
 
 def check_behavior_nan(declaration: Declaration) -> None:
     """An interior ``NaN`` plays out as the oracle plays it out AND as the declared NaN behavior promises."""
+    if declaration.flow_deviation:
+        pytest.skip(f"{declaration.name}: flow deviation — {declaration.flow_deviation}")
     _assert_flow(
         declaration,
         "check_behavior_nan",

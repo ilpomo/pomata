@@ -2,7 +2,9 @@
 
 import math
 
-from pomata.metrics import calmar_ratio
+import polars as pl
+
+from pomata.metrics import cagr, calmar_ratio, max_drawdown
 from tests_new.metrics.enums import Annualization, BehaviorNan, BehaviorNull, Degenerate
 from tests_new.metrics.harness import suite_metrics
 from tests_new.metrics.oracles import reference_calmar_ratio
@@ -17,6 +19,9 @@ CALMAR_RATIO = suite_metrics(
     annualization=Annualization.GEOMETRIC,
     degenerate=Degenerate.RATIO_SIGNED_INF_OR_NAN,
     oracle=reference_calmar_ratio,
+    recomposition=lambda: (
+        cagr(pl.col("equity_curve"), periods_per_year=252) / max_drawdown(pl.col("equity_curve")).abs()
+    ),
     scaling=ScaleExempt(
         reason="a normalized growth-factor curve run through CAGR over a scale-invariant drawdown "
         "magnitude — neither homogeneous nor invariant"
