@@ -105,4 +105,43 @@ INFORMATION_RATIO_ROLLING = suite_metrics(
         ),
     ),
     oracle_rel_tol=TOLERANCE_RELATIVE_ROLLING_ORACLE,
+    reference='Goodwin, T. H. (1998). "The Information Ratio." *Financial Analysts Journal*, 54(4), 34-43.',
+    doi="https://doi.org/10.2469/faj.v54.n4.2196",
+    wikipedia="https://en.wikipedia.org/wiki/Information_ratio",
+    see_also=(
+        ("information_ratio", "The whole-series reducing form."),
+        ("sharpe_ratio_rolling", "The rolling total-risk analog measured against a risk-free rate."),
+        ("alpha_rolling", "The rolling benchmark-active return measured per unit of beta."),
+    ),
+    bullets=(
+        ("Null", "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values)."),
+        ("NaN", "a ``NaN`` inside the window propagates, yielding ``NaN`` there."),
+        (
+            "Degenerate denominator",
+            "a constant active window has zero tracking error, so the result is ``+/-inf`` (or "
+            "``NaN`` when the mean active is also zero) — reported, not clipped.",
+        ),
+        (
+            "Stability",
+            "a near-flat (non-bit-identical) active-return window sits at the float-conditioning "
+            "limit the documentation's *Correctness* page documents: the one-pass rolling tracking "
+            "error and an exact two-pass recomputation can round a vanishing denominator apart "
+            "without bound there. The bit-flat window is pinned exactly (a zero tracking error, the "
+            "documented ``+/-inf`` / ``NaN``); real market windows are far from the regime.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The rolling information ratio for each row, the same length as the input. The first "
+    "``window - 1`` rows are ``null`` (warm-up): the window must hold ``window`` complete "
+    "pairs before a result is emitted.",
+    raises_prose="ValueError: If ``window < 2``, or if ``periods_per_year < 1``.",
+    args_prose={
+        "window": "Number of observations in the moving window. Must be ``>= 2``.",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+    intro_missing="A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make "
+    "the handling visible:",
 )

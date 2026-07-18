@@ -61,4 +61,44 @@ OMEGA_RATIO = suite_metrics(
             params_override={"threshold": 0.01},
         ),
     ),
+    reference='Keating, C. & Shadwick, W. F. (2002). "A Universal Performance Measure." *The Journal of '
+    "Performance Measurement*, 6(3), 59-84.",
+    wikipedia="https://en.wikipedia.org/wiki/Omega_ratio",
+    see_also=(
+        ("gain_to_pain_ratio", "The net-return over total-loss sibling about a zero threshold."),
+        ("sortino_ratio", "The downside-deviation risk-adjusted alternative."),
+        ("sharpe_ratio", "The moment-based risk-adjusted ratio."),
+        ("omega_ratio_rolling", "The rolling (windowed) form."),
+    ),
+    bullets=(
+        ("Null", "a ``null`` return is skipped; an all-null (or empty) series yields ``null``."),
+        ("NaN", "a ``NaN`` return propagates, yielding ``NaN``."),
+        (
+            "Insufficient sample",
+            "a single observation above the threshold has no offsetting downside, so the result is "
+            "``+inf`` — reported, not clipped.",
+        ),
+        (
+            "Degenerate denominator",
+            "when no return is below the threshold the mean loss is zero, so the ratio is ``+inf`` "
+            "(or ``NaN`` when every return sits exactly at the threshold, a ``0 / 0``); with no "
+            "return above it the mean gain is zero, so the ratio is exactly ``0`` — all reported, not "
+            "clipped.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A single ``Float64`` value: the omega ratio (one value in ``select``, one per group "
+    "under ``.over``). ``null`` when there are no returns.",
+    raises_prose="ValueError: If ``threshold`` is not finite.",
+    args_prose={
+        "threshold": "The **per-period** return level separating gains from losses / the minimum acceptable "
+        "return (default ``0.0``); an annual target must be de-annualized by the caller before it "
+        "is passed. Must be finite.",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+    "handling visible:",
 )

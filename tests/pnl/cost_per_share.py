@@ -51,4 +51,42 @@ COST_PER_SHARE = suite_pnl(
             "property tiers set allow_infinity=False, so only this pin reaches the branch",
         ),
     ),
+    wikipedia="https://en.wikipedia.org/wiki/Transaction_cost",
+    see_also=(
+        ("cost_fixed", "A flat charge per trade."),
+        ("cost_notional", "A proportional (bps-of-notional) commission."),
+        ("pnl_net", "Subtracts the composed cost from the gross PnL."),
+    ),
+    notes=(
+        (
+            "Flat start",
+            "The pre-series quantity is taken as ``0`` (via :func:`turnover`), so the first row "
+            "charges on ``|quantity_0|`` (entering the initial position is a trade).",
+        ),
+    ),
+    bullets=(
+        ("Null", "a ``null`` quantity makes that row ``null`` (``null`` takes precedence over ``NaN``)."),
+        ("NaN", "a ``NaN`` quantity yields ``NaN`` for that row."),
+        (
+            "Non-finite input",
+            "an ``inf`` quantity follows IEEE-754 through the arithmetic of the turnover difference, "
+            "an infinite move charging an ``inf`` cost (the sign, and any ``inf - inf = NaN``, "
+            "included).",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The per-bar per-share cost for each row, the same length as ``quantity``. The first row "
+    "charges on ``|quantity_0|`` (the entry trade from a flat start).",
+    raises_prose="ValueError: If ``fee`` is not a finite number ``>= 0`` (i.e. ``< 0``, ``NaN``, or ``±inf``).",
+    args_prose={
+        "quantity": "Signed position size in units / shares / contracts held over the bar (e.g. ``100``, ``-2``).",
+        "fee": "Commission per unit traded, in the account currency (e.g. ``0.01`` = one cent per "
+        "share). Must be a finite number ``>= 0``.",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker starts flat:",
+    intro_missing="A ``null`` (which voids its own row and the next) and a ``NaN`` make the missing-data "
+    "handling visible:",
 )

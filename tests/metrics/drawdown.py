@@ -47,4 +47,49 @@ DRAWDOWN = suite_metrics(
             reason="a NaN equity yields NaN at that row while the running peak ignores it",
         ),
     ),
+    wikipedia="https://en.wikipedia.org/wiki/Drawdown_%28economics%29",
+    see_also=(
+        ("max_drawdown", "The deepest point of this series."),
+        ("ulcer_index", "The root-mean-square of this series."),
+        ("drawdown_rolling", "The trailing-window form, healed once an old peak rolls out."),
+    ),
+    notes=(
+        (
+            "Inception",
+            "The running peak starts at the FIRST observation: a curve fed from "
+            ":func:`~pomata.pnl.equity_curve` begins at its first post-return value, so a drawdown "
+            "from the starting capital itself (an opening losing streak) is invisible by "
+            "construction. Prepend a literal ``1.0`` row to count declines from inception; the "
+            "convention matches quantstats (empyrical instead prepends the start).",
+        ),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a ``null`` equity makes that row ``null`` (``null`` takes precedence over ``NaN``); the "
+            "running peak carries across it unchanged.",
+        ),
+        (
+            "NaN",
+            "a ``NaN`` equity yields ``NaN`` for that row; the running peak ignores it (Polars' "
+            "``cum_max`` semantics), so later rows are unaffected.",
+        ),
+        (
+            "Insufficient sample",
+            "a single-row series is trivially at its own peak, so its (only) drawdown is exactly ``0``, not ``null``.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The drawdown for each row, the same length as ``equity_curve`` -- ``0`` at a running "
+    "peak and negative while below it. A leading input ``null`` stays ``null``.",
+    args_prose={
+        "equity_curve": "Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive.",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker's running peak "
+    "restarts independently:",
+    intro_missing="A ``null`` (skipped) and a ``NaN`` (which propagates at its row) make the missing-data "
+    "handling visible:",
 )

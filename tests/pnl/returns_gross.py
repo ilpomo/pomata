@@ -47,4 +47,48 @@ RETURNS_GROSS = suite_pnl(
             "property tiers set allow_infinity=False",
         ),
     ),
+    reference='Meucci, A. (2010). "Quant Nugget 2: Linear vs. Compounded Returns." *GARP Risk '
+    "Professional*, April 2010, 49-51.",
+    wikipedia="https://en.wikipedia.org/wiki/Rate_of_return",
+    see_also=(
+        ("returns_simple", "The usual source of ``asset_returns``."),
+        ("turnover", "The traded fraction of the same ``weight``, the basis for transaction costs."),
+        ("equity_curve", "Compounds these per-bar returns into a capital curve."),
+    ),
+    notes=(
+        (
+            "No lookahead (alignment is the caller's)",
+            "The product assumes ``weight`` at row ``t`` is the weight held over ``asset_returns`` at "
+            "row ``t``. To stay lookahead-free, that weight must depend only on information available "
+            "before that return; if it is decided on the same bar's close, lag it by one bar "
+            "(``returns_gross(weight.shift(1), asset_returns)``). Nothing is shifted for you, so a "
+            "weight you have already aligned is never double-shifted.",
+        ),
+    ),
+    bullets=(
+        ("Null", "a ``null`` weight makes that row ``null`` (``null`` takes precedence over ``NaN``)."),
+        ("NaN", "a ``NaN`` weight yields ``NaN`` for that row."),
+        (
+            "Non-finite input",
+            "an ``inf`` weight follows IEEE-754 through the arithmetic, so the return signs with "
+            "``weight * asset_returns`` (the sign included).",
+        ),
+        (
+            "Partitioning",
+            "already correct on a multi-series panel: ``.over(...)`` partitions identically and is "
+            "therefore optional here.",
+        ),
+    ),
+    returns_body="The gross strategy return for each row, the same length as the inputs. There is no "
+    "window and no warm-up of its own: every row is the product of its own ``weight`` and "
+    "``asset_returns`` (so a warm-up ``null`` is inherited only from the inputs, e.g. the "
+    "first row of :func:`returns_simple`).",
+    args_prose={
+        "asset_returns": "Per-bar asset returns, typically from :func:`returns_simple` (e.g. "
+        '``returns_simple(pl.col("close"))``).',
+    },
+    intro_basic="Basic usage on a weight and an asset-return series:",
+    intro_over="The product is elementwise, so ``.over`` partitions identically and is shown only for consistency:",
+    intro_missing="A ``null`` then a ``NaN`` in ``asset_returns`` (both propagate through the product) make "
+    "the missing-data handling visible:",
 )

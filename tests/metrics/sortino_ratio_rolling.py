@@ -85,4 +85,43 @@ SORTINO_RATIO_ROLLING = suite_metrics(
         ),
     ),
     oracle_rel_tol=TOLERANCE_RELATIVE_ROLLING_ORACLE,
+    reference='Sortino, F. A. & Price, L. N. (1994). "Performance Measurement in a Downside Risk '
+    'Framework." *The Journal of Investing*, 3(3), 59-64.',
+    doi="https://doi.org/10.3905/joi.3.3.59",
+    wikipedia="https://en.wikipedia.org/wiki/Sortino_ratio",
+    see_also=(
+        ("sortino_ratio", "The whole-series reducing form."),
+        ("downside_deviation_rolling", "The denominator."),
+        ("sharpe_ratio_rolling", "The two-sided rolling counterpart."),
+    ),
+    opener_override="Each window matches an independent reference oracle (the reducing :func:`sortino_ratio` "
+    "recomputed over the window).",
+    bullets=(
+        ("Null", "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values)."),
+        ("NaN", "a ``NaN`` inside the window propagates, yielding ``NaN`` there."),
+        (
+            "Degenerate denominator",
+            "a window with every excess return at or above the target has zero downside deviation, so "
+            "the ratio is ``+/-inf`` (or ``NaN`` when the mean excess is also zero) — reported, not "
+            "clipped.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The rolling Sortino ratio for each row, the same length as the input. The first ``window "
+    "- 1`` rows are ``null`` (warm-up): the window must hold ``window`` non-null values "
+    "before a result is emitted.",
+    raises_prose="ValueError: If ``window < 1``, ``periods_per_year < 1``, or if ``risk_free_rate`` is not "
+    "finite or is ``< -1``.",
+    args_prose={
+        "window": "Number of observations in the moving window. Must be ``>= 1``.",
+        "risk_free_rate": "The annualized risk-free rate, converted to a per-period rate geometrically (default "
+        "``0.0``). Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + "
+        "risk_free_rate >= 0``).",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+    intro_missing="A ``null`` (which voids every window that spans it) and a ``NaN`` (which propagates to "
+    "its windows) make the missing-data handling visible:",
 )

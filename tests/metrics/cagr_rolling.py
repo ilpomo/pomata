@@ -98,4 +98,43 @@ CAGR_ROLLING = suite_metrics(
             params_override={"window": 4, "periods_per_year": 1},
         ),
     ),
+    wikipedia="https://en.wikipedia.org/wiki/Compound_annual_growth_rate",
+    see_also=(
+        ("cagr", "The whole-series reducing form."),
+        ("total_return_rolling", "The non-annualized windowed return."),
+        ("total_return", "The whole-series, non-annualized total growth."),
+    ),
+    opener_override="Each window matches an independent reference oracle (the endpoint ratio annualized).",
+    bullets=(
+        (
+            "Null",
+            "a ``null`` equity makes that row ``null`` (``null`` takes precedence over ``NaN``) — "
+            "being an endpoint quantity, an interior ``null`` does not affect the result.",
+        ),
+        ("NaN", "a ``NaN`` at either endpoint propagates, yielding ``NaN``."),
+        (
+            "Domain",
+            "a window whose equity crossed zero, or ends exactly on it, has no fractional-power "
+            "growth, so the result is a loud ``NaN`` — never a plausible wrong number.",
+        ),
+        (
+            "Degenerate denominator",
+            "a window starting exactly at zero blows the endpoint ratio to ``+inf`` — reported, not clipped.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The rolling compound annual growth rate for each row, the same length as the input. The "
+    "first ``window - 1`` rows are ``null`` (warm-up): the window must reach back ``window`` "
+    "rows before a result is emitted.",
+    raises_prose="ValueError: If ``window < 2``, or if ``periods_per_year < 1``.",
+    args_prose={
+        "equity_curve": "Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive.",
+        "window": "Number of observations in the moving window. Must be ``>= 2``.",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+    intro_missing="A ``null`` or ``NaN`` at a window endpoint propagates, while a ``NaN`` interior to a "
+    "window is ignored:",
 )

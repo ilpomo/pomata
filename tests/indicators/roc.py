@@ -67,4 +67,37 @@ ROC = suite_indicators(
             reason="a zero change over zero is NaN (0/0), a non-zero change over zero is +inf",
         ),
     ),
+    wikipedia="https://en.wikipedia.org/wiki/Momentum_%28technical_analysis%29",
+    see_also=(
+        ("mom", "The absolute-difference sibling."),
+        ("trix", "The one-period rate of change of a triple-smoothed EMA."),
+        ("rsi", "A bounded momentum oscillator."),
+    ),
+    bullets=(
+        ("Null", "a ``null`` value makes that row ``null`` (``null`` takes precedence over ``NaN``)."),
+        ("NaN", "a ``NaN`` inside the window propagates, yielding ``NaN`` there."),
+        ("Insufficient sample", "a look-back longer than the series never completes, so the result is ``null``."),
+        (
+            "Degenerate denominator",
+            "when both the change and the lagged value are ``0`` the ratio is indeterminate, so the "
+            "result is a ``0 / 0``, i.e. ``NaN`` — a non-zero change over a zero lagged value is "
+            "``+/-inf`` (the sign tracks the change relative to the signed zero).",
+        ),
+        ("window == 1", "the look-back is a single bar, so ``roc`` is the one-period simple return in percent."),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The ROC for each row, the same length as ``expr``. The first ``window`` values are "
+    "``null`` (warm-up) -- the lagged term ``expr.shift(window)`` is undefined for the first "
+    "``window`` rows, so no change can be measured there.",
+    raises_prose="ValueError: If ``window < 1``.",
+    args_prose={
+        "window": "Number of observations to look back. Must be ``>= 1``.",
+    },
+    intro_basic="Basic usage on a single price series:",
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+    intro_missing="A ``null`` (voiding the rows that reference it) and a ``NaN`` (which propagates) make "
+    "the exact handling visible at a glance:",
 )

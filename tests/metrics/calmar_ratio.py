@@ -54,4 +54,42 @@ CALMAR_RATIO = suite_metrics(
             "i.e. NaN — the degenerate-denominator NaN beside the +inf pin",
         ),
     ),
+    reference='Young, T. W. (1991). "Calmar Ratio: A Smoother Tool." *Futures Magazine*.',
+    wikipedia="https://en.wikipedia.org/wiki/Calmar_ratio",
+    see_also=(
+        ("cagr", "The numerator (annualized growth)."),
+        ("max_drawdown", "The denominator (worst decline)."),
+        ("recovery_ratio", "The same worst-drawdown denominator with a total-return numerator."),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a ``null`` equity is skipped (excluded from both the growth and the drawdown); an "
+            "all-null (or empty) series yields ``null``.",
+        ),
+        ("NaN", "a ``NaN`` equity propagates, yielding ``NaN``."),
+        (
+            "Insufficient sample",
+            "a single observation has zero growth over zero maximum drawdown, so the result is a ``0 "
+            "/ 0``, i.e. ``NaN``.",
+        ),
+        (
+            "Degenerate denominator",
+            "a monotonically non-decreasing curve has zero maximum drawdown, so the ratio is "
+            "``+/-inf`` (or ``NaN`` when the growth is also zero) — reported, not clipped.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A single ``Float64`` value: the Calmar ratio (one value in ``select``, one per group "
+    "under ``.over``). ``null`` when there are no observations.",
+    raises_prose="ValueError: If ``periods_per_year < 1``.",
+    args_prose={
+        "equity_curve": "Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive.",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+    "handling visible:",
 )

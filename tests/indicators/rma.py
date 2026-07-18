@@ -69,4 +69,41 @@ RMA = suite_indicators(
             reason="the post-seed gap-decay branch, pinned deterministically against the reference",
         ),
     ),
+    reference="Wilder, J. W. (1978). *New Concepts in Technical Trading Systems*. Trend Research.",
+    see_also=(
+        ("ema", "The same recursion with smoothing factor ``2 / (window + 1)``."),
+        ("atr", "The volatility average that smooths the true range with this Wilder mean."),
+        ("sma", "The equal-weight baseline."),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a leading ``null`` run stays ``null`` until the first non-null seed; an interior "
+            "``null`` yields ``null`` at that position while the recursion continues across the gap "
+            "(a leading run consumes no warm-up budget, and an interior gap decays the carried weight "
+            "by ``(1 - alpha) ** k``, emulating ``ewm_mean(adjust=False, ignore_nulls=False)`` "
+            "semantics).",
+        ),
+        (
+            "NaN",
+            "a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null position.",
+        ),
+        ("window == 1", "the smoothing factor is ``1``, the warm-up vanishes, and the result reproduces the input."),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The RMA for each row, the same length as ``expr``. The first ``window - 1`` values are "
+    "``null`` (warm-up) -- the recursion emits only once ``window`` non-null observations "
+    "have been counted -- seeded there with their simple average -- after which every later "
+    "row is defined wherever its own input is (an interior ``null`` still voids its own row, "
+    "as the Note details).",
+    raises_prose="ValueError: If ``window < 1``.",
+    args_prose={
+        "window": "Number of observations in the moving window. Must be ``>= 1``.",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+    intro_missing="A ``null`` (skipped: it voids its own row while the recursion bridges the gap) and a "
+    "``NaN`` (which latches) make the exact handling visible at a glance:",
 )

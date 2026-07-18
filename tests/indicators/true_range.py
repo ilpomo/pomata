@@ -62,4 +62,52 @@ TRUE_RANGE = suite_indicators(
             "row-2 gap |10 - 8| = 2 surfaces",
         ),
     ),
+    reference="Wilder, J. W. (1978). *New Concepts in Technical Trading Systems*. Trend Research.",
+    wikipedia="https://en.wikipedia.org/wiki/Average_true_range",
+    see_also=(
+        ("atr", "The Wilder-smoothed average of this per-bar range."),
+        ("atr_normalized", "That average expressed as a percent of the current close."),
+        ("vortex", "A directional indicator that normalizes its movement by this range."),
+    ),
+    notes=(
+        (
+            "Inputs",
+            "``high``, ``low``, and ``close`` are taken as the canonical OHLC roles in that "
+            "positional order and must share a length and alignment (the same row index is one bar).",
+        ),
+    ),
+    bullets=(
+        (
+            "Null",
+            "``null`` handling follows ``pl.max_horizontal``, which **skips** ``null`` candidates "
+            "rather than propagating them: a ``null`` in ``high`` or ``low`` (or a ``null`` previous "
+            "``close``) simply drops that candidate, so the row still resolves from whichever "
+            "distances remain. The result is ``null`` only when all three candidates are ``null``: "
+            "with a defined previous ``close`` that means ``high`` and ``low`` are both ``null`` at "
+            "the row, but where the previous ``close`` is itself ``null`` (row ``0``, or any bar "
+            "after a ``null`` close) the two gap distances are already ``null``, so a single ``null`` "
+            "in ``high`` or ``low`` voids the row on its own.",
+        ),
+        (
+            "NaN",
+            "a ``NaN`` price yields ``NaN`` for that row — it is not skipped like a ``null`` (it "
+            "dominates the maximum), so a ``NaN`` ``close`` also contaminates the two gap terms of "
+            "the next row.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The True Range for each row, the same length as the inputs. There is no window and no "
+    "warm-up -- every row is defined from row ``0``, which falls back to ``high - low`` "
+    "because no previous close exists. On well-formed OHLC data (``high >= low``) every value "
+    "is non-negative.",
+    args_prose={
+        "close": 'Close-price series (e.g. ``pl.col("close")``); the previous close supplies the two gap terms.',
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+    intro_missing="A ``null`` ``close`` (skipped, so the next bar falls back to ``high - low``) then a "
+    "``NaN`` ``close`` (which contaminates only the following bar's gap terms) make the exact "
+    "handling visible at a glance:",
 )

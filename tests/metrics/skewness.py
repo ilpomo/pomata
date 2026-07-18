@@ -58,4 +58,43 @@ SKEWNESS = suite_metrics(
             reason="a subnormal-magnitude series has m2**1.5 underflow to zero, yielding NaN ",
         ),
     ),
+    reference='Joanes, D. N. & Gill, C. A. (1998). "Comparing Measures of Sample Skewness and '
+    'Kurtosis." *Journal of the Royal Statistical Society: Series D (The Statistician)*, '
+    "47(1), 183-189.",
+    doi="https://doi.org/10.1111/1467-9884.00122",
+    wikipedia="https://en.wikipedia.org/wiki/Skewness",
+    see_also=(
+        ("kurtosis", "The fourth-moment companion (tailedness)."),
+        ("skewness_rolling", "The rolling (windowed) form."),
+        ("value_at_risk_modified", "Uses this skewness in its Cornish-Fisher tail correction."),
+    ),
+    bullets=(
+        ("Null", "a ``null`` return is skipped; an all-null (or empty) series yields ``null``."),
+        ("NaN", "a ``NaN`` return propagates, yielding ``NaN``."),
+        (
+            "Insufficient sample",
+            "a single observation has zero variance, so the standardized moment is a ``0 / 0``, i.e. ``NaN``.",
+        ),
+        (
+            "Degenerate denominator",
+            "a constant series has zero variance, so the standardized moment is a ``0 / 0``, i.e. ``NaN``.",
+        ),
+        (
+            "Stability",
+            "on a near-constant series (relative spread far below the property tests' conditioning "
+            "floor) the standardized moment is a rounding-dominated ``0 / 0`` where the one-pass "
+            "kernel and a two-pass computation resolve apart; that band is excluded from the property "
+            "tiers, and the value is reported as computed.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A single ``Float64`` value: the skewness (one value in ``select``, one per group under "
+    "``.over``). ``null`` when there are no returns, and ``NaN`` when the returns have zero "
+    "variance (fewer than two distinct values).",
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+    "handling visible:",
 )

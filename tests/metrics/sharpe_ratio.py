@@ -53,4 +53,46 @@ SHARPE_RATIO = suite_metrics(
             "every constant series",
         ),
     ),
+    reference='Sharpe, W. F. (1994). "The Sharpe Ratio." *The Journal of Portfolio Management*, 21(1), 49-58.',
+    doi="https://doi.org/10.3905/jpm.1994.409501",
+    wikipedia="https://en.wikipedia.org/wiki/Sharpe_ratio",
+    see_also=(
+        ("sortino_ratio", "The downside-only counterpart (penalizes only harmful volatility)."),
+        ("volatility", "The denominator (total dispersion)."),
+        ("adjusted_sharpe_ratio", "The higher-moment correction for non-normal returns."),
+        ("sharpe_ratio_rolling", "The rolling (windowed) form."),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a ``null`` return is skipped (excluded from the mean and the standard deviation); an "
+            "all-null (or empty) series yields ``null``.",
+        ),
+        ("NaN", "a ``NaN`` return propagates, yielding ``NaN``."),
+        (
+            "Insufficient sample",
+            "with fewer than two returns the sample standard deviation is undefined, so the result is ``null``.",
+        ),
+        (
+            "Degenerate denominator",
+            "a constant excess series has zero dispersion, so the ratio is ``+/-inf`` (or ``NaN`` "
+            "when the mean excess is also zero) — reported, not clipped.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A single ``Float64`` value: the annualized Sharpe ratio (one value in ``select``, one "
+    "per group under ``.over``). ``null`` when fewer than two returns are present (the sample "
+    "standard deviation is undefined).",
+    raises_prose="ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite or is ``< -1``.",
+    args_prose={
+        "risk_free_rate": "The annualized risk-free rate, converted to a per-period rate geometrically (default "
+        "``0.0``). Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + "
+        "risk_free_rate >= 0``).",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+    "handling visible:",
 )

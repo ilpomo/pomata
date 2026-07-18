@@ -62,4 +62,43 @@ SORTINO_RATIO = suite_metrics(
             "degenerate-denominator NaN beside the +inf pin",
         ),
     ),
+    reference='Sortino, F. A. & Price, L. N. (1994). "Performance Measurement in a Downside Risk '
+    'Framework." *The Journal of Investing*, 3(3), 59-64.',
+    doi="https://doi.org/10.3905/joi.3.3.59",
+    wikipedia="https://en.wikipedia.org/wiki/Sortino_ratio",
+    see_also=(
+        ("sharpe_ratio", "The two-sided counterpart (penalizes all volatility)."),
+        ("downside_deviation", "The denominator (downside-only dispersion)."),
+        ("omega_ratio", "The threshold-based gain-to-loss alternative."),
+        ("sortino_ratio_rolling", "The rolling (windowed) form."),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a ``null`` return is skipped (excluded from the mean and the downside deviation); an "
+            "all-null (or empty) series yields ``null``.",
+        ),
+        ("NaN", "a ``NaN`` return propagates, yielding ``NaN``."),
+        (
+            "Degenerate denominator",
+            "when every excess return is at or above the target the downside deviation is zero, so "
+            "the ratio is ``+/-inf`` (or ``NaN`` when the mean excess is also zero) — reported, not "
+            "clipped.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A single ``Float64`` value: the annualized Sortino ratio (one value in ``select``, one "
+    "per group under ``.over``). ``null`` when there are no returns.",
+    raises_prose="ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite or is ``< -1``.",
+    args_prose={
+        "risk_free_rate": "The annualized risk-free rate, converted to a per-period rate geometrically (default "
+        "``0.0``). Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + "
+        "risk_free_rate >= 0``).",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+    "handling visible:",
 )

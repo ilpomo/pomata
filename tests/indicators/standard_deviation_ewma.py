@@ -55,4 +55,50 @@ STANDARD_DEVIATION_EWMA = suite_indicators(
             "cannot carry — mirroring standard_deviation_rolling's ddof=1 pin",
         ),
     ),
+    reference="J.P. Morgan / Reuters (1996). *RiskMetrics — Technical Document* (4th ed.). Cited for "
+    "the concept of an exponentially-weighted variance in finance; pomata computes the "
+    "mean-centered, span-parameterized form above, not RiskMetrics' zero-mean recursion with "
+    "a ``lambda`` decay factor (``0.94`` daily).",
+    see_also=(
+        ("variance_ewma", "The square of this, of which it is the root."),
+        ("standard_deviation_rolling", "The equal-weighted (rolling-window) counterpart."),
+        (
+            "ema",
+            "The related exponential mean — note the deviations here are measured from Polars' native "
+            "``ewm`` mean (seeded on the first observation), not from pomata's SMA-seeded "
+            ":func:`ema`, so the two only converge past the warm-up.",
+        ),
+    ),
+    note_extension="\n\nIt is homogeneous of degree ``1`` in ``expr`` (a spread in the input's own units).",
+    bullets=(
+        (
+            "Null",
+            "a leading ``null`` run stays ``null`` until the first non-null seed; an interior "
+            "``null`` yields ``null`` at that position while the recursion continues across the gap "
+            "(a leading run consumes no warm-up, and an interior gap decays the carried weight across "
+            "it, per Polars' ``ignore_nulls=False`` convention).",
+        ),
+        (
+            "NaN",
+            "a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null position.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The exponentially-weighted standard deviation for each row, the same length as the "
+    "input. The first ``window - 1`` values are ``null`` (warm-up): the recursion emits only "
+    "once ``window`` non-null observations have been seen.",
+    raises_prose="ValueError: If ``window < 2``.",
+    args_prose={
+        "window": "Span of the exponential weighting, mapped to ``alpha = 2 / (window + 1)``. Must be ``>= 2``.",
+        "adjust": "When ``False`` (default) use the recursive form; when ``True`` use the finite-window "
+        "bias-corrected weighting (the same flag as :func:`ema`).",
+        "bias": "When ``True`` (default) the population standard deviation; when ``False`` the sample "
+        "one. ``True`` mirrors the ``ddof = 0`` default of :func:`standard_deviation_rolling`. "
+        "See :func:`variance_ewma`.",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+    intro_missing="A ``null`` (decays across the gap) and a ``NaN`` (which propagates) make the handling visible:",
 )

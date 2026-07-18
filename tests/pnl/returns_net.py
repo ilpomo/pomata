@@ -47,4 +47,35 @@ RETURNS_NET = suite_pnl(
             "allow_infinity=False",
         ),
     ),
+    wikipedia="https://en.wikipedia.org/wiki/Rate_of_return",
+    see_also=(
+        ("returns_gross", "The gross return this nets costs from."),
+        ("cost_proportional", "The usual source of ``cost`` (a proportional, bps-of-notional fee)."),
+        ("equity_curve", "Compounds these net returns into a capital curve."),
+    ),
+    bullets=(
+        ("Null", "a ``null`` gross return makes that row ``null`` (``null`` takes precedence over ``NaN``)."),
+        ("NaN", "a ``NaN`` gross return yields ``NaN`` for that row."),
+        (
+            "Non-finite input",
+            "an ``inf`` gross return follows IEEE-754 through the arithmetic (the sign, and any ``inf "
+            "- inf = NaN``, included).",
+        ),
+        (
+            "Partitioning",
+            "already correct on a multi-series panel: ``.over(...)`` partitions identically and is "
+            "therefore optional here.",
+        ),
+    ),
+    returns_body="The net strategy return for each row, the same length as the inputs. There is no window "
+    "and no warm-up of its own: every row is ``returns_gross`` minus ``cost`` at that row.",
+    args_prose={
+        "returns_gross": "Gross per-bar strategy returns, typically from :func:`returns_gross`.",
+        "cost": "Per-bar transaction cost as a return drag, typically from :func:`cost_proportional` (sum "
+        "several with ``+``).",
+    },
+    intro_basic="Basic usage on a gross return and a cost series:",
+    intro_over="The subtraction is elementwise, so ``.over`` partitions identically and is shown only for consistency:",
+    intro_missing="A ``null`` then a ``NaN`` in ``returns_gross`` (both propagate through the subtraction) "
+    "make the missing-data handling visible:",
 )

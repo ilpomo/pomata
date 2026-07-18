@@ -57,4 +57,39 @@ VOLATILITY_ROLLING = suite_metrics(
             covers_conditioning=True,
         ),
     ),
+    wikipedia="https://en.wikipedia.org/wiki/Volatility_%28finance%29",
+    see_also=(
+        ("volatility", "The whole-series reducing form."),
+        ("sharpe_ratio_rolling", "The risk-adjusted ratio whose denominator is this."),
+        ("downside_deviation_rolling", "The downside-only rolling counterpart."),
+    ),
+    opener_override="Each window matches an independent reference oracle (the reducing :func:`volatility` "
+    "recomputed over the window).",
+    bullets=(
+        ("Null", "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values)."),
+        ("NaN", "a ``NaN`` inside the window propagates, yielding ``NaN`` there."),
+        ("Degenerate denominator", "a window of equal returns has zero dispersion, so the result is exactly ``0``."),
+        (
+            "Stability",
+            "the incremental one-pass rolling standard deviation carries running sums, so once a much "
+            "larger value exits the window a near-constant remainder (relative spread below the "
+            "conditioning floor) can diverge from a fresh two-pass computation — the excluded tail, "
+            "reported as computed.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The rolling annualized volatility for each row, the same length as the input. The first "
+    "``window - 1`` rows are ``null`` (warm-up): the window must hold ``window`` non-null "
+    "values before a result is emitted.",
+    raises_prose="ValueError: If ``window < 2``, or if ``periods_per_year < 1``.",
+    args_prose={
+        "window": "Number of observations in the moving window. Must be ``>= 2``.",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up on its own "
+    "(the ``B`` group never borrows ``A``'s tail):",
+    intro_missing="A leading ``null`` and a later ``NaN`` show the per-window masking, with the result "
+    "recovering once both leave the window:",
 )

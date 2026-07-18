@@ -51,4 +51,36 @@ INFORMATION_RATIO = suite_metrics(
             "no conditioning filter is declared",
         ),
     ),
+    reference='Goodwin, T. H. (1998). "The Information Ratio." *Financial Analysts Journal*, 54(4), 34-43.',
+    doi="https://doi.org/10.2469/faj.v54.n4.2196",
+    wikipedia="https://en.wikipedia.org/wiki/Information_ratio",
+    see_also=(
+        ("sharpe_ratio", "The total-risk analog measured against a risk-free rate, not a benchmark."),
+        ("information_ratio_rolling", "The same measure over a trailing window."),
+        ("alpha", "The benchmark-active return measured per unit of beta instead of tracking error."),
+    ),
+    bullets=(
+        ("Null", "an observation is used only where both legs are present; a ``null`` in either drops that pair."),
+        ("NaN", "a ``NaN`` in either leg of a retained pair propagates, yielding ``NaN``."),
+        (
+            "Insufficient sample",
+            "fewer than two complete pairs leaves the sample tracking error undefined, so the result is ``null``.",
+        ),
+        (
+            "Degenerate denominator",
+            "a constant active series has zero tracking error, so the result is ``+/-inf`` (or "
+            "``NaN`` when the mean active is also zero, the ``0 / 0``) — reported, not clipped.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A single ``Float64`` value: the annualized information ratio (one value in ``select``, "
+    "one per group under ``.over``). ``null`` when fewer than two complete pairs are present "
+    "(the tracking error is undefined).",
+    raises_prose="ValueError: If ``periods_per_year < 1``.",
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+    "handling visible:",
 )

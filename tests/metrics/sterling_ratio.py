@@ -78,4 +78,43 @@ STERLING_RATIO = suite_metrics(
             params_override={"periods_per_year": 1, "excess": 0.0},
         ),
     ),
+    reference='Kestner, L. N. (1996). "Getting a Handle on True Performance." *Futures Magazine*.',
+    wikipedia="https://en.wikipedia.org/wiki/Sterling_ratio",
+    see_also=(
+        ("pain_index", "The average drawdown in the denominator."),
+        ("pain_ratio", "The same average-drawdown denominator without the cushion."),
+        ("calmar_ratio", "The single-worst-drawdown counterpart."),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a ``null`` equity is skipped (excluded from both the growth and the average drawdown); "
+            "an all-null (or empty) series yields ``null``.",
+        ),
+        ("NaN", "a ``NaN`` equity propagates, yielding ``NaN``."),
+        (
+            "Degenerate denominator",
+            "with the default positive cushion the denominator never vanishes (a drawdown-free curve "
+            "gives exactly ``0`` when the excess growth is also zero, a finite ratio otherwise); only "
+            "an ``excess`` of zero on a drawdown-free curve gives ``+/-inf`` (or ``NaN`` when the "
+            "excess growth is also zero) — reported, not clipped.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A single ``Float64`` value: the Sterling ratio (one value in ``select``, one per group "
+    "under ``.over``). ``null`` when there are no observations.",
+    raises_prose="ValueError: If ``periods_per_year < 1``, if ``risk_free_rate`` is not finite, or if "
+    "``excess`` is not a finite number ``>= 0``.",
+    args_prose={
+        "equity_curve": "Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive.",
+        "risk_free_rate": "The annualized risk-free rate subtracted from the growth (default ``0.0``). Must be finite.",
+        "excess": "The fixed cushion added to the average drawdown denominator (default ``0.10``). Must be "
+        "a finite number ``>= 0``.",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+    "handling visible:",
 )

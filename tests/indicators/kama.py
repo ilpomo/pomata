@@ -44,4 +44,60 @@ KAMA = suite_indicators(
             "seed carried across the gap",
         ),
     ),
+    reference="Kaufman, P. J. (1995). *Smarter Trading: Improving Performance in Changing Markets*. McGraw-Hill.",
+    reference_url="https://chartschool.stockcharts.com/table-of-contents/technical-indicators-and-overlays/technical-overlays/kaufmans-adaptive-moving-average-kama",
+    see_also=(
+        ("ema", "The fixed-smoothing exponential average KAMA adapts between."),
+        ("rma", "Wilder's fixed-smoothing average."),
+        ("mama", "The MESA adaptive average, steered by cycle phase rather than efficiency."),
+    ),
+    opener_override="The efficiency ratio and adaptive smoothing constant are checked against an independent "
+    "reference, but the seeded recurrence they drive is one-shape with the implementation, so "
+    "the oracle confirms its internal consistency, not its independence; the independent "
+    "witnesses are the TA-Lib differential and frozen hand-derived golden masters. Agreement "
+    "holds to ten significant figures (a ``1e-10`` band) on any finite input within a sane "
+    "dynamic range; the documentation's *Correctness* page gives the method and the "
+    "float-conditioning limit beyond it."
+    "\n\n"
+    "It is homogeneous of degree ``1`` (the efficiency ratio is scale-invariant — a ratio of "
+    "absolute moves — and the recurrence is linear in the input, so ``kama(k * x) == k * "
+    "kama(x)``).",
+    bullets=(
+        (
+            "Null",
+            "a leading ``null`` run stays ``null`` until the first non-null seed; an interior "
+            "``null`` yields ``null`` at that position while the recursion continues across the gap — "
+            "whether the ``null`` reaches the recurrence directly through ``close`` or via the "
+            "efficiency-ratio window touching one.",
+        ),
+        (
+            "NaN",
+            "a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null position.",
+        ),
+        (
+            "Degenerate denominator",
+            "when there is no bar-to-bar travel the efficiency ratio is taken as ``0`` (avoiding the "
+            "``0 / 0`` degenerate), so the smoothing constant sits at the slow bound and KAMA barely "
+            "moves.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The KAMA for each row, the same length as ``expr``. The first ``window - 1`` values are "
+    "``null`` (warm-up); the value at row ``window - 1`` is ``close`` itself (the seed), and "
+    "the adaptive recurrence runs from there.",
+    raises_prose="ValueError: If ``window < 1``, ``window_fast < 1``, ``window_slow < 1``, or "
+    "``window_fast > window_slow``.",
+    args_prose={
+        "window": "Number of observations in the efficiency-ratio look-back. Must be ``>= 1``.",
+        "window_fast": "Period of the fast smoothing-constant bound (canonically ``2``), ``2 / (window_fast + "
+        "1)``. Must be ``>= 1`` (the fast bound is the more responsive end of the adaptive "
+        "range).",
+        "window_slow": "Period of the slow smoothing-constant bound (canonically ``30``), ``2 / (window_slow + "
+        "1)``. Must be ``>= 1`` and ``>= window_fast``.",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+    intro_missing="A ``null`` (bridged) and a ``NaN`` (latched) make the handling visible:",
 )

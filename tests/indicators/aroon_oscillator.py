@@ -52,4 +52,35 @@ AROON_OSCILLATOR = suite_indicators(
             "saturates the oscillator at plus or minus 100 from the second row on",
         ),
     ),
+    reference='Chande, T. S. (1995). "The Time Price Oscillator." *Technical Analysis of Stocks & '
+    "Commodities*, 13(9), 369-374.",
+    reference_url="https://chartschool.stockcharts.com/table-of-contents/technical-indicators-and-overlays/technical-indicators/aroon",
+    see_also=(
+        ("aroon", "The two-line indicator this collapses into one."),
+        ("donchian_channels", "The rolling high/low extremes the lines are built from."),
+        ("williams_r", "Another windowed high-low range oscillator."),
+    ),
+    bullets=(
+        ("Null", "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values)."),
+        ("NaN", "a ``NaN`` inside the window propagates, yielding ``NaN`` there."),
+        (
+            "window == 1",
+            "the look-back collapses to the last two bars, so each Aroon line is ``0`` or ``100`` and "
+            "the oscillator takes only ``-100``, ``0``, or ``+100``.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The oscillator for each row, the same length as the inputs, in ``[-100, 100]``. The "
+    "first ``window`` rows are ``null`` (warm-up), inherited from :func:`aroon`.",
+    raises_prose="ValueError: If ``window < 1``.",
+    args_prose={
+        "window": "Look-back length; the extremes are sought over the last ``window + 1`` bars. Must be ``>= 1``.",
+    },
+    intro_basic="Basic usage on high-low bars:",
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+    intro_missing="A ``null`` (which nulls the oscillator) and a ``NaN`` (which propagates) in ``high`` "
+    "make the handling visible:",
 )

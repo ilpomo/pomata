@@ -50,4 +50,58 @@ DONCHIAN_CHANNELS = suite_indicators(
             "warm-up",
         ),
     ),
+    wikipedia="https://en.wikipedia.org/wiki/Donchian_channel",
+    see_also=(
+        ("midprice", "The channel's middle band on its own."),
+        ("keltner_channels", "The same band shape, an EMA midline with ATR width instead of window extremes."),
+        ("bollinger_bands", "Volatility bands around a moving average rather than around the window's extremes."),
+    ),
+    notes=(
+        (
+            "Inputs",
+            "``high`` and ``low`` must share a length and alignment (the same row index is one bar). "
+            "The channel does not assume ``high >= low``: a malformed bar where ``high < low`` flows "
+            "through unchanged (the upper band can then sit below the lower band) rather than being "
+            "silently reordered.",
+        ),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null "
+            "values) — a ``null`` in the ``high`` window nulls ``upper`` and ``middle``, a ``null`` "
+            "in the ``low`` window nulls ``lower`` and ``middle``; a fully missing bar nulls all "
+            "three.",
+        ),
+        (
+            "NaN",
+            "a ``NaN`` inside the window propagates, yielding ``NaN`` there — per band, with ``null`` "
+            "still taking precedence over ``NaN``.",
+        ),
+        (
+            "window == 1",
+            "the bands are the bar's own ``high`` and ``low``, and the middle is its :func:`price_median`.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A struct ``pl.Expr`` with three ``Float64`` fields, the same length as the inputs:"
+    "\n\n"
+    "- ``lower`` — the lowest ``low`` over the window. - ``middle`` — the channel midline, "
+    "``(upper + lower) / 2`` (identical to :func:`midprice`). - ``upper`` — the highest "
+    "``high`` over the window."
+    "\n\n"
+    'Read one band with ``.struct.field("upper")`` (etc.) or split all three into columns '
+    "with ``.struct.unnest()``. The first ``window - 1`` rows are ``null`` (warm-up).",
+    raises_prose="ValueError: If ``window < 1``.",
+    args_prose={
+        "window": "Number of observations in the moving window (canonically ``20``, the Donchian period). "
+        "Must be ``>= 1``.",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker's bands warm up independently:",
+    intro_missing="A ``null`` (nulling every band whose window reads it — here ``upper`` and ``middle``, "
+    "while ``lower`` stays defined) and a ``NaN`` (which propagates) make the handling "
+    "visible:",
 )

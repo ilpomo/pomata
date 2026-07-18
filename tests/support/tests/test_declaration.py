@@ -211,3 +211,32 @@ class TestParamsRaises:
         """Declared params without validation counterexamples die at construction."""
         with pytest.raises(ValueError, match=r"declares params but no raises"):
             dataclasses.replace(_VALID, params={"window": 3})
+
+
+class TestProse:
+    """The documentation-prose guards: a cross-reference must resolve, a note subheader must be labeled."""
+
+    def test_unknown_see_also_target_rejected(self) -> None:
+        """A See Also naming a function that is in no family ``__all__`` dies at construction."""
+        with pytest.raises(ValueError, match=r"see_also names 'no_such_function', which is not a public function"):
+            dataclasses.replace(_VALID, see_also=(("no_such_function", "a clause"),))
+
+    def test_empty_note_label_rejected(self) -> None:
+        """A note subheader with a blank label dies at construction."""
+        with pytest.raises(ValueError, match=r"a note subheader must carry a non-empty label"):
+            dataclasses.replace(_VALID, notes=(("   ", "a body"),))
+
+    def test_empty_bullet_label_rejected(self) -> None:
+        """An edge-case bullet with a blank label dies at construction."""
+        with pytest.raises(ValueError, match=r"an edge-case bullet must carry a non-empty label"):
+            dataclasses.replace(_VALID, bullets=(("   ", "a body"),))
+
+    def test_reference_url_that_is_a_doi_rejected(self) -> None:
+        """A DOI or Wikipedia URL misfiled into the fourth-bucket ``reference_url`` dies at construction."""
+        with pytest.raises(ValueError, match=r"reference_url is the non-DOI/non-Wikipedia bucket"):
+            dataclasses.replace(_VALID, reference_url="https://doi.org/10.1000/xyz")
+
+    def test_args_prose_off_the_signature_rejected(self) -> None:
+        """An ``args_prose`` key that is not a factory parameter dies at construction (a stale parameter name)."""
+        with pytest.raises(ValueError, match=r"args_prose describes \['no_such_param'\], which are not parameters"):
+            dataclasses.replace(_VALID, args_prose={"no_such_param": "a description"})

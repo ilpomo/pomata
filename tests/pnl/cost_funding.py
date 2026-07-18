@@ -74,4 +74,50 @@ COST_FUNDING = suite_pnl(
             "tiers set allow_infinity=False",
         ),
     ),
+    reference='Shiller, R. J. (1993). "Measuring Asset Values for Cash Settlement in Derivative '
+    'Markets: Hedonic Repeated Measures Indices and Perpetual Futures." *The Journal of '
+    "Finance*, 48(3), 911-931.",
+    doi="https://doi.org/10.1111/j.1540-6261.1993.tb04024.x",
+    wikipedia="https://en.wikipedia.org/wiki/Perpetual_futures",
+    see_also=(
+        ("cost_borrow", "The short-borrow holding cost on the equity side."),
+        ("cost_notional", "The maker/taker fee on each perpetual-swap trade."),
+        ("pnl_net", "Subtracts the composed cost from the gross PnL."),
+    ),
+    notes=(
+        (
+            "Sign convention",
+            "The cost follows ``sign(quantity) * sign(funding_rate)``: a long pays a positive rate "
+            "and is rebated by a negative one; a short is the mirror image.",
+        ),
+        ("Off-funding bars", "Pass ``funding_rate = 0`` on bars with no funding event; the cost is then ``0`` there."),
+    ),
+    bullets=(
+        ("Null", "a ``null`` quantity makes that row ``null`` (``null`` takes precedence over ``NaN``)."),
+        ("NaN", "a ``NaN`` quantity yields ``NaN`` for that row."),
+        (
+            "Non-finite input",
+            "an ``inf`` quantity follows IEEE-754 through the arithmetic, the signed triple product "
+            "``quantity * price * funding_rate``; a flat bar at an infinite ``price`` is ``0 * inf``, "
+            "i.e. ``NaN`` (the sign included).",
+        ),
+        (
+            "Partitioning",
+            "already correct on a multi-series panel: ``.over(...)`` partitions identically and is "
+            "therefore optional here.",
+        ),
+    ),
+    returns_body="The per-bar funding cost for each row, the same length as the inputs -- positive where "
+    "the holder pays and negative (a rebate) where the holder receives.",
+    args_prose={
+        "quantity": "Signed position size in units / shares / contracts held over the bar (e.g. ``100``, ``-2``).",
+        "price": 'Instrument price series (e.g. ``pl.col("close")``); must share a length and alignment '
+        "with ``quantity``.",
+        "funding_rate": "Per-bar funding rate as a signed fraction of notional, supplied as a series so it can be "
+        "``0`` on the bars between funding events (e.g. ``0.0001`` = 1 bp); a positive rate "
+        "charges longs and rebates shorts.",
+    },
+    intro_over="On a multi-ticker panel, partition with ``.over`` — for this elementwise holding cost it "
+    "is optional (the result is identical without it) and shown here only for consistency:",
+    intro_missing="A ``null`` (which propagates) and a ``NaN`` make the missing-data handling visible:",
 )

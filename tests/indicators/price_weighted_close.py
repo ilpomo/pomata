@@ -47,4 +47,37 @@ PRICE_WEIGHTED_CLOSE = suite_indicators(
             reason="a row carrying both a null (high) and a NaN (low) yields null — null wins over NaN ",
         ),
     ),
+    reference="Achelis, S. B. (2000). *Technical Analysis from A to Z* (2nd ed.). McGraw-Hill.",
+    reference_url="https://chartschool.stockcharts.com/table-of-contents/technical-indicators-and-overlays/technical-indicators/weighted-close",
+    see_also=(
+        ("price_average", "The equal-weighted mean of the four OHLC prices."),
+        ("price_median", "The midpoint of the bar's range, ``(high + low) / 2``."),
+        ("price_typical", "The equal-weighted mean of high, low, and close."),
+    ),
+    notes=(
+        (
+            "Inputs",
+            "``high``, ``low``, and ``close`` are taken as the canonical OHLC roles in that "
+            "positional order and must share a length and alignment (the same row index is one bar).",
+        ),
+    ),
+    bullets=(
+        ("Null", "a ``null`` price makes that row ``null`` (``null`` takes precedence over ``NaN``)."),
+        ("NaN", "a ``NaN`` price yields ``NaN`` for that row."),
+        (
+            "Partitioning",
+            "already correct on a multi-series panel: ``.over(...)`` partitions identically and is "
+            "therefore optional here.",
+        ),
+    ),
+    returns_body="The weighted close price for each row, the same length as the inputs. There is no window "
+    "and no warm-up -- every row is defined from row ``0``.",
+    args_prose={
+        "close": 'Close-price series (e.g. ``pl.col("close")``); weighted twice.',
+    },
+    intro_over="On a multi-ticker panel, partition with ``.over`` as the windowed indicators require — "
+    "for this elementwise transform ``.over`` is optional (the result is identical without "
+    "it) and shown here only for consistency:",
+    intro_missing="A ``null`` then a ``NaN`` in ``close`` (both propagate through the sum) make the "
+    "missing-data handling visible at a glance:",
 )

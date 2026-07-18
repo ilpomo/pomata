@@ -36,4 +36,68 @@ ATR = suite_indicators(
             reason="window=1 makes the Wilder smoothing the identity, so the ATR reproduces the true range",
         ),
     ),
+    reference="Wilder, J. W. (1978). *New Concepts in Technical Trading Systems*. Trend Research.",
+    wikipedia="https://en.wikipedia.org/wiki/Average_true_range",
+    see_also=(
+        ("true_range", "The per-bar range this Wilder-smooths."),
+        ("rma", "The Wilder moving average used for the smoothing."),
+        ("atr_normalized", "The same ATR expressed as a percent of the current close."),
+    ),
+    notes=(
+        (
+            "Scaling",
+            "Scaling is homogeneous of degree ``1`` only for a positive factor: multiplying every "
+            "price by ``k > 0`` scales the ATR by ``k``. A negative factor makes the bar incoherent "
+            "(``high`` falls below ``low``), so it is not a clean rescale.",
+        ),
+        (
+            "Seeding",
+            "The Wilder smoothing (:func:`rma`) is seeded with the simple average of the first "
+            "``window`` true ranges -- Wilder's canonical initialization. The first true range is the "
+            "bar's high-low range (no prior close extends it), so the seed and warm-up include it.",
+        ),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a leading ``null`` run stays ``null`` until the first non-null seed; an interior "
+            "``null`` yields ``null`` at that position while the recursion continues across the gap — "
+            "the true range is ``null`` only when every :func:`true_range` candidate term is "
+            "``null``.",
+        ),
+        (
+            "NaN",
+            "a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent "
+            "non-null position — except at ``window == 1``, where the smoothing is the identity and "
+            "no recursion exists to latch: the ``NaN`` clears once it leaves the true range's one-bar "
+            "reach.",
+        ),
+        (
+            "window == 1",
+            "the smoothing factor is ``1`` and the warm-up vanishes, so the ATR reproduces the true "
+            "range exactly: the ``max_horizontal``-reduced true range (not a textbook three-term true "
+            "range whenever a candidate term is dropped by a ``null``).",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The ATR for each row, the same length as the inputs. The first ``window - 1`` values are "
+    "``null`` (warm-up), inherited from the :func:`rma` over the true-range series: the "
+    "running average emits only once ``window`` non-null true ranges have been counted, "
+    "independent of where any interior ``null`` falls."
+    "\n\n"
+    "The true range itself is defined from row ``0`` (the first bar has no previous close, so "
+    "it degenerates to ``high - low`` with the two gap terms dropped), so the ATR warm-up is "
+    "exactly the ``rma`` warm-up of ``window - 1``.",
+    raises_prose="ValueError: If ``window < 1``.",
+    args_prose={
+        "close": 'Close-price series (e.g. ``pl.col("close")``); the previous close supplies the two gap terms.',
+        "window": "Number of observations in the Wilder moving window. Must be ``>= 1``.",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+    intro_missing="A ``null`` ``close`` (absorbed, so the next bar falls back to ``high - low``) then a "
+    "``NaN`` ``close`` (which the Wilder recursion latches from the next bar on) make the "
+    "exact handling visible at a glance:",
 )

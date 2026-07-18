@@ -39,4 +39,38 @@ MIDPRICE = suite_indicators(
             "price_median with no warm-up — the documented degenerate branch, mirroring midpoint's window=1 pin",
         ),
     ),
+    reference="No canonical external source; the indicator is defined by the formula above.",
+    see_also=(
+        ("midpoint", "The same midpoint over a single series instead of a bar's high and low."),
+        ("price_median", "The per-bar ``(high + low) / 2`` this collapses to at ``window == 1``."),
+        ("donchian_channels", "The channel whose middle band is exactly this midprice."),
+    ),
+    notes=(("Inputs", "``high`` and ``low`` must share a length and alignment (the same row index is one bar)."),),
+    bullets=(
+        (
+            "Null",
+            "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null "
+            "values) — in either ``high`` or ``low``.",
+        ),
+        ("NaN", "a ``NaN`` inside the window propagates, yielding ``NaN`` there."),
+        (
+            "window == 1",
+            "the extremes are the bar's own ``high`` and ``low``, so the midprice reduces to the "
+            "per-bar :func:`price_median`.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The window midprice for each row, the same length as the inputs. The first ``window - "
+    "1`` values are ``null`` (warm-up): the window must hold ``window`` non-null values "
+    "before a result is emitted.",
+    raises_prose="ValueError: If ``window < 1``.",
+    args_prose={
+        "window": "Number of observations in the moving window. Must be ``>= 1``.",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+    intro_missing="A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make "
+    "the handling visible:",
 )

@@ -46,4 +46,35 @@ GAIN_TO_PAIN_RATIO = suite_metrics(
             "NaN — the degenerate-denominator NaN beside the +inf pin",
         ),
     ),
+    reference="Schwager, J. D. (2012). *Hedge Fund Market Wizards*. Wiley.",
+    see_also=(
+        ("profit_factor", "The gross-gain to gross-loss counterpart."),
+        ("omega_ratio", "The probability-weighted gain-to-loss ratio about a threshold."),
+        ("ulcer_performance_ratio", "A drawdown-based return-to-pain ratio."),
+    ),
+    note_extension="\n\n"
+    "It is computed on the return series as given, with no calendar resampling and no "
+    "risk-free adjustment (the pure Schwager ratio).",
+    bullets=(
+        ("Null", "a ``null`` return is skipped; an all-null (or empty) series yields ``null``."),
+        ("NaN", "a ``NaN`` return propagates, yielding ``NaN``."),
+        (
+            "Insufficient sample",
+            "a single positive observation has no offsetting loss, so the result is ``+inf`` — reported, not clipped.",
+        ),
+        (
+            "Degenerate denominator",
+            "with no negative returns the total loss is zero, so the ratio is ``+inf`` (or ``NaN`` "
+            "when the net return is also zero) — reported, not clipped.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A single ``Float64`` value: the gain to pain ratio (one value in ``select``, one per "
+    "group under ``.over``). ``null`` when there are no returns.",
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+    "handling visible:",
 )

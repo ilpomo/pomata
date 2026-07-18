@@ -123,4 +123,49 @@ VWMA = suite_indicators(
             "",
         ),
     ),
+    wikipedia="https://en.wikipedia.org/wiki/Moving_average",
+    see_also=(
+        ("sma", "The equal-weight mean it reduces to when volume is constant."),
+        ("vwap", "The cumulative volume-weighted price, the session-anchored cousin."),
+        ("wma", "The linearly-weighted mean."),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null "
+            "values) — whether the ``null`` is in ``expr`` or in ``volume``.",
+        ),
+        (
+            "NaN",
+            "a ``NaN`` inside the window propagates, yielding ``NaN`` there (``null`` takes precedence over ``NaN``).",
+        ),
+        ("Insufficient sample", "a series shorter than ``window`` observations, so the result is ``null``."),
+        (
+            "Degenerate denominator",
+            "every volume in the window is zero, so the result is a ``0 / 0``, i.e. ``NaN`` — the "
+            "window is detected exactly (via the rolling maximum of ``|volume|``), so a sub-ULP "
+            "rolling-sum residual cannot leak a spurious ``+/-inf`` instead.",
+        ),
+        (
+            "window == 1",
+            "with non-zero volume the single ``(price, volume)`` pair reduces to ``expr`` itself, so "
+            "the VWMA reproduces the price to within a rounding ULP (``(p * v) / v`` is one float "
+            "multiply-divide, not an identity copy — its siblings' bit-exact ``window == 1`` identity "
+            "does not apply here).",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The VWMA for each row, the same length as ``expr``. The first ``window - 1`` values are "
+    "``null`` (warm-up) -- the value is defined only once ``window`` observations have been "
+    "seen.",
+    raises_prose="ValueError: If ``window < 1``.",
+    args_prose={
+        "window": "Number of observations in the moving window. Must be ``>= 1``.",
+    },
+    intro_over="On a multi-series panel, wrap the call in ``.over`` so each group warms up independently:",
+    intro_missing="A ``null`` (skipped, and any window it touches yields ``null``) and a ``NaN`` (which "
+    "propagates) make the exact handling visible at a glance:",
 )

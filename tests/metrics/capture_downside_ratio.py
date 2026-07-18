@@ -46,4 +46,31 @@ CAPTURE_DOWNSIDE_RATIO = suite_metrics(
             reason="a selected benchmark value <= -1 wipes that leg out of the geometric-growth domain, a loud NaN",
         ),
     ),
+    reference='Morningstar. "Upside/Downside Capture Ratio" (methodology).',
+    see_also=(
+        ("capture_upside_ratio", "The up-market counterpart."),
+        ("capture_ratio", "Their ratio, an overall asymmetry measure."),
+        ("beta", "The symmetric benchmark sensitivity this asymmetric down-market measure refines."),
+    ),
+    bullets=(
+        ("Null", "an observation is used only where both legs are present; a ``null`` in either drops that pair."),
+        ("NaN", "a ``NaN`` in either leg of a retained pair propagates, yielding ``NaN``."),
+        (
+            "Domain",
+            "the compounded (geometric) leg growth is defined only while every selected gross return "
+            "``1 + r`` stays positive; a selected return at or below ``-1`` wipes that leg out of "
+            "domain, so the result is a loud ``NaN`` — never a plausible wrong number.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A single ``Float64`` value: the downside capture ratio (one value in ``select``, one per "
+    "group under ``.over``). ``null`` when there are no complete pairs or no down-market "
+    "periods.",
+    raises_prose="ValueError: If ``periods_per_year < 1``.",
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+    "handling visible:",
 )

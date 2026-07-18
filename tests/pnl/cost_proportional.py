@@ -51,4 +51,46 @@ COST_PROPORTIONAL = suite_pnl(
             "property tiers set allow_infinity=False",
         ),
     ),
+    reference='Magill, M. J. P. & Constantinides, G. M. (1976). "Portfolio selection with transactions '
+    'costs." *Journal of Economic Theory*, 13(2), 245-263.',
+    doi="https://doi.org/10.1016/0022-0531(76)90018-1",
+    wikipedia="https://en.wikipedia.org/wiki/Transaction_cost",
+    see_also=(
+        ("cost_slippage", "The fixed half-spread cost, the complementary per-trade leg; sum the two for both."),
+        ("turnover", "The traded fraction this scales."),
+        ("returns_net", "Subtracts the composed cost from the gross return."),
+    ),
+    notes=(
+        (
+            "Flat start",
+            "The weight before the series is taken as ``0`` (via :func:`turnover`), so the first row "
+            "is ``|weight_0| * rate``: establishing the initial weight carries its cost.",
+        ),
+    ),
+    bullets=(
+        ("Null", "a ``null`` weight makes that row ``null`` (``null`` takes precedence over ``NaN``)."),
+        ("NaN", "a ``NaN`` weight yields ``NaN`` for that row."),
+        (
+            "Non-finite input",
+            "an ``inf`` weight follows IEEE-754 through the arithmetic of the turnover difference, an "
+            "infinite move charging an ``inf`` cost (the sign, and any ``inf - inf = NaN``, "
+            "included).",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The per-bar proportional cost for each row, the same length as ``weight``. The first row "
+    "is ``|weight_0| * rate`` (the cost of the entry trade from a flat start, per "
+    ":func:`turnover`).",
+    raises_prose="ValueError: If ``rate`` is not a finite number ``>= 0`` (i.e. ``< 0``, ``NaN``, or ``±inf``).",
+    args_prose={
+        "rate": "Proportional cost rate, the fee as a fraction of traded notional (e.g. ``0.001`` = 10 "
+        "bps). Must be a finite number ``>= 0``.",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker starts flat and never "
+    "reaches across the boundary:",
+    intro_missing="A ``null`` (which voids its own row and the next) and a ``NaN`` make the missing-data "
+    "handling visible:",
 )

@@ -61,4 +61,43 @@ MODIGLIANI_RISK_ADJUSTED_PERFORMANCE = suite_metrics(
             "agree in kind on every constant series",
         ),
     ),
+    reference='Modigliani, F. & Modigliani, L. (1997). "Risk-Adjusted Performance." *The Journal of '
+    "Portfolio Management*, 23(2), 45-54.",
+    doi="https://doi.org/10.3905/jpm.23.2.45",
+    wikipedia="https://en.wikipedia.org/wiki/Modigliani_risk-adjusted_performance",
+    see_also=(
+        ("sharpe_ratio", "The risk-adjusted ratio this expresses in return units."),
+        ("volatility", "The benchmark dispersion it scales to."),
+        ("information_ratio", "Another benchmark-relative performance measure, as a ratio."),
+    ),
+    bullets=(
+        ("Null", "an observation is used only where both legs are present; a ``null`` in either drops that pair."),
+        ("NaN", "a ``NaN`` in either leg of a retained pair propagates, yielding ``NaN``."),
+        (
+            "Insufficient sample",
+            "fewer than two complete pairs leaves the embedded Sharpe ratio and benchmark volatility "
+            "undefined, so the result is ``null``.",
+        ),
+        (
+            "Degenerate denominator",
+            "a constant portfolio has zero volatility, so its :func:`sharpe_ratio` is infinite and "
+            "the result is ``+/-inf`` — reported, not clipped.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A single ``Float64`` value: the M-squared measure as an annualized return (one value in "
+    "``select``, one per group under ``.over``). ``null`` when fewer than two complete pairs "
+    "are present.",
+    raises_prose="ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite or is ``< -1``.",
+    args_prose={
+        "risk_free_rate": "The annualized risk-free rate, used both to form the Sharpe excess (geometrically per "
+        "period) and as the additive level here (default ``0.0``). Must be finite and ``>= -1``.",
+    },
+    example_alias="m_squared",
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+    "handling visible:",
 )

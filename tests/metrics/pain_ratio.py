@@ -60,4 +60,42 @@ PAIN_RATIO = suite_metrics(
             "0/0, i.e. NaN — the degenerate-denominator NaN beside the +inf pin",
         ),
     ),
+    reference='Becker, T. (2006). "The Pain Index and Pain Ratio." *Zephyr Associates*.',
+    see_also=(
+        ("pain_index", "The denominator (average drawdown depth)."),
+        ("sterling_ratio", "The same average-drawdown denominator offset by a fixed cushion."),
+        ("ulcer_performance_ratio", "The root-mean-square-drawdown counterpart."),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a ``null`` equity is skipped (excluded from both the growth and the pain index); an "
+            "all-null (or empty) series yields ``null``.",
+        ),
+        ("NaN", "a ``NaN`` equity propagates, yielding ``NaN``."),
+        (
+            "Insufficient sample",
+            "a single observation has zero excess growth over a zero pain index, so the result is a "
+            "``0 / 0``, i.e. ``NaN``.",
+        ),
+        (
+            "Degenerate denominator",
+            "a monotonically non-decreasing curve has a zero pain index, so the ratio is ``+/-inf`` "
+            "(or ``NaN`` when the excess growth is also zero) — reported, not clipped.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A single ``Float64`` value: the pain ratio (one value in ``select``, one per group under "
+    "``.over``). ``null`` when there are no observations.",
+    raises_prose="ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite.",
+    args_prose={
+        "equity_curve": "Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive.",
+        "risk_free_rate": "The annualized risk-free rate subtracted from the growth (default ``0.0``). Must be finite.",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+    "handling visible:",
 )

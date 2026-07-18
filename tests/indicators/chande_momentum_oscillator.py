@@ -133,4 +133,58 @@ CHANDE_MOMENTUM_OSCILLATOR = suite_indicators(
             reason="window=1 collapses the rolling gain/loss sums to the raw move direction: +100 up, -100 down",
         ),
     ),
+    reference="Chande, T. S. & Kroll, S. (1994). *The New Technical Trader*. Wiley.",
+    see_also=(
+        ("rsi", "The Wilder-smoothed sibling, bounded in ``[0, 100]``."),
+        ("roc", "A simpler single-horizon momentum measure."),
+        ("mom", "The absolute-difference momentum sibling."),
+    ),
+    notes=(
+        (
+            "Documented TA-Lib divergence",
+            "TA-Lib Wilder-smooths the gains and losses, so its CMO equals ``2 * RSI - 100``; pomata "
+            "sums them over a fixed window, Chande's original 1994 construction, so the two never "
+            "agree even at steady state and the differential tier holds the CMO out as a documented "
+            "divergence.",
+        ),
+    ),
+    note_extension="For this oscillator the limit is concrete: the windowed gain / loss sums ride Polars' "
+    "incremental sliding kernel, so a window whose scale sits tens of orders of magnitude "
+    "below a value that has already slid out can inherit a stale residue; the clamp keeps the "
+    "output inside ``[-100, 100]``, and no real market series builds that spread.",
+    bullets=(
+        ("Null", "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values)."),
+        ("NaN", "a ``NaN`` inside the window propagates, yielding ``NaN`` there."),
+        (
+            "Degenerate denominator",
+            "an exactly-flat window has every change zero, detected via the residual-free rolling "
+            "maximum of ``|change|``, so the result is a ``0 / 0``, i.e. ``NaN``.",
+        ),
+        (
+            "Stability",
+            "a near-flat window (tiny changes after a much larger one has slid out of the streaming "
+            "sums) is not silenced: its quotient is clipped to ``[-100, +100]``, so it stays in range "
+            "but, past a sane dynamic range, degrades in precision (see the precision note above).",
+        ),
+        (
+            "window == 1",
+            "the rolling sums collapse to the single change, so each row reports ``+100`` on an up "
+            "move, ``-100`` on a down move, and ``NaN`` on no move.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The oscillator (in percent) for each row, the same length as the input. The first "
+    "``window`` rows are ``null`` (warm-up): row ``0`` has no change, and the rolling sums "
+    "need ``window`` non-null changes before emitting.",
+    raises_prose="ValueError: If ``window < 1``.",
+    args_prose={
+        "window": "Number of one-step changes summed in the window. Must be ``>= 1``.",
+    },
+    intro_basic="Basic usage on a single price series:",
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+    intro_missing="A ``null`` (any window it touches yields ``null``) and a ``NaN`` (which propagates) make "
+    "the handling visible:",
 )

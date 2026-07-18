@@ -45,4 +45,36 @@ PROFIT_FACTOR = suite_metrics(
             reason="an all-zero series has zero gains and losses, so the ratio is 0/0, i.e. NaN ",
         ),
     ),
+    reference="Pardo, R. (2008). *The Evaluation and Optimization of Trading Strategies* (2nd ed.). Wiley.",
+    see_also=(
+        ("payoff_ratio", "The average-win to average-loss counterpart."),
+        ("omega_ratio", "The same ratio generalized to an arbitrary threshold."),
+        ("common_sense_ratio", "Scales this profit factor by the tail ratio."),
+    ),
+    note_extension="\n\n"
+    "This is a **bar-level** statistic: each return observation is treated as one gain or "
+    "loss. It is not a per-trade statistic -- true per-trade profit factor needs trade-level "
+    "fill data, which is outside this toolkit's scope.",
+    bullets=(
+        ("Null", "a ``null`` return is skipped; an all-null (or empty) series yields ``null``."),
+        ("NaN", "a ``NaN`` return propagates, yielding ``NaN``."),
+        (
+            "Insufficient sample",
+            "a single gain has no offsetting loss, so the result is ``+inf`` — reported, not clipped.",
+        ),
+        (
+            "Degenerate denominator",
+            "with no negative returns the total loss is zero, so the ratio is ``+inf`` (or ``NaN`` "
+            "when an all-``0`` series also has zero gross gain, a ``0 / 0``) — reported, not clipped.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A single ``Float64`` value: the profit factor (one value in ``select``, one per group "
+    "under ``.over``). ``null`` when there are no returns.",
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+    "handling visible:",
 )

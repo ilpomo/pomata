@@ -58,4 +58,58 @@ VORTEX = suite_indicators(
             "indeterminate 0/0 == NaN after warm-up",
         ),
     ),
+    reference='Botes, E. & Siepman, D. (2010). "The Vortex Indicator." *Technical Analysis of Stocks & '
+    "Commodities*, 28(1), 20-30.",
+    wikipedia="https://en.wikipedia.org/wiki/Vortex_indicator",
+    see_also=(
+        ("di_plus", "The Wilder directional indicator, the same movement-over-range idea, exponentially smoothed."),
+        ("true_range", "The per-bar basis of the shared denominator."),
+        ("di_minus", "The minus directional indicator, the Wilder analog of the negative vortex line."),
+    ),
+    notes=(
+        ("Inputs", "``high`` / ``low`` / ``close`` must share a length and alignment (the same row index is one bar)."),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null "
+            "values) — including via the one-bar lag, which makes the first movement ``null``.",
+        ),
+        ("NaN", "a ``NaN`` inside the window propagates, yielding ``NaN`` there."),
+        (
+            "Degenerate denominator",
+            "a window has zero summed true range and zero summed movement, so the result is a ``0 / "
+            "0``, i.e. ``NaN`` — detected per line via the residual-free rolling maxima of the true "
+            "range and the movement; a near-flat window (tiny ranges after a much larger one has slid "
+            "out) is not silenced, since ``VI+`` is unbounded above and the streaming quotient cannot "
+            "be clipped to a range, degrading in precision past a sane dynamic range.",
+        ),
+        (
+            "window == 1",
+            "each line reduces to a single bar's vortex movement over its own true range; the first "
+            "row is ``null`` (there is no prior bar for the lag).",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A struct ``pl.Expr`` with two ``Float64`` fields, the same length as the inputs:"
+    "\n\n"
+    "- ``plus`` — the positive vortex line ``VI+``. - ``minus`` — the negative vortex line "
+    "``VI-``."
+    "\n\n"
+    'Read one line with ``.struct.field("plus")`` (etc.) or split both into columns with '
+    "``.struct.unnest()``. The first ``window`` rows are ``null`` (warm-up): each line needs "
+    "``window`` defined vortex movements, and the first movement is ``null`` (it reads the "
+    "previous bar).",
+    raises_prose="ValueError: If ``window < 1``.",
+    args_prose={
+        "window": "Number of observations in the moving window. Must be ``>= 1``.",
+    },
+    intro_basic="On a small OHLC frame, reading each vortex line with ``.struct.field``:",
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+    intro_missing="A leading ``null`` ``close`` (absorbed by the true-range maximum) and a later ``NaN`` "
+    "(which contaminates only the bars whose window spans it, then clears) make the handling "
+    "visible:",
 )

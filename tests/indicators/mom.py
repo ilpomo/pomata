@@ -45,4 +45,40 @@ MOM = suite_indicators(
             reason="the momentum of a constant series is exactly zero once warmed up",
         ),
     ),
+    wikipedia="https://en.wikipedia.org/wiki/Momentum_%28technical_analysis%29",
+    see_also=(
+        ("roc", "The percentage-change sibling (scale-invariant)."),
+        ("rsi", "A bounded momentum oscillator."),
+        ("chande_momentum_oscillator", "A bounded net-of-gains-and-losses momentum oscillator."),
+    ),
+    bullets=(
+        ("Null", "a ``null`` value makes that row ``null`` (``null`` takes precedence over ``NaN``)."),
+        (
+            "NaN",
+            "a ``NaN`` inside the window propagates, yielding ``NaN`` there — a fixed-lag difference, "
+            "not a recurrence, so a ``null`` or ``NaN`` contaminates only the (at most two) positions "
+            "that reference it and never latches onto the rest of the series.",
+        ),
+        ("Degenerate denominator", "a flat look-back leaves ``x_t == x_{t-n}``, so the difference is exactly ``0``."),
+        (
+            "window == 1",
+            "the look-back is a single bar, so ``mom`` is the one-step first difference ``x_t - x_{t-1}``.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The momentum for each row, the same length as ``expr``. The first ``window`` values are "
+    "``null`` (warm-up), clamped to the series length: unlike the moving-average family, "
+    "whose warm-up is ``window - 1`` rows, the value at row ``t`` needs the observation at "
+    "row ``t - window``, which first exists at ``t == window``.",
+    raises_prose="ValueError: If ``window < 1``.",
+    args_prose={
+        "window": "Number of observations to look back. Must be ``>= 1``.",
+    },
+    intro_basic="Basic usage on a single price series:",
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+    intro_missing="A ``null`` (voiding the rows that reference it) and a ``NaN`` (which propagates) make "
+    "the exact handling visible at a glance:",
 )

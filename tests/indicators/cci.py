@@ -124,4 +124,44 @@ CCI = suite_indicators(
             reason="a one-row input with window > length never completes a window",
         ),
     ),
+    reference='Lambert, D. R. (1980). "Commodity Channel Index: Tools for Trading Cyclic Trends." '
+    "*Commodities* (now *Futures*) magazine.",
+    wikipedia="https://en.wikipedia.org/wiki/Commodity_channel_index",
+    see_also=(
+        ("price_typical", "The typical price the index is built on."),
+        ("sma", "The simple moving average of the typical price it composes."),
+        ("rsi", "A bounded momentum oscillator."),
+    ),
+    bullets=(
+        ("Null", "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values)."),
+        ("NaN", "a ``NaN`` inside the window propagates, yielding ``NaN`` there."),
+        ("Insufficient sample", "a window longer than the series never completes, so the result is ``null``."),
+        (
+            "Degenerate denominator",
+            "when every typical price in the window is equal there is no spread to normalize by, so "
+            "the result is a ``0 / 0``, i.e. ``NaN``, detected exactly via the rolling extremes (its "
+            "rolling maximum equals its rolling minimum) rather than the rounding noise a sub-ULP "
+            "denominator residual would produce.",
+        ),
+        (
+            "window == 1",
+            "every one-bar window is trivially flat, so every non-null result is ``NaN`` (a ``null`` "
+            "row stays ``null``).",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The CCI for each row, the same length as the inputs. The first ``window - 1`` values are "
+    "``null`` (warm-up), inherited from the :func:`sma` of the typical price: the value is "
+    "defined only once a full window of typical prices is available.",
+    raises_prose="ValueError: If ``window < 1``.",
+    args_prose={
+        "window": "Number of observations in the moving window. Must be ``>= 1``.",
+    },
+    intro_basic="Basic usage on high-low-close bars:",
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+    intro_missing="A ``null`` and a ``NaN`` in ``close`` (each voiding every window that covers it) make "
+    "the exact handling visible at a glance:",
 )

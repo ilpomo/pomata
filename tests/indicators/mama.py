@@ -77,4 +77,66 @@ MAMA = suite_indicators(
             round_to=4,
         ),
     ),
+    reference='Ehlers, J. F. "MAMA — The Mother of Adaptive Moving Averages." MESA Software.',
+    see_also=(
+        ("hilbert_phasor", "The phasor whose phase rate sets the smoothing constant."),
+        ("kama", "Another adaptive moving average, adapting on the efficiency ratio."),
+        ("dominant_cycle_phase", "The dominant-cycle phase from the same pipeline."),
+    ),
+    notes=(
+        (
+            "Seeding",
+            "Both lines are seeded at the price prefix — ``MAMA`` and ``FAMA`` start from the price "
+            "and the recurrence runs from there. Ehlers' original presentation instead "
+            "zero-initializes both lines, so the two report different values across the warm-up "
+            "region before the exponential weighting washes the seed out; pomata's price seed is the "
+            "saner choice for a price-level average. Port warm-up-sensitive logic accordingly.",
+        ),
+    ),
+    opener_override="The fixed FIR smoothing and quadrature stages are computed independently, but the "
+    "adaptive dominant-cycle period feeds back into its own measurement and the stages built "
+    "on it, so the reference oracle replays Ehlers' pipeline and confirms its internal "
+    "consistency rather than independence; the independent witness is the set of frozen "
+    "golden masters, plus TA-Lib parity on the converged tail (the differential tier compares "
+    "the whole cycle cluster — every HT_* counterpart plus MAMA — against the C reference). "
+    "Where measurable the oracle agrees to ten significant figures (a ``1e-10`` band) on any "
+    "finite input within a sane dynamic range, except on a flat or period-two (even-lag) "
+    "series, where the Hilbert quadrature is a pure cancellation residual and the measurement "
+    "is ill-conditioned (there is no cycle to measure). The documentation's *Correctness* "
+    "page gives the method and the float-conditioning limit beyond it.",
+    bullets=(
+        ("Null", "a ``null`` price latches ``null`` for every row from there."),
+        ("NaN", "a ``NaN`` price latches ``null`` for every row from there, as any non-finite value does."),
+        (
+            "Stability",
+            "on a sustained even-lag run (a flat price or a period-two alternation) Ehlers' six-tap "
+            "quadrature filter reads the four-bar smooth at even lags, so the in-phase component "
+            "collapses to a cancellation residual and the phasor branch — and with it the adaptive "
+            "smoothing constant — turns numerically arbitrary; there is no cycle to adapt to.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A struct ``pl.Expr`` with two ``Float64`` fields, the same length as ``expr``:"
+    "\n\n"
+    "- ``mama`` — the MESA adaptive moving average. - ``fama`` — the Following Adaptive "
+    "Moving Average, the slower signal-line pass."
+    "\n\n"
+    "The first ``32`` rows are ``null`` (warm-up). Read one line with "
+    '``.struct.field("mama")`` or split both with ``.struct.unnest()``.',
+    raises_prose="ValueError: If ``limit_fast`` or ``limit_slow`` is outside ``(0, 1]`` — the smoothing "
+    "constant is a weight, so a limit above ``1`` makes ``1 - alpha`` negative and the "
+    "recurrence diverges — or if ``limit_fast < limit_slow``, which would pin the adaptive "
+    "smoothing constant at ``limit_slow`` and make ``limit_fast`` a false upper bound.",
+    args_prose={
+        "limit_fast": "Upper bound on the smoothing constant (a fast cycle; canonical default ``0.5``). Must be "
+        "in ``(0, 1]`` and ``>= limit_slow``.",
+        "limit_slow": "Lower bound on the smoothing constant (a slow cycle; canonical default ``0.05``). Must "
+        "be in ``(0, 1]``.",
+    },
+    example_imports=("import math",),
+    intro_basic="Both adaptive lines track the level of a clean period-20 cycle (here ``100``), at the "
+    "last bar: >>> import math",
 )

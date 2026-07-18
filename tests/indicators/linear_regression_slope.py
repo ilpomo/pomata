@@ -25,4 +25,32 @@ LINEAR_REGRESSION_SLOPE = suite_indicators(
         output=(None, None, 1.5, 0.5, 0.5, 0.5, 0.5),
         params={"window": 3},
     ),
+    reference="Chande, T. S. & Kroll, S. (1994). *The New Technical Trader*. Wiley.",
+    wikipedia="https://en.wikipedia.org/wiki/Simple_linear_regression",
+    see_also=(
+        ("linear_regression", "The fitted line's value at the most recent bar."),
+        ("linear_regression_angle", "This slope expressed as an angle in degrees."),
+        ("time_series_forecast", "The line projected one bar ahead using this slope."),
+    ),
+    note_extension="\n\n"
+    "It is homogeneous of degree ``1`` in ``expr`` (the rise scales with the price while the "
+    "run is fixed). For a perfectly linear input it returns the exact constant slope.",
+    bullets=(
+        ("Null", "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values)."),
+        ("NaN", "a ``NaN`` inside the window propagates, yielding ``NaN`` there."),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The fitted slope for each row, the same length as the input. The first ``window - 1`` "
+    "values are ``null`` (warm-up).",
+    raises_prose="ValueError: If ``window < 2``.",
+    args_prose={
+        "window": "Number of observations in the regression window. Must be ``>= 2`` (a line needs at least "
+        "two points).",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+    intro_missing="A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make "
+    "the handling visible:",
 )

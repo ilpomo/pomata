@@ -50,4 +50,43 @@ AROON = suite_indicators(
             reason="a repeated high resolves to the most recent occurrence (one bar back, up=50) ",
         ),
     ),
+    reference='Chande, T. S. (1995). "The Time Price Oscillator." *Technical Analysis of Stocks & '
+    "Commodities*, 13(9), 369-374.",
+    reference_url="https://chartschool.stockcharts.com/table-of-contents/technical-indicators-and-overlays/technical-indicators/aroon",
+    see_also=(
+        ("aroon_oscillator", "The difference ``up - down`` as a single line."),
+        ("donchian_channels", "The rolling high/low extremes Aroon locates in time."),
+        ("williams_r", "Another windowed high-low range oscillator."),
+    ),
+    notes=(
+        (
+            "Tie-break and seeding",
+            "When the extreme is attained more than once in the look-back, the most recent occurrence "
+            "is used, so the line reads higher.",
+        ),
+    ),
+    bullets=(
+        ("Null", "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values)."),
+        ("NaN", "a ``NaN`` inside the window propagates, yielding ``NaN`` there (it is not treated as an extreme)."),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A struct ``pl.Expr`` with two ``Float64`` fields, the same length as the inputs:"
+    "\n\n"
+    "- ``up`` — the Aroon Up line, in ``[0, 100]``. - ``down`` — the Aroon Down line, in "
+    "``[0, 100]``."
+    "\n\n"
+    "Both are ``null`` for the first ``window`` rows (warm-up: a full ``window + 1``-bar "
+    'look-back is needed). Access the fields with ``.struct.field("up")`` / ``"down"`` or '
+    "``.struct.unnest()``.",
+    raises_prose="ValueError: If ``window < 1``.",
+    args_prose={
+        "window": "Look-back length; the extreme is sought over the last ``window + 1`` bars. Must be ``>= 1``.",
+    },
+    intro_basic="Basic usage on high-low bars:",
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker's channel warms up independently:",
+    intro_missing="A ``null`` (which nulls the affected line) and a ``NaN`` (which propagates) in ``high`` "
+    "make the handling visible on the ``up`` line:",
 )

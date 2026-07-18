@@ -44,4 +44,45 @@ CONDITIONAL_DRAWDOWN_AT_RISK = suite_metrics(
             params_override={"confidence": 0.75},
         ),
     ),
+    reference='Chekhlov, A., Uryasev, S. & Zabarankin, M. (2005). "Drawdown Measure in Portfolio '
+    'Optimization." *International Journal of Theoretical and Applied Finance*, 8(1), 13-58.',
+    doi="https://doi.org/10.1142/S0219024905002767",
+    wikipedia="https://en.wikipedia.org/wiki/Drawdown_%28economics%29",
+    see_also=(
+        ("max_drawdown", "The single worst drawdown."),
+        ("conditional_value_at_risk", "The return-space analog (expected shortfall)."),
+        ("pain_index", "The full-sample mean drawdown, against this worst-tail mean."),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a ``null`` equity is skipped; an all-null (or empty) series yields ``null`` (the running "
+            "peak carries across it).",
+        ),
+        ("NaN", "a ``NaN`` equity propagates, yielding ``NaN``."),
+        (
+            "Insufficient sample",
+            "a single observation is trivially at its own peak, so the result is exactly ``0``, not ``null``.",
+        ),
+        (
+            "Degenerate denominator",
+            "a monotonically non-decreasing curve has an all-zero drawdown series, so the result is "
+            "``0`` (not a ``0 / 0``).",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A single ``Float64`` value: the conditional drawdown at risk (one value in ``select``, "
+    "one per group under ``.over``). ``null`` when there are no observations.",
+    raises_prose="ValueError: If ``confidence`` is not in the open interval ``(0, 1)``.",
+    args_prose={
+        "equity_curve": "Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive.",
+        "confidence": "The tail confidence level (canonically ``0.95``); the mean is taken over the worst ``1 - "
+        "confidence`` of drawdowns. Must be in the open interval ``(0, 1)``.",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+    "handling visible:",
 )

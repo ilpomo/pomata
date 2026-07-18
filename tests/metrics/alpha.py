@@ -96,4 +96,40 @@ ALPHA = suite_metrics(
             reason="the same guard at a third, many-digit constant magnitude",
         ),
     ),
+    reference='Jensen, M. C. (1968). "The Performance of Mutual Funds in the Period 1945-1964." *The '
+    "Journal of Finance*, 23(2), 389-416.",
+    doi="https://doi.org/10.1111/j.1540-6261.1968.tb00815.x",
+    wikipedia="https://en.wikipedia.org/wiki/Jensen%27s_alpha",
+    see_also=(
+        ("beta", "The regression slope this corrects the return for."),
+        ("treynor_ratio", "The excess return per unit of the same systematic risk."),
+        ("alpha_rolling", "The same measure over a trailing window."),
+    ),
+    bullets=(
+        ("Null", "an observation is used only where both legs are present; a ``null`` in either drops that pair."),
+        ("NaN", "a ``NaN`` in either leg of a retained pair propagates, yielding ``NaN``."),
+        (
+            "Insufficient sample",
+            "fewer than two complete pairs leaves the regression slope undefined, so the result is ``null``.",
+        ),
+        (
+            "Degenerate denominator",
+            "a zero-variance benchmark makes :func:`beta` ``NaN`` (a ``0 / 0``), which propagates here.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A single ``Float64`` value: the annualized Jensen's alpha (one value in ``select``, one "
+    "per group under ``.over``). ``null`` when fewer than two complete pairs are present.",
+    raises_prose="ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite or is ``< -1``.",
+    args_prose={
+        "risk_free_rate": "The annualized risk-free rate, converted to a per-period rate geometrically (default "
+        "``0.0``). Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + "
+        "risk_free_rate >= 0``).",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+    "handling visible:",
 )

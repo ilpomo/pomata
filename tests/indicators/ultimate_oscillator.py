@@ -89,4 +89,74 @@ ULTIMATE_OSCILLATOR = suite_indicators(
             "pressure stays positive, so the quotient is +/-inf — the infinity beside the 0/0 NaN pin",
         ),
     ),
+    reference='Williams, L. (1985). "The Ultimate Oscillator." *Technical Analysis of Stocks & Commodities*.',
+    wikipedia="https://en.wikipedia.org/wiki/Ultimate_oscillator",
+    see_also=(
+        ("rsi", "The single-period momentum oscillator this generalizes across three."),
+        ("williams_r", "Another high-low-range momentum oscillator."),
+        ("true_range", "The per-bar true range the buying pressure is normalized by."),
+    ),
+    notes=(
+        (
+            "Seeding",
+            "Row ``0`` has no previous close, so the true low and true high fall back to that bar's own low and high.",
+        ),
+    ),
+    note_extension="\n\n"
+    "It is scale-invariant under a positive common rescaling of ``high``, ``low``, and "
+    "``close`` (each averaged term is a ratio of price ranges).",
+    bullets=(
+        (
+            "Null",
+            "a ``null`` in a single ``high`` / ``low`` / ``close`` drops only the terms that "
+            "reference it (the true low / high follow ``pl.min_horizontal`` / ``pl.max_horizontal``, "
+            "which skip nulls); a ``null`` reaching a period sum yields ``null`` for the rows whose "
+            "window touches it.",
+        ),
+        (
+            "NaN",
+            "the per-field behavior is asymmetric. A ``NaN`` in ``high`` or ``close`` propagates "
+            "(``pl.max_horizontal`` treats it as the largest value, and a corrupt close poisons the "
+            "next bar's true range), yielding ``NaN``. A ``NaN`` in ``low`` on a bar with a finite "
+            "previous close is instead treated as absent: ``pl.min_horizontal`` skips it and the true "
+            "low falls back to the previous close, so the bar reports a finite value computed from "
+            "the substituted close (only at row ``0``, where there is no previous close, does a "
+            "``NaN`` ``low`` propagate).",
+        ),
+        (
+            "Degenerate denominator",
+            "an exactly-flat true range with zero buying pressure — the genuine degenerate, detected "
+            "via the residual-free rolling maxima of the true range and the buying pressure — is "
+            "indeterminate, so the result is a ``0 / 0``, i.e. ``NaN``; a finite buying pressure over "
+            "an exactly-zero true range (the missing-``low`` fallback) is left to IEEE-754 as "
+            "``+/-inf``, and a near-flat range is reported, not clipped (the ``[0, 100]`` bound is "
+            "conditional on well-formed bars, so past a sane dynamic range its precision degrades — "
+            "see the precision note above).",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The Ultimate Oscillator for each row, the same length as the inputs, in ``[0, 100]`` for "
+    "well-formed bars. The first ``max(window_short, window_medium, window_long) - 1`` values "
+    "are ``null`` (warm-up). The bound is not guaranteed for an incoherent bar: a missing or "
+    "``NaN`` ``low`` on a down bar (the documented fallback below) substitutes the previous "
+    "``close`` into the true low, which can make the buying pressure negative and push the "
+    "value outside ``[0, 100]``.",
+    raises_prose="ValueError: If ``window_short < 1``, ``window_medium < 1``, ``window_long < 1``, or the "
+    "periods are not ordered ``window_short <= window_medium <= window_long`` (the three "
+    "windows must run shortest to longest).",
+    args_prose={
+        "window_short": "Number of observations in the short averaging window (weight ``4``, canonically ``7``). "
+        "Must be ``>= 1``.",
+        "window_medium": "Number of observations in the medium averaging window (weight ``2``, canonically "
+        "``14``). Must be ``>= 1``.",
+        "window_long": "Number of observations in the long averaging window (weight ``1``, canonically ``28``). "
+        "Must be ``>= 1``.",
+    },
+    intro_basic="Basic usage on high-low-close bars:",
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+    intro_missing="A ``null`` (which nulls the windows that cover it) and a ``NaN`` (which propagates, also "
+    "poisoning the next bar's true range) in ``close`` make the handling visible:",
 )

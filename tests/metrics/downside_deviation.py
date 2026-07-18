@@ -49,4 +49,39 @@ DOWNSIDE_DEVIATION = suite_metrics(
             params_override={"threshold": 0.01},
         ),
     ),
+    reference='Sortino, F. A. & Price, L. N. (1994). "Performance Measurement in a Downside Risk '
+    'Framework." *The Journal of Investing*, 3(3), 59-64.',
+    doi="https://doi.org/10.3905/joi.3.3.59",
+    wikipedia="https://en.wikipedia.org/wiki/Downside_risk",
+    see_also=(
+        ("sortino_ratio", "The risk-adjusted return that divides excess return by this."),
+        ("volatility", "The symmetric (two-sided) dispersion."),
+        ("downside_deviation_rolling", "The rolling (windowed) form."),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a ``null`` return is skipped (excluded from the mean); an all-null (or empty) series yields ``null``.",
+        ),
+        ("NaN", "a ``NaN`` return propagates, yielding ``NaN``."),
+        (
+            "Degenerate denominator",
+            "when every return is at or above the threshold the shortfall is all zero, so the result is exactly ``0``.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A single ``Float64`` value: the annualized downside deviation (one value in ``select``, "
+    "one per group under ``.over``). ``null`` when there are no returns.",
+    raises_prose="ValueError: If ``periods_per_year < 1``, or if ``threshold`` is not finite.",
+    args_prose={
+        "threshold": "The **per-period** return level separating gains from losses / the minimum acceptable "
+        "return (default ``0.0``); an annual target must be de-annualized by the caller before it "
+        "is passed. Must be finite.",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+    "handling visible:",
 )

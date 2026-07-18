@@ -45,4 +45,42 @@ CONDITIONAL_VALUE_AT_RISK = suite_metrics(
             params_override={"confidence": 0.7},
         ),
     ),
+    reference='Rockafellar, R. T. & Uryasev, S. (2000). "Optimization of Conditional Value-at-Risk." '
+    "*Journal of Risk*, 2(3), 21-41.",
+    doi="https://doi.org/10.21314/JOR.2000.038",
+    wikipedia="https://en.wikipedia.org/wiki/Expected_shortfall",
+    see_also=(
+        ("value_at_risk", "The tail cutoff quantile; this coherent average of the tail is always at least as deep."),
+        ("conditional_drawdown_at_risk", "The same tail-averaging applied to the drawdown curve."),
+        ("value_at_risk_parametric", "The parametric cutoff this estimate averages the tail beyond."),
+    ),
+    notes=(
+        (
+            "Historical, not parametric",
+            "The shortfall is taken over the empirical return distribution, with no normality or "
+            "other distributional assumption.",
+        ),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a ``null`` return is skipped (excluded from the count ``n`` and the tail average); an "
+            "all-null (or empty) series yields ``null``.",
+        ),
+        ("NaN", "a ``NaN`` return propagates, yielding ``NaN``."),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A single ``Float64`` value: the expected shortfall (one value in ``select``, one per "
+    "group under ``.over``). ``null`` when there are no returns.",
+    raises_prose="ValueError: If ``confidence`` is not in the open interval ``(0, 1)``.",
+    args_prose={
+        "confidence": "The tail confidence level (canonically ``0.95``); the shortfall is averaged over the "
+        "worst ``1 - confidence`` of returns. Must be in the open interval ``(0, 1)``.",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+    "handling visible:",
 )

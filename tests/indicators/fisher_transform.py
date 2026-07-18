@@ -53,4 +53,68 @@ FISHER_TRANSFORM = suite_indicators(
             "bridges through the recursion",
         ),
     ),
+    reference='Ehlers, J. F. (2002). "Using the Fisher Transform." *Technical Analysis of Stocks & '
+    "Commodities*, 20(11).",
+    see_also=(
+        ("williams_r", "The raw channel position the transform sharpens."),
+        ("rsi_stochastic", "Another channel-normalized momentum oscillator, bounded rather than tail-stretched."),
+        ("stochastic_fast", "The %K channel position, the same normalization before the transform."),
+    ),
+    notes=(
+        (
+            "Clamp convention",
+            "The smoothed position is held to a symmetric ``[-0.999, 0.999]`` -- a monotone clamp at "
+            "the threshold, keeping the argument strictly inside the log's domain. Ehlers' original "
+            "snaps any value past ``\\pm 0.99`` straight to ``\\pm 0.999``; pomata uses the monotone "
+            "form (the modern convention), which agrees everywhere except on the thin ``(0.99, "
+            "0.999)`` band the original discontinuously lifts (at ``0.999`` both map to ``0.999``).",
+        ),
+        (
+            "Seeding",
+            "Both recursions start from ``0`` (the bar before the first defined row contributes ``0`` "
+            "to each), matching Ehlers' zero-initialized series; the smoothing then washes the seed "
+            "out geometrically.",
+        ),
+    ),
+    note_extension="\n\n"
+    "It is invariant under a positive affine rescaling of the inputs: the channel "
+    "normalization ``(p - \\min)/(\\max - \\min)`` cancels any common scale, so the transform "
+    "depends only on the price's *shape*, not its level or units.",
+    bullets=(
+        (
+            "Null",
+            "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null "
+            "values) — the recursion bridges those rows and resumes once the window clears.",
+        ),
+        ("NaN", "a ``NaN`` inside the window propagates, yielding ``NaN`` there, likewise bridged."),
+        ("Insufficient sample", "a window longer than the series never completes, so the result is ``null``."),
+        (
+            "Degenerate denominator",
+            "when ``max == min`` over the window the channel has no range to normalize by, so the "
+            "result is a ``0 / 0``, i.e. ``NaN``.",
+        ),
+        (
+            "window == 1",
+            "the channel spans a single bar, so ``max == min`` makes it flat by construction and "
+            "``fisher`` is ``NaN`` from the first row.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A struct ``pl.Expr`` with two ``Float64`` fields, the same length as the inputs:"
+    "\n\n"
+    "- ``fisher`` — the Fisher Transform. - ``signal`` — ``fisher`` lagged one bar (``null`` "
+    "for one further row)."
+    "\n\n"
+    "The first ``window - 1`` rows are ``null`` (the channel's warm-up). Read a field with "
+    '``.struct.field("fisher")`` or split both with ``.struct.unnest()``.',
+    raises_prose="ValueError: If ``window < 1``.",
+    args_prose={
+        "window": "Number of observations in the moving window (canonically ``10``). Must be ``>= 1``.",
+    },
+    intro_basic="Basic usage on high-low bars:",
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker's channel warms up independently:",
+    intro_missing="A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make it visible:",
 )
