@@ -52,4 +52,31 @@ CAPTURE_RATIO = suite_metrics(
             reason="the same domain-boundary fact carried by the benchmark leg ",
         ),
     ),
+    reference='Morningstar. "Upside/Downside Capture Ratio" (methodology).',
+    see_also=(
+        ("capture_upside_ratio", "The numerator."),
+        ("capture_downside_ratio", "The denominator."),
+        ("beta", "The symmetric benchmark sensitivity whose up/down asymmetry this score summarizes."),
+    ),
+    bullets=(
+        ("Null", "an observation is used only where both legs are present; a ``null`` in either drops that pair."),
+        ("NaN", "a ``NaN`` in either leg of a retained pair propagates, yielding ``NaN``."),
+        (
+            "Domain",
+            "the compounded (geometric) leg growth is defined only while every selected gross return "
+            "``1 + r`` stays positive; a selected return at or below ``-1`` wipes that leg out of "
+            "domain, so the result is a loud ``NaN`` — never a plausible wrong number.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A single ``Float64`` value: the capture ratio (one value in ``select``, one per group "
+    "under ``.over``). ``null`` when either capture ratio is undefined (no complete pairs, or "
+    "a missing up- or down-market regime).",
+    raises_prose="ValueError: If ``periods_per_year < 1``.",
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+    "handling visible:",
 )

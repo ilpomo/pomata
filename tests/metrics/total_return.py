@@ -27,4 +27,32 @@ TOTAL_RETURN = suite_metrics(
             reason="a one-element series resolves to the final growth minus one ",
         ),
     ),
+    wikipedia="https://en.wikipedia.org/wiki/Total_return",
+    see_also=(
+        ("cagr", "The annualized (per-year) form of this total growth."),
+        ("total_return_rolling", "The windowed twin, over each trailing window."),
+        ("equity_curve", "The pnl builder that produces the input curve."),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a ``null`` equity is skipped; an all-null (or empty) series yields ``null`` — the result "
+            "uses the last defined equity.",
+        ),
+        ("NaN", "a ``NaN`` equity propagates, yielding ``NaN``."),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A single ``Float64`` value: the total compounded return (one value in ``select``, one "
+    "per group under ``.over``). ``null`` when there are no observations.",
+    args_prose={
+        "equity_curve": "Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive; "
+        "its ``N`` values are ``N`` period growth factors, and its final value is the total "
+        "growth multiple.",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+    "handling visible:",
 )

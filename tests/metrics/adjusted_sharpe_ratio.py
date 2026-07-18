@@ -69,4 +69,53 @@ ADJUSTED_SHARPE_RATIO = suite_metrics(
             covers_conditioning=True,
         ),
     ),
+    reference='Pezier, J. & White, A. (2008). "The Relative Merits of Alternative Investments in '
+    'Passive Portfolios." *Journal of Alternative Investments*, 10(4), 37-49.',
+    doi="https://doi.org/10.3905/jai.2008.705531",
+    wikipedia="https://en.wikipedia.org/wiki/Sharpe_ratio",
+    see_also=(
+        ("sharpe_ratio", "The base ratio this adjusts."),
+        ("probabilistic_sharpe_ratio", "The confidence-level alternative correction for non-normality."),
+        ("sortino_ratio", "The downside-deviation variant that captures the same return asymmetry differently."),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a ``null`` return is skipped (excluded from every moment); an all-null (or empty) series yields ``null``.",
+        ),
+        ("NaN", "a ``NaN`` return propagates, yielding ``NaN``."),
+        (
+            "Insufficient sample",
+            "with fewer than two returns the sample Sharpe ratio is undefined, so the result is ``null``.",
+        ),
+        (
+            "Degenerate denominator",
+            "a constant series has an undefined Sharpe ratio and undefined moments, so the result is "
+            "a ``0 / 0``, i.e. ``NaN``.",
+        ),
+        (
+            "Stability",
+            "a near-constant (non-bit-identical) sample sits at the float-conditioning limit: as the "
+            "dispersion vanishes the skewness and excess kurtosis the Pezier-White correction embeds "
+            "become an ill-conditioned ``0 / 0``, and the reference and implementation can round "
+            "apart. The exactly-constant sample is pinned (the ``NaN`` above); real return samples "
+            "are far from the regime.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A single ``Float64`` value: the adjusted Sharpe ratio (one value in ``select``, one per "
+    "group under ``.over``). ``null`` when fewer than two returns are present (the Sharpe "
+    "ratio is undefined).",
+    raises_prose="ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite or is ``< -1``.",
+    args_prose={
+        "risk_free_rate": "The annualized risk-free rate, converted to a per-period rate geometrically (default "
+        "``0.0``). Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + "
+        "risk_free_rate >= 0``).",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+    "handling visible:",
 )

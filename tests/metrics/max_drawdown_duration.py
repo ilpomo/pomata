@@ -32,4 +32,43 @@ MAX_DRAWDOWN_DURATION = suite_metrics(
             reason="a monotonically rising curve is never underwater, so the duration is 0 ",
         ),
     ),
+    wikipedia="https://en.wikipedia.org/wiki/Drawdown_%28economics%29",
+    see_also=(
+        ("max_drawdown", "The depth dimension (worst decline)."),
+        ("drawdown", "The running series whose underwater runs this counts."),
+        ("ulcer_index", "Penalizes prolonged declines, blending depth and duration."),
+    ),
+    note_extension="\n\n"
+    "The duration is a count of observations, not a calendar span; with irregular spacing "
+    "scale it by the bar period externally.",
+    bullets=(
+        (
+            "Null",
+            "a ``null`` equity is skipped; an all-null (or empty) series yields ``null`` (the run is "
+            "measured over the retained observations, so a gap neither breaks nor extends the "
+            "underwater stretch).",
+        ),
+        ("NaN", "a ``NaN`` equity propagates, yielding ``NaN``."),
+        (
+            "Insufficient sample",
+            "a single observation is never underwater, so the result is exactly ``0``, not ``null``.",
+        ),
+        (
+            "Degenerate denominator",
+            "a monotonically non-decreasing curve is never underwater, so the result is ``0`` (not a ``0 / 0``).",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A single ``Float64`` value: the longest underwater run length in bars (one value in "
+    "``select``, one per group under ``.over``). ``0`` when the curve never goes below a "
+    "prior peak; ``null`` when there are no observations.",
+    args_prose={
+        "equity_curve": "Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive.",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+    "handling visible:",
 )

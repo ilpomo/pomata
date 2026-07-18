@@ -52,4 +52,35 @@ WIN_RATE = suite_metrics(
             reason="an exact-zero return is excluded from the denominator ",
         ),
     ),
+    reference="Pardo, R. (2008). *The Evaluation and Optimization of Trading Strategies* (2nd ed.). Wiley.",
+    see_also=(
+        ("payoff_ratio", "The average size of a win versus a loss."),
+        ("profit_factor", "The aggregate gain-to-loss ratio."),
+        ("kelly_criterion", "The growth-optimal bet fraction built on this rate."),
+    ),
+    notes=(
+        ("Zero return", "A return of exactly ``0`` is neither a win nor a loss and is excluded from the denominator."),
+    ),
+    note_extension="\n\n"
+    "This is a **bar-level** statistic: each return observation is treated as one win or "
+    "loss. It is not a per-trade statistic -- true per-trade win rate needs trade-level fill "
+    "data, which is outside this toolkit's scope.",
+    bullets=(
+        ("Null", "a ``null`` return is skipped; an all-null (or empty) series yields ``null``."),
+        ("NaN", "a ``NaN`` return propagates, yielding ``NaN``."),
+        (
+            "Degenerate denominator",
+            "a series with no decisive (non-zero) returns — an all-``0`` series, say — has an empty "
+            "denominator, so the result is ``null``.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A single ``Float64`` value in ``[0, 1]``: the win rate (one value in ``select``, one per "
+    "group under ``.over``). ``null`` when there are no decisive (non-zero) returns.",
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+    "handling visible:",
 )

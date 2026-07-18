@@ -61,4 +61,48 @@ STABILITY = suite_metrics(
             reason="a return at or below -1 makes log1p undefined, propagating to NaN",
         ),
     ),
+    wikipedia="https://en.wikipedia.org/wiki/Coefficient_of_determination",
+    see_also=(
+        ("cagr", "The growth rate whose steadiness this measures."),
+        ("linear_regression", "The least-squares trend line whose goodness-of-fit this scores."),
+        ("linear_regression_slope", "The slope of that same least-squares trend."),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a ``null`` return is skipped; an all-null (or empty) series yields ``null`` (the time "
+            "index is taken over the retained observations, so an interior gap does not leave a hole "
+            "in the regression).",
+        ),
+        ("NaN", "a ``NaN`` return propagates, yielding ``NaN``."),
+        (
+            "Domain",
+            "a return at or below ``-1`` makes the cumulative log undefined, so the result is a loud "
+            "``NaN`` — never a plausible wrong number.",
+        ),
+        (
+            "Insufficient sample",
+            "fewer than two observations are present (the regression is undefined), so the result is ``null``.",
+        ),
+        (
+            "Degenerate denominator",
+            "an all-zero (or otherwise perfectly flat) cumulative log has no variance to explain, so "
+            "the result is a ``0 / 0``, i.e. ``NaN``.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A single ``Float64`` value in ``[0, 1]``: the trend stability (one value in ``select``, "
+    "one per group under ``.over``). ``null`` when fewer than two returns are present (the "
+    "regression is undefined).",
+    args_prose={
+        "returns": "Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`); "
+        "each must exceed ``-1`` (a return of ``-100%`` or worse makes the cumulative log "
+        "undefined).",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+    "handling visible:",
 )

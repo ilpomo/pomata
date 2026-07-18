@@ -282,4 +282,57 @@ VALUE_AT_RISK_MODIFIED = suite_metrics(
             reason="the same median-crossing domain violation on a long series ",
         ),
     ),
+    reference='Favre, L. & Galeano, J.-A. (2002). "Mean-Modified Value-at-Risk Optimization with Hedge '
+    'Funds." *Journal of Alternative Investments*, 5(2), 21-25.',
+    doi="https://doi.org/10.3905/jai.2002.319052",
+    wikipedia="https://en.wikipedia.org/wiki/Cornish%E2%80%93Fisher_expansion",
+    see_also=(
+        ("value_at_risk_parametric", "The Gaussian form this corrects."),
+        ("value_at_risk", "The historical (empirical) form."),
+        ("conditional_value_at_risk", "The expected shortfall beyond the VaR threshold."),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a ``null`` return is skipped (excluded from every moment); an all-null (or empty) series yields ``null``.",
+        ),
+        ("NaN", "a ``NaN`` return propagates, yielding ``NaN``."),
+        (
+            "Domain",
+            "the one-term Cornish-Fisher expansion is order-preserving only where its quantile map is "
+            "locally monotonic at the requested quantile and the corrected quantile stays on the "
+            "Gaussian one's side of the median; tail moments outside that region make the corrected "
+            "number meaningless (it can even flip sign, reporting a crash-bearing series as a gain), "
+            "so the result is a loud ``NaN`` — never a plausible wrong number.",
+        ),
+        (
+            "Insufficient sample",
+            "fewer than two returns leave the sample standard deviation undefined, so the result is ``null``.",
+        ),
+        (
+            "Degenerate denominator",
+            "a constant series has undefined skewness and kurtosis, so the result is a ``0 / 0``, i.e. ``NaN``.",
+        ),
+        (
+            "Stability",
+            "on a near-constant series the skewness and kurtosis the Cornish-Fisher term consumes are "
+            "a rounding-dominated ``0 / 0``; that near-constant band is excluded from the property "
+            "tiers, and the value is reported as computed.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A single ``Float64`` value: the modified value-at-risk (one value in ``select``, one per "
+    "group under ``.over``). ``null`` when fewer than two returns are present (the sample "
+    "standard deviation is undefined).",
+    raises_prose="ValueError: If ``confidence`` is not in the open interval ``(0, 1)``.",
+    args_prose={
+        "confidence": "The tail confidence level (canonically ``0.95``); the quantile taken is ``1 - "
+        "confidence``. Must be in the open interval ``(0, 1)``.",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+    "handling visible:",
 )

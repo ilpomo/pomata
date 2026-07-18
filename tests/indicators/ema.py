@@ -73,4 +73,56 @@ EMA = suite_indicators(
             "branch a single canonical golden cannot carry",
         ),
     ),
+    reference='Roberts, S. W. (1959). "Control Chart Tests Based on Geometric Moving Averages." '
+    "*Technometrics*, 1(3), 239-250.",
+    doi="https://doi.org/10.1080/00401706.1959.10489860",
+    wikipedia="https://en.wikipedia.org/wiki/Moving_average#Exponential_moving_average",
+    see_also=(
+        ("rma", "Wilder's variant, with smoothing factor ``1 / window``."),
+        ("dema", "A lag-reduced average built from two chained EMAs."),
+        ("sma", "The equal-weight simple average this is the exponential analog of."),
+    ),
+    notes=(
+        (
+            "Seeding",
+            "The unadjusted recursion (the default) is seeded with the simple average of the first "
+            "``window`` observations, the canonical EMA initialization; the adjusted form is exact "
+            "from the first observation.",
+        ),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a leading ``null`` run stays ``null`` until the first non-null seed; an interior "
+            "``null`` yields ``null`` at that position while the recursion continues across the gap "
+            "(a leading run consumes no warm-up budget, and an interior gap decays the carried weight "
+            "by ``(1 - alpha) ** k`` per Polars' ``ignore_nulls=False`` convention).",
+        ),
+        (
+            "NaN",
+            "a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent "
+            "non-null position (a ``NaN`` still inside the warm-up shows as that warm-up's ``null`` "
+            "on its own row, then latches from the first emitted row).",
+        ),
+        ("window == 1", "the smoothing factor is ``1``, so the EMA reproduces the input."),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The EMA for each row, the same length as ``expr``. The first ``window - 1`` values are "
+    "``null`` (warm-up), matching the uniform warm-up of the moving-average family: the value "
+    "is defined only once ``window`` non-null observations have been seen.",
+    raises_prose="ValueError: If ``window < 1``.",
+    args_prose={
+        "window": "Span of the exponential weighting, mapped to ``alpha = 2 / (window + 1)``. Must be ``>= 1``.",
+        "adjust": "When ``False`` (default) use the recursive form above. When ``True`` use the "
+        "finite-window bias-corrected (adjusted) weighting that divides by the decaying sum of "
+        "weights at each step. The two forms differ at every row in general (coinciding only for "
+        "``window == 1`` or a constant series), the gap largest near the start of the series and "
+        "decaying geometrically as the history grows.",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+    intro_missing="A ``null`` (skipped: it voids its own row while the recursion bridges the gap) and a "
+    "``NaN`` (which latches) make the exact handling visible at a glance:",
 )

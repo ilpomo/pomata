@@ -63,4 +63,53 @@ CHAIKIN_MONEY_FLOW = suite_indicators(
             "retains a sub-ULP residual on exit, but the exact all-zero detection pins the final window to NaN",
         ),
     ),
+    reference='Chaikin, M. "Chaikin Money Flow."',
+    wikipedia="https://en.wikipedia.org/wiki/Chaikin_Analytics#Chaikin_Money_Flow",
+    see_also=(
+        ("accumulation_distribution", "The cumulative (window-less) money-flow line."),
+        ("money_flow_index", "A bounded windowed money-flow oscillator."),
+        ("accumulation_distribution_oscillator", "Chaikin's momentum oscillator over the same line."),
+    ),
+    notes=(
+        (
+            "Zero-range bars",
+            "The zero-range convention applies only to a genuine equal-range bar (``high == low``), "
+            "where the multiplier is ``0`` (it adds ``0`` to the numerator while its volume still "
+            "counts in the denominator) — and on such a bar it wins outright: the multiplier is ``0`` "
+            "regardless of the close, so a ``null`` or ``NaN`` close on a doji is absorbed into the "
+            "zero flow. On a bar with a genuine range, a ``null`` or ``NaN`` in any input leaves that "
+            "bar's money-flow volume ``null`` or ``NaN``, so missing data propagates rather than "
+            "being silently zeroed.",
+        ),
+        (
+            "Clamp convention",
+            "The result is clamped to its ``[-1, +1]`` bound: a malformed bar whose ``close`` prints "
+            "outside its ``[low, high]`` range (pushing the multiplier past ``±1``) is pinned to the "
+            "bound rather than allowed to escape it.",
+        ),
+    ),
+    bullets=(
+        ("Null", "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values)."),
+        ("NaN", "a ``NaN`` inside the window propagates, yielding ``NaN`` there."),
+        (
+            "Degenerate denominator",
+            "a window whose volume is all zero, so the result is a ``0 / 0``, i.e. ``NaN`` — detected "
+            "exactly via the rolling maximum of the absolute volume, so a sub-ULP residual in the "
+            "rolling-sum denominator cannot fake a finite reading (the only reachable "
+            "division-by-zero case, since an all-zero volume window also zeroes the numerator).",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The CMF for each row, the same length as the inputs. The first ``window - 1`` values are "
+    "``null`` (warm-up) -- the value is defined only once a full window of bars is available.",
+    raises_prose="ValueError: If ``window < 1``.",
+    args_prose={
+        "window": "Number of observations in the moving window. Must be ``>= 1``.",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+    intro_missing="A ``null`` (skipped, and any window it touches yields ``null``) and a ``NaN`` (which "
+    "propagates) make the exact handling visible at a glance:",
 )

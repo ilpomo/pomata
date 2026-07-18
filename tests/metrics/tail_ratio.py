@@ -45,4 +45,30 @@ TAIL_RATIO = suite_metrics(
             reason="an all-zero series gives 0/0 at both tails, so the ratio is NaN ",
         ),
     ),
+    wikipedia="https://en.wikipedia.org/wiki/Tail_risk",
+    see_also=(
+        ("tail_ratio_rolling", "The rolling (windowed) form."),
+        ("common_sense_ratio", "Scales the profit factor by this tail ratio."),
+        ("skewness", "The moment-based companion measure of distributional asymmetry."),
+    ),
+    bullets=(
+        ("Null", "a ``null`` return is skipped; an all-null (or empty) series yields ``null``."),
+        ("NaN", "a ``NaN`` return propagates, yielding ``NaN``."),
+        (
+            "Degenerate denominator",
+            "a constant series has equal 5th and 95th percentiles, so the ratio is ``1.0`` (an "
+            "all-``0`` series is the ``0 / 0`` exception, yielding ``NaN``); when the 5th-percentile "
+            "return is exactly ``0`` against a non-zero 95th the ratio is ``+inf`` — reported, not "
+            "clipped, following IEEE division.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A single ``Float64`` value: the tail ratio (one value in ``select``, one per group under "
+    "``.over``). ``null`` when there are no returns.",
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+    "handling visible:",
 )

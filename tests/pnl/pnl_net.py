@@ -47,4 +47,34 @@ PNL_NET = suite_pnl(
             "allow_infinity=False",
         ),
     ),
+    wikipedia="https://en.wikipedia.org/wiki/Mark-to-market_accounting",
+    see_also=(
+        ("pnl_gross", "The gross position PnL this nets costs from."),
+        ("cost_per_share", "A usual source of ``cost`` (sum several cost components with ``+``)."),
+        ("cumulative_pnl", "Cumulates these net PnL into a running currency total."),
+    ),
+    bullets=(
+        ("Null", "a ``null`` gross P&L makes that row ``null`` (``null`` takes precedence over ``NaN``)."),
+        ("NaN", "a ``NaN`` gross P&L yields ``NaN`` for that row."),
+        (
+            "Non-finite input",
+            "an ``inf`` gross P&L follows IEEE-754 through the arithmetic (the sign, and any ``inf - "
+            "inf = NaN``, included).",
+        ),
+        (
+            "Partitioning",
+            "already correct on a multi-series panel: ``.over(...)`` partitions identically and is "
+            "therefore optional here.",
+        ),
+    ),
+    returns_body="The net PnL for each row, the same length as the inputs.",
+    args_prose={
+        "pnl_gross": "Gross per-bar position PnL, typically from :func:`pnl_gross`.",
+        "cost": "Per-bar transaction cost in the same currency, typically from :func:`cost_per_share` "
+        "(sum several with ``+``).",
+    },
+    intro_basic="Basic usage on a gross P&L and a cost series:",
+    intro_over="The subtraction is elementwise, so ``.over`` partitions identically and is shown only for consistency:",
+    intro_missing="A ``null`` then a ``NaN`` in ``pnl_gross`` (both propagate through the subtraction) make "
+    "the missing-data handling visible:",
 )

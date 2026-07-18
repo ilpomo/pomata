@@ -15,6 +15,7 @@ partition of the public surface. The escape hatches (``flow_deviation`` for the 
 """
 
 from collections.abc import Callable, Mapping
+from types import MappingProxyType
 
 import polars as pl
 
@@ -96,6 +97,24 @@ def suite_indicators(  # noqa: PLR0913
     flow_horizon: int = -1,
     oracle_rel_tol: float | None = None,
     oracle_abs_tol: float | None = None,
+    reference: str = "",
+    doi: str = "",
+    wikipedia: str = "",
+    reference_url: str = "",
+    see_also: tuple[tuple[str, str], ...] = (),
+    notes: tuple[tuple[str, str], ...] = (),
+    opener_override: str = "",
+    note_extension: str = "",
+    bullets: tuple[tuple[str, str], ...] = (),
+    note_postscript: str = "",
+    returns_body: str = "",
+    raises_prose: str = "",
+    args_prose: Mapping[str, str] = MappingProxyType({}),
+    example_alias: str = "",
+    example_imports: tuple[str, ...] = (),
+    intro_basic: str = "",
+    intro_over: str = "",
+    intro_missing: str = "",
 ) -> Declaration:
     """
     Build, register, and return the :class:`Declaration` for one public ``pomata.indicators`` function.
@@ -133,8 +152,24 @@ def suite_indicators(  # noqa: PLR0913
         flow_horizon: The rows past a missing bar the flow must have played out in, or ``-1`` to derive it.
         oracle_rel_tol: The oracle-agreement relative band override (a one-pass rolling form vs its two-pass oracle).
         oracle_abs_tol: The oracle-agreement absolute band override.
-        reference: The literature citation for the definition.
-        wikipedia: The encyclopedic reference URL.
+        reference: The literature citation line for the definition (author, year, title), or empty.
+        doi: The DOI URL for the reference, or empty.
+        wikipedia: The encyclopedic (Wikipedia) reference URL, or empty.
+        reference_url: A reference URL that is neither a DOI nor a Wikipedia page (a methodology page), or empty.
+        see_also: The See Also entries, each a ``(public-function name, one-line clause)`` pair.
+        notes: The pre-list Note subheaders, each a ``(label, body)`` pair.
+        opener_override: A per-function replacement of the whole Note opener body, or empty for the family template.
+        note_extension: The per-function extension of the Note opener body, beyond the family template, or empty.
+        bullets: The Edge-case behavior bullets, each a ``(label, body)`` pair, in source order.
+        note_postscript: A Note paragraph after the Edge-case list, for the one function whose Note trails it, or empty.
+        returns_body: The Returns section body, verbatim.
+        raises_prose: The Raises ValueError clause, verbatim (the TypeError line is the shared template).
+        args_prose: Per-parameter Args descriptions overriding the mined majority template, keyed by parameter name.
+        example_alias: The Examples import alias (``as ...``), or empty for the bare function name.
+        example_imports: Extra Examples imports beyond ``import polars as pl``, each a full import statement.
+        intro_basic: The optional line opening the basic Examples block, or empty.
+        intro_over: The ``.over`` panel scenario intro, or empty.
+        intro_missing: The null / NaN scenario intro, or empty.
 
     Returns:
         The registered declaration, so ``FOO = suite_indicators(...)`` both binds and enrolls it.
@@ -164,5 +199,23 @@ def suite_indicators(  # noqa: PLR0913
         talib=talib,
         talib_reason=talib_reason,
         seeding=seeding,
+        reference=reference,
+        doi=doi,
+        wikipedia=wikipedia,
+        reference_url=reference_url,
+        see_also=see_also,
+        notes=notes,
+        opener_override=opener_override,
+        note_extension=note_extension,
+        bullets=bullets,
+        note_postscript=note_postscript,
+        returns_body=returns_body,
+        raises_prose=raises_prose,
+        args_prose=args_prose,
+        example_alias=example_alias,
+        example_imports=example_imports,
+        intro_basic=intro_basic,
+        intro_over=intro_over,
+        intro_missing=intro_missing,
     )
     return register(declaration)

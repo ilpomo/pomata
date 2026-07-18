@@ -137,4 +137,60 @@ SUPERTREND = suite_indicators(
             reason="the golden scaled by 1e9, pinned against a regression to inf/NaN at the large-magnitude extreme",
         ),
     ),
+    reference="Seban, O. (2009). *Tout le monde mérite d'être riche*.",
+    see_also=(
+        ("parabolic_sar", "The other trailing-stop trend tool, accelerating rather than ATR-scaled."),
+        ("atr", "The volatility average that sets the band half-width."),
+        ("keltner_channels", "The other ATR-scaled band envelope, centered on an EMA rather than ratcheting."),
+    ),
+    notes=(
+        (
+            "Tie-break and seeding",
+            "A flip needs a *strict* cross, so a close exactly on the active band holds the current "
+            "trend; over a flat series the bands collapse onto the midpoint and the line tracks it. "
+            "The trend seeds short when the first valid close is at or below the lower band, else "
+            "long -- chosen so the line sits on the correct side of price from row one.",
+        ),
+    ),
+    note_extension="\n\n"
+    "The ``line`` is homogeneous of degree ``1`` under a positive common rescaling of "
+    "``high`` / ``low`` / ``close`` (a price level), while ``direction`` is scale-invariant "
+    "(the crossings compare like-scaled quantities).",
+    bullets=(
+        (
+            "Null",
+            "a leading ``null`` run stays ``null`` until the first non-null seed; an interior "
+            "``null`` yields ``null`` at that position while the recursion continues across the gap "
+            "(on both struct fields, the running state and the last valid close the ratchet reads "
+            "bridging it).",
+        ),
+        (
+            "NaN",
+            "a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent "
+            "non-null position (on both struct fields; a later ``null`` row shows ``null`` there only "
+            "— nothing flushes the poisoned state).",
+        ),
+        ("window == 1", "the ATR has no memory term, so a ``NaN`` self-heals once the true range is finite again."),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A struct ``pl.Expr`` with two ``Float64`` fields, the same length as the inputs:"
+    "\n\n"
+    "- ``line`` — the trailing stop. - ``direction`` — ``+1.0`` in an up-trend (the line "
+    "below price); ``-1.0`` in a down-trend (the line above price)."
+    "\n\n"
+    "The first ``window - 1`` rows are ``null`` (the ATR's warm-up). Read a field with "
+    '``.struct.field("line")`` or split both with ``.struct.unnest()``.',
+    raises_prose="ValueError: If ``window < 1`` or ``multiplier`` is not a finite number ``> 0`` (i.e. "
+    "``<= 0``, ``NaN``, or ``±inf``).",
+    args_prose={
+        "window": "Number of observations in the ATR moving window (canonically ``10``). Must be ``>= 1``.",
+        "multiplier": "Band half-width as a multiple of the ATR (canonically ``3.0``). Must be a finite number "
+        "``> 0`` (a non-positive multiplier would collapse or invert the bands).",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker's ratchet warms up independently:",
+    intro_missing="A ``null`` in ``close`` is skipped and bridged by the running state, while a ``NaN`` "
+    "poisons the ATR recursion and latches ``NaN`` thereafter:",
 )

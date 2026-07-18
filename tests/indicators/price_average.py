@@ -38,4 +38,33 @@ PRICE_AVERAGE = suite_indicators(
             reason="a null in open and a NaN in high on the same row yields null — null wins over NaN",
         ),
     ),
+    reference="No canonical external source; the indicator is defined by the formula above.",
+    see_also=(
+        ("price_median", "The midpoint of the bar's range, ``(high + low) / 2``."),
+        ("price_typical", "The equal-weighted mean of high, low, and close."),
+        ("price_weighted_close", "The OHLC summary that double-weights the close."),
+    ),
+    notes=(
+        (
+            "Inputs",
+            "``open``, ``high``, ``low``, and ``close`` are taken as the canonical OHLC roles in that "
+            "positional order and must share a length and alignment (the same row index is one bar).",
+        ),
+    ),
+    bullets=(
+        ("Null", "a ``null`` price makes that row ``null`` (``null`` takes precedence over ``NaN``)."),
+        ("NaN", "a ``NaN`` price yields ``NaN`` for that row."),
+        (
+            "Partitioning",
+            "already correct on a multi-series panel: ``.over(...)`` partitions identically and is "
+            "therefore optional here.",
+        ),
+    ),
+    returns_body="The average price for each row, the same length as the inputs. There is no window and no "
+    "warm-up -- every row is defined from row ``0``.",
+    intro_over="On a multi-ticker panel, partition with ``.over`` as the windowed indicators require — "
+    "for this elementwise transform ``.over`` is optional (the result is identical without "
+    "it) and shown here only for consistency:",
+    intro_missing="A ``null`` then a ``NaN`` in ``close`` (both propagate through the sum) make the "
+    "missing-data handling visible at a glance:",
 )

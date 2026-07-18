@@ -48,4 +48,40 @@ VALUE_AT_RISK_ROLLING = suite_metrics(
             params_override={"window": 3},
         ),
     ),
+    wikipedia="https://en.wikipedia.org/wiki/Value_at_risk",
+    see_also=(
+        ("value_at_risk", "The whole-series reducing form."),
+        ("tail_ratio_rolling", "Another rolling tail-risk measure."),
+        ("downside_deviation_rolling", "Another rolling downside-risk measure."),
+    ),
+    notes=(
+        (
+            "Sign convention",
+            "Returned as the signed return quantile (negative for a loss), not a positive loss "
+            "magnitude; negate it if a positive figure is wanted.",
+        ),
+    ),
+    opener_override="Each window matches an independent reference oracle (the reducing :func:`value_at_risk` "
+    "recomputed over the window).",
+    bullets=(
+        ("Null", "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values)."),
+        ("NaN", "a ``NaN`` inside the window propagates, yielding ``NaN`` there."),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The rolling value-at-risk for each row, the same length as the input. The first ``window "
+    "- 1`` rows are ``null`` (warm-up): the window must hold ``window`` non-null values "
+    "before a result is emitted.",
+    raises_prose="ValueError: If ``window < 1``, or if ``confidence`` is not in the open interval ``(0, 1)``.",
+    args_prose={
+        "window": "Number of observations in the moving window. Must be ``>= 1``.",
+        "confidence": "The tail confidence level (canonically ``0.95``); the quantile taken is ``1 - "
+        "confidence``. Must be in the open interval ``(0, 1)``.",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up on its own "
+    "(the ``B`` group never borrows ``A``'s tail):",
+    intro_missing="A leading ``null`` and a later ``NaN`` show the per-window masking, with the result "
+    "recovering once both leave the window:",
 )

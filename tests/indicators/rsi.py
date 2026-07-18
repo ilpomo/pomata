@@ -75,4 +75,63 @@ RSI = suite_indicators(
             reason="a leading null defers the first difference; the warm-up is measured from the first non-null value ",
         ),
     ),
+    reference="Wilder, J. W. (1978). *New Concepts in Technical Trading Systems*. Trend Research.",
+    wikipedia="https://en.wikipedia.org/wiki/Relative_strength_index",
+    see_also=(
+        ("rma", "Wilder's moving average that smooths the gains and losses RSI is built on."),
+        ("money_flow_index", "The volume-weighted analog — the same oscillator on raw money flow."),
+        ("chande_momentum_oscillator", "The unsmoothed sibling that sums gains and losses over a fixed window."),
+    ),
+    notes=(
+        (
+            "Seeding",
+            "The gain and loss averages use Wilder's :func:`rma`, seeded with the simple average of "
+            "the first ``window`` gains and losses -- Wilder's canonical initialization, exact from "
+            "the first emitted value.",
+        ),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a leading ``null`` run stays ``null`` until the first non-null seed; an interior "
+            "``null`` yields ``null`` at that position while the recursion continues across the gap — "
+            "the one-bar difference reads the missing observation twice, so an interior ``null`` "
+            "voids its own row and the next.",
+        ),
+        (
+            "NaN",
+            "a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null position.",
+        ),
+        (
+            "Insufficient sample",
+            "a series shorter than ``window + 1`` never completes the first difference, so the result is ``null``.",
+        ),
+        (
+            "Degenerate denominator",
+            "no up and no down move leaves the relative strength indeterminate, so the result is a "
+            "``0 / 0``, i.e. ``NaN`` (genuinely undefined, not a conventional ``50`` or ``100``).",
+        ),
+        (
+            "window == 1",
+            "the smoothing vanishes: each row reports ``100`` on an up move, ``0`` on a down move, "
+            "and ``NaN`` on no move.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The RSI for each row, the same length as ``expr``. The first ``window`` values are "
+    "``null`` (warm-up) -- Wilder's RSI needs ``window + 1`` prices for its first value, "
+    "since row ``0`` has no difference and the gain / loss averages count ``window`` non-null "
+    "differences before emitting.",
+    raises_prose="ValueError: If ``window < 1``.",
+    args_prose={
+        "window": "Number of observations in the Wilder moving window. Must be ``>= 1``.",
+    },
+    intro_basic="Basic usage on a single price series:",
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so the difference and the recursion "
+    "restart per group -- note that each ticker warms up independently:",
+    intro_missing="A ``null`` (skipped, and any window it touches yields ``null``) and a ``NaN`` (which "
+    "propagates) make the exact handling visible at a glance:",
 )

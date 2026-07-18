@@ -107,4 +107,44 @@ DEMA = suite_indicators(
             reason="DEMA of a constant equals that constant once warmed up",
         ),
     ),
+    reference='Mulloy, P. G. (1994). "Smoothing Data with Faster Moving Averages." *Technical Analysis '
+    "of Stocks & Commodities*, 12(1).",
+    wikipedia="https://en.wikipedia.org/wiki/Double_exponential_moving_average",
+    see_also=(
+        ("ema", "The single exponential pass this is built from."),
+        ("tema", "The triple-EMA sibling."),
+        ("t3", "The six-pass Tillson member of the lag-reduced family."),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a leading ``null`` run stays ``null`` until the first non-null seed; an interior "
+            "``null`` yields ``null`` at that position while the recursion continues across the gap.",
+        ),
+        (
+            "NaN",
+            "a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null position.",
+        ),
+        ("Insufficient sample", "a series no longer than the warm-up, so the result is ``null``."),
+        ("window == 1", "each EMA reduces to the identity, so the expression reproduces the input."),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The DEMA for each row, the same length as ``expr``. The first ``2 * (window - 1)`` "
+    "values are ``null`` (warm-up), clamped to the series length: the value is composed from "
+    "two chained :func:`ema` passes of the same ``window`` (each carrying a ``window - 1`` "
+    "warm-up), so the warm-up is twice that of a plain EMA. Under the default "
+    "``adjust=False``, each pass is seeded with the SMA of the first ``window`` observations.",
+    raises_prose="ValueError: If ``window < 1``.",
+    args_prose={
+        "window": "Span of the exponential weighting, mapped to ``alpha = 2 / (window + 1)``. Must be ``>= 1``.",
+        "adjust": "When ``False`` (default) use the recursive technical-analysis EMA form; when ``True`` "
+        "use the bias-corrected (adjusted) exponential weighting. The flag is forwarded unchanged "
+        "to both :func:`ema` passes; the canonical DEMA uses ``False``.",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+    intro_missing="A ``null`` (skipped: it voids its own row while the recursion bridges the gap) and a "
+    "``NaN`` (which latches) make the exact handling visible at a glance:",
 )

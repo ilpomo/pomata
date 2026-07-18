@@ -31,4 +31,50 @@ ACCUMULATION_DISTRIBUTION = suite_indicators(
         },
         output=(0.0, 100.0, -200.0, 200.0, -50.0),
     ),
+    reference='Chaikin, M. "Accumulation/Distribution Line."',
+    wikipedia="https://en.wikipedia.org/wiki/Accumulation/distribution_index",
+    see_also=(
+        ("accumulation_distribution_oscillator", "The Chaikin oscillator — fast minus slow EMA of this line."),
+        ("chaikin_money_flow", "The windowed money-flow ratio over the same multiplier."),
+        ("obv", "Another cumulative volume-flow line."),
+    ),
+    notes=(
+        (
+            "Zero-range bars",
+            "On a doji bar (``high == low``) the Money Flow Multiplier is ``0`` by convention, so the "
+            "denominator never hits ``0 / 0`` and ``close`` does not enter the bar's contribution."
+            "\n\n"
+            "The zero-range convention applies only to a genuine equal-range bar (``high == low``), "
+            "where the multiplier is ``0`` and ``close`` does not enter the contribution. A ``null`` "
+            "or ``NaN`` in any input instead leaves the range ``null`` or ``NaN`` (never ``== 0``), "
+            "so missing data propagates rather than being silently zeroed.",
+        ),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a leading ``null`` run stays ``null`` until the first non-null seed; an interior "
+            "``null`` yields ``null`` at that position while the recursion continues across the gap — "
+            "on a genuine doji bar (``high == low``, both finite) the multiplier is ``0`` and "
+            "``close`` is irrelevant, so a ``null`` in ``close`` on such a bar still yields ``0`` "
+            "rather than ``null``.",
+        ),
+        (
+            "NaN",
+            "a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent "
+            "non-null position — a bar whose ``high`` and ``low`` are both ``NaN`` does not take the "
+            "doji branch (``NaN - NaN`` is ``NaN``, never ``== 0``), so the ``NaN`` poisons the line "
+            "rather than contributing ``0``.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The Accumulation/Distribution Line for each row, the same length as the inputs. There is "
+    "no warm-up -- the first row already carries the first bar's Money Flow Volume, and the "
+    "line is the running cumulative sum from there.",
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+    intro_missing="A ``null`` (skipped, the running total carrying across it) and a ``NaN`` (which "
+    "propagates) make the exact handling visible at a glance:",
 )

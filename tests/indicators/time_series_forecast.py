@@ -26,4 +26,32 @@ TIME_SERIES_FORECAST = suite_indicators(
         output=(None, None, 14.3333, 13.0, 14.0, 14.0, 15.0),
         params={"window": 3},
     ),
+    reference="Chande, T. S. & Kroll, S. (1994). *The New Technical Trader*. Wiley.",
+    wikipedia="https://en.wikipedia.org/wiki/Simple_linear_regression",
+    see_also=(
+        ("linear_regression", "The same line evaluated at the current bar rather than one ahead."),
+        ("linear_regression_slope", "The slope used for the projection."),
+        ("linear_regression_intercept", "The same line's value at the oldest bar of the window."),
+    ),
+    note_extension="\n\n"
+    "It is homogeneous of degree ``1`` in ``expr`` (a projected price scales with the price). "
+    "For a perfectly linear input the forecast equals the next value of the line exactly.",
+    bullets=(
+        ("Null", "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values)."),
+        ("NaN", "a ``NaN`` inside the window propagates, yielding ``NaN`` there."),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The one-step-ahead forecast for each row, the same length as the input. The first "
+    "``window - 1`` values are ``null`` (warm-up).",
+    raises_prose="ValueError: If ``window < 2``.",
+    args_prose={
+        "window": "Number of observations in the regression window. Must be ``>= 2`` (a line needs at least "
+        "two points).",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+    intro_missing="A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make "
+    "the handling visible:",
 )

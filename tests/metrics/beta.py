@@ -74,4 +74,34 @@ BETA = suite_metrics(
             reason="the same guard at a third, many-digit constant magnitude",
         ),
     ),
+    reference='Sharpe, W. F. (1964). "Capital Asset Prices: A Theory of Market Equilibrium under '
+    'Conditions of Risk." *The Journal of Finance*, 19(3), 425-442.',
+    doi="https://doi.org/10.1111/j.1540-6261.1964.tb02865.x",
+    wikipedia="https://en.wikipedia.org/wiki/Beta_%28finance%29",
+    see_also=(
+        ("alpha", "The benchmark-relative return that nets out beta-explained performance."),
+        ("treynor_ratio", "The excess return per unit of this systematic risk."),
+        ("beta_rolling", "The same slope over a trailing window."),
+    ),
+    bullets=(
+        ("Null", "an observation is used only where both legs are present; a ``null`` in either drops that pair."),
+        ("NaN", "a ``NaN`` in either leg of a retained pair propagates, yielding ``NaN``."),
+        (
+            "Insufficient sample",
+            "fewer than two complete pairs leaves the regression slope undefined, so the result is ``null``.",
+        ),
+        (
+            "Degenerate denominator",
+            "a zero-variance benchmark leaves the slope undefined, so the result is a ``0 / 0``, i.e. ``NaN``.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A single ``Float64`` value: the regression slope (one value in ``select``, one per group "
+    "under ``.over``). ``null`` when fewer than two complete pairs are present.",
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+    "handling visible:",
 )

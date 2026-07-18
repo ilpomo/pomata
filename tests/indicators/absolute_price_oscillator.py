@@ -42,4 +42,45 @@ ABSOLUTE_PRICE_OSCILLATOR = suite_indicators(
             reason="equal fast/slow windows make the two EMAs identical so the oscillator cancels to exactly 0.0",
         ),
     ),
+    reference="Appel, G. (2005). *Technical Analysis: Power Tools for Active Investors*. FT Press.",
+    see_also=(
+        ("percentage_price_oscillator", "The same gap expressed as a percentage of the slow EMA."),
+        ("macd", "The oscillator this line underlies, adding a signal and histogram."),
+        ("ema", "The exponential moving average each leg is built from."),
+    ),
+    notes=(
+        (
+            "Moving average",
+            "Both legs use the exponential :func:`ema` (not a simple average), so APO is the MACD "
+            "line without the signal; compose :func:`sma` directly for a simple-average oscillator.",
+        ),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a leading ``null`` run stays ``null`` until the first non-null seed; an interior "
+            "``null`` yields ``null`` at that position while the recursion continues across the gap.",
+        ),
+        (
+            "NaN",
+            "a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null position.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The oscillator for each row, the same length as the input. Values are ``null`` until "
+    "both EMAs leave their warm-up (the first ``max(window_fast, window_slow) - 1`` rows).",
+    raises_prose="ValueError: If ``window_fast < 1``, ``window_slow < 1``, or ``window_fast > "
+    "window_slow`` (the fast leg must be the shorter one; ``window_fast == window_slow`` is "
+    "allowed and gives an identically-zero oscillator).",
+    args_prose={
+        "window_fast": "Span of the fast EMA (canonically ``12``). Must be ``>= 1``.",
+        "window_slow": "Span of the slow EMA (canonically ``26``). Must be ``>= 1`` and ``>= window_fast``.",
+    },
+    intro_basic="Basic usage on a single price series:",
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker's EMAs warm up independently:",
+    intro_missing="A ``null`` (which the recursive EMA bridges) and a ``NaN`` (which latches) make the "
+    "handling visible:",
 )

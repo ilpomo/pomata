@@ -137,4 +137,47 @@ TREYNOR_RATIO_ROLLING = suite_metrics(
         ),
     ),
     oracle_rel_tol=TOLERANCE_RELATIVE_ROLLING_ORACLE,
+    reference='Treynor, J. L. (1965). "How to Rate Management of Investment Funds." *Harvard Business '
+    "Review*, 43(1), 63-75.",
+    wikipedia="https://en.wikipedia.org/wiki/Treynor_ratio",
+    see_also=(
+        ("treynor_ratio", "The whole-series reducing form."),
+        ("beta_rolling", "The denominator (systematic risk)."),
+        ("alpha_rolling", "The rolling benchmark-relative excess built on the same slope."),
+    ),
+    bullets=(
+        ("Null", "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values)."),
+        ("NaN", "a ``NaN`` inside the window propagates, yielding ``NaN`` there."),
+        (
+            "Degenerate denominator",
+            "a window whose slope is zero gives ``+/-inf`` (or ``NaN``) — reported, not clipped; a "
+            "zero-variance benchmark window instead makes the slope ``NaN``, which propagates here.",
+        ),
+        (
+            "Stability",
+            "a near-flat (non-bit-identical) benchmark window sits at the float-conditioning limit "
+            "the documentation's *Correctness* page documents: the one-pass rolling slope and an "
+            "exact two-pass recomputation can round a vanishing benchmark variance — and with it the "
+            "``beta`` divisor — apart without bound there. The bit-flat window is guarded exactly "
+            "(``NaN``); real market windows are far from the regime.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The rolling Treynor ratio for each row, the same length as the input. The first ``window "
+    "- 1`` rows are ``null`` (warm-up): the window must hold ``window`` complete pairs before "
+    "a result is emitted.",
+    raises_prose="ValueError: If ``window < 2``, ``periods_per_year < 1``, or if ``risk_free_rate`` is not "
+    "finite or is ``< -1``.",
+    args_prose={
+        "window": "Number of observations in the moving window. Must be ``>= 2``.",
+        "risk_free_rate": "The annualized risk-free rate, converted to a per-period rate geometrically (default "
+        "``0.0``). Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + "
+        "risk_free_rate >= 0``).",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+    intro_missing="A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make "
+    "the handling visible:",
 )

@@ -56,4 +56,41 @@ RECOVERY_RATIO = suite_metrics(
             "a 0/0, i.e. NaN — the degenerate-denominator NaN beside the +inf pin",
         ),
     ),
+    reference="Pardo, R. (2008). *The Evaluation and Optimization of Trading Strategies* (2nd ed.). Wiley.",
+    see_also=(
+        ("total_return", "The numerator (overall growth)."),
+        ("max_drawdown", "The denominator (worst decline)."),
+        ("calmar_ratio", "The annualized-growth counterpart over the same drawdown."),
+    ),
+    note_extension="\n\n"
+    "Only the drawdown denominator is taken in magnitude; the total-return numerator keeps "
+    "its sign, so a losing curve (a negative total return) reports a negative recovery "
+    "factor.",
+    bullets=(
+        ("Null", "a ``null`` equity is skipped; an all-null (or empty) series yields ``null``."),
+        ("NaN", "a ``NaN`` equity propagates, yielding ``NaN``."),
+        (
+            "Insufficient sample",
+            "a single observation has zero total return over zero maximum drawdown, so the result is "
+            "a ``0 / 0``, i.e. ``NaN``.",
+        ),
+        (
+            "Degenerate denominator",
+            "a monotonically non-decreasing curve has zero maximum drawdown, so the ratio is "
+            "``+/-inf`` with the sign of the total return (or ``NaN`` when the total return is also "
+            "zero) — reported, not clipped.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A single ``Float64`` value: the recovery factor (one value in ``select``, one per group "
+    "under ``.over``). ``null`` when there are no observations.",
+    args_prose={
+        "equity_curve": "Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive.",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+    "handling visible:",
 )

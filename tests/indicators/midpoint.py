@@ -33,4 +33,29 @@ MIDPOINT = suite_indicators(
             "warm-up",
         ),
     ),
+    reference="No canonical external source; the indicator is defined by the formula above.",
+    see_also=(
+        ("midprice", "The same midpoint taken across a bar's high and low instead of one series."),
+        ("sma", "The moving mean of the window, which uses every value rather than only the extremes."),
+        ("donchian_channels", "The high-low band system built from the same rolling extremes."),
+    ),
+    bullets=(
+        ("Null", "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values)."),
+        ("NaN", "a ``NaN`` inside the window propagates, yielding ``NaN`` there."),
+        ("window == 1", "the max and min are the single value, so the midpoint reproduces the input."),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The window midpoint for each row, the same length as the input. The first ``window - 1`` "
+    "values are ``null`` (warm-up): the window must hold ``window`` non-null values before a "
+    "result is emitted.",
+    raises_prose="ValueError: If ``window < 1``.",
+    args_prose={
+        "window": "Number of observations in the moving window. Must be ``>= 1``.",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+    intro_missing="A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make "
+    "the handling visible:",
 )

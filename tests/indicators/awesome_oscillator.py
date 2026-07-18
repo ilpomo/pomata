@@ -62,4 +62,42 @@ AWESOME_OSCILLATOR = suite_indicators(
             reason="over a constant median both averages equal it, so AO is 0",
         ),
     ),
+    reference="Williams, B. (1998). *New Trading Dimensions*. Wiley.",
+    see_also=(
+        ("absolute_price_oscillator", "The same fast-minus-slow shape on the close, with exponential averages."),
+        ("macd", "The exponential oscillator with an added signal line."),
+        ("price_median", "The bar median each average is taken over."),
+    ),
+    notes=(("Inputs", "``high`` and ``low`` must share a length and alignment (the same row index is one bar)."),),
+    bullets=(
+        (
+            "Null",
+            "a window containing a ``null`` yields ``null`` (the window must hold ``window_fast`` non-null values).",
+        ),
+        ("NaN", "a ``NaN`` inside the window propagates, yielding ``NaN`` there."),
+        ("Insufficient sample", "a slow window longer than the series never completes, so the result is ``null``."),
+        (
+            "Degenerate denominator",
+            "over a constant median run there is no spread between the two averages, so the "
+            "oscillator is exactly ``0``.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The oscillator for each row, the same length as the inputs. The first ``window_slow - "
+    "1`` values are ``null`` (warm-up): both averages must be defined before their difference "
+    "is.",
+    raises_prose="ValueError: If ``window_fast < 1``, ``window_slow < 1``, or ``window_fast > "
+    "window_slow`` (the fast leg must be the shorter one; ``window_fast == window_slow`` is "
+    "allowed and gives an identically-zero oscillator).",
+    args_prose={
+        "window_fast": "Window of the fast simple moving average (canonically ``5``). Must be ``>= 1``.",
+        "window_slow": "Window of the slow simple moving average (canonically ``34``). Must be ``>= 1`` and ``>= "
+        "window_fast``.",
+    },
+    intro_basic="Basic usage on high-low bars:",
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+    intro_missing="A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make it visible:",
 )

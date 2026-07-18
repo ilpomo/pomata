@@ -85,4 +85,33 @@ WMA = suite_indicators(
             reason="the weights sum to one, so a WMA of a constant equals that constant on every defined row",
         ),
     ),
+    wikipedia="https://en.wikipedia.org/wiki/Moving_average#Weighted_moving_average",
+    see_also=(
+        ("sma", "The unweighted analog."),
+        ("hma", "A low-lag average built by composing weighted means."),
+        ("ema", "The exponentially-weighted analog."),
+    ),
+    bullets=(
+        ("Null", "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values)."),
+        (
+            "NaN",
+            "a ``NaN`` inside the window propagates, yielding ``NaN`` there (``null`` takes precedence over ``NaN``).",
+        ),
+        ("Insufficient sample", "a series shorter than ``window`` observations, so the result is ``null``."),
+        ("window == 1", "the single weight normalizes to one, so the WMA reproduces the input."),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The WMA for each row, the same length as ``expr``. The first ``window - 1`` values are "
+    "``null`` (warm-up) -- the value is defined only once ``window`` observations have been "
+    "seen.",
+    raises_prose="ValueError: If ``window < 1``.",
+    args_prose={
+        "window": "Number of observations in the moving window. Must be ``>= 1``.",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+    intro_missing="A ``null`` (skipped, and any window it touches yields ``null``) and a ``NaN`` (which "
+    "propagates) make the exact handling visible at a glance:",
 )

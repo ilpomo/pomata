@@ -59,4 +59,50 @@ RETURNS_SIMPLE = suite_pnl(
             "property tiers set allow_infinity=False",
         ),
     ),
+    reference='Meucci, A. (2010). "Quant Nugget 2: Linear vs. Compounded Returns." *GARP Risk '
+    "Professional*, April 2010, 49-51.",
+    wikipedia="https://en.wikipedia.org/wiki/Rate_of_return",
+    see_also=(
+        ("returns_log", "The logarithmic sibling, which aggregates across time rather than across assets."),
+        ("equity_curve", "Compounds the simple returns into the growth path of one unit of capital."),
+        ("cumulative_pnl", "The additive running total of a per-bar P&L or return series."),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a ``null`` price makes that row ``null`` (``null`` takes precedence over ``NaN``) — "
+            "reading two endpoints, a ``null`` at the current or the previous row voids the output "
+            "that references it.",
+        ),
+        (
+            "NaN",
+            "a ``NaN`` price yields ``NaN`` for that row — a fixed-lag transform of two endpoints, "
+            "not a recurrence, so a ``NaN`` (like a ``null``) contaminates only the rows that "
+            "reference it and never latches onto the rest of the series.",
+        ),
+        (
+            "Degenerate denominator",
+            "the previous price is ``0``, so a zero change is a ``0 / 0``, i.e. ``NaN`` — while a "
+            "non-zero change over it is ``+/-inf`` (the sign tracks the change), reported, not "
+            "clipped, and a negative-zero ``-0.0`` previous price flips that sign but does not arise "
+            "from real price data.",
+        ),
+        (
+            "Non-finite input",
+            "an ``inf`` price follows IEEE-754 through the ratio and the minus one, where two "
+            "consecutive same-sign infinite prices divide to ``inf / inf = NaN`` (the sign, and that "
+            "indeterminate ``inf / inf``, included).",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The simple return for each row, the same length as ``expr``. The first value is ``null`` "
+    "(warm-up) -- the lagged term ``expr.shift(1)`` is undefined for the first row, so no "
+    "return can be measured there.",
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+    intro_missing="A ``null`` (whose lag voids the next bar too) and a ``NaN`` (which propagates) touch "
+    "only the positions that reference them before the series recovers, making the "
+    "missing-data handling visible:",
 )

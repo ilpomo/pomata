@@ -92,4 +92,50 @@ SHARPE_RATIO_ROLLING = suite_metrics(
         ),
     ),
     oracle_rel_tol=TOLERANCE_RELATIVE_ROLLING_ORACLE,
+    reference='Sharpe, W. F. (1994). "The Sharpe Ratio." *The Journal of Portfolio Management*, 21(1), 49-58.',
+    doi="https://doi.org/10.3905/jpm.1994.409501",
+    wikipedia="https://en.wikipedia.org/wiki/Sharpe_ratio",
+    see_also=(
+        ("sharpe_ratio", "The whole-series reducing form."),
+        ("volatility_rolling", "The denominator."),
+        ("sortino_ratio_rolling", "The downside-only rolling counterpart."),
+    ),
+    opener_override="Each window matches an independent reference oracle (the reducing :func:`sharpe_ratio` "
+    "recomputed over the window).",
+    bullets=(
+        ("Null", "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values)."),
+        ("NaN", "a ``NaN`` inside the window propagates, yielding ``NaN`` there."),
+        (
+            "Degenerate denominator",
+            "a constant window has zero dispersion, so the ratio is ``+/-inf`` (or ``NaN`` when the "
+            "mean excess is also zero, the exact-zero rolling mean pinning the numerator so no "
+            "slid-out residue rides above it) — reported, not clipped.",
+        ),
+        (
+            "Stability",
+            "a near-constant (non-bit-identical) window sits at the float-conditioning limit the "
+            "documentation's *Correctness* page documents: the one-pass rolling standard deviation "
+            "and a two-pass recomputation can round a vanishing dispersion apart there. The "
+            "bit-constant window is pinned exactly (the ``+/-inf`` / ``NaN`` above); real return "
+            "windows are far from the regime.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The rolling Sharpe ratio for each row, the same length as the input. The first ``window "
+    "- 1`` rows are ``null`` (warm-up): the window must hold ``window`` non-null values "
+    "before a result is emitted.",
+    raises_prose="ValueError: If ``window < 2``, ``periods_per_year < 1``, or if ``risk_free_rate`` is not "
+    "finite or is ``< -1``.",
+    args_prose={
+        "window": "Number of observations in the moving window. Must be ``>= 2``.",
+        "risk_free_rate": "The annualized risk-free rate, converted to a per-period rate geometrically (default "
+        "``0.0``). Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + "
+        "risk_free_rate >= 0``).",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+    intro_missing="A ``null`` (which voids every window that spans it) and a ``NaN`` (which propagates to "
+    "its windows) make the missing-data handling visible:",
 )

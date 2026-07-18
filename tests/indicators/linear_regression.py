@@ -26,4 +26,33 @@ LINEAR_REGRESSION = suite_indicators(
         output=(None, None, 12.8333, 12.5, 13.5, 13.5, 14.5),
         params={"window": 3},
     ),
+    reference="Chande, T. S. & Kroll, S. (1994). *The New Technical Trader*. Wiley.",
+    wikipedia="https://en.wikipedia.org/wiki/Simple_linear_regression",
+    see_also=(
+        ("linear_regression_slope", "The slope of the same fitted line."),
+        ("linear_regression_intercept", "The line's value at the oldest bar of the window."),
+        ("time_series_forecast", "The line extrapolated one bar into the future."),
+    ),
+    note_extension="\n\n"
+    "It is homogeneous of degree ``1`` in ``expr`` (a fitted price scales with the price). "
+    "For a perfectly linear input the endpoint reproduces the series exactly.",
+    bullets=(
+        ("Null", "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values)."),
+        ("NaN", "a ``NaN`` inside the window propagates, yielding ``NaN`` there."),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The fitted endpoint for each row, the same length as the input. The first ``window - 1`` "
+    "values are ``null`` (warm-up): the window must hold ``window`` non-null values before a "
+    "result is emitted.",
+    raises_prose="ValueError: If ``window < 2``.",
+    args_prose={
+        "window": "Number of observations in the regression window. Must be ``>= 2`` (a line needs at least "
+        "two points).",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+    intro_missing="A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make "
+    "the handling visible:",
 )

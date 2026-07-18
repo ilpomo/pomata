@@ -53,4 +53,44 @@ COST_NOTIONAL = suite_pnl(
             "the property tiers set allow_infinity=False",
         ),
     ),
+    wikipedia="https://en.wikipedia.org/wiki/Transaction_cost",
+    see_also=(
+        ("cost_per_share", "A per-unit-traded commission."),
+        ("cost_fixed", "A flat charge per trade."),
+        ("pnl_net", "Subtracts the composed cost from the gross PnL."),
+    ),
+    notes=(
+        (
+            "Flat start",
+            "The pre-series quantity is taken as ``0`` (via :func:`turnover`), so the first row "
+            "charges on the entry trade.",
+        ),
+    ),
+    bullets=(
+        ("Null", "a ``null`` quantity makes that row ``null`` (``null`` takes precedence over ``NaN``)."),
+        ("NaN", "a ``NaN`` quantity yields ``NaN`` for that row."),
+        (
+            "Non-finite input",
+            "an ``inf`` quantity follows IEEE-754 through the arithmetic of the turnover difference, "
+            "an infinite move charging an ``inf`` cost; a held bar at an infinite ``price`` is ``0 * "
+            "inf``, i.e. ``NaN`` (the sign, and any ``inf - inf = NaN``, included).",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The per-bar notional cost for each row, the same length as the inputs. The first row "
+    "charges on ``|quantity_0| * price_0`` (the entry trade from a flat start).",
+    raises_prose="ValueError: If ``rate`` is not a finite number ``>= 0`` (i.e. ``< 0``, ``NaN``, or ``±inf``).",
+    args_prose={
+        "quantity": "Signed position size in units / shares / contracts held over the bar (e.g. ``100``, ``-2``).",
+        "price": 'Instrument price series (e.g. ``pl.col("close")``); must share a length and alignment '
+        "with ``quantity``.",
+        "rate": "Proportional cost rate, the fee as a fraction of traded notional (e.g. ``0.001`` = 10 "
+        "bps). Must be a finite number ``>= 0``.",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker starts flat:",
+    intro_missing="A ``null`` (which voids the rows that reference it) and a ``NaN`` make the missing-data "
+    "handling visible:",
 )

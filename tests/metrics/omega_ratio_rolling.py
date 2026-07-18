@@ -67,4 +67,41 @@ OMEGA_RATIO_ROLLING = suite_metrics(
             "exactly, so no conditioning filter is declared",
         ),
     ),
+    reference='Keating, C. & Shadwick, W. F. (2002). "A Universal Performance Measure." *The Journal of '
+    "Performance Measurement*, 6(3), 59-84.",
+    wikipedia="https://en.wikipedia.org/wiki/Omega_ratio",
+    see_also=(
+        ("omega_ratio", "The whole-series reducing form."),
+        ("sortino_ratio_rolling", "The rolling downside-deviation risk-adjusted ratio."),
+        ("sharpe_ratio_rolling", "The rolling total-volatility risk-adjusted ratio."),
+    ),
+    opener_override="Each window matches an independent reference oracle (the reducing :func:`omega_ratio` "
+    "recomputed over the window).",
+    bullets=(
+        ("Null", "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values)."),
+        ("NaN", "a ``NaN`` inside the window propagates, yielding ``NaN`` there."),
+        (
+            "Degenerate denominator",
+            "a window with no return below the threshold has zero mean loss (forced exactly to zero, "
+            "never a slid-out residue), so the ratio is ``+inf`` (or ``NaN`` when every return sits "
+            "at the threshold, a ``0 / 0``) — reported, not clipped.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The rolling omega ratio for each row, the same length as the input. The first ``window - "
+    "1`` rows are ``null`` (warm-up): the window must hold ``window`` non-null values before "
+    "a result is emitted.",
+    raises_prose="ValueError: If ``window < 1``, or if ``threshold`` is not finite.",
+    args_prose={
+        "window": "Number of observations in the moving window. Must be ``>= 1``.",
+        "threshold": "The **per-period** return level separating gains from losses / the minimum acceptable "
+        "return (default ``0.0``); an annual target must be de-annualized by the caller before it "
+        "is passed. Must be finite.",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+    intro_missing="A ``null`` (which voids every window that spans it) and a ``NaN`` (which propagates to "
+    "its windows) make the missing-data handling visible:",
 )

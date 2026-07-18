@@ -60,4 +60,38 @@ DOMINANT_CYCLE_PERIOD = suite_indicators(
             round_to=4,
         ),
     ),
+    reference="Ehlers, J. F. (2001). *Rocket Science for Traders: Digital Signal Processing Applications*. Wiley.",
+    see_also=(
+        ("dominant_cycle_phase", "The phase of the same dominant cycle."),
+        ("hilbert_phasor", "The phasor the period is measured from."),
+        ("hilbert_trendline", "Averages the price over one cycle of this period."),
+    ),
+    opener_override="The fixed FIR smoothing and quadrature stages are computed independently, but the "
+    "adaptive dominant-cycle period feeds back into its own measurement and the stages built "
+    "on it, so the reference oracle replays Ehlers' pipeline and confirms its internal "
+    "consistency rather than independence; the independent witness is the set of frozen "
+    "golden masters, plus TA-Lib parity on the converged tail (the differential tier compares "
+    "the whole cycle cluster — every HT_* counterpart plus MAMA — against the C reference). "
+    "Where measurable the oracle agrees to ten significant figures (a ``1e-10`` band) on any "
+    "finite input within a sane dynamic range — a flat or period-two (even-lag) series "
+    "included, though there the reading itself is physically meaningless (the Hilbert "
+    "quadrature is a pure cancellation residual: there is no cycle to measure). The "
+    "documentation's *Correctness* page gives the method and the float-conditioning limit "
+    "beyond it.",
+    bullets=(
+        ("Null", "a ``null`` price latches ``null`` for every row from there."),
+        ("NaN", "a ``NaN`` price latches ``null`` for every row from there, as any non-finite value does."),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The dominant-cycle period for each row, the same length as ``expr``, settling into ``[6, "
+    "50]`` (the raw estimate is clamped there before the reported double-smoothing, so every "
+    "emitted row already lies inside the band; the earliest rows start near its middle while "
+    "the smoothers converge). The first ``32`` rows are ``null`` (the warm-up the recursive "
+    "smoothers need to settle).",
+    example_imports=("import math",),
+    intro_basic="The dominant cycle of a clean period-20 sine, read at the last bar (close to its true "
+    "length of ``20`` bars): >>> import math",
 )

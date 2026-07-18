@@ -30,4 +30,38 @@ PAIN_INDEX = suite_metrics(
             reason="a monotonically rising curve is never below its running peak, so the mean drawdown is 0 ",
         ),
     ),
+    reference='Becker, T. (2006). "The Pain Index and Pain Ratio." *Zephyr Associates*.',
+    see_also=(
+        ("ulcer_index", "The root-mean-square counterpart."),
+        ("pain_ratio", "The return-to-pain ratio built on this."),
+        ("max_drawdown", "The single worst drawdown, against this average depth."),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a ``null`` equity is skipped; an all-null (or empty) series yields ``null`` (the running "
+            "peak carries across it).",
+        ),
+        ("NaN", "a ``NaN`` equity propagates, yielding ``NaN``."),
+        (
+            "Insufficient sample",
+            "a single observation is trivially at its own peak, so the result is exactly ``0``, not ``null``.",
+        ),
+        (
+            "Degenerate denominator",
+            "a monotonically non-decreasing curve is never below its peak, so the result is ``0`` (not a ``0 / 0``).",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A single ``Float64`` value: the pain index (one value in ``select``, one per group under "
+    "``.over``). It is ``>= 0``; ``null`` when there are no observations.",
+    args_prose={
+        "equity_curve": "Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive.",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+    "handling visible:",
 )

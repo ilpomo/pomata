@@ -58,4 +58,45 @@ BALANCE_OF_POWER = suite_indicators(
             reason="a flat bar (high == low, exact zero range) yields 0 by convention, over the bare 0/0",
         ),
     ),
+    reference='Livshin, I. (2001). "Using the Balance of Power Indicator." *Technical Analysis of '
+    "Stocks & Commodities*.",
+    reference_url="https://chartschool.stockcharts.com/table-of-contents/technical-indicators-and-overlays/technical-indicators/balance-of-power-bop",
+    see_also=(
+        ("price_average", "Another per-bar OHLC summary, the equal-weighted mean of the four prices."),
+        ("price_weighted_close", "A per-bar OHLC summary that leans on the close."),
+        ("price_typical", "The per-bar high-low-close average."),
+    ),
+    notes=(
+        (
+            "Inputs",
+            "``open``, ``high``, ``low``, and ``close`` are the canonical OHLC roles in that "
+            "positional order and must share a length and alignment (the same row index is one bar). "
+            "``balance_of_power`` is scale-invariant: multiplying all four by a common factor leaves "
+            "it unchanged.",
+        ),
+    ),
+    bullets=(
+        ("Null", "a ``null`` price makes that row ``null`` (``null`` takes precedence over ``NaN``)."),
+        ("NaN", "a ``NaN`` price yields ``NaN`` for that row."),
+        (
+            "Degenerate denominator",
+            "when ``high == low`` the range is zero — the ``0 / 0`` degenerate — but the result is "
+            "``0`` by convention (no range, no directional power); the zero-range branch fires first, "
+            "so a finite flat bar reads ``0`` even when ``open`` or ``close`` is ``null``, and only a "
+            "``null`` ``high`` or ``low`` (which leaves the range itself ``null``) still yields "
+            "``null`` on a flat bar.",
+        ),
+        (
+            "Partitioning",
+            "already correct on a multi-series panel: ``.over(...)`` partitions identically and is "
+            "therefore optional here.",
+        ),
+    ),
+    returns_body="The balance of power for each row, the same length as the inputs. There is no window and "
+    "no warm-up -- every row is defined from row ``0``.",
+    intro_basic="Basic usage on a small OHLC frame:",
+    intro_over="Balance of Power is elementwise, so ``.over`` is optional; each ticker yields the same "
+    "per-bar reading:",
+    intro_missing="A flat bar (``high == low``, giving ``0``), then a ``null`` and a ``NaN`` in ``close`` "
+    "make the edge handling visible:",
 )

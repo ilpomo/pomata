@@ -58,4 +58,48 @@ HMA = suite_indicators(
             "banker-rounded 2",
         ),
     ),
+    reference='Hull, A. (2005). "Hull Moving Average."',
+    reference_url="https://chartschool.stockcharts.com/table-of-contents/technical-indicators-and-overlays/technical-overlays/hull-moving-average-hma",
+    see_also=(
+        ("wma", "The weighted mean this composes."),
+        ("sma", "The unweighted baseline."),
+        ("dema", "A lag-reduced average built by the same doubling correction."),
+    ),
+    notes=(
+        (
+            "Period rounding",
+            "The two period reductions use round-half-**up** (``floor(window / 2 + 0.5)`` and "
+            "``floor(sqrt(window) + 0.5)``), not Python's built-in ``round`` (which rounds half to "
+            "even). The two disagree on the half-period only for an odd ``window`` whose half "
+            "``floor(window / 2)`` is even -- ``window`` congruent to ``1`` modulo ``4`` (``5``, "
+            "``9``, ``13``, ...) -- where round-half-up takes the ``.5`` up while round-half-to-even "
+            "takes it down to the even floor. For ``window`` congruent to ``3`` modulo ``4`` (``3``, "
+            "``7``, ``11``, ...) the half still lands on a ``.5`` boundary but both round alike.",
+        ),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null "
+            "values) — propagated through every composing :func:`wma`.",
+        ),
+        ("NaN", "a ``NaN`` inside the window propagates, yielding ``NaN`` there."),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The HMA for each row, the same length as ``expr``. The first ``window + s - 2`` values "
+    "are ``null`` (warm-up), where :math:`s = \\lfloor \\sqrt{n} + \\tfrac{1}{2} \\rfloor`: the "
+    "inner ``WMA(x, window)`` needs ``window`` observations, after which the final ``WMA(., "
+    "s)`` needs ``s - 1`` more.",
+    raises_prose="ValueError: If ``window < 2``. The half-period :math:`\\lfloor n / 2 + \\tfrac{1}{2} "
+    "\\rfloor` collapses to ``1`` at ``window == 1`` and the HMA degenerates there, so the "
+    "smallest meaningful window is ``2``.",
+    args_prose={
+        "window": "Number of observations in the moving window. Must be ``>= 2``.",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+    intro_missing="A ``null`` (skipped, and any window it touches yields ``null``) and a ``NaN`` (which "
+    "propagates) make the exact handling visible at a glance:",
 )

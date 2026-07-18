@@ -65,4 +65,56 @@ MACD = suite_indicators(
             "histogram are zero too",
         ),
     ),
+    reference="Appel, G. (2005). *Technical Analysis: Power Tools for Active Investors*. FT Press.",
+    wikipedia="https://en.wikipedia.org/wiki/MACD",
+    see_also=(
+        ("absolute_price_oscillator", "The Absolute Price Oscillator, the MACD line without the signal and histogram."),
+        ("percentage_price_oscillator", "The percentage counterpart of the MACD line."),
+        ("ema", "The exponential moving average all three lines are built from."),
+    ),
+    notes=(
+        (
+            "Scaling",
+            "Every field is homogeneous of degree ``1`` in ``expr`` (the EMAs and their differences "
+            "all scale with the price), so multiplying the close by ``k`` scales all three fields by "
+            "``k``.",
+        ),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a leading ``null`` run stays ``null`` until the first non-null seed; an interior "
+            "``null`` yields ``null`` at that position while the recursion continues across the gap.",
+        ),
+        (
+            "NaN",
+            "a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null position.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A struct ``pl.Expr`` with three ``Float64`` fields, the same length as ``expr``:"
+    "\n\n"
+    "- ``macd`` — the fast-minus-slow EMA gap, ``null`` for its ``max(window_fast, "
+    "window_slow) - 1`` warm-up rows. - ``signal`` — the EMA of the MACD line, carrying the "
+    "additional ``window_signal - 1`` warm-up rows on top. - ``histogram`` — ``macd`` minus "
+    "``signal``, sharing the signal line's warm-up."
+    "\n\n"
+    'Access the fields with ``.struct.field("macd")`` / ``"signal"`` / ``"histogram"`` or '
+    "``.struct.unnest()``.",
+    raises_prose="ValueError: If ``window_fast < 1``, ``window_slow < 1``, ``window_signal < 1``, or "
+    "``window_fast > window_slow`` (the fast leg must be the shorter one; ``window_fast == "
+    "window_slow`` is allowed and gives an identically-zero MACD line, signal, and "
+    "histogram).",
+    args_prose={
+        "window_fast": "Span of the fast EMA (canonically ``12``). Must be ``>= 1``.",
+        "window_slow": "Span of the slow EMA (canonically ``26``). Must be ``>= 1`` and ``>= window_fast``.",
+        "window_signal": "Span of the signal EMA over the MACD line (canonically ``9``). Must be ``>= 1``.",
+    },
+    intro_basic="Basic usage on a single price series:",
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker's EMAs warm up independently:",
+    intro_missing="A ``null`` (which the recursive EMAs bridge) and a ``NaN`` (which latches) make the "
+    "handling visible on the MACD line:",
 )

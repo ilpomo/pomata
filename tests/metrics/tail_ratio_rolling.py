@@ -41,4 +41,36 @@ TAIL_RATIO_ROLLING = suite_metrics(
             params_override={"window": 3},
         ),
     ),
+    wikipedia="https://en.wikipedia.org/wiki/Tail_risk",
+    see_also=(
+        ("tail_ratio", "The whole-series reducing form."),
+        ("value_at_risk_rolling", "Another rolling tail-risk measure."),
+        ("skewness_rolling", "The rolling moment-based companion measure of distributional asymmetry."),
+    ),
+    opener_override="Each window matches an independent reference oracle (the reducing :func:`tail_ratio` "
+    "recomputed over the window).",
+    bullets=(
+        ("Null", "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values)."),
+        ("NaN", "a ``NaN`` inside the window propagates, yielding ``NaN`` there."),
+        (
+            "Degenerate denominator",
+            "when a window's 5th-percentile return is exactly ``0`` against a non-zero 95th the ratio "
+            "is ``+inf`` (or ``NaN`` when the 95th is also ``0``) — reported, not clipped.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The rolling tail ratio for each row, the same length as the input. The first ``window - "
+    "1`` rows are ``null`` (warm-up): the window must hold ``window`` non-null values before "
+    "a result is emitted.",
+    raises_prose="ValueError: If ``window < 1``.",
+    args_prose={
+        "window": "Number of observations in the moving window. Must be ``>= 1``.",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up on its own "
+    "(the ``B`` group never borrows ``A``'s tail):",
+    intro_missing="A leading ``null`` and a later ``NaN`` show the per-window masking, with the result "
+    "recovering once both leave the window:",
 )

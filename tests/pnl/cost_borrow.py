@@ -71,4 +71,45 @@ COST_BORROW = suite_pnl(
             "notional charges an infinite fee; the property tiers set allow_infinity=False",
         ),
     ),
+    reference='D\'Avolio, G. (2002). "The market for borrowing stock." *Journal of Financial Economics*, '
+    "66(2-3), 271-306.",
+    doi="https://doi.org/10.1016/S0304-405X(02)00206-4",
+    wikipedia="https://en.wikipedia.org/wiki/Securities_lending",
+    see_also=(
+        ("dividend", "The equity holding cashflow on the income side."),
+        ("cost_funding", "The perpetual-swap holding cost."),
+        ("pnl_net", "Subtracts the composed cost from the gross PnL."),
+    ),
+    notes=(("Long / flat", "A non-negative quantity has zero borrow cost (only the short part is charged)."),),
+    bullets=(
+        ("Null", "a ``null`` quantity makes that row ``null`` (``null`` takes precedence over ``NaN``)."),
+        ("NaN", "a ``NaN`` quantity yields ``NaN`` for that row."),
+        (
+            "Non-finite input",
+            "an ``inf`` quantity follows IEEE-754 through the arithmetic, where the short-only clip "
+            "frees an infinite long (``0``) and an infinite short notional charges an ``inf`` fee; a "
+            "flat or long bar at an infinite ``price`` is ``0 * inf``, i.e. ``NaN`` (the sign "
+            "included).",
+        ),
+        (
+            "Partitioning",
+            "already correct on a multi-series panel: ``.over(...)`` partitions identically and is "
+            "therefore optional here.",
+        ),
+    ),
+    returns_body="The per-bar borrow cost for each row, the same length as the inputs -- a non-negative "
+    "cost on short bars (for a non-negative price; a negative price yields an economically "
+    "meaningless negative value) and ``0`` on long or flat bars.",
+    raises_prose="ValueError: If ``rate`` is not a finite number ``>= 0`` (i.e. ``< 0``, ``NaN``, or ``±inf``).",
+    args_prose={
+        "quantity": "Signed position size in units / shares / contracts held over the bar; only the short "
+        "part (``q < 0``) is charged.",
+        "price": 'Instrument price series (e.g. ``pl.col("close")``); must share a length and alignment '
+        "with ``quantity``.",
+        "rate": "Per-bar borrow rate, as a fraction of the short notional (e.g. an annual rate divided by "
+        "the bars per year). Must be a finite number ``>= 0``.",
+    },
+    intro_over="On a multi-ticker panel, partition with ``.over`` — for this elementwise holding cost it "
+    "is optional (the result is identical without it) and shown here only for consistency:",
+    intro_missing="A ``null`` (which propagates) and a ``NaN`` make the missing-data handling visible:",
 )

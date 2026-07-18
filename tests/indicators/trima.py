@@ -115,4 +115,38 @@ TRIMA = suite_indicators(
             reason="the widest window of the reference sweep, one past the canonical window",
         ),
     ),
+    wikipedia="https://en.wikipedia.org/wiki/Moving_average",
+    see_also=(
+        ("sma", "The single-pass simple moving average this double-smooths."),
+        ("wma", "A single-pass linearly-weighted average, also tilting the window's weights off uniform."),
+        ("hma", "Another average built by composing simpler moving averages."),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null "
+            "values) — built from two :func:`sma` passes, each holding to that same "
+            "``min_samples=window`` contract.",
+        ),
+        (
+            "NaN",
+            "a ``NaN`` inside the window propagates, yielding ``NaN`` there — through both "
+            ":func:`sma` passes it composes.",
+        ),
+        ("Insufficient sample", "a series shorter than ``window`` observations, so the result is ``null``."),
+        ("window == 1", "both sub-windows are ``1``, so the TRIMA reproduces the input."),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The triangular moving average for each row, the same length as the input. The first "
+    "``window - 1`` values are ``null`` (warm-up), matching the uniform warm-up of the "
+    "moving-average family.",
+    raises_prose="ValueError: If ``window < 1``.",
+    args_prose={
+        "window": "Number of observations in the moving window. Must be ``>= 1``.",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+    intro_missing="A ``null`` (which both passes propagate) and a ``NaN`` make the missing-data handling visible:",
 )

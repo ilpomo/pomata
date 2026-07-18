@@ -130,4 +130,50 @@ TREYNOR_RATIO = suite_metrics(
             reason="the same guard at a third magnitude, firing regardless of the constant",
         ),
     ),
+    reference='Treynor, J. L. (1965). "How to Rate Management of Investment Funds." *Harvard Business '
+    "Review*, 43(1), 63-75.",
+    wikipedia="https://en.wikipedia.org/wiki/Treynor_ratio",
+    see_also=(
+        ("beta", "The denominator (systematic risk)."),
+        ("sharpe_ratio", "The total-risk analog."),
+        ("alpha", "The benchmark-relative excess built on the same beta."),
+        ("treynor_ratio_rolling", "The rolling (windowed) form."),
+    ),
+    bullets=(
+        ("Null", "an observation is used only where both legs are present; a ``null`` in either drops that pair."),
+        ("NaN", "a ``NaN`` in either leg of a retained pair propagates, yielding ``NaN``."),
+        (
+            "Insufficient sample",
+            "fewer than two complete pairs leaves the regression slope undefined, so the result is ``null``.",
+        ),
+        (
+            "Degenerate denominator",
+            "a zero beta gives ``+/-inf`` (or ``NaN`` when the excess return is also zero) — "
+            "reported, not clipped; a zero-variance benchmark instead makes :func:`beta` ``NaN``, "
+            "which propagates here.",
+        ),
+        (
+            "Stability",
+            "a beta bounded away from zero is the one regime the excess-over-beta quotient genuinely "
+            "needs: as the slope vanishes the division amplifies rounding without bound, so a "
+            "near-zero beta sits at the float-conditioning limit the documentation's *Correctness* "
+            "page documents. The exact zero-beta case is guarded (``+/-inf``); real market betas are "
+            "far from the regime.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A single ``Float64`` value: the annualized Treynor ratio (one value in ``select``, one "
+    "per group under ``.over``). ``null`` when fewer than two complete pairs are present.",
+    raises_prose="ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite or is ``< -1``.",
+    args_prose={
+        "risk_free_rate": "The annualized risk-free rate, converted to a per-period rate geometrically (default "
+        "``0.0``). Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + "
+        "risk_free_rate >= 0``).",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+    "handling visible:",
 )

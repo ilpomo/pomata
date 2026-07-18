@@ -264,6 +264,9 @@ max-complexity = 16
 # Test magic numbers (windows, tolerances, golden values) are inherent; oracle/test helpers may take boolean
 # positional flags; ``assert`` is the test idiom.
 "tests/**" = ["FBT001", "FBT002", "PLR2004", "S101"]
+# The docstring regenerator is a command-line entry point: it prints its check / diff results to stdout, and
+# bootstraps the repo root onto ``sys.path`` so ``python tests/regenerate_docstrings.py`` finds the ``tests`` package.
+"tests/regenerate_docstrings.py" = ["T201", "E402"]
 # The Sphinx config is a module-style script, not a package (no __init__.py).
 "docs/conf.py" = ["INP001"]
 

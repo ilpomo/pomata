@@ -42,4 +42,55 @@ DI_MINUS = suite_indicators(
             "indeterminate 0/0",
         ),
     ),
+    reference="Wilder, J. W. (1978). *New Concepts in Technical Trading Systems*. Trend Research.",
+    wikipedia="https://en.wikipedia.org/wiki/Average_directional_movement_index",
+    see_also=(
+        ("di_plus", "The plus counterpart."),
+        ("dm_minus", "The smoothed minus directional movement in the numerator."),
+        ("dx", "The directional index built from the two indicators."),
+    ),
+    notes=(
+        ("Seeding", "The warm-up inherits the recursive Wilder seeding of :func:`rma` used throughout the cluster."),
+    ),
+    note_extension="\n\n"
+    "It is scale-invariant under a positive common rescaling of ``high``, ``low``, and "
+    "``close`` (the smoothed movement and the average true range scale together).",
+    bullets=(
+        (
+            "Null",
+            "a leading ``null`` run stays ``null`` until the first non-null seed; an interior "
+            "``null`` yields ``null`` at that position while the recursion continues across the gap — "
+            "a ``null`` prior close drops the close-based true-range terms and shrinks the ATR, so on "
+            "a gap the ratio can exceed the nominal ``[0, 100]`` bound.",
+        ),
+        (
+            "NaN",
+            "a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent "
+            "non-null position — except at ``window == 1``, where the smoothing is the identity and "
+            "nothing latches: the ``NaN`` clears once it leaves the one-bar reach of the differencing "
+            "and the true range.",
+        ),
+        (
+            "Degenerate denominator",
+            "for ``window >= 2`` the whole series so far must be flat (both the ATR and the smoothed "
+            "movement zero, since the ATR is an infinite-memory Wilder RMA), so the result is a ``0 / "
+            "0``, i.e. ``NaN``; a merely local flat patch after earlier movement leaves the ATR "
+            "small-but-positive and the DI finite, while at ``window == 1`` there is no memory, so a "
+            "single bar with zero range and zero gap already triggers it.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The minus directional indicator for each row, the same length as the inputs, in ``[0, "
+    "100]`` on complete bars. The first ``window - 1`` values are ``null`` (warm-up).",
+    raises_prose="ValueError: If ``window < 1``.",
+    args_prose={
+        "window": "Number of observations in the Wilder moving window. Must be ``>= 1``.",
+    },
+    intro_basic="On a small OHLC frame with a short window:",
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+    intro_missing="A leading ``null`` ``close`` (absorbed by the ATR's true-range maximum) and a later "
+    "``NaN`` (which latches) make the handling visible:",
 )

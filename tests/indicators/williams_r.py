@@ -107,4 +107,59 @@ WILLIAMS_R = suite_indicators(
             reason="an all-NaN input warms up to null then poisons to NaN, distinct from the all-null rung",
         ),
     ),
+    reference="Williams, L. (1973). *How I Made One Million Dollars Last Year Trading Commodities*.",
+    wikipedia="https://en.wikipedia.org/wiki/Williams_%25R",
+    see_also=(
+        ("stochastic_fast", "The Fast Stochastic %K this oscillator inverts."),
+        ("rsi", "A bounded momentum oscillator on the same [0, 100]-style scale."),
+        ("cci", "Another bounded oscillator over a rolling window."),
+    ),
+    notes=(
+        (
+            "Warm-up",
+            "The warm-up is the canonical ``window - 1`` leading nulls of the rolling family, and the "
+            "``null`` / ``NaN`` contract below matches the simple moving average.",
+        ),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null "
+            "values) — this covers ``high`` and ``low``; the ``close`` enters elementwise, so a "
+            "``null`` ``close`` nulls only its own bar (``null`` takes precedence over ``NaN``).",
+        ),
+        (
+            "NaN",
+            "a ``NaN`` inside the window propagates, yielding ``NaN`` there; a ``NaN`` ``close`` "
+            "yields ``NaN`` only at its own bar.",
+        ),
+        ("Insufficient sample", "a window longer than the series never completes, so the result is ``null``."),
+        (
+            "Degenerate denominator",
+            "when the windowed range collapses (:math:`\\mathrm{HH} = \\mathrm{LL}`, e.g. a flat "
+            "high-low over the whole window) with the close on that level the ratio is indeterminate, "
+            "so the result is a ``0 / 0``, i.e. ``NaN`` — a non-zero numerator over the zero range is "
+            "``+/-inf``.",
+        ),
+        (
+            "window == 1",
+            "the highest high and lowest low collapse to the single bar's own ``high`` and ``low``, "
+            "so :math:`\\%R = -100\\,(H - C) / (H - L)`.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The Williams %R for each row, the same length as the inputs. The first ``window - 1`` "
+    "values are ``null`` (warm-up), matching the rolling moving-average family: the value is "
+    "defined only once ``window`` observations have been seen.",
+    raises_prose="ValueError: If ``window < 1``.",
+    args_prose={
+        "window": "Number of observations in the moving window. Must be ``>= 1``.",
+    },
+    intro_basic="Basic usage on high-low-close bars:",
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+    intro_missing="A ``null`` and a ``NaN`` in ``close`` (each confined to its own bar, since the close "
+    "enters elementwise) make the exact handling visible at a glance:",
 )

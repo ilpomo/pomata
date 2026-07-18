@@ -63,4 +63,43 @@ ULCER_PERFORMANCE_RATIO = suite_metrics(
             "0/0, i.e. NaN — the degenerate-denominator NaN beside the +inf pin",
         ),
     ),
+    reference="Martin, P. G. & McCann, B. B. (1989). *The Investor's Guide to Fidelity Funds*. Wiley.",
+    wikipedia="https://en.wikipedia.org/wiki/Ulcer_index",
+    see_also=(
+        ("ulcer_index", "The denominator (depth-and-duration drawdown)."),
+        ("pain_ratio", "The average-drawdown counterpart in the same return-to-pain family."),
+        ("calmar_ratio", "The companion return-to-pain ratio scaled by the single worst drawdown."),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a ``null`` equity is skipped (excluded from both the growth and the ulcer index); an "
+            "all-null (or empty) series yields ``null``.",
+        ),
+        ("NaN", "a ``NaN`` equity propagates, yielding ``NaN``."),
+        (
+            "Insufficient sample",
+            "a single observation has zero excess growth over a zero ulcer index, so the result is a "
+            "``0 / 0``, i.e. ``NaN``.",
+        ),
+        (
+            "Degenerate denominator",
+            "a monotonically non-decreasing curve has a zero ulcer index, so the ratio is ``+/-inf`` "
+            "(or ``NaN`` when the excess growth is also zero) — reported, not clipped.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A single ``Float64`` value: the ulcer performance index (one value in ``select``, one "
+    "per group under ``.over``). ``null`` when there are no observations.",
+    raises_prose="ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite.",
+    args_prose={
+        "equity_curve": "Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive.",
+        "risk_free_rate": "The annualized risk-free rate subtracted from the growth (default ``0.0``). Must be finite.",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+    "handling visible:",
 )

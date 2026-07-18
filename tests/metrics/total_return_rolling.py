@@ -67,4 +67,34 @@ TOTAL_RETURN_ROLLING = suite_metrics(
             params_override={"window": 4},
         ),
     ),
+    wikipedia="https://en.wikipedia.org/wiki/Total_return",
+    see_also=(
+        ("total_return", "The whole-series reducing form."),
+        ("cagr_rolling", "The annualized (per-year) windowed counterpart."),
+        ("cagr", "The whole-series, annualized growth rate."),
+    ),
+    opener_override="Each window matches an independent reference oracle (the endpoint ratio less one).",
+    bullets=(
+        (
+            "Null",
+            "a ``null`` equity makes that row ``null`` (``null`` takes precedence over ``NaN``) — "
+            "being an endpoint quantity, an interior ``null`` does not affect the result.",
+        ),
+        ("NaN", "a ``NaN`` at either endpoint propagates, yielding ``NaN``."),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The rolling total return for each row, the same length as the input. The first ``window "
+    "- 1`` rows are ``null`` (warm-up): the window must reach back ``window`` rows before a "
+    "result is emitted.",
+    raises_prose="ValueError: If ``window < 2``.",
+    args_prose={
+        "equity_curve": "Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive.",
+        "window": "Number of observations in the moving window. Must be ``>= 2``.",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+    intro_missing="A ``null`` or ``NaN`` at a window endpoint propagates, while a ``NaN`` interior to a "
+    "window is ignored:",
 )

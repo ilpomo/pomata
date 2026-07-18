@@ -62,4 +62,47 @@ BURKE_RATIO = suite_metrics(
             "a 0/0, i.e. NaN — the degenerate-denominator NaN beside the +inf pin",
         ),
     ),
+    reference='Burke, G. (1994). "A Sharper Sharpe Ratio." *Futures Magazine*.',
+    wikipedia="https://en.wikipedia.org/wiki/Drawdown_%28economics%29",
+    see_also=(
+        ("ulcer_index", "The root-mean-square drawdown penalty."),
+        ("calmar_ratio", "The single-worst-drawdown counterpart."),
+        ("sterling_ratio", "The average-drawdown-plus-cushion counterpart."),
+    ),
+    note_extension="\n\n"
+    "The denominator is the sum (not the mean) of the squared drawdowns, taken over the "
+    "per-period drawdown series (not the maxima of distinct decline episodes, as in some "
+    "Burke variants), so it grows with the record length.",
+    bullets=(
+        (
+            "Null",
+            "a ``null`` equity is skipped (excluded from both the growth and the drawdown energy); an "
+            "all-null (or empty) series yields ``null``.",
+        ),
+        ("NaN", "a ``NaN`` equity propagates, yielding ``NaN``."),
+        (
+            "Insufficient sample",
+            "a single observation has zero excess growth over zero drawdown energy, so the result is "
+            "a ``0 / 0``, i.e. ``NaN``.",
+        ),
+        (
+            "Degenerate denominator",
+            "a monotonically non-decreasing curve has zero drawdown energy, so the ratio is "
+            "``+/-inf`` (or ``NaN`` when the excess growth is also zero) — reported, not clipped.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A single ``Float64`` value: the Burke ratio (one value in ``select``, one per group "
+    "under ``.over``). ``null`` when there are no observations.",
+    raises_prose="ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite.",
+    args_prose={
+        "equity_curve": "Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive.",
+        "risk_free_rate": "The annualized risk-free rate subtracted from the growth (default ``0.0``). Must be finite.",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+    "handling visible:",
 )

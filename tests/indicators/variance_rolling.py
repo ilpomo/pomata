@@ -53,4 +53,54 @@ VARIANCE_ROLLING = suite_indicators(
             reason="window=1 has no spread, so the variance is 0 at every row with no warm-up",
         ),
     ),
+    reference='Fisher, R. A. (1918). "The Correlation between Relatives on the Supposition of Mendelian '
+    'Inheritance." *Transactions of the Royal Society of Edinburgh*, 52, 399-433.',
+    doi="https://doi.org/10.1017/S0080456800012163",
+    wikipedia="https://en.wikipedia.org/wiki/Variance",
+    see_also=(
+        ("standard_deviation_rolling", "Its square root, in the input's own units."),
+        ("variance_ewma", "The exponentially-weighted counterpart, weighting recent observations more."),
+        ("sma", "The moving mean the deviations are measured from."),
+    ),
+    notes=(
+        (
+            "Degrees of freedom",
+            "``ddof`` selects the divisor ``window - ddof``: ``ddof = 0`` is the population variance "
+            "(÷ ``window``), the charting convention; ``ddof = 1`` is the sample variance (÷ ``window "
+            "- 1``), Bessel's unbiased estimator. The two differ by the factor ``window / (window - "
+            "ddof)`` — e.g. on ``[10, 11, 12]`` the population variance is ``0.6667`` and the sample "
+            "variance is ``1.0``. ``ddof`` must be strictly below ``window`` so the divisor stays "
+            "positive.",
+        ),
+    ),
+    bullets=(
+        ("Null", "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values)."),
+        ("NaN", "a ``NaN`` inside the window propagates, yielding ``NaN`` there."),
+        (
+            "Degenerate denominator",
+            "a window of equal values has zero dispersion, so the result is exactly ``0`` — pinned "
+            "explicitly, even where a much larger value has just left the window and the incremental "
+            "rolling kernel would otherwise leave a cancellation residue.",
+        ),
+        ("window == 1", "a single value has no spread, so the result is ``0`` with the default ``ddof = 0``."),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The rolling variance for each row, the same length as the input. The first ``window - "
+    "1`` values are ``null`` (warm-up): the window must hold ``window`` non-null values "
+    "before a result is emitted.",
+    raises_prose="ValueError: If ``window < 1``, ``ddof < 0``, or if ``ddof >= window`` (the divisor "
+    "``window - ddof`` would be non-positive).",
+    args_prose={
+        "window": "Number of observations in the moving window. Must be ``>= 1``.",
+        "ddof": "Delta degrees of freedom — the divisor is ``window - ddof``. ``0`` (default) divides by "
+        "``window`` (the **population** variance); ``1`` divides by ``window - 1`` (the "
+        "**sample** variance, the unbiased estimator used when the window is a sample of a larger "
+        "population). Must be ``< window`` (the divisor ``window - ddof`` must be positive).",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+    intro_missing="A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make "
+    "the handling visible:",
 )

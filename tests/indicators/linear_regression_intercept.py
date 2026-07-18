@@ -23,4 +23,30 @@ LINEAR_REGRESSION_INTERCEPT = suite_indicators(
         output=(None, None, 9.8333, 11.5, 12.5, 12.5, 13.5),
         params={"window": 3},
     ),
+    reference="Chande, T. S. & Kroll, S. (1994). *The New Technical Trader*. Wiley.",
+    wikipedia="https://en.wikipedia.org/wiki/Simple_linear_regression",
+    see_also=(
+        ("linear_regression", "The same line evaluated at the most recent bar instead of the oldest."),
+        ("linear_regression_slope", "The slope of the same fitted line."),
+        ("time_series_forecast", "The same line projected one bar past the most recent."),
+    ),
+    note_extension="\n\nIt is homogeneous of degree ``1`` in ``expr`` (a fitted price scales with the price).",
+    bullets=(
+        ("Null", "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values)."),
+        ("NaN", "a ``NaN`` inside the window propagates, yielding ``NaN`` there."),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The fitted intercept for each row, the same length as the input. The first ``window - "
+    "1`` values are ``null`` (warm-up).",
+    raises_prose="ValueError: If ``window < 2``.",
+    args_prose={
+        "window": "Number of observations in the regression window. Must be ``>= 2`` (a line needs at least "
+        "two points).",
+    },
+    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+    intro_missing="A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make "
+    "the handling visible:",
 )
