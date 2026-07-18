@@ -14,6 +14,7 @@ import enum
 import math
 import re
 from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass
 from typing import cast
 
 import polars as pl
@@ -26,6 +27,7 @@ from tests_new.support.compare import first_mismatch
 from tests_new.support.declaration import (
     Declaration,
     Pin,
+    ScalarParam,
     ScaleExempt,
     Shape,
     actual_lanes,
@@ -34,6 +36,7 @@ from tests_new.support.declaration import (
     lane_series,
     reference_lanes,
     widest_warmup,
+    window_length,
 )
 from tests_new.support.frames import count_leading_nulls, probe_frame
 from tests_new.support.synthesis import Probe, fuzz_frames
@@ -228,74 +231,145 @@ def _lane_is_nan(value: float | None) -> bool:
     return value is not None and math.isnan(value)
 
 
-def _null_propagates(clean: list[float | None], poisoned: list[float | None], row: int, reach: int) -> str | None:
-    if clean[row] is not None and poisoned[row] is not None:
-        return f"declared PROPAGATES: the injected row {row} must be null"
-    for j in range(row + reach + 1, len(poisoned)):
-        if not _lane_value_same(poisoned[j], clean[j]):
+@dataclass(frozen=True)
+class _FlowContext:
+    """One SERIES lane's clean-vs-poisoned evidence plus the sizing a structural-flow shape reads."""
+
+    clean: list[float | None]
+    poisoned: list[float | None]
+    row: int  # the injected interior bar
+    reach: int  # the horizon past which a bounded effect must have played out
+    window: int  # the declared window length (for the in-window null shape)
+    # The tail-recovery band: a one-pass rolling lane recovers to the clean run within a sub-ULP once the missing bar
+    # slides out of every window, not bit-for-bit, so the post-horizon comparison is kind-aware within tolerance.
+    rel_tol: float
+    abs_tol: float
+
+
+def _null_propagates(ctx: _FlowContext) -> str | None:
+    if ctx.clean[ctx.row] is not None and ctx.poisoned[ctx.row] is not None:
+        return f"declared PROPAGATES: the injected row {ctx.row} must be null"
+    for j in range(ctx.row + ctx.reach + 1, len(ctx.poisoned)):
+        if not _lane_value_same(ctx.poisoned[j], ctx.clean[j]):
             return (
-                f"declared PROPAGATES: beyond the horizon (row {row} + {reach}) the lane must equal the clean run; "
-                f"row {j} differs"
+                f"declared PROPAGATES: beyond the horizon (row {ctx.row} + {ctx.reach}) the lane must equal the clean "
+                f"run; row {j} differs"
             )
     return None
 
 
-def _null_bridged(clean: list[float | None], poisoned: list[float | None], row: int, reach: int) -> str | None:
-    del reach
-    if clean[row] is not None and poisoned[row] is not None:
-        return f"declared BRIDGED: the injected row {row} must be null"
-    tail = range(row + 1, len(poisoned))
-    if not any(poisoned[j] is not None for j in tail):
-        return f"declared BRIDGED: the flow must resume after row {row}, but every later lane is null"
-    if all(_lane_value_same(poisoned[j], clean[j]) for j in tail):
+def _null_bridged(ctx: _FlowContext) -> str | None:
+    if ctx.clean[ctx.row] is not None and ctx.poisoned[ctx.row] is not None:
+        return f"declared BRIDGED: the injected row {ctx.row} must be null"
+    tail = range(ctx.row + 1, len(ctx.poisoned))
+    if not any(ctx.poisoned[j] is not None for j in tail):
+        return f"declared BRIDGED: the flow must resume after row {ctx.row}, but every later lane is null"
+    if all(_lane_value_same(ctx.poisoned[j], ctx.clean[j]) for j in tail):
         return (
-            f"declared BRIDGED: the flow resumes identical to the clean run after row {row} — the missing bar's "
+            f"declared BRIDGED: the flow resumes identical to the clean run after row {ctx.row} — the missing bar's "
             "contribution was not absorbed; that shape is PROPAGATES"
         )
     return None
 
 
-def _nan_latches(clean: list[float | None], poisoned: list[float | None], row: int, reach: int) -> str | None:
-    del reach
-    bad = [j for j in range(row, len(poisoned)) if clean[j] is not None and not _lane_is_nan(poisoned[j])]
-    if bad:
-        return f"declared LATCHES: every defined lane from row {row} on must be NaN; rows {bad[:4]} are not"
-    return None
-
-
-def _nan_propagates(clean: list[float | None], poisoned: list[float | None], row: int, reach: int) -> str | None:
-    if clean[row] is not None and not _lane_is_nan(poisoned[row]):
-        return f"declared PROPAGATES: the injected row {row} must be NaN"
-    beyond = range(row + reach + 1, len(poisoned))
-    bad = [j for j in beyond if _lane_is_nan(poisoned[j]) and not _lane_is_nan(clean[j])]
-    if bad:
+def _null_in_window(ctx: _FlowContext) -> str | None:
+    upper = min(ctx.row + ctx.window, len(ctx.poisoned))
+    defined = [j for j in range(ctx.row, upper) if ctx.poisoned[j] is not None]
+    if defined:
         return (
-            f"declared PROPAGATES: beyond the horizon (row {row} + {reach}) no new NaN may appear; rows {bad[:4]} "
-            "are contaminated"
+            f"declared IN_WINDOW_IS_NULL: every window overlapping row {ctx.row} is null, so output rows "
+            f"[{ctx.row}, {upper - 1}] must be null; rows {defined[:4]} are not"
+        )
+    tail_start = ctx.row + ctx.reach + 1
+    index = first_mismatch(ctx.poisoned[tail_start:], ctx.clean[tail_start:], rel_tol=ctx.rel_tol, abs_tol=ctx.abs_tol)
+    if index is not None:
+        return (
+            f"declared IN_WINDOW_IS_NULL: beyond the horizon (row {ctx.row} + {ctx.reach}) the lane must equal the "
+            f"clean run; row {tail_start + index} differs"
         )
     return None
 
 
-_FlowHandler = Callable[["list[float | None]", "list[float | None]", int, int], "str | None"]
-_SHAPES_NULL: Mapping[str, _FlowHandler] = {"PROPAGATES": _null_propagates, "BRIDGED": _null_bridged}
-_SHAPES_NAN: Mapping[str, _FlowHandler] = {"PROPAGATES": _nan_propagates, "LATCHES": _nan_latches}
+def _nan_latches(ctx: _FlowContext) -> str | None:
+    bad = [
+        j for j in range(ctx.row, len(ctx.poisoned)) if ctx.clean[j] is not None and not _lane_is_nan(ctx.poisoned[j])
+    ]
+    if bad:
+        return f"declared LATCHES: every defined lane from row {ctx.row} on must be NaN; rows {bad[:4]} are not"
+    return None
 
 
-def _flow_violation(
-    shapes: Mapping[str, _FlowHandler],
-    member: str,
-    clean: list[float | None],
-    poisoned: list[float | None],
-    row: int,
-    reach: int,
-) -> str | None:
-    """The declared behavior's structural shape, checked on the factory's clean-vs-poisoned lanes — fail-closed:
+def _nan_propagates(ctx: _FlowContext) -> str | None:
+    if ctx.clean[ctx.row] is not None and not _lane_is_nan(ctx.poisoned[ctx.row]):
+        return f"declared PROPAGATES: the injected row {ctx.row} must be NaN"
+    beyond = range(ctx.row + ctx.reach + 1, len(ctx.poisoned))
+    bad = [j for j in beyond if _lane_is_nan(ctx.poisoned[j]) and not _lane_is_nan(ctx.clean[j])]
+    if bad:
+        return (
+            f"declared PROPAGATES: beyond the horizon (row {ctx.row} + {ctx.reach}) no new NaN may appear; rows "
+            f"{bad[:4]} are contaminated"
+        )
+    return None
+
+
+_SeriesHandler = Callable[["_FlowContext"], "str | None"]
+_SHAPES_NULL: Mapping[str, _SeriesHandler] = {
+    "PROPAGATES": _null_propagates,
+    "BRIDGED": _null_bridged,
+    "IN_WINDOW_IS_NULL": _null_in_window,
+}
+_SHAPES_NAN: Mapping[str, _SeriesHandler] = {"PROPAGATES": _nan_propagates, "LATCHES": _nan_latches}
+
+
+@dataclass(frozen=True)
+class _ReduceContext:
+    """A reduction's poisoned scalar plus the clean frame and injected row a reducing-flow shape reads."""
+
+    declaration: Declaration
+    value: float | None  # the poisoned frame's reduction (one row, one lane)
+    frame_clean: pl.DataFrame
+    row: int  # the injected interior bar
+    rel_tol: float
+    abs_tol: float
+
+
+def _reduce_skipped(ctx: _ReduceContext) -> str | None:
+    without_row = ctx.frame_clean.with_row_index().filter(pl.col("index") != ctx.row).drop("index")
+    (expected_lane,) = actual_lanes(ctx.declaration, without_row).values()
+    (expected,) = expected_lane
+    if first_mismatch([ctx.value], [expected], rel_tol=ctx.rel_tol, abs_tol=ctx.abs_tol) is not None:
+        return (
+            f"declared SKIPPED: the reduction must equal the factory recomputed with row {ctx.row} removed "
+            f"({expected!r}), got {ctx.value!r}"
+        )
+    return None
+
+
+def _reduce_poisons(ctx: _ReduceContext) -> str | None:
+    if not _lane_is_nan(ctx.value):
+        return f"declared POISONS: a NaN in the input must poison the reduction to NaN, got {ctx.value!r}"
+    return None
+
+
+def _reduce_propagates(ctx: _ReduceContext) -> str | None:
+    if ctx.value is not None:
+        return f"declared PROPAGATES: a null in the input must null the reduction, got {ctx.value!r}"
+    return None
+
+
+_ReduceHandler = Callable[["_ReduceContext"], "str | None"]
+_REDUCE_NULL: Mapping[str, _ReduceHandler] = {"SKIPPED": _reduce_skipped, "PROPAGATES": _reduce_propagates}
+_REDUCE_NAN: Mapping[str, _ReduceHandler] = {"POISONS": _reduce_poisons}
+
+
+def _series_violation(shapes: Mapping[str, _SeriesHandler], member: str, ctx: _FlowContext) -> str | None:
+    """The declared behavior's SERIES shape, checked on the factory's clean-vs-poisoned lane — fail-closed:
     a behavior member with no registered shape is a hole in the contract, never a silent pass.
     """
     handler = shapes.get(member)
     if handler is None:
         return f"no structural contract for behavior {member!r} — extend the flow shapes in rungs.py"
-    return handler(clean, poisoned, row, reach)
+    return handler(ctx)
 
 
 def _assert_flow(
@@ -304,12 +378,15 @@ def _assert_flow(
     pair: synthesis.FlowProbe,
     *,
     declared: enum.Enum,
-    shapes: Mapping[str, _FlowHandler],
+    series_shapes: Mapping[str, _SeriesHandler],
+    reduce_shapes: Mapping[str, _ReduceHandler],
 ) -> None:
     """A flow probe checked on BOTH layers: factory-vs-oracle by value, and the declared behavior's shape.
 
     The value layer proves the code and the naive reimplementation agree on the regime; the shape layer proves the
-    DECLARATION tells the truth about it — a wrong behavior enum goes red here even when factory and oracle agree.
+    DECLARATION tells the truth about it — a wrong behavior enum goes red here even when factory and oracle agree. The
+    shape dialect is the declaration's: a SERIES lane recovers around the missing bar, a REDUCING scalar skips it,
+    poisons, or nulls; a STRUCT is fail-closed until the indicators family lands.
     """
     rel, abs_ = _oracle_bands(declaration, TOLERANCE_RELATIVE_REFERENCE, TOLERANCE_ABSOLUTE_REFERENCE)
     expected = reference_lanes(declaration, pair.probe.frame)
@@ -318,13 +395,45 @@ def _assert_flow(
     _assert_lanes(
         declaration, check, pair.probe, expected=expected, actual=actual, rel_tol=rel, abs_tol=abs_, triage=triage
     )
-    if declaration.shape is not Shape.SERIES:
+    if declaration.shape is Shape.SERIES:
+        _assert_series_flow(
+            declaration, check, pair, declared=declared, actual=actual, shapes=series_shapes, rel_tol=rel, abs_tol=abs_
+        )
+    elif declaration.shape is Shape.REDUCING:
+        _assert_reducing_flow(
+            declaration, check, pair, declared=declared, actual=actual, shapes=reduce_shapes, rel_tol=rel, abs_tol=abs_
+        )
+    else:
         message = f"{declaration.name}: structural flow contracts for {declaration.shape} land with their family"
         raise NotImplementedError(message)
+
+
+def _assert_series_flow(
+    declaration: Declaration,
+    check: str,
+    pair: synthesis.FlowProbe,
+    *,
+    declared: enum.Enum,
+    actual: _Lanes,
+    shapes: Mapping[str, _SeriesHandler],
+    rel_tol: float,
+    abs_tol: float,
+) -> None:
+    """The declared SERIES behavior's shape, per lane: the missing bar's footprint, then recovery to the clean run."""
     clean = actual_lanes(declaration, pair.frame_clean)
     reach = horizon(declaration)
+    window = window_length(declaration)
     for name, lane_poisoned in actual.items():
-        violation = _flow_violation(shapes, declared.name, clean[name], lane_poisoned, pair.row, reach)
+        ctx = _FlowContext(
+            clean=clean[name],
+            poisoned=lane_poisoned,
+            row=pair.row,
+            reach=reach,
+            window=window,
+            rel_tol=rel_tol,
+            abs_tol=abs_tol,
+        )
+        violation = _series_violation(shapes, declared.name, ctx)
         if violation is not None:
             raise AssertionError(
                 messages.describe_flow_violation(
@@ -338,6 +447,51 @@ def _assert_flow(
             )
 
 
+def _assert_reducing_flow(
+    declaration: Declaration,
+    check: str,
+    pair: synthesis.FlowProbe,
+    *,
+    declared: enum.Enum,
+    actual: _Lanes,
+    shapes: Mapping[str, _ReduceHandler],
+    rel_tol: float,
+    abs_tol: float,
+) -> None:
+    """The declared REDUCING behavior's shape on the poisoned scalar — SKIPPED equals the row-removed recompute,
+    POISONS goes NaN, PROPAGATES goes null; an unregistered member is a hole in the contract, never a silent pass.
+    """
+    (poisoned_lane,) = actual.values()
+    (value,) = poisoned_lane
+    (clean_lane,) = actual_lanes(declaration, pair.frame_clean).values()
+    handler = shapes.get(declared.name)
+    if handler is None:
+        violation: str | None = (
+            f"no structural contract for behavior {declared.name!r} — extend the reducing flow shapes in rungs.py"
+        )
+    else:
+        ctx = _ReduceContext(
+            declaration=declaration,
+            value=value,
+            frame_clean=pair.frame_clean,
+            row=pair.row,
+            rel_tol=rel_tol,
+            abs_tol=abs_tol,
+        )
+        violation = handler(ctx)
+    if violation is not None:
+        raise AssertionError(
+            messages.describe_flow_violation(
+                declaration=declaration,
+                check=check,
+                probe=pair.probe,
+                declared=declared,
+                violation=violation,
+                evidence=messages.FlowEvidence("out", clean_lane, poisoned_lane, pair.row),
+            )
+        )
+
+
 def check_behavior_null(declaration: Declaration) -> None:
     """An interior ``null`` plays out as the oracle plays it out AND as the declared null behavior promises."""
     _assert_flow(
@@ -345,7 +499,8 @@ def check_behavior_null(declaration: Declaration) -> None:
         "check_behavior_null",
         synthesis.frame_flow_null(declaration),
         declared=declaration.behavior_null,
-        shapes=_SHAPES_NULL,
+        series_shapes=_SHAPES_NULL,
+        reduce_shapes=_REDUCE_NULL,
     )
 
 
@@ -356,12 +511,15 @@ def check_behavior_nan(declaration: Declaration) -> None:
         "check_behavior_nan",
         synthesis.frame_flow_nan(declaration),
         declared=declaration.behavior_nan,
-        shapes=_SHAPES_NAN,
+        series_shapes=_SHAPES_NAN,
+        reduce_shapes=_REDUCE_NAN,
     )
 
 
 def check_nonfinite(declaration: Declaration) -> None:
     """Each input carrying ``±inf`` flows through exactly as the oracle carries it — the declared IEEE behavior."""
+    if declaration.nonfinite is None:
+        pytest.skip(f"{declaration.name}: no non-finite flow contract declared")
     triage = messages.triage_for_enum(declaration.name, declaration.nonfinite)
     for probe in synthesis.frame_infinite_input(declaration):
         expected = reference_lanes(declaration, probe.frame)
@@ -376,6 +534,113 @@ def check_nonfinite(declaration: Declaration) -> None:
             abs_tol=TOLERANCE_ABSOLUTE_REFERENCE,
             triage=triage,
         )
+
+
+# ======================================================================================================================
+# Twin coherence and annualization (the metrics dialect)
+# ======================================================================================================================
+
+
+def _twin_reduce(twin: Declaration, window_slice: pl.DataFrame, params: Mapping[str, ScalarParam]) -> float | None:
+    """The twin factory over one trailing window: a reducing twin's single value, a series twin's last value."""
+    (lane,) = lane_series(window_slice.select(build_expr(twin, **params).alias("out")))
+    values = lane.to_list()
+    return cast("float | None", values[-1] if twin.shape is Shape.SERIES else values[0])
+
+
+def check_twin_coherence(declaration: Declaration) -> None:
+    """A rolling function's row ``i`` equals its twin reduced over the trailing window ending at ``i`` (factory vs
+    factory, no oracle).
+
+    On the deterministic probe each defined row must equal the twin evaluated on the slice ``[i - window + 1, i]`` — the
+    reducing twin's single value, or the series twin's last value — within the declaration's oracle band (a one-pass
+    rolling kernel and a two-pass reducing one round the same window differently). Skips cleanly when the declaration is
+    not a rolling twin.
+    """
+    twin = declaration.rolling_of
+    if twin is None:
+        pytest.skip(f"{declaration.name}: no rolling twin declared")
+    window = window_length(declaration)
+    frame = probe_frame(declaration.inputs, widest_warmup(declaration) + 12)
+    (rolling,) = actual_lanes(declaration, frame).values()
+    rel, abs_ = _oracle_bands(declaration, TOLERANCE_RELATIVE_REFERENCE, TOLERANCE_ABSOLUTE_REFERENCE)
+    twin_params: dict[str, ScalarParam] = {
+        name: value for name, value in declaration.params.items() if name != declaration.window
+    }
+    triage = messages.triage_generic(declaration.name, f"rolling_of={twin.name} coherence")
+    for i, value in enumerate(rolling):
+        if value is None:
+            continue  # warm-up or an incomplete window carries no coherence claim
+        window_slice = frame.slice(i - window + 1, window)
+        reduced = _twin_reduce(twin, window_slice, twin_params)
+        if first_mismatch([value], [reduced], rel_tol=rel, abs_tol=abs_) is not None:
+            probe = synthesis.describe(declaration, window_slice, f"the trailing window ending at row {i}")
+            disagreement = messages.Disagreement(lane="out", expected=[reduced], observed=[value], index=0)
+            raise AssertionError(
+                messages.describe_failure(
+                    declaration=declaration,
+                    check="check_twin_coherence",
+                    probe=probe,
+                    disagreement=disagreement,
+                    triage=triage,
+                )
+            )
+
+
+# The two period counts the annualization ratio is read at — chosen so both ratios are exact: sqrt(252/63) == 2 and
+# 252/63 == 4, and both are valid ``periods_per_year`` (>= 1).
+_ANNUAL_PARAM = "periods_per_year"
+_ANNUAL_P_HIGH = 252
+_ANNUAL_P_LOW = 63
+_ANNUAL_RATIO: Mapping[str, float] = {
+    "SQRT_TIME": math.sqrt(_ANNUAL_P_HIGH / _ANNUAL_P_LOW),
+    "LINEAR": _ANNUAL_P_HIGH / _ANNUAL_P_LOW,
+}
+_ANNUAL_NO_CLOSED_FORM = frozenset({"GEOMETRIC", "NONE"})
+_ANNUAL_BASE_FLOOR = 1e-9  # skip a probe row whose base value is ~0: the annualization ratio is undefined there
+
+
+def check_annualization(declaration: Declaration) -> None:
+    """A closed-form annualization scales the output by a known power of the period count.
+
+    Where the convention is closed-form, ``factory(P=252) / factory(P=63)`` on one probe frame must equal the declared
+    ratio (``sqrt(252/63)`` for SQRT_TIME, ``252/63`` for LINEAR), with the ``risk_free_rate``-like knobs held at their
+    neutral default (the declaration's own params); a near-zero base row is skipped, the ratio being undefined there.
+    GEOMETRIC and NONE carry no closed-form ratio — the oracle already encodes the convention — so the rung skips with
+    that reason; an unknown member is fail-closed.
+    """
+    annualization = declaration.annualization
+    if annualization is None:
+        pytest.skip(f"{declaration.name}: no annualization declared")
+    member = annualization.name
+    if member in _ANNUAL_NO_CLOSED_FORM:
+        pytest.skip(f"{declaration.name}: {member} has no closed-form annualization ratio — the oracle carries it")
+    if member not in _ANNUAL_RATIO:
+        msg = f"{declaration.name}: no closed-form annualization contract for {member!r} — extend check_annualization"
+        raise NotImplementedError(msg)
+    assert _ANNUAL_PARAM in declaration.params, (
+        f"{declaration.name}: declared {member} annualization but has no {_ANNUAL_PARAM!r} parameter to vary"
+    )
+    frame = probe_frame(declaration.inputs, widest_warmup(declaration) + 12)
+    (high,) = lane_series(frame.select(build_expr(declaration, **{_ANNUAL_PARAM: _ANNUAL_P_HIGH}).alias("out")))
+    (low,) = lane_series(frame.select(build_expr(declaration, **{_ANNUAL_PARAM: _ANNUAL_P_LOW}).alias("out")))
+    expected = _ANNUAL_RATIO[member]
+    rel, abs_ = _oracle_bands(declaration, TOLERANCE_RELATIVE_REFERENCE, TOLERANCE_ABSOLUTE_REFERENCE)
+    checked = 0
+    for i, (hi, lo) in enumerate(zip(high.to_list(), low.to_list(), strict=True)):
+        if lo is None or hi is None or math.isnan(lo) or math.isnan(hi) or math.isinf(lo) or math.isinf(hi):
+            continue
+        if abs(lo) < _ANNUAL_BASE_FLOOR:  # denominator guard: the ratio is undefined at a ~0 base
+            continue
+        checked += 1
+        ratio = hi / lo
+        assert math.isclose(ratio, expected, rel_tol=rel, abs_tol=abs_), (
+            f"{declaration.name}: {member} annualization at row {i} — factory(P={_ANNUAL_P_HIGH}) / "
+            f"factory(P={_ANNUAL_P_LOW}) = {ratio} != {expected}. "
+            f"Either the declaration is wrong (did you mean another Annualization?) or {declaration.name} has a bug."
+        )
+    if checked == 0:
+        pytest.skip(f"{declaration.name}: every probe row had a ~0 base value — the annualization ratio is undefined")
 
 
 # ======================================================================================================================

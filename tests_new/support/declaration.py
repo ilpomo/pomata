@@ -122,15 +122,19 @@ class Declaration:
     shape: Shape
     behavior_null: enum.Enum  # what an interior ``null`` does to the output (family dialect)
     behavior_nan: enum.Enum  # what an interior ``NaN`` does to the output (family dialect)
-    space: enum.Enum  # the units the output lives in (family dialect; e.g. cash flow vs returns flow)
-    sign: enum.Enum  # the sign convention the payoff follows (family dialect)
-    nonfinite: enum.Enum  # how the function carries ``±inf`` inputs (family dialect; drives the IEEE-flow probes)
     oracle: OracleFn  # the naive reference, named ``reference_{name}``, mirroring the factory signature
     # A non-empty tuple of homogeneity axes, or a ``ScaleExempt`` for a function that is scale-exempt by design; an
     # empty tuple is rejected in ``__post_init__`` so "no scale claim" is always a deliberate, reasoned exemption.
     scaling: tuple[ScaleAxis, ...] | ScaleExempt
 
     # --- optional, with defaults ---
+    # The pnl dialect's three axes, present only for a family that declares them (the pnl family fills each). A family
+    # without them (metrics) leaves them ``None``: none gates a rung except ``nonfinite``, whose ``None`` skips the
+    # IEEE-flow probes — a family that does not contract ``±inf`` flow (a metric's reduction over an infinite input is
+    # an implementation-defined artifact the naive oracle does not model) simply declares no such contract.
+    space: enum.Enum | None = None  # the units the output lives in (e.g. cash flow vs returns flow)
+    sign: enum.Enum | None = None  # the sign convention the payoff follows
+    nonfinite: enum.Enum | None = None  # how the function carries ``±inf`` inputs; drives the IEEE-flow probes
     # Exact leading-null count under ``params``: an int for a windowed series, a per-field mapping for a struct, or
     # ``None`` for a reduction or an unwindowed transform (there is nothing to warm up).
     warmup: int | Mapping[str, int] | None = None
@@ -143,6 +147,17 @@ class Declaration:
     # The documented answer to a degenerate regime (currently the all-null input); ``None`` means the ordinary answer.
     deviant: Deviant | None = None
     degenerate: enum.Enum | None = None  # the declared degenerate-denominator regime (family dialect); ``None`` if none
+    # The annualization convention the output follows (family dialect); drives the closed-form annualization rung, which
+    # is a no-op when this is ``None``.
+    annualization: enum.Enum | None = None
+    # The reducing / series twin a rolling function rolls per trailing window (the metrics twins); ``None`` for a
+    # non-rolling function. When set, the twin-coherence rung holds this function's row ``i`` to the twin reduced over
+    # the trailing window ending at ``i``, and the family harness inherits the twin's behavior where unstated.
+    rolling_of: "Declaration | None" = None
+    # The name of the window-length parameter (a key in ``params``): required with ``rolling_of`` — the coherence rung
+    # slices by it and excludes it from the twin's parameters — and read by the in-window null shape. ``None`` when the
+    # function is not windowed under a named parameter.
+    window: str | None = None
     # An optional Hypothesis filter on a fuzzed frame, applied through ``assume`` in the property tier — the input
     # regimes where the impl and the oracle cannot be expected to agree, excluded as data rather than silently.
     conditioning: Callable[[pl.DataFrame], bool] | None = None
@@ -163,6 +178,7 @@ class Declaration:
         self._check_golden()
         self._check_pins()
         self._check_deviant()
+        self._check_rolling()
         if self.params and not self.raises:
             msg = f"{self.name}: declares params but no raises counterexamples — the validation rung would be a no-op"
             raise ValueError(msg)
@@ -259,6 +275,22 @@ class Declaration:
             msg = f"{self.name}: a deviant must carry a non-empty reason"
             raise ValueError(msg)
 
+    def _check_rolling(self) -> None:
+        if self.window is not None and self.window not in self.params:
+            msg = f"{self.name}: window={self.window!r} must name a parameter in params {sorted(self.params)}"
+            raise ValueError(msg)
+        if self.rolling_of is None:
+            return
+        if self.window is None:
+            msg = f"{self.name}: a rolling twin (rolling_of={self.rolling_of.name}) must name its window parameter"
+            raise ValueError(msg)
+        if self.rolling_of.inputs != self.inputs:
+            msg = (
+                f"{self.name}: a rolling twin shares its twin's inputs, so the window slice can drive both — "
+                f"{list(self.rolling_of.inputs)} != {list(self.inputs)}"
+            )
+            raise ValueError(msg)
+
     # --- derived, never declared: read off the factory ---
 
     @property
@@ -329,6 +361,13 @@ def widest_window(declaration: Declaration) -> int:
         value for key, value in declaration.params.items() if key.startswith("window") and isinstance(value, int)
     ]
     return max(windows) if windows else 1
+
+
+def window_length(declaration: Declaration) -> int:
+    """The declared window length: the value of the named ``window`` param, else the widest ``window*`` param."""
+    if declaration.window is not None:
+        return int(declaration.params[declaration.window])
+    return widest_window(declaration)
 
 
 def horizon(declaration: Declaration) -> int:

@@ -60,6 +60,18 @@ def test_nonfinite(declaration: Declaration) -> None:
 
 
 @pytest.mark.parametrize("declaration", _DECLARATIONS, ids=_IDS)
+def test_twin_coherence(declaration: Declaration) -> None:
+    """A rolling function's row i equals its twin reduced over the trailing window (skips a non-rolling function)."""
+    rungs.check_twin_coherence(declaration)
+
+
+@pytest.mark.parametrize("declaration", _DECLARATIONS, ids=_IDS)
+def test_annualization(declaration: Declaration) -> None:
+    """A closed-form annualization scales the output by the declared period-count ratio (skips where there is none)."""
+    rungs.check_annualization(declaration)
+
+
+@pytest.mark.parametrize("declaration", _DECLARATIONS, ids=_IDS)
 def test_scaling(declaration: Declaration) -> None:
     """Each homogeneity axis scales every lane by the declared degree."""
     rungs.check_scaling(declaration)
