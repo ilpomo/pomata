@@ -1,23 +1,33 @@
-"""Spec for ``pomata.indicators.supertrend`` — the ATR-banded trend struct (line, direction), gap-bridging."""
+"""Declaration for ``pomata.indicators.supertrend`` — the ATR-banded trend struct (line, direction), gap-bridging."""
 
 import math
 
-from tests.indicators.oracles import supertrend_reference
-from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
-
 from pomata.indicators import supertrend
+from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
+from tests.indicators.harness import suite_indicators
+from tests.indicators.oracles import reference_supertrend
+from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
 
 _GOLDEN_HIGH = (10.0, 11.0, 12.0, 13.0, 14.0, 13.0, 12.0, 11.0)
+
 _GOLDEN_LOW = (9.0, 10.0, 11.0, 12.0, 13.0, 12.0, 11.0, 10.0)
+
 _GOLDEN_CLOSE = (9.5, 10.5, 11.5, 12.5, 13.5, 12.0, 11.0, 10.2)
 
-SUPERTREND = Spec(
+SUPERTREND = suite_indicators(
     factory=supertrend,
     inputs=("high", "low", "close"),
     params={"window": 10, "multiplier": 3.0},
+    null=BehaviorNull.BRIDGED,
+    nan=BehaviorNan.LATCHES,
     shape=Shape.STRUCT,
     fields=("line", "direction"),
-    warmup={"line": 9, "direction": 9},
+    warmup=Warmup.PER_FIELD,
+    warmup_value={"line": 9, "direction": 9},
+    oracle=reference_supertrend,
+    scaling=(ScaleAxis(roles=("high", "low", "close"), degree={"line": 1, "direction": 0}),),
+    talib=RelationTalib.NO_EQUIVALENT,
+    talib_reason="TA-Lib has no SuperTrend.",
     raises=(
         ({"window": 0}, r"window must be >= 1"),
         ({"multiplier": 0.0}, r"multiplier must be a finite number > 0"),
@@ -26,18 +36,16 @@ SUPERTREND = Spec(
         ({"multiplier": math.inf}, r"multiplier must be a finite number > 0"),
         ({"multiplier": -math.inf}, r"multiplier must be a finite number > 0"),
     ),
-    oracle=supertrend_reference,
-    # line is a degree-1 price level, direction a degree-0 invariant flag: the per-field degrees state the split
-    # homogeneity claim.
-    scale=(ScaleAxis(roles=("high", "low", "close"), degree={"line": 1, "direction": 0}),),
-    golden_params={"window": 3, "multiplier": 2.0},
-    golden_input={"high": _GOLDEN_HIGH, "low": _GOLDEN_LOW, "close": _GOLDEN_CLOSE},
-    golden_output={
-        "line": (None, None, 8.8333, 9.7222, 10.6481, 10.6481, 10.6481, 12.9005),
-        "direction": (None, None, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0),
-    },
+    golden=Golden(
+        inputs={"high": _GOLDEN_HIGH, "low": _GOLDEN_LOW, "close": _GOLDEN_CLOSE},
+        output={
+            "line": (None, None, 8.8333, 9.7222, 10.6481, 10.6481, 10.6481, 12.9005),
+            "direction": (None, None, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0),
+        },
+        params={"window": 3, "multiplier": 2.0},
+    ),
     pins=(
-        SpecPin(
+        Pin(
             label="flat_series_zero_atr_collapses_to_midpoint",
             inputs={
                 "high": (5.0, 5.0, 5.0, 5.0, 5.0),
@@ -52,7 +60,7 @@ SUPERTREND = Spec(
             reason="a constant high==low==close run has zero ATR, so both bands collapse onto the midpoint and the "
             "line tracks it with direction -1 forever",
         ),
-        SpecPin(
+        Pin(
             label="single_row_window_one_seeds_long",
             inputs={"high": (10.0,), "low": (8.0,), "close": (9.0,)},
             params_override={"window": 1},
@@ -60,14 +68,14 @@ SUPERTREND = Spec(
             reason="window=1 defines the bar (ATR is the true range); close > lower seeds the trend long and the line "
             "reads the lower band",
         ),
-        SpecPin(
+        Pin(
             label="lower_band_exact_touch_stays_up",
             inputs={"high": (11.0, 13.0, 12.5), "low": (9.0, 11.0, 10.5), "close": (10.5, 12.0, 11.375)},
             params_override={"window": 1, "multiplier": 0.25},
             expected={"line": (9.5, 11.375, 11.375), "direction": (1.0, 1.0, 1.0)},
             reason="a flip requires a strict break, so a close exactly on the carried band holds the trend",
         ),
-        SpecPin(
+        Pin(
             label="downtrend_seed_nondefault_multiplier_golden",
             inputs={
                 "high": (20.0, 19.0, 18.0, 17.0, 18.0, 19.0, 20.0, 21.0),
@@ -82,7 +90,7 @@ SUPERTREND = Spec(
             reason="a second frozen reference exercising every branch (seed long, flip short, flip back long) at a "
             "non-default multiplier",
         ),
-        SpecPin(
+        Pin(
             label="large_magnitude_micro_scale",
             inputs={
                 "high": tuple(v * 1e-6 for v in _GOLDEN_HIGH),
@@ -105,7 +113,7 @@ SUPERTREND = Spec(
             },
             reason="the golden scaled by 1e-6 stays exact, the small-magnitude extreme of the numeric range",
         ),
-        SpecPin(
+        Pin(
             label="large_magnitude_macro_scale",
             inputs={
                 "high": tuple(v * 1e9 for v in _GOLDEN_HIGH),

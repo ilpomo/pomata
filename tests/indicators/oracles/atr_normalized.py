@@ -5,10 +5,10 @@ Naive reference oracle for ``pomata.indicators.atr_normalized``.
 import math
 from collections.abc import Sequence
 
-from tests.indicators.oracles.atr import atr_reference
+from tests.indicators.oracles.atr import reference_atr
 
 
-def atr_normalized_reference(
+def reference_atr_normalized(
     high: Sequence[float | None],
     low: Sequence[float | None],
     close: Sequence[float | None],
@@ -17,7 +17,7 @@ def atr_normalized_reference(
     """
     Naive Normalized ATR over aligned Python lists.
 
-    The :func:`atr_reference` as a percentage of the close, ``100 * atr / close``, recomputed as the oracle for
+    The :func:`reference_atr` as a percentage of the close, ``100 * atr / close``, recomputed as the oracle for
     :func:`pomata.indicators.atr_normalized`.
 
     Args:
@@ -33,7 +33,7 @@ def atr_normalized_reference(
     Raises:
         ValueError: If ``window < 1``.
     """
-    average_true_range = atr_reference(high, low, close, window)
+    average_true_range = reference_atr(high, low, close, window)
     result: list[float | None] = []
     for atr_value, close_value in zip(average_true_range, close, strict=True):
         if atr_value is None or close_value is None:

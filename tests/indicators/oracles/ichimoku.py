@@ -47,7 +47,7 @@ def _midpoint(
     return _midline(top, bottom)
 
 
-def ichimoku_reference(
+def reference_ichimoku(
     high: Sequence[float | None],
     low: Sequence[float | None],
     window_tenkan: int,

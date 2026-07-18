@@ -5,10 +5,10 @@ Naive reference oracle for ``pomata.indicators.dema``.
 import math
 from collections.abc import Sequence
 
-from tests.indicators.oracles.ema import ema_reference
+from tests.indicators.oracles.ema import reference_ema
 
 
-def dema_reference(
+def reference_dema(
     expr: Sequence[float | None],
     window: int,
     *,
@@ -18,7 +18,7 @@ def dema_reference(
     Naive Double Exponential Moving Average over a Python list.
 
     Mulloy's double EMA, ``2 * EMA(x) - EMA(EMA(x))`` with both passes at the same ``window``, recomputed as the oracle
-    for :func:`pomata.indicators.dema`. Each pass is the EMA oracle (:func:`ema_reference`), SMA-seeded for the
+    for :func:`pomata.indicators.dema`. Each pass is the EMA oracle (:func:`reference_ema`), SMA-seeded for the
     unadjusted form, so chaining two of them compounds the warm-up to ``2 * (window - 1)``; the null / NaN behavior is
     detailed below.
 
@@ -52,8 +52,8 @@ def dema_reference(
     if window == 1:
         return list(expr)
 
-    ema_once = ema_reference(expr, window, adjust=adjust)
-    ema_twice = ema_reference(ema_once, window, adjust=adjust)
+    ema_once = reference_ema(expr, window, adjust=adjust)
+    ema_twice = reference_ema(ema_once, window, adjust=adjust)
     results: list[float | None] = []
     for value_once, value_twice in zip(ema_once, ema_twice, strict=True):
         if value_once is None or value_twice is None:

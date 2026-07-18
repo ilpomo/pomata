@@ -1,36 +1,41 @@
-"""Spec for ``pomata.indicators.rsi_stochastic`` — the stochastic of RSI struct (k, d), gap-bridging."""
+"""Declaration for ``pomata.indicators.rsi_stochastic`` — the stochastic of RSI struct (k, d), gap-bridging."""
 
 import math
 
-from tests.indicators.oracles import rsi_stochastic_reference
-from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
-
 from pomata.indicators import rsi_stochastic
+from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
+from tests.indicators.harness import suite_indicators
+from tests.indicators.oracles import reference_rsi_stochastic
+from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
 
-RSI_STOCHASTIC = Spec(
+RSI_STOCHASTIC = suite_indicators(
     factory=rsi_stochastic,
     inputs=("wave",),
     params={"window_rsi": 14, "window_k": 14, "window_d": 3},
+    null=BehaviorNull.BRIDGED,
+    nan=BehaviorNan.LATCHES,
     shape=Shape.STRUCT,
     fields=("k", "d"),
-    warmup={"k": 27, "d": 29},
+    warmup=Warmup.PER_FIELD,
+    warmup_value={"k": 27, "d": 29},
+    oracle=reference_rsi_stochastic,
+    scaling=(ScaleAxis(roles=("wave",), degree={"k": 0, "d": 0}),),
+    talib=RelationTalib.MATCHES,
     raises=(
         ({"window_rsi": 0}, r"window_rsi must be >= 1"),
         ({"window_k": 0}, r"window_k must be >= 1"),
         ({"window_d": 0}, r"window_d must be >= 1"),
     ),
-    oracle=rsi_stochastic_reference,
-    # The underlying RSI is scale-invariant, so both lines inherit it verbatim, degree 0
-    #
-    scale=(ScaleAxis(roles=("wave",), degree={"k": 0, "d": 0}),),
-    golden_params={"window_rsi": 3, "window_k": 3, "window_d": 2},
-    golden_input={"wave": (50.0, 51.0, 50.5, 52.0, 51.5, 53.0, 52.0, 54.0, 53.5, 55.0)},
-    golden_output={
-        "k": (None, None, None, None, None, 94.7368, 0.0, 81.5861, 44.2237, 100.0),
-        "d": (None, None, None, None, None, None, 47.3684, 40.793, 62.9049, 72.1118),
-    },
+    golden=Golden(
+        inputs={"wave": (50.0, 51.0, 50.5, 52.0, 51.5, 53.0, 52.0, 54.0, 53.5, 55.0)},
+        output={
+            "k": (None, None, None, None, None, 94.7368, 0.0, 81.5861, 44.2237, 100.0),
+            "d": (None, None, None, None, None, None, 47.3684, 40.793, 62.9049, 72.1118),
+        },
+        params={"window_rsi": 3, "window_k": 3, "window_d": 2},
+    ),
     pins=(
-        SpecPin(
+        Pin(
             label="flat_rsi_window_is_nan",
             inputs={"wave": (10.0, 11.0, 12.0, 13.0, 14.0)},
             params_override={"window_rsi": 2, "window_k": 2, "window_d": 1},

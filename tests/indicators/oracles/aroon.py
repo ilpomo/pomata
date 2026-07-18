@@ -32,7 +32,7 @@ def _aroon_line(
     return 100.0 * (window - periods_since) / window
 
 
-def aroon_reference(
+def reference_aroon(
     high: Sequence[float | None],
     low: Sequence[float | None],
     window: int,

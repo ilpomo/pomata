@@ -5,10 +5,10 @@ Naive reference oracle for ``pomata.indicators.adxr``.
 import math
 from collections.abc import Sequence
 
-from tests.indicators.oracles.adx import adx_reference
+from tests.indicators.oracles.adx import reference_adx
 
 
-def adxr_reference(
+def reference_adxr(
     high: Sequence[float | None],
     low: Sequence[float | None],
     close: Sequence[float | None],
@@ -17,7 +17,7 @@ def adxr_reference(
     """
     Naive Average Directional Index Rating over aligned Python lists.
 
-    The mean of the :func:`adx_reference` and its value ``window`` rows earlier, recomputed as the oracle for
+    The mean of the :func:`reference_adx` and its value ``window`` rows earlier, recomputed as the oracle for
     :func:`pomata.indicators.adxr`.
 
     Args:
@@ -34,7 +34,7 @@ def adxr_reference(
     """
     if window < 1:
         raise ValueError(f"window must be >= 1, got {window}")
-    average = adx_reference(high, low, close, window)
+    average = reference_adx(high, low, close, window)
     result: list[float | None] = []
     for index in range(len(average)):
         current = average[index]

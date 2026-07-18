@@ -6,7 +6,7 @@ import math
 from collections.abc import Sequence
 
 
-def chaikin_money_flow_reference(
+def reference_chaikin_money_flow(
     high: Sequence[float | None],
     low: Sequence[float | None],
     close: Sequence[float | None],

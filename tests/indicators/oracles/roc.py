@@ -6,7 +6,7 @@ import math
 from collections.abc import Sequence
 
 
-def roc_reference(
+def reference_roc(
     expr: Sequence[float | None],
     window: int,
 ) -> list[float | None]:

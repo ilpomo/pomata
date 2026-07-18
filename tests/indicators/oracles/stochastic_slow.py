@@ -4,11 +4,11 @@ Naive reference oracle for ``pomata.indicators.stochastic_slow``.
 
 from collections.abc import Sequence
 
-from tests.indicators.oracles.sma import sma_reference
-from tests.indicators.oracles.stochastic_fast import stochastic_fast_reference
+from tests.indicators.oracles.sma import reference_sma
+from tests.indicators.oracles.stochastic_fast import reference_stochastic_fast
 
 
-def stochastic_slow_reference(
+def reference_stochastic_slow(
     high: Sequence[float | None],
     low: Sequence[float | None],
     close: Sequence[float | None],
@@ -19,7 +19,7 @@ def stochastic_slow_reference(
     """
     Naive Slow Stochastic Oscillator over aligned Python lists.
 
-    The raw %K of :func:`stochastic_fast_reference` smoothed by :func:`sma_reference` into the slow %K, then smoothed
+    The raw %K of :func:`reference_stochastic_fast` smoothed by :func:`reference_sma` into the slow %K, then smoothed
     once more into %D, recomputed as the oracle for :func:`pomata.indicators.stochastic_slow`.
 
     Args:
@@ -42,6 +42,6 @@ def stochastic_slow_reference(
         raise ValueError(f"window_slowing must be >= 1, got {window_slowing}")
     if window_d < 1:
         raise ValueError(f"window_d must be >= 1, got {window_d}")
-    raw_k = stochastic_fast_reference(high, low, close, window_k, 1)["k"]
-    slow_k = sma_reference(raw_k, window_slowing)
-    return {"k": slow_k, "d": sma_reference(slow_k, window_d)}
+    raw_k = reference_stochastic_fast(high, low, close, window_k, 1)["k"]
+    slow_k = reference_sma(raw_k, window_slowing)
+    return {"k": slow_k, "d": reference_sma(slow_k, window_d)}

@@ -5,11 +5,11 @@ Naive reference oracle for ``pomata.indicators.bollinger_bands``.
 import math
 from collections.abc import Sequence
 
-from tests.indicators.oracles.sma import sma_reference
-from tests.indicators.oracles.standard_deviation_rolling import standard_deviation_rolling_reference
+from tests.indicators.oracles.sma import reference_sma
+from tests.indicators.oracles.standard_deviation_rolling import reference_standard_deviation_rolling
 
 
-def bollinger_bands_reference(
+def reference_bollinger_bands(
     close: Sequence[float | None],
     window: int,
     multiplier: float = 2.0,
@@ -17,8 +17,8 @@ def bollinger_bands_reference(
     """
     Naive Bollinger Bands over a Python list.
 
-    The center band is :func:`sma_reference`; the outer bands sit ``multiplier`` population standard deviations
-    (:func:`standard_deviation_rolling_reference`) away. Recomputed from scratch as the oracle for
+    The center band is :func:`reference_sma`; the outer bands sit ``multiplier`` population standard deviations
+    (:func:`reference_standard_deviation_rolling`) away. Recomputed from scratch as the oracle for
     :func:`pomata.indicators.bollinger_bands`.
 
     Args:
@@ -37,8 +37,8 @@ def bollinger_bands_reference(
         A ``None`` or ``nan`` in a window propagates to all three bands at that row (``None`` taking precedence), since
         the center and the deviation read the same window.
     """
-    middle = sma_reference(close, window)
-    sigma = standard_deviation_rolling_reference(close, window)
+    middle = reference_sma(close, window)
+    sigma = reference_standard_deviation_rolling(close, window)
     lower: list[float | None] = []
     center: list[float | None] = []
     upper: list[float | None] = []

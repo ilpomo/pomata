@@ -6,7 +6,7 @@ import math
 from collections.abc import Sequence
 
 
-def wma_reference(
+def reference_wma(
     expr: Sequence[float | None],
     window: int,
 ) -> list[float | None]:

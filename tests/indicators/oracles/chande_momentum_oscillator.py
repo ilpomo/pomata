@@ -6,7 +6,7 @@ import math
 from collections.abc import Sequence
 
 
-def chande_momentum_oscillator_reference(
+def reference_chande_momentum_oscillator(
     close: Sequence[float | None],
     window: int,
 ) -> list[float | None]:

@@ -1,11 +1,14 @@
-"""Spec for ``pomata.metrics.volatility_rolling`` — the annualized rolling sample std, degree-1 homogeneous."""
+"""Declaration for ``pomata.metrics.volatility_rolling`` — the annualized rolling sample std, degree-1 homogeneous."""
 
 import polars as pl
-from tests.metrics.oracles import volatility_rolling_reference
-from tests.support import windows_well_spread
-from tests.support.spec import ScaleAxis, Shape, Spec, SpecPin
 
 from pomata.metrics import volatility_rolling
+from tests.metrics.enums import BehaviorNan, BehaviorNull
+from tests.metrics.harness import suite_metrics
+from tests.metrics.oracles import reference_volatility_rolling
+from tests.metrics.volatility import VOLATILITY
+from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.strategies import windows_well_spread
 
 
 def _windows_well_spread(frame: pl.DataFrame) -> bool:
@@ -19,36 +22,37 @@ def _windows_well_spread(frame: pl.DataFrame) -> bool:
     return windows_well_spread(frame.to_series(0).to_list(), 4)
 
 
-VOLATILITY_ROLLING = Spec(
+VOLATILITY_ROLLING = suite_metrics(
     factory=volatility_rolling,
     inputs=("returns",),
     params={"window": 4, "periods_per_year": 252},
-    shape=Shape.SERIES,
+    null=BehaviorNull.IN_WINDOW_IS_NULL,
+    nan=BehaviorNan.PROPAGATES,
+    rolling_of=VOLATILITY,
+    window="window",
     warmup=3,
-    raises=(
-        ({"window": 1}, r"window must be >= 2"),
-        ({"periods_per_year": 0}, r"periods_per_year must be >= 1"),
-    ),
-    oracle=volatility_rolling_reference,
+    oracle=reference_volatility_rolling,
+    scaling=(ScaleAxis(roles=("returns",), degree=1),),
+    raises=(({"window": 1}, r"window must be >= 2"), ({"periods_per_year": 0}, r"periods_per_year must be >= 1")),
     conditioning=_windows_well_spread,
-    # A sample standard deviation per window is degree-1 homogeneous (by analogy to the reducing volatility).
-    scale=(ScaleAxis(roles=("returns",), degree=1),),
-    golden_input={"returns": (0.01, -0.02, 0.03, -0.01, 0.02, 0.0, -0.015)},
-    golden_output=(None, None, None, 0.352, 0.3779, 0.2898, 0.2457),
+    golden=Golden(
+        inputs={"returns": (0.01, -0.02, 0.03, -0.01, 0.02, 0.0, -0.015)},
+        output=(None, None, None, 0.352, 0.3779, 0.2898, 0.2457),
+    ),
     pins=(
-        SpecPin(
+        Pin(
             label="window_equals_length",
             inputs={"returns": (0.01, -0.02, 0.03, -0.01, 0.02)},
             expected=(None, None, None, None, 0.32918080138428485),
             reason="when the window equals the series length only the last row is defined",
             params_override={"window": 5},
         ),
-        SpecPin(
+        Pin(
             label="constant_window_is_zero",
             inputs={"returns": (0.01, 0.01, 0.01, 0.01)},
             expected=(None, None, 0.0, 0.0),
-            reason="a constant window has zero dispersion, so the volatility is exactly 0 — the exact core of the "
-            "near-constant regime the conditioning filter excludes from the property tiers",
+            reason="a constant window has zero dispersion, so the volatility is exactly 0 — the exact core "
+            "of the near-constant regime the conditioning filter excludes from the property tiers",
             params_override={"window": 3},
             covers_conditioning=True,
         ),

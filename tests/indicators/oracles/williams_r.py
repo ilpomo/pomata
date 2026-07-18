@@ -6,7 +6,7 @@ import math
 from collections.abc import Sequence
 
 
-def williams_r_reference(
+def reference_williams_r(
     high: Sequence[float | None],
     low: Sequence[float | None],
     close: Sequence[float | None],

@@ -4,19 +4,19 @@ Naive reference oracle for ``pomata.indicators.trix``.
 
 from collections.abc import Sequence
 
-from tests.indicators.oracles.ema import ema_reference
-from tests.indicators.oracles.roc import roc_reference
+from tests.indicators.oracles.ema import reference_ema
+from tests.indicators.oracles.roc import reference_roc
 
 
-def trix_reference(
+def reference_trix(
     close: Sequence[float | None],
     window: int,
 ) -> list[float | None]:
     """
     Naive TRIX over a Python list.
 
-    The one-period rate of change (:func:`roc_reference`) of a triple-smoothed exponential moving average
-    (:func:`ema_reference`), recomputed from scratch as the oracle for :func:`pomata.indicators.trix`.
+    The one-period rate of change (:func:`reference_roc`) of a triple-smoothed exponential moving average
+    (:func:`reference_ema`), recomputed from scratch as the oracle for :func:`pomata.indicators.trix`.
 
     Args:
         close: Close-price series (may contain ``None`` and ``float('nan')``).
@@ -31,5 +31,5 @@ def trix_reference(
     """
     if window < 1:
         raise ValueError(f"window must be >= 1, got {window}")
-    triple_ema = ema_reference(ema_reference(ema_reference(close, window), window), window)
-    return roc_reference(triple_ema, 1)
+    triple_ema = reference_ema(reference_ema(reference_ema(close, window), window), window)
+    return reference_roc(triple_ema, 1)

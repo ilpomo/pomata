@@ -6,7 +6,7 @@ import math
 from collections.abc import Sequence
 
 
-def parabolic_sar_reference(
+def reference_parabolic_sar(
     high: Sequence[float | None],
     low: Sequence[float | None],
     acceleration: float = 0.02,

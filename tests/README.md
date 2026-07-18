@@ -1,255 +1,257 @@
 # Tests
 
-`pomata` is tested by a **declarative contract suite**: every public function states its whole testing contract as
-one frozen dataclass of pure data (a `Spec`, one file per function under `tests/<family>/<name>.py`), and a single
-ladder of generic test functions (`tests/test_ladder.py`) checks every declared fact identically across the whole
-public surface. Uniformity is not policed — it is the only thing the language can express.
+`pomata` is tested by a **declarative contract suite**: every public function states its whole testing contract by
+calling one **per-family suite function** with a closed vocabulary of enums plus a hand-written reference oracle, and a
+single ladder of generic checks derives every test from that one declaration. A contributor writes one file — a
+declaration and an oracle — and the standard tests, the failure messages, and (through the generated docstring) the
+prose all descend from it. Uniformity is not policed: it is the only thing the language can express.
 
 ## How to run
 
 ```sh
 uv run pytest -n auto                          # the whole gating suite
-POMATA_BENCHMARKS=1 uv run pytest -m benchmark # opt-in: performance and complexity-scaling tier
 uv run pytest -m differential                  # opt-in: non-gating parity vs TA-Lib (needs the 'differential' group)
 ```
 
-The property tiers draw a fixed example count through the Hypothesis profiles registered in `tests/conftest.py`
+The property tier draws a fixed example count through the Hypothesis profiles registered in `conftest.py`
 (`HYPOTHESIS_PROFILE=dev|ci`, same count). Truth is the mathematical definition, checked against naive reference
-oracles (`tests/<family>/oracles/`) — the gating suite depends only on Polars and Hypothesis; TA-Lib is an
-opt-in cross-check, never the arbiter.
+oracles (`<family>/oracles/`) — the gating suite depends only on Polars and Hypothesis; TA-Lib is an opt-in
+cross-check, never the arbiter.
 
 ## The shape of the framework
 
-A per-function contract is a **frozen dataclass of pure data** — a `Spec` — and the rungs are **module-level
-functions** parametrized over the specs they apply to. There is no metaprogramming: no metaclass, no
-`__init_subclass__`, no runtime stamping of test functions. A declaration cannot lie by omission because the
-`Spec` fields it would omit are either required by the language (no default) or made mandatory by a plain
-`__post_init__`.
+A per-function contract is a **frozen dataclass of pure data** — a `Declaration` (`support/declaration.py`) — built by
+a **per-family suite function** (`suite_pnl` · `suite_metrics` · `suite_indicators`, each in `<family>/harness.py`).
+The checks are **module-level functions** of a `Declaration` (`support/rungs.py`), parametrized over the registry in
+`test_rungs.py`. There is no metaprogramming: no metaclass, no `__init_subclass__`, no runtime stamping of test
+functions. A declaration cannot lie by omission — the fields it would omit are either required by the language (no
+default) or made mandatory by a plain `__post_init__`.
 
-- **Spec per function** — one file per function, `tests/<family>/<name>.py`, data only, aggregated by explicit
-  imports in `tests/all_specs.py`. A forgotten import is a red build (the bijection).
-- **Rungs** — `tests/test_ladder.py`, each rung written once, `@pytest.mark.parametrize` over the applicable
-  subset (a comprehension on declared fields), sub-parametrized where it reads better (per struct field, per
-  validation counterexample, per scale axis).
-- **The engine** — `tests/support/spec.py`: the frozen data types and the small engine the rungs delegate to
-  (the deterministic probe frame, the expression builder, the lane readers, the oracle bridge, the fuzz strategies,
-  the sizing helpers). It is one of the three modules exempted from `disallow_any_explicit` (with the reflective `synthesis` and the TA-Lib-bridging differential tier). The fuzz vocabulary covers the
-  single-input shapes, the coherent OHLC-family bars, the strictly-positive equity-curve growth path, and the
-  multi-input shapes (the pnl frames and the returns/benchmark pair, each column drawn independently from its
-  role's domain); an unlisted shape raises, so the closed vocabulary can never silently under-test a new function.
+- **Declaration per function** — one file, `<family>/<name>.py`: a call to the family suite function that both binds a
+  module constant and **auto-registers** the declaration as an import side effect. The family aggregator
+  (`<family>/all_<family>.py`, gathered by `all_declarations.py`) imports every declaration module, so the registry is
+  populated before any collectible reads it; no explicit per-function import is maintained by hand.
+- **Suite function** — `<family>/harness.py`: it fixes the family-shared facts by construction (a pnl output is always
+  a same-length `Float64` series; a metric reduces unless it rolls or names a window), resolves the family's warm-up
+  enum to the leading-null count the generic declaration speaks, assembles the `Declaration`, and registers it.
+- **Rung** — `support/rungs.py`: one plain function of a `Declaration`, wrapped once in `test_rungs.py` and
+  parametrized over `registry_all()`, so the pytest id names the function (`test_oracle_agreement[cost_borrow]`). A
+  check a declaration does not activate (no golden, no pins, a scale-exempt function) skips cleanly with a reason.
+- **The engine** — `support/`: the frozen data types and the small engine the rungs delegate to (`declaration.py`),
+  the probe-frame builders with by-construction distinct roles (`frames.py`), the regime synthesis that *constructs* a
+  degenerate input from a declared axis (`synthesis.py`), the comparison / tolerance layer (`compare.py`,
+  `tolerances.py`), the failure-message format (`messages.py`), and the auto-registration and surface bijection
+  (`registry.py`). `declaration.py`, `synthesis.py`, and the TA-Lib-bridging `test_differential.py` are the three
+  modules exempted from `disallow-any-explicit` (they mirror each public function's own `...` signature).
 
-## The axes are declared fields, not a class hierarchy
+## The axes are declared, in a closed family vocabulary
 
-The public surface varies along exactly three axes (11 observed combinations across 153 functions). In the spec
-ladder each axis is a **declared field** or a **derived fact**, and a rung gates its own applicability by reading it:
+The public surface varies along a handful of axes; each is a **closed enum** a contributor picks from, never invents.
+The three families share `shape`, the null / NaN behavior, and the scaling claim; each adds its own dialect
+(`<family>/enums.py`):
 
-- **shape** — `Shape.REDUCING` (43) · `Shape.SERIES` (95) · `Shape.STRUCT` (15): what one probe row observes. A
-  struct declares its ordered `fields`, and every struct-aware rung reads **all** of them (never only the first).
-- **windowed** — `warmup is not None` (86): the exact leading-null count under `params` — an `int` for a series, a
-  per-field mapping for a struct (always, even when every line shares the count: the form is fixed by the shape, so
-  a reader never guesses which lanes a number covers). A reduction and an unwindowed transform declare
-  `warmup=None`.
-- **null / NaN policy** — **not declared**: derived from `pomata._policy` by function name and dispatched inside
-  the shared flow rungs, so a spec cannot pair the wrong behavior with the wrong declaration.
+- **shared** — `Shape.REDUCING` / `SERIES` / `STRUCT` (what one probe row observes; a struct declares its ordered
+  `fields`, and every struct-aware rung reads **all** of them); the null / NaN behavior (below); and `scaling`, a
+  non-empty tuple of `ScaleAxis(roles, degree)` or a reasoned `ScaleExempt` — never an empty tuple.
+- **pnl** (the most uniform: one dialect covers sixteen of eighteen) — `BehaviorNull` {`PROPAGATES`, `BRIDGED`},
+  `BehaviorNan` {`PROPAGATES`, `LATCHES`}, `SpaceCost` {`CASH`, `RETURNS`} (the cash-flow / returns-flow units,
+  stated as data), `ConventionSign` {`LONG_SHORT`, `SHORT_ONLY`, `LONG_ONLY`}, `NonFinite` {`IEEE_FLOW`} (one IEEE-754
+  story throughout, `inf - inf = NaN` included), `Warmup` {`NONE`, `ONE_ROW`}.
+- **metrics** — `BehaviorNull` {`SKIPPED`, `IN_WINDOW_IS_NULL`, `PROPAGATES`}, `BehaviorNan` {`POISONS`,
+  `PROPAGATES`}, `Annualization` {`SQRT_TIME`, `LINEAR`, `GEOMETRIC`, `NONE`}, `Degenerate` {`ZERO_DISPERSION_IS_NAN`,
+  `RATIO_SIGNED_INF_OR_NAN`, `EXACT_ZERO`, `COLLAPSES`}. A **rolling twin** declares `rolling_of=<reducing twin>` and
+  its `window` parameter: it inherits the twin's annualization and degenerate regime, and the twin-coherence rung
+  holds its row `i` to the twin reduced over the trailing window ending at `i`.
+- **indicators** (the richest) — `BehaviorNull` {`BRIDGED`, `IN_WINDOW_IS_NULL`, `PROPAGATES`, `LATCHES`, `ABSORBED`},
+  `BehaviorNan` {`PROPAGATES`, `LATCHES`}, `Warmup` {`NONE`, `WINDOW_MINUS_ONE`, `WINDOW`, `EXPR`, `PER_FIELD`},
+  `Seeding` (docstring metadata, not read by any rung), `RelationTalib` {`MATCHES`, `DOCUMENTED_DIVERGENCE`,
+  `NO_EQUIVALENT`} — the partition the differential tier reads, each divergence / no-equivalent carrying its
+  `talib_reason` on the declaration itself.
 
-## The declaration surface (what a spec states — nothing else)
+## The declaration surface (what a declaration states — nothing else)
 
 | Field | Required | Meaning |
 |---|---|---|
-| `factory` | yes | the `pl.Expr` factory under test |
-| `inputs` | yes | ordered input column roles (drawn from the probe-frame vocabulary) |
-| `params` | yes | the canonical scalar kwargs used by probes and goldens |
-| `shape` | yes | `REDUCING` / `SERIES` / `STRUCT` — the observed output shape |
-| `scale` | yes | a non-empty tuple of `ScaleAxis`, or a `ScaleExempt(reason)` — never an empty tuple; an axis's `degree` is an `int` for a single-lane output and a per-field mapping for a struct (e.g. `supertrend`: `line` degree 1, `direction` degree 0) |
-| `oracle` | yes | the naive reference oracle |
-| `golden_input` / `golden_output` | yes | the frozen golden master (per field for a struct) |
-| `warmup` | optional | exact leading-null count under `params`: an `int` for a series, a per-field mapping for a struct, `None` when nothing warms up |
+| `factory` | yes | the `pl.Expr` factory under test (its `__name__` is the name everything derives from) |
+| `inputs` | yes | ordered input column roles, drawn from the probe-frame vocabulary |
+| `params` | yes | the canonical scalar kwargs probes and goldens use (non-empty ⇒ `raises`) |
+| `shape` | yes | `REDUCING` / `SERIES` / `STRUCT` |
+| `behavior_null` / `behavior_nan` | yes | the family dialect's answer to an interior `null` / `NaN` |
+| `oracle` | yes | the naive reference, named exactly `reference_{name}` (checked at construction) |
+| `scaling` | yes | a non-empty `ScaleAxis` tuple, or a `ScaleExempt(reason)`; a struct's `degree` is a per-field mapping |
+| `space` / `sign` / `nonfinite` | pnl | the cost units, the sign convention, the IEEE-flow contract |
+| `annualization` / `degenerate` | metrics | the annualization convention and the degenerate-denominator regime |
+| `talib` / `talib_reason` / `seeding` | indicators | the TA-Lib relation, its reason, the seeding convention |
+| `warmup` | optional | exact leading-null count: an `int` for a series, a per-field mapping for a struct, `None` for a reduction / unwindowed transform |
 | `fields` | struct | the struct's field names, in order |
 | `raises` | params ⇒ yes | validation counterexamples: `(overrides, ValueError match)` |
-| `golden_params` / `golden_round` | optional | the golden's own params and its rounding |
-| `lands_on` | optional | landing column when it is not the first input |
-| `flow_horizon` | optional | rows past a missing bar the flow must have played out by |
-| `flow_deviation` | optional | a written reason the interior-missing flow is input-dependent: non-empty exempts the spec from the two flow rungs, and its flow is pinned as crafted cases instead |
-| `oracle_rel_tol` / `oracle_abs_tol` | optional | a per-spec oracle-agreement band, declared per computational family (the one-pass streaming forms — rolling sums and exponential recurrences — whose accumulation rounds away from the two-pass oracle, and the standardized rolling moments' absolute floor) — always a named constant from `tests/support/tolerances.py`, never a literal |
-| `cost_degree` | optional | the kernel's polynomial cost degree in the row count (`1` is the family norm; log factors ride within a degree) — the benchmark tier's scaling guard derives its per-function bound from it |
-| `oracle_adapter` | optional | a frame->result callable when the oracle is not the factory's signature-mirror |
-| `conditioning` | optional | a Hypothesis `assume` filter for the property tier — allowed only together with a pin that carries `covers_conditioning=True` (see below) |
-| `all_null` | optional | a `Deviant(expected, reason)` when the all-null answer is not all-null |
-| `pins` | optional | crafted-input cases: a tuple of `SpecPin(label, inputs, expected, reason, params_override, signed, covers_conditioning, round_to)` |
-| `component_expr` | optional | a zero-argument builder of the public-function recomposition the factory must reproduce (a metamorphic identity) |
+| `golden` | optional | the frozen golden master (`inputs`, `output`, its own `params`, `round_to`) |
+| `pins` | optional | crafted-input cases (see below) |
+| `recomposition` | optional | a zero-arg builder of the public-function identity the factory must reproduce, lane by lane |
+| `rolling_of` / `window` | rolling | the reducing / series twin a rolling function rolls, and its window parameter |
+| `deviant` | optional | a `Deviant(expected, reason)` when the all-null answer is not all-null |
+| `conditioning` | optional | a Hypothesis `assume` filter for the property tier — allowed only with a covering pin |
+| `oracle_rel_tol` / `oracle_abs_tol` | optional | a per-declaration oracle band (a one-pass rolling form vs its two-pass oracle) — always a named constant from `support/tolerances.py` |
+| `flow_deviation` / `flow_horizon` | optional | a reason the interior-missing flow is input-dependent (exempts the flow rungs, pinned instead); rows past a missing bar the flow must have played out by |
+| `reference` / `wikipedia` | optional | the citation and URL for the definition (for the generated docstring) |
 
-A `SpecPin` is itself pure data: `label` (its id suffix), `inputs` (the full input lanes), `expected` (the output
-lanes, a per-field mapping for a struct), the required `reason` (why the case is pinned, anchored to where it came
-from), an optional `params_override`, `signed` (compare the sign too, so `-0.0` is not read as `0.0`),
-`covers_conditioning` (this pin is the fixed case witnessing the input regime the spec's `conditioning` filter
-excludes), and `round_to` (expression-side rounding mirroring `golden_round`, declared only where the exact lanes
-are platform-dependent — a transcendental pipeline on a degenerate input settles on libm-rounded fixed points that
-differ across OS math libraries — with the reason naming that fact). Each pin's `inputs` keys and `expected` shape
-are checked against the spec at construction, and labels must be unique.
+A `Pin` is itself pure data: `label` (its id suffix), `inputs` (the full input lanes), `expected` (the output lanes,
+a per-field mapping for a struct), the required `reason` (why the case is pinned), an optional `params_override`,
+`signed` (compare the sign too, so `-0.0` is not read as `0.0`), `covers_conditioning` (this pin witnesses the regime
+the `conditioning` filter excludes), and `round_to` (expression-side rounding, declared only where the exact lanes are
+platform-dependent — a transcendental pipeline on a degenerate input settles on libm-rounded fixed points that differ
+across OS math libraries). Each pin's `inputs` keys and `expected` shape are checked against the declaration at
+construction, and labels must be unique — snake_case, so a pin's regime is named, never inferred from its position.
 
 **No exclusion without a fixed case.** A `conditioning` filter tells Hypothesis to skip an input regime, which is
-exactly where a bug could hide unobserved — so a spec may declare one only if at least one pin carries
-`covers_conditioning=True` and demonstrates, on a concrete input from that regime, what the function actually
-returns there (checked in `__post_init__`, so an uncovered filter cannot even be imported). The reverse also
-holds: a `covers_conditioning=True` pin on a spec with no filter is rejected as stale. Every filter states the
-*measured* boundary it was calibrated against — in its docstring when it rides a shared cut, or in the spec-local
-constant's comment when it narrows a shared threshold into one — and the shared constants themselves (`well_spread`
-1e-9, `windows_well_spread` 1e-9, `CONDITIONING_FLOOR` 1e-2) are never retuned per spec.
+exactly where a bug could hide — so a declaration may declare one only if at least one pin carries
+`covers_conditioning=True` and demonstrates, on a concrete input from that regime, what the function actually returns
+there (checked in `__post_init__`, so an uncovered filter cannot even be imported). The reverse also holds: a covering
+pin on a declaration with no filter is rejected as stale. Every filter states the *measured* boundary it was
+calibrated against, and the shared conditioning constants are never retuned per declaration.
 
-Derived, never declared: `name` (from the factory), `family` (from `__all__`), `null_policy` / `nan_policy`
-(from the registry), `spec_id` (the pytest id).
+Derived, never declared: `name` (from the factory), `landing` (the first input's column), and the pytest id.
 
 ## The guarantees, all by construction
 
-1. **Completeness of the language** — the required fields have no default, so a spec *cannot* be built without
+1. **Completeness of the language** — the required fields have no default, so a declaration *cannot* be built without
    each one; no rung is ever silently skipped for want of a declaration.
-2. **`__post_init__`** — the conditional requirements, checked loudly at construction (import time): a struct names
-   its `fields`; a reduction has no `warmup`; declared `params` imply `raises` (else the validation rung is a
-   no-op); `scale` is never an empty tuple (an exemption is a reasoned `ScaleExempt`); every scale axis and input
-   role is real; the derived name has a declared policy and a public `__all__`; a `conditioning` filter implies a
-   `covers_conditioning=True` pin, and such a pin implies the filter (no exclusion without a fixed case, no stale
-   coverage claim); a struct's `warmup` and every one of its axes' `degree` are per-field mappings keyed exactly by
-   its `fields`, and only a struct's — the form is fixed by the shape, so there is exactly one way to write each
-   declaration and the reader is never left inferring which lanes a bare number covers.
-3. **Two-way bijection with the public surface** — `tests/all_specs.py` requires each family's spec tuple to match
-   that family's `__all__` exactly (a missing spec fails as loudly as a stray one) and forbids duplicate names. It
-   runs at import (born red), so any collection enforces it: a function cannot be exported without a spec, and a
-   spec cannot outlive its function.
-4. **Shape coverage guard** — one rung observes the output shape from the probe and asserts it is exactly the
-   declared `shape`. (Windowedness is *not* observed: a seed-null that is not a warm-up would make that a false
-   positive, so completeness rests on the required fields, not on inference.)
+2. **`__post_init__`** — the conditional requirements, checked loudly at construction (import time): the oracle is
+   named `reference_{name}`; a struct names its `fields`; a reduction has no `warmup`; declared `params` imply
+   `raises`; `scaling` is never an empty tuple; every scale axis and input role is real; a `conditioning` filter
+   implies a covering pin and vice versa; a rolling twin names its window and shares its twin's inputs; a struct's
+   `warmup` and every axis `degree` are per-field mappings keyed exactly by its `fields`, and only a struct's — one
+   form per declaration, so a reader never infers which lanes a bare number covers.
+3. **Two-way bijection with the public surface** — `test_registry.py` requires each family's registered names to
+   match that family's `__all__` exactly (a missing declaration fails as loudly as a stray one) and forbids
+   duplicates. A function cannot be exported without a declaration, and a declaration cannot outlive its function.
 
-## The ladder (one function per rung, canonical order)
+## The ladder (one function per rung)
 
-Contract — `returns_expr`, `output_lands_on_declared_column`, `shape_matches_declaration`, `lazy_eager_parity`,
-`streaming_engine_parity` (the third execution mode, at the reference band — the streaming engine's chunked
-accumulation legitimately reorders a sum by an ULP), `over_partitions_independently` and
-`over_interleaved_partitions` (shape-aware: a reduction broadcasts across its group's rows, an elementwise output
-concatenates; `assert_matches`, never a bit-equality; the interleaved variant proves the guarantee does not depend
-on contiguous groups), `bare_string_raises_type_error`.
-Edge — `invalid_params_raise` (per counterexample), `all_null_input` (honoring an `all_null` `Deviant`),
-`single_row`, `empty`, `interior_null_flow` / `interior_nan_flow` (the policy-dispatched flow, tail guards
-included; a spec declaring a `flow_deviation` is exempt and pins its flow as crafted cases instead),
-`warmup_null_count` (windowed subset, per field for a struct), `window_exceeds_length` (windowed subset,
-per lane: a frame no longer than a lane's warm-up emits nothing on that lane), `no_lookahead` (non-reducing subset: a
-prefix of the frame gives the prefix of the full output).
-Correctness — `matches_reference`, `float32_input_parity` (a `Float32` input computes what the oracle computes on
-the same rounded values — the up-cast changes the dtype, never the arithmetic), `golden_master` (rounded
-expression-side), `pinned_cases` (per `SpecPin`: the
-crafted frame maps to the crafted lanes, signed pins comparing the sign too).
-Properties — `scale` (per `ScaleAxis`: scale only that axis's roles by a power of two, degree as declared),
-`matches_reference_for_any_input` and `matches_reference_under_missing_data` (`@given(st.data())` inside
-`@parametrize`, honoring a spec's `conditioning`), `matches_reference_on_bit_constant_input` (impl and oracle agree
-in kind — null / NaN / ±inf / finite — on a deterministic battery of bit-constant frames, the exact-zero-pinning
-regime; a spec's `conditioning` scopes it exactly as it scopes the fuzz), `matches_component_definition` (specs with
-`component_expr`: the factory reproduces its recomposition from public functions, lane by lane, on the probe frame).
+`test_rungs.py` parametrizes each rung over the whole registry:
 
-## Sub-parametrized ids
+- **oracle_agreement** — the factory reproduces its oracle on the deterministic probe and across the fuzz domain
+  (honoring `conditioning`), in kind (null / NaN / ±inf / finite) and in value, at the band the conditioning sizes.
+- **golden** — the frozen golden master holds (rounded expression-side).
+- **pins** — every crafted case maps to its pinned lanes (signed pins comparing the sign too).
+- **recomposition** — the factory reproduces its `recomposition` identity from other public functions, lane by lane.
+- **behavior_null** / **behavior_nan** — an interior missing value plays out exactly as the oracle plays it out (the
+  structural flow of the family dialect); a `flow_deviation` exempts these and pins the flow as crafted cases instead.
+- **nonfinite** — each input carrying ±inf flows through exactly as the oracle carries it (the pnl IEEE story; a
+  family that declares no such contract skips).
+- **twin_coherence** — a rolling function's row `i` equals its `rolling_of` twin reduced over the trailing window.
+- **annualization** — a closed-form annualization scales the output by the declared period-count ratio.
+- **scaling** — each homogeneity axis scales every lane by the declared degree; a `ScaleExempt` verifies it is not
+  secretly homogeneous.
+- **raises** — each validation counterexample raises its canonical `ValueError`.
+- **warmup** — the output carries exactly the declared leading nulls (per field for a struct).
+- **all_null** / **empty** / **single_row** — the degenerate-frame contracts (an all-null input yields all-null or the
+  declared deviant; an empty frame gives the shape's empty answer; a one-row input keeps the declared shape).
 
-A struct field, a validation counterexample, a scale axis, and a pin each get their own case with a readable id:
-`ichimoku-senkou_b` (per-field warm-up), `sharpe_ratio-0` (per counterexample), `ichimoku-high+low` (per scale
-axis), `sharpe_ratio-zero_volatility` (per pin). To read a failure: find the rung by the name in the id, read its few
-lines, then read the spec row the id names.
+The **differential** tier (`test_differential.py`, opt-in, non-gating) compares each `RelationTalib.MATCHES` indicator
+against TA-Lib at the reference band; the no-twin and documented-divergence relations are accounted for but not
+compared, and the partition is derived from the declarations, so it cannot drift from the suite.
 
-## The registry-derived sweeps and the source-and-docs guards
+## When a guard is warranted (the three-question criterion)
 
-Beyond the ladder, a small set of modules holds every claim that is not per-function-contract shaped: the
-registry-derived sweeps (their cases come from `ALL_SPECS`, so a new function is swept in the moment its spec
-lands), the family `test_bespoke.py` modules (metrics and pnl; the Hypothesis-quantified claims the spec language cannot carry —
-metamorphic identities and large-magnitude properties, as ordinary `@given` tests), the `tests/support/tests/`
-unit tests of the harness itself, and the source-and-docs guards:
+Beyond the ladder, a small set of source-and-docs guards holds every claim the per-function contract cannot. A guard
+earns its place only if it answers **yes** to one of three questions; a check that answers **no** to all three is not a
+guard but a line in the authoring canon, held by `ruff`, the type checkers, and review:
 
-- `test_dtype.py` — every output lane comes back `Float64` from a `Float32` or `Int64` input.
-- `test_typing.py` — every public factory declares its return type as exactly `pl.Expr`.
-- `test_benchmark.py` (opt-in) — the performance and complexity-scaling tier over the whole registry.
-- `test_differential.py` (opt-in) — the non-gating TA-Lib parity check.
+1. **Truth** — does it couple the documentation to a fact the code already states, so the two cannot drift apart? (The
+   docstring's Args to the signature; the NaN vocabulary to the declared behavior; the edge-case bullets to the
+   classes the declaration activates; the README counts and catalogs to `__all__` and the source modules; the TA-Lib
+   split to `RelationTalib`; the cash-flow / returns-flow split to `SpaceCost`.)
+2. **Distance** — does it measure mathematical correctness against an independent witness? (The oracle and golden
+   agreement; the recomposition identities; the published precision figures.)
+3. **Invisible** — is it unreachable by the standard tooling? (`ruff`'s pydocstyle shell checks, the type checkers,
+   and the doctest gate cannot see a docstring's coupling to the declaration; these guards prove it from the source.)
+
+The guards, by that test:
+
+- `test_docstrings.py` — the docstring truth-couplers: Args ⇔ signature; NaN vocabulary ⇔ declared behavior; Returns
+  opener ⇔ declared shape; shared parameter / Raises prose pinned; edge-case bullets ⇔ the classes the declaration
+  activates (`support/edge_classes.py`); each asserted degenerate outcome ⇔ a witnessing pin; each demanded scenario ⇔
+  an executed Examples block; warm-up sentence ⇔ declared warm-up; Raises section ⇔ declared counterexamples; TA-Lib
+  divergence header ⇔ declared relation; `ddof` header ⇔ signature; opener variant ⇔ the mirror-oracle disclosure;
+  scalar knobs keyword-only; a Note header renders as its own paragraph.
+- `test_docs_surface.py` — the README and docs-site catalogs: each family's list and headline count ⇔ `__all__`; each
+  indicators / metrics category ⇔ its source module; the pnl cash / returns split ⇔ `SpaceCost`; the reducer count and
+  rolling-twin pairing; the TA-Lib split ⇔ `RelationTalib`; the kernel-modules note; the single-dependency claim.
+- `test_oracle_docstrings.py` — every reference states its missing-data contract, and the irreducibly-sequential
+  mirrors disclose that they confirm internal consistency, not independence.
 - `test_precision_table.py` — the published precision figures in `docs/correctness.md` stay reproducible.
-- `test_docstrings.py` — every public docstring conforms to the shared template (section order, argument order,
-  the byte-identical `TypeError` line, the Null-before-NaN edge bullets, the reserved vocabulary).
-- `test_docs_surface.py` — the README's "All N …" surface lists and headline counts match the public `__all__`.
-- `test_versions.py` — the support claims (Polars floor, Python versions, OS list) in the README badges, the docs
-  site, the contributing guide, and the CI matrix all match `pyproject.toml`.
-- `test_expr.py` — direct unit tests of the shared validation core `pomata._expr` (canonical error messages and
-  bounds), whose error branches the ladder crosses only indirectly.
+- `test_versions.py` — the support claims (Polars floor, Python versions, OS list) in the README, the docs site, the
+  contributing guide, and the CI matrix all match `pyproject.toml`.
 - `test_package.py` — import smoke for every subpackage and the exposed `__version__`.
+
+## Born red, always
+
+Every new or repaired guard — a `__post_init__` check, a rung, a source-and-docs sweep — is first demonstrated
+**failing** on a real counterexample (locally, never committed) before it lands green. A guard that was never red
+proves nothing. The failure messages are part of the contract: a derived test that fails prints the declaration that
+generated it, the exact constructed input, expected vs observed, and a triage line — *either the declaration is wrong,
+or the code has a bug* — so a red build is understood in seconds.
+
+## The structural freeze
+
+The suite's **architecture is frozen**: the declaration language, the family dialects, the rung ladder, and the
+engine are settled. Ongoing work touches **content**, not structure. Adding a public function is a fixed checklist —
+the `__all__` entry, the declaration file, its family aggregator import, the `reference_{name}` oracle, and the
+docstring — and every guard fails closed at collection if a piece is missing. Extending the *language* (a new enum
+member, a new field, a new rung, a new source-and-docs guard) is the deliberate exception, not the routine: prefer
+extending the vocabulary over writing a bespoke test, and never write a test that polices tests.
 
 ## Deliberate conventions (tested exactly as implemented)
 
-A few behaviors look like inconsistencies until the domain reason is on the table; each is pinned by the suite exactly
-as the function computes it, and its docstring states it:
+A few behaviors look like inconsistencies until the domain reason is on the table; each is pinned exactly as the
+function computes it, and its docstring states it:
 
-- **Burke ratio, per-bar denominator.** `burke_ratio` sums the squared *per-bar* drawdown series, not the classic
-  per-episode declines of Burke (1994): every underwater bar contributes, so deeper *and* longer drawdowns are both
-  penalized. The figure is not comparable to a per-episode Burke from another library.
+- **Burke ratio, per-bar denominator.** `burke_ratio` sums the squared *per-bar* drawdown series, not Burke's classic
+  per-episode declines: every underwater bar contributes, so deeper *and* longer drawdowns are both penalized.
 - **EWM dispersions, `window >= 2`.** `standard_deviation_ewma` and `variance_ewma` reject a window of one while their
-  rolling twins accept `window=1, ddof=0`: the EWM form's debiasing (`bias=False`) has no defined value at a single
-  observation, and a runtime flag cannot carry a `ddof`-style bound.
+  rolling twins accept `window=1, ddof=0`: the EWM debiasing (`bias=False`) has no defined value at one observation.
 - **Parabolic SAR, intrabar order.** Within a bar the extreme point and acceleration factor update *before* the
-  reversal check, so a bar that both makes a new extreme and crosses the stop reverses onto that bar's fresh extreme.
-  Wilder's text does not fix this order; the golden masters pin the chosen one, including the seeding and reversal
-  branches.
+  reversal check; the golden masters pin the chosen order, including the seeding and reversal branches.
 - **TA-Lib divergences.** ADXR's averaging lag, the Chande momentum oscillator's smoothing, and OBV's origin follow
-  the charting authorities rather than TA-Lib, so they do not agree with it even at steady state and are held out of
-  the differential tier on purpose — each justified on the function itself.
+  the charting authorities rather than TA-Lib, so they are held out of the differential tier — each justified on the
+  function itself through its `DOCUMENTED_DIVERGENCE` relation.
 
 ## Tolerances, conditioning, and the exact-zero closures
 
 A tolerance is never a round number picked by feel. When the implementation and the oracle agree they still round
 differently, and how far they drift is set by the statistic's *conditioning*: each band is a named constant from
-`tests/support/tolerances.py`, sized to the worst residual that conditioning predicts plus a margin. The
-well-conditioned kernels (recursive, windowed, and stateless means) match to a few ULP; the one-pass rolling and EWM
-moments meet their two-pass oracle at the wider rolling band each spec declares; a scale-invariant output (a bounded
-ratio, a cycle period, a flag) carries an *absolute* band, since sizing an `O(1)` value to the input magnitude is
-meaningless; and the large-magnitude bespoke tier sizes its floor to the data (`input_scale ** degree * factor`). Any
-`oracle_*_tol` departure sits under a one-line comment saying why — a bare, unexplained tolerance is treated as a
-defect, and `test_spec_files.py` enforces the comment.
+`support/tolerances.py`, sized to the worst residual conditioning predicts plus a margin. The well-conditioned kernels
+(recursive, windowed, and stateless means) match to a few ULP; the one-pass rolling and EWM moments meet their
+two-pass oracle at the wider rolling band a declaration states through `oracle_*_tol`; a scale-invariant output (a
+bounded ratio, a cycle period, a flag) carries an *absolute* band, since sizing an `O(1)` value to the input magnitude
+is meaningless. Any band override sits under a one-line reason; a bare, unexplained tolerance is treated as a defect.
 
-A separate mechanism closes the one regime where a relative band cannot hold: a window that collapses onto the
-float-precision floor of a much larger value that recently slid through it. The bit-constant battery
-(`matches_reference_on_bit_constant_input`) drives every column to one repeated constant — the regime where the
-shipped kernels pin a zero dispersion to exactly zero while a naive two-pass mean can keep a rounding residue — and the
-suite pins these float-residue closures exactly:
-
-- the rolling skewness and kurtosis recompute any window at residue risk as a fresh two-pass mean-centered moment, so a
-  departed outlier can no longer poison every later window;
-- the reducing dispersions pin an exactly-constant series to exactly zero, so the first-moment ratios built on them
-  (Sharpe, Sortino, the information ratio's tracking error, the M-squared that composes them) degenerate to the
-  documented signed infinity rather than a residue-driven huge finite, while the higher-moment variants (the adjusted
-  and probabilistic Sharpe ratios) degenerate to `NaN` — their moment corrections are `0 / 0` there;
-- the rolling dispersions (the rolling volatility, the rolling variance and standard deviation, and the Bollinger
-  bands built on them) pin a bit-constant window to exactly zero, so a departed outlier's residue can never be reported
-  as spread.
-
-The windowed win / loss ratios (the Chande momentum oscillator, the rolling omega) keep the documented dynamic-range
-limit instead: their sliding sums are guarded at the bit-constant edge and clamped where the output is bounded.
+Never bit-equality on a computed float — `assert_matches` compares by kind and within a band. The one regime a
+relative band cannot hold is a window that collapses onto the float-precision floor of a much larger value that
+recently slid through it: the shipped kernels pin an exactly-constant dispersion to exactly zero (detected via the
+rolling extremes, `max == min`), and the declarations pin these float-residue closures exactly, so a departed
+outlier's residue can never be reported as spread — while the first-moment ratios built on them degenerate to the
+documented signed infinity (or `NaN` where the moment correction is `0 / 0`) rather than a residue-driven huge finite.
 
 ## Glossary (plain words for the suite's terms)
 
-- **spec** — one public function's whole testing contract, written as a single frozen dataclass of plain data in
-  `tests/<family>/<name>.py`. No logic lives there: it *states* facts, the ladder *checks* them.
-- **rung** — one generic test function in `tests/test_ladder.py`, parametrized over every spec it applies to.
-  One rung = one guarantee (e.g. "the golden master matches"), checked identically for all functions.
-- **tier** — an informal grouping of rungs by strength: contract (types and shapes), edge (fixed corner inputs),
-  correctness (oracle and golden agreement), properties (Hypothesis-generated inputs).
-- **oracle** — the naive, obviously-correct reimplementation of a function (plain Python, two-pass, no streaming
-  tricks) that the fast Polars implementation is compared against. For the irreducibly-sequential indicators (the
-  Ehlers cycle cluster, the parabolic SAR, KAMA, the Fisher transform, SuperTrend) the oracle is a structural mirror
-  that confirms internal consistency; the documentation's Correctness page documents the second witness each rests on
-  instead.
-- **golden master** — one frozen input with its frozen, hand-verified output; a change in behavior shows up as a
-  golden mismatch even if impl and oracle drift together.
-- **pin (fixed case)** — one crafted input mapped to its exact expected output, with a written reason. The data
-  home for a fact a random input or an oracle cannot express: a hand-computed value, a domain corner, a signed
-  zero, a degenerate regime.
-- **conditioning (filter)** — a per-spec predicate that tells the property tiers to skip an input regime where the
-  implementation and the oracle *cannot* be expected to agree (a genuine 0/0, a branch-flip residual). Declared as
-  data on the spec, never hidden in a rung.
-- **`covers_conditioning`** — the flag marking the pin that witnesses a filter's excluded regime. Every filter must
-  have one (checked at import): what the fuzz never sees, a fixed case must still demonstrate.
+- **declaration** — one public function's whole testing contract, one frozen dataclass of pure data in
+  `<family>/<name>.py`. No logic lives there: it *states* facts, the rungs *check* them.
+- **suite function** — `suite_pnl` / `suite_metrics` / `suite_indicators`: the one call a declaration file makes; it
+  fixes the family-shared facts, builds the declaration, and registers it.
+- **rung** — one generic check in `support/rungs.py`, parametrized over every declaration it applies to. One rung =
+  one guarantee, checked identically across the public surface.
+- **oracle** — the naive, obviously-correct reimplementation (plain Python, two-pass, no streaming tricks) the fast
+  Polars implementation is compared against. For the irreducibly-sequential references (the Ehlers cycle cluster, the
+  parabolic SAR, KAMA, the Fisher transform, SuperTrend) the oracle is a structural mirror that confirms internal
+  consistency; the Correctness page documents the second witness each rests on.
+- **golden master** — one frozen input with its frozen, hand-verified output; a behavior change shows up as a golden
+  mismatch even if impl and oracle drift together.
+- **pin (fixed case)** — one crafted input mapped to its exact expected output, with a written reason: the data home
+  for a hand-computed value, a domain corner, a signed zero, a degenerate regime.
+- **conditioning (filter)** — a per-declaration predicate that tells the property tier to skip an input regime where
+  impl and oracle *cannot* agree (a genuine 0/0, a branch-flip residual). Declared as data, never hidden in a rung.
 - **warm-up** — the exact count of leading `null` rows a windowed function emits before its first defined value.
-- **flow** — how an interior missing value (a `null` or a `NaN` in the middle of the input) propagates through a
-  function: which rows go missing, and how far downstream.
-- **born red** — the rule that every new guard must first be demonstrated *failing* on a real counterexample
-  (locally, never committed) before it lands green; a guard that was never red proves nothing.
-- **policy** — a function's declared answer to interior `null` / `NaN`, from the `pomata._policy` registry; the
-  flow rungs dispatch on it.
+- **flow** — how an interior missing value propagates through a function: which rows go missing, and how far.
+- **born red** — every new guard is first demonstrated *failing* on a real counterexample before it lands green.

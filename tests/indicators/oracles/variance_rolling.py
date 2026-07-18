@@ -6,7 +6,7 @@ import math
 from collections.abc import Sequence
 
 
-def variance_rolling_reference(
+def reference_variance_rolling(
     expr: Sequence[float | None],
     window: int,
     ddof: int = 0,

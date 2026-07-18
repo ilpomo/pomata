@@ -6,7 +6,7 @@ import math
 from collections.abc import Sequence
 
 
-def sma_reference(
+def reference_sma(
     expr: Sequence[float | None],
     window: int,
 ) -> list[float | None]:

@@ -5,11 +5,11 @@ Naive reference oracle for ``pomata.indicators.di_minus``.
 import math
 from collections.abc import Sequence
 
-from tests.indicators.oracles.atr import atr_reference
-from tests.indicators.oracles.dm_minus import dm_minus_reference
+from tests.indicators.oracles.atr import reference_atr
+from tests.indicators.oracles.dm_minus import reference_dm_minus
 
 
-def di_minus_reference(
+def reference_di_minus(
     high: Sequence[float | None],
     low: Sequence[float | None],
     close: Sequence[float | None],
@@ -18,8 +18,8 @@ def di_minus_reference(
     """
     Naive Minus Directional Indicator over aligned Python lists.
 
-    ``100 * dm_minus / atr`` (the smoothed minus directional movement, :func:`dm_minus_reference`, as a percentage of
-    the average true range, :func:`atr_reference`), recomputed as the oracle for :func:`pomata.indicators.di_minus`.
+    ``100 * dm_minus / atr`` (the smoothed minus directional movement, :func:`reference_dm_minus`, as a percentage of
+    the average true range, :func:`reference_atr`), recomputed as the oracle for :func:`pomata.indicators.di_minus`.
 
     Args:
         high: High-price series (may contain ``None`` and ``float('nan')``).
@@ -35,8 +35,8 @@ def di_minus_reference(
     """
     if window < 1:
         raise ValueError(f"window must be >= 1, got {window}")
-    movement = dm_minus_reference(high, low, window)
-    average_true_range = atr_reference(high, low, close, window)
+    movement = reference_dm_minus(high, low, window)
+    average_true_range = reference_atr(high, low, close, window)
     result: list[float | None] = []
     for movement_value, atr_value in zip(movement, average_true_range, strict=True):
         if movement_value is None or atr_value is None:

@@ -6,7 +6,7 @@ import math
 from collections.abc import Sequence
 
 
-def money_flow_index_reference(
+def reference_money_flow_index(
     high: Sequence[float | None],
     low: Sequence[float | None],
     close: Sequence[float | None],

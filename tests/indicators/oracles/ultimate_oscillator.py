@@ -55,7 +55,7 @@ def _rolling_sum(values: Sequence[float | None], window: int) -> list[float | No
     return result
 
 
-def ultimate_oscillator_reference(
+def reference_ultimate_oscillator(
     high: Sequence[float | None],
     low: Sequence[float | None],
     close: Sequence[float | None],

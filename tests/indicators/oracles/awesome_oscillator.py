@@ -5,11 +5,11 @@ Naive reference oracle for ``pomata.indicators.awesome_oscillator``.
 import math
 from collections.abc import Sequence
 
-from tests.indicators.oracles.price_median import price_median_reference
-from tests.indicators.oracles.sma import sma_reference
+from tests.indicators.oracles.price_median import reference_price_median
+from tests.indicators.oracles.sma import reference_sma
 
 
-def awesome_oscillator_reference(
+def reference_awesome_oscillator(
     high: Sequence[float | None],
     low: Sequence[float | None],
     window_fast: int,
@@ -18,8 +18,8 @@ def awesome_oscillator_reference(
     """
     Naive Awesome Oscillator over Python lists.
 
-    The fast simple average of the bar median (:func:`price_median_reference`) minus the slow one, both via
-    :func:`sma_reference`, recomputed from the certified leg references as the oracle for
+    The fast simple average of the bar median (:func:`reference_price_median`) minus the slow one, both via
+    :func:`reference_sma`, recomputed from the certified leg references as the oracle for
     :func:`pomata.indicators.awesome_oscillator`.
 
     Args:
@@ -43,9 +43,9 @@ def awesome_oscillator_reference(
     if window_fast > window_slow:
         raise ValueError(f"windows must be ordered window_fast <= window_slow, got {window_fast} and {window_slow}")
 
-    median = price_median_reference(high, low)
-    fast = sma_reference(median, window_fast)
-    slow = sma_reference(median, window_slow)
+    median = reference_price_median(high, low)
+    fast = reference_sma(median, window_fast)
+    slow = reference_sma(median, window_slow)
     result: list[float | None] = []
     for fast_value, slow_value in zip(fast, slow, strict=True):
         if fast_value is None or slow_value is None:
