@@ -41,8 +41,8 @@ default) or made mandatory by a plain `__post_init__`.
   the probe-frame builders with by-construction distinct roles (`frames.py`), the regime synthesis that *constructs* a
   degenerate input from a declared axis (`synthesis.py`), the comparison / tolerance layer (`compare.py`,
   `tolerances.py`), the failure-message format (`messages.py`), and the auto-registration and surface bijection
-  (`registry.py`). `declaration.py`, `synthesis.py`, and the TA-Lib-bridging `test_differential.py` are the three
-  modules exempted from `disallow-any-explicit` (they mirror each public function's own `...` signature).
+  (`registry.py`). `declaration.py` is the one module exempted from `disallow-any-explicit`: its factory and
+  oracle fields are reflective `Callable[..., ...]` surfaces over the heterogeneous public signatures.
 
 ## The axes are declared, in a closed family vocabulary
 
@@ -79,8 +79,8 @@ The three families share `shape`, the null / NaN behavior, and the scaling claim
 | `behavior_null` / `behavior_nan` | yes | the family dialect's answer to an interior `null` / `NaN` |
 | `oracle` | yes | the naive reference, named exactly `reference_{name}` (checked at construction) |
 | `scaling` | yes | a non-empty `ScaleAxis` tuple, or a `ScaleExempt(reason)`; a struct's `degree` is a per-field mapping |
-| `space` / `sign` / `nonfinite` | pnl | the cost units, the sign convention, the IEEE-flow contract |
-| `annualization` / `degenerate` | metrics | the annualization convention and the degenerate-denominator regime |
+| `space` / `sign` / `nonfinite` | pnl | the cost units, the sign convention (recorded, not read by any rung), the IEEE-flow contract |
+| `annualization` / `degenerate` | metrics | the annualization convention and the degenerate-denominator regime (recorded; its coverage rides the pins) |
 | `talib` / `talib_reason` / `seeding` | indicators | the TA-Lib relation, its reason, the seeding convention |
 | `warmup` | optional | exact leading-null count: an `int` for a series, a per-field mapping for a struct, `None` for a reduction / unwindowed transform |
 | `fields` | struct | the struct's field names, in order |
@@ -93,7 +93,6 @@ The three families share `shape`, the null / NaN behavior, and the scaling claim
 | `conditioning` | optional | a Hypothesis `assume` filter for the property tier — allowed only with a covering pin |
 | `oracle_rel_tol` / `oracle_abs_tol` | optional | a per-declaration oracle band (a one-pass rolling form vs its two-pass oracle) — always a named constant from `support/tolerances.py` |
 | `flow_deviation` / `flow_horizon` | optional | a reason the interior-missing flow is input-dependent (exempts the flow rungs, pinned instead); rows past a missing bar the flow must have played out by |
-| `reference` / `wikipedia` | optional | the citation and URL for the definition (for the generated docstring) |
 
 A `Pin` is itself pure data: `label` (its id suffix), `inputs` (the full input lanes), `expected` (the output lanes,
 a per-field mapping for a struct), the required `reason` (why the case is pinned), an optional `params_override`,
@@ -144,6 +143,8 @@ Derived, never declared: `name` (from the factory), `landing` (the first input's
 - **scaling** — each homogeneity axis scales every lane by the declared degree; a `ScaleExempt` verifies it is not
   secretly homogeneous.
 - **raises** — each validation counterexample raises its canonical `ValueError`.
+- **type_error** — a bare column-name string in place of a `pl.Expr` raises the canonical `TypeError` through
+  the shared validation hub.
 - **warmup** — the output carries exactly the declared leading nulls (per field for a struct).
 - **all_null** / **empty** / **single_row** — the degenerate-frame contracts (an all-null input yields all-null or the
   declared deviant; an empty frame gives the shape's empty answer; a one-row input keeps the declared shape).

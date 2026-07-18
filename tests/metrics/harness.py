@@ -69,8 +69,6 @@ def suite_metrics(  # noqa: PLR0913
     conditioning: Callable[[pl.DataFrame], bool] | None = None,
     oracle_rel_tol: float | None = None,
     oracle_abs_tol: float | None = None,
-    reference: str = "",
-    wikipedia: str = "",
 ) -> Declaration:
     """
     Build, register, and return the :class:`Declaration` for one public ``pomata.metrics`` function.
@@ -139,7 +137,5 @@ def suite_metrics(  # noqa: PLR0913
         conditioning=conditioning,
         oracle_rel_tol=oracle_rel_tol,
         oracle_abs_tol=oracle_abs_tol,
-        reference=reference,
-        wikipedia=wikipedia,
     )
     return register(declaration)

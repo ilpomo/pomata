@@ -34,6 +34,7 @@ from tests.support.declaration import (
     build_expr,
     horizon,
     lane_series,
+    named_lanes,
     probe_length,
     reference_lanes,
     widest_warmup,
@@ -71,21 +72,28 @@ def _assert_lanes(
     *,
     expected: _Lanes,
     actual: _Lanes,
-    rel_tol: float,
-    abs_tol: float,
+    bands: tuple[float, float],
     triage: str,
+    expected_label: str = "oracle",
 ) -> None:
     """Assert the named lanes agree; on the first disagreement raise the rich, triaged failure message."""
     if sorted(actual) != sorted(expected):
-        msg = f"{declaration.name}: {check} produced lanes {sorted(actual)}, the oracle has {sorted(expected)}"
+        msg = (
+            f"{declaration.name}: {check} produced lanes {sorted(actual)}, the {expected_label} has {sorted(expected)}"
+        )
         raise AssertionError(msg)
     for name in sorted(expected):
-        index = first_mismatch(actual[name], expected[name], rel_tol=rel_tol, abs_tol=abs_tol)
+        index = first_mismatch(actual[name], expected[name], rel_tol=bands[0], abs_tol=bands[1])
         if index is not None:
             disagreement = messages.Disagreement(lane=name, expected=expected[name], observed=actual[name], index=index)
             raise AssertionError(
                 messages.describe_failure(
-                    declaration=declaration, check=check, probe=probe, disagreement=disagreement, triage=triage
+                    declaration=declaration,
+                    check=check,
+                    probe=probe,
+                    disagreement=disagreement,
+                    triage=triage,
+                    expected_label=expected_label,
                 )
             )
 
@@ -106,8 +114,7 @@ def _assert_reference(declaration: Declaration, probe: Probe, rel_tol: float, ab
         probe,
         expected=expected,
         actual=actual,
-        rel_tol=rel_tol,
-        abs_tol=abs_tol,
+        bands=(rel_tol, abs_tol),
         triage=triage,
     )
 
@@ -163,8 +170,7 @@ def check_golden(declaration: Declaration) -> None:
         probe,
         expected=expected,
         actual=actual,
-        rel_tol=TOLERANCE_RELATIVE_EXACT,
-        abs_tol=TOLERANCE_ABSOLUTE_EXACT,
+        bands=(TOLERANCE_RELATIVE_EXACT, TOLERANCE_ABSOLUTE_EXACT),
         triage=triage,
     )
 
@@ -198,8 +204,7 @@ def _check_one_pin(declaration: Declaration, pin: Pin) -> None:
         probe,
         expected=expected,
         actual=actual,
-        rel_tol=TOLERANCE_RELATIVE_EXACT,
-        abs_tol=TOLERANCE_ABSOLUTE_EXACT,
+        bands=(TOLERANCE_RELATIVE_EXACT, TOLERANCE_ABSOLUTE_EXACT),
         triage=triage,
     )
     if pin.signed:
@@ -212,13 +217,6 @@ def check_pins(declaration: Declaration) -> None:
         pytest.skip(f"{declaration.name}: no pinned cases declared")
     for pin in declaration.pins:
         _check_one_pin(declaration, pin)
-
-
-def _named_lanes(lanes: list[pl.Series]) -> _Lanes:
-    """Name computed lanes as :func:`actual_lanes` does: struct field names for a struct, else ``{"out": ...}``."""
-    if len(lanes) > 1:
-        return {lane.name: lane.to_list() for lane in lanes}
-    return {"out": lanes[0].to_list()}
 
 
 def check_recomposition(declaration: Declaration) -> None:
@@ -235,7 +233,7 @@ def check_recomposition(declaration: Declaration) -> None:
         pytest.skip(f"{declaration.name}: no recomposition declared")
     frame = probe_frame(declaration.inputs, probe_length(declaration))
     actual = actual_lanes(declaration, frame)
-    expected = _named_lanes(lane_series(frame.select(recomposition().alias("out"))))
+    expected = named_lanes(lane_series(frame.select(recomposition().alias("out"))))
     probe = synthesis.describe(declaration, frame, "the deterministic probe frame")
     triage = messages.triage_generic(declaration.name, "recomposition")
     _assert_lanes(
@@ -244,8 +242,7 @@ def check_recomposition(declaration: Declaration) -> None:
         probe,
         expected=expected,
         actual=actual,
-        rel_tol=TOLERANCE_RELATIVE_PROPERTY,
-        abs_tol=TOLERANCE_ABSOLUTE_REFERENCE,
+        bands=(TOLERANCE_RELATIVE_PROPERTY, TOLERANCE_ABSOLUTE_REFERENCE),
         triage=triage,
     )
 
@@ -478,9 +475,7 @@ def _assert_flow(
     expected = reference_lanes(declaration, pair.probe.frame)
     actual = actual_lanes(declaration, pair.probe.frame)
     triage = messages.triage_for_enum(declaration.name, declared)
-    _assert_lanes(
-        declaration, check, pair.probe, expected=expected, actual=actual, rel_tol=rel, abs_tol=abs_, triage=triage
-    )
+    _assert_lanes(declaration, check, pair.probe, expected=expected, actual=actual, bands=(rel, abs_), triage=triage)
     if declaration.shape is Shape.REDUCING:
         _assert_reducing_flow(
             declaration, check, pair, declared=declared, actual=actual, shapes=reduce_shapes, rel_tol=rel, abs_tol=abs_
@@ -617,8 +612,7 @@ def check_nonfinite(declaration: Declaration) -> None:
             probe,
             expected=expected,
             actual=actual,
-            rel_tol=TOLERANCE_RELATIVE_REFERENCE,
-            abs_tol=TOLERANCE_ABSOLUTE_REFERENCE,
+            bands=(TOLERANCE_RELATIVE_REFERENCE, TOLERANCE_ABSOLUTE_REFERENCE),
             triage=triage,
         )
 
@@ -777,6 +771,7 @@ def check_scaling(declaration: Declaration) -> None:
                         probe=probe,
                         disagreement=disagreement,
                         triage=triage,
+                        expected_label="declared scaling",
                     )
                 )
 
@@ -864,8 +859,7 @@ def check_all_null(declaration: Declaration) -> None:
         probe,
         expected=_deviant_lanes(declaration.deviant.expected),
         actual=actual,
-        rel_tol=TOLERANCE_RELATIVE_EXACT,
-        abs_tol=TOLERANCE_ABSOLUTE_EXACT,
+        bands=(TOLERANCE_RELATIVE_EXACT, TOLERANCE_ABSOLUTE_EXACT),
         triage=triage,
     )
 

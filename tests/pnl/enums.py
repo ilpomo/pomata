@@ -38,6 +38,7 @@ class ConventionSign(enum.Enum):
 
     LONG_SHORT = "long_short"  # symmetric in the position sign: longs and shorts both carry the payoff
     SHORT_ONLY = "short_only"  # charged on the short leg alone (``max(-quantity, 0)``), zero on longs and flats
+    # No current pnl function is long-only; the member completes the closed book-side vocabulary.
     LONG_ONLY = "long_only"  # accrued on the long leg alone, zero on shorts and flats
 
 

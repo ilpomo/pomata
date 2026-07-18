@@ -82,6 +82,7 @@ def describe_failure(
     probe: Probe,
     disagreement: Disagreement,
     triage: str,
+    expected_label: str = "oracle",
 ) -> str:
     """
     Assemble the full failure message: header, the printed probe, the two lanes with the first divergence, the triage,
@@ -93,6 +94,7 @@ def describe_failure(
         probe: The synthesized probe (its frame, description, and reproduction snippet).
         disagreement: The located lane disagreement.
         triage: The triage line (from :func:`triage_for_enum` or :func:`triage_generic`).
+        expected_label: What the expected lane IS (``oracle`` by default; a declared value names itself).
 
     Returns:
         The multi-line message a rung raises as its ``AssertionError``.
@@ -110,7 +112,7 @@ def describe_failure(
         str(probe.frame),
         "",
         f"lane {disagreement.lane!r}:",
-        f"  expected (oracle):  {_render_lane(disagreement.expected)}",
+        f"  expected ({expected_label}): {_render_lane(disagreement.expected)}",
         f"  observed (factory): {_render_lane(disagreement.observed)}",
         f"  first divergence at index {disagreement.index}: "
         f"expected {_render_one(expected_value)} vs observed {_render_one(observed_value)}",
