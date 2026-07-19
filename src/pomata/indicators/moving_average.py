@@ -157,8 +157,8 @@ def dema(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 5 + ["B"] * 5,
-        ...         "close": [10.0, 11.0, 12.0, 11.0, 13.0, 20.0, 22.0, 21.0, 23.0, 22.0],
+        ...         "ticker": ["AAPL"] * 5 + ["NVDA"] * 5,
+        ...         "close": [10.0, 11.0, 12.0, 11.0, 13.0] + [20.0, 22.0, 21.0, 23.0, 22.0],
         ...     }
         ... )
         >>> frame.with_columns(dema=dema(pl.col("close"), window=2).over("ticker").round(4))["dema"].to_list()
@@ -270,8 +270,8 @@ def ema(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 5 + ["B"] * 5,
-        ...         "close": [10.0, 11.0, 12.0, 11.0, 13.0, 20.0, 22.0, 21.0, 23.0, 22.0],
+        ...         "ticker": ["AAPL"] * 5 + ["NVDA"] * 5,
+        ...         "close": [10.0, 11.0, 12.0, 11.0, 13.0] + [20.0, 22.0, 21.0, 23.0, 22.0],
         ...     }
         ... )
         >>> frame.with_columns(ema=ema(pl.col("close"), window=2).over("ticker").round(4))["ema"].to_list()
@@ -381,8 +381,8 @@ def hma(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 5 + ["B"] * 5,
-        ...         "close": [10.0, 11.0, 12.0, 11.0, 13.0, 20.0, 22.0, 21.0, 23.0, 22.0],
+        ...         "ticker": ["AAPL"] * 5 + ["NVDA"] * 5,
+        ...         "close": [10.0, 11.0, 12.0, 11.0, 13.0] + [20.0, 22.0, 21.0, 23.0, 22.0],
         ...     }
         ... )
         >>> frame.with_columns(hma=hma(pl.col("close"), window=2).over("ticker").round(4))["hma"].to_list()
@@ -528,8 +528,8 @@ def kama(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 5 + ["B"] * 5,
-        ...         "close": [10.0, 11.0, 12.0, 11.0, 13.0, 20.0, 22.0, 21.0, 23.0, 22.0],
+        ...         "ticker": ["AAPL"] * 5 + ["NVDA"] * 5,
+        ...         "close": [10.0, 11.0, 12.0, 11.0, 13.0] + [20.0, 22.0, 21.0, 23.0, 22.0],
         ...     }
         ... )
         >>> expr = kama(pl.col("close"), window=2, window_fast=2, window_slow=30)
@@ -644,8 +644,8 @@ def rma(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 5 + ["B"] * 5,
-        ...         "close": [10.0, 11.0, 12.0, 11.0, 13.0, 20.0, 22.0, 21.0, 23.0, 22.0],
+        ...         "ticker": ["AAPL"] * 5 + ["NVDA"] * 5,
+        ...         "close": [10.0, 11.0, 12.0, 11.0, 13.0] + [20.0, 22.0, 21.0, 23.0, 22.0],
         ...     }
         ... )
         >>> frame.with_columns(rma=rma(pl.col("close"), window=2).over("ticker").round(4))["rma"].to_list()
@@ -734,8 +734,8 @@ def sma(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 5 + ["B"] * 5,
-        ...         "close": [10.0, 11.0, 12.0, 11.0, 13.0, 20.0, 22.0, 21.0, 23.0, 22.0],
+        ...         "ticker": ["AAPL"] * 5 + ["NVDA"] * 5,
+        ...         "close": [10.0, 11.0, 12.0, 11.0, 13.0] + [20.0, 22.0, 21.0, 23.0, 22.0],
         ...     }
         ... )
         >>> frame.with_columns(sma=sma(pl.col("close"), window=2).over("ticker").round(4))["sma"].to_list()
@@ -859,25 +859,9 @@ def t3(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 8 + ["B"] * 8,
-        ...         "close": [
-        ...             10.0,
-        ...             11.0,
-        ...             12.0,
-        ...             11.0,
-        ...             13.0,
-        ...             14.0,
-        ...             13.0,
-        ...             15.0,
-        ...             20.0,
-        ...             22.0,
-        ...             21.0,
-        ...             23.0,
-        ...             22.0,
-        ...             24.0,
-        ...             25.0,
-        ...             24.0,
-        ...         ],
+        ...         "ticker": ["AAPL"] * 8 + ["NVDA"] * 8,
+        ...         "close": [10.0, 11.0, 12.0, 11.0, 13.0, 14.0, 13.0, 15.0]
+        ...         + [20.0, 22.0, 21.0, 23.0, 22.0, 24.0, 25.0, 24.0],
         ...     }
         ... )
         >>> frame.with_columns(t3=t3(pl.col("close"), window=2).over("ticker").round(4))["t3"].to_list()
@@ -1004,8 +988,8 @@ def tema(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 5 + ["B"] * 5,
-        ...         "close": [10.0, 11.0, 12.0, 11.0, 13.0, 20.0, 22.0, 21.0, 23.0, 22.0],
+        ...         "ticker": ["AAPL"] * 5 + ["NVDA"] * 5,
+        ...         "close": [10.0, 11.0, 12.0, 11.0, 13.0] + [20.0, 22.0, 21.0, 23.0, 22.0],
         ...     }
         ... )
         >>> frame.with_columns(tema=tema(pl.col("close"), window=2).over("ticker").round(4))["tema"].to_list()
@@ -1100,8 +1084,8 @@ def trima(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 3 + ["B"] * 3,
-        ...         "x": [1.0, 2.0, 3.0, 10.0, 20.0, 30.0],
+        ...         "ticker": ["AAPL"] * 3 + ["NVDA"] * 3,
+        ...         "x": [1.0, 2.0, 3.0] + [10.0, 20.0, 30.0],
         ...     }
         ... )
         >>> frame.with_columns(trima=trima(pl.col("x"), window=2).over("ticker").round(4))["trima"].to_list()
@@ -1208,9 +1192,9 @@ def vwma(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 5 + ["B"] * 5,
-        ...         "close": [10.0, 11.0, 12.0, 11.0, 13.0, 20.0, 22.0, 21.0, 23.0, 22.0],
-        ...         "volume": [100.0, 120.0, 90.0, 110.0, 130.0, 100.0, 120.0, 90.0, 110.0, 130.0],
+        ...         "ticker": ["AAPL"] * 5 + ["NVDA"] * 5,
+        ...         "close": [10.0, 11.0, 12.0, 11.0, 13.0] + [20.0, 22.0, 21.0, 23.0, 22.0],
+        ...         "volume": [100.0, 120.0, 90.0, 110.0, 130.0] + [100.0, 120.0, 90.0, 110.0, 130.0],
         ...     }
         ... )
         >>> expr = vwma(pl.col("close"), pl.col("volume"), window=2)
@@ -1333,8 +1317,8 @@ def wma(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 5 + ["B"] * 5,
-        ...         "close": [10.0, 11.0, 12.0, 11.0, 13.0, 20.0, 22.0, 21.0, 23.0, 22.0],
+        ...         "ticker": ["AAPL"] * 5 + ["NVDA"] * 5,
+        ...         "close": [10.0, 11.0, 12.0, 11.0, 13.0] + [20.0, 22.0, 21.0, 23.0, 22.0],
         ...     }
         ... )
         >>> frame.with_columns(wma=wma(pl.col("close"), window=2).over("ticker").round(4))["wma"].to_list()

@@ -91,7 +91,7 @@ COST_PER_SHARE = suite_pnl(
         Example(
             inputs={"quantity": (10.0, 10.0, -5.0, 2.0, 2.0, 2.0)},
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker starts flat:",
-            partition=("A", "A", "A", "B", "B", "B"),
+            partition=("AAPL",) * 3 + ("NVDA",) * 3,
             params={"fee": 0.01},
             round_to=4,
         ),

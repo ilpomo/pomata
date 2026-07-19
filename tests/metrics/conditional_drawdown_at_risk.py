@@ -88,7 +88,7 @@ CONDITIONAL_DRAWDOWN_AT_RISK = suite_metrics(
         Example(
             inputs={"equity_curve": (1.1, 1.05, 1.2, 1.15, 1.3, 1.25, 1.4, 1.0, 0.9, 0.95, 1.1, 1.0, 1.2, 1.15)},
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
-            partition=("A", "A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B", "B"),
+            partition=("AAPL",) * 7 + ("NVDA",) * 7,
             round_to=4,
         ),
         Example(

@@ -178,7 +178,7 @@ PNL_GROSS_INVERSE = suite_pnl(
                 "price": (100.0, 110.0, 105.0, 120.0, 50.0, 55.0, 52.0, 58.0),
             },
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            partition=("AAPL",) * 4 + ("NVDA",) * 4,
             round_to=6,
         ),
         Example(

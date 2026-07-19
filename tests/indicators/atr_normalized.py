@@ -81,7 +81,7 @@ ATR_NORMALIZED = suite_indicators(
                 "close": (10.0, 10.3, 10.5, 10.1, 20.0, 20.6, 21.0, 20.2),
             },
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            partition=("AAPL",) * 4 + ("NVDA",) * 4,
             params={"window": 2},
             round_to=4,
         ),

@@ -93,7 +93,7 @@ PRICE_WEIGHTED_CLOSE = suite_indicators(
             intro="On a multi-ticker panel, partition with ``.over`` as the windowed indicators require — "
             "for this elementwise transform ``.over`` is optional (the result is identical without "
             "it) and shown here only for consistency:",
-            partition=("A", "A", "A", "B", "B", "B"),
+            partition=("AAPL",) * 3 + ("NVDA",) * 3,
             round_to=4,
         ),
         Example(

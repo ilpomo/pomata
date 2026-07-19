@@ -58,7 +58,7 @@ TOTAL_RETURN = suite_metrics(
         Example(
             inputs={"equity_curve": (1.1, 1.045, 1.254, 1.3794, 1.02, 1.05, 0.98, 1.12)},
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
-            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            partition=("AAPL",) * 4 + ("NVDA",) * 4,
             round_to=4,
         ),
         Example(

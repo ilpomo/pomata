@@ -178,7 +178,7 @@ VWMA = suite_indicators(
                 "volume": (100.0, 120.0, 90.0, 110.0, 130.0, 100.0, 120.0, 90.0, 110.0, 130.0),
             },
             intro="On a multi-series panel, wrap the call in ``.over`` so each group warms up independently:",
-            partition=("A", "A", "A", "A", "A", "B", "B", "B", "B", "B"),
+            partition=("AAPL",) * 5 + ("NVDA",) * 5,
             params={"window": 2},
             round_to=4,
         ),

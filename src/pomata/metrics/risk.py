@@ -270,25 +270,9 @@ def conditional_value_at_risk(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 8 + ["B"] * 8,
-        ...         "returns": [
-        ...             0.03,
-        ...             -0.05,
-        ...             0.02,
-        ...             -0.08,
-        ...             0.01,
-        ...             -0.06,
-        ...             0.04,
-        ...             -0.02,
-        ...             0.02,
-        ...             -0.03,
-        ...             0.05,
-        ...             -0.04,
-        ...             0.01,
-        ...             -0.07,
-        ...             0.03,
-        ...             -0.01,
-        ...         ],
+        ...         "ticker": ["AAPL"] * 8 + ["NVDA"] * 8,
+        ...         "returns": [0.03, -0.05, 0.02, -0.08, 0.01, -0.06, 0.04, -0.02]
+        ...         + [0.02, -0.03, 0.05, -0.04, 0.01, -0.07, 0.03, -0.01],
         ...     }
         ... )
         >>> expr = conditional_value_at_risk(pl.col("returns"), confidence=0.75)
@@ -391,8 +375,8 @@ def downside_deviation(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 5 + ["B"] * 5,
-        ...         "returns": [0.02, -0.04, 0.01, -0.06, 0.03, 0.01, -0.02, 0.04, -0.03, 0.02],
+        ...         "ticker": ["AAPL"] * 5 + ["NVDA"] * 5,
+        ...         "returns": [0.02, -0.04, 0.01, -0.06, 0.03] + [0.01, -0.02, 0.04, -0.03, 0.02],
         ...     }
         ... )
         >>> expr = downside_deviation(pl.col("returns"), periods_per_year=252)
@@ -490,28 +474,14 @@ def downside_deviation_rolling(
         >>> frame.select(downside_deviation_rolling=expr.round(4))["downside_deviation_rolling"].to_list()
         [None, None, 0.1833, 0.2049, 0.0917, 0.0917, 0.1375]
 
-        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up on its own (the ``B`` group never
-        borrows ``A``'s tail):
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up on its own (the ``NVDA`` group never
+        borrows ``AAPL``'s tail):
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 7 + ["B"] * 7,
-        ...         "returns": [
-        ...             0.01,
-        ...             -0.02,
-        ...             0.03,
-        ...             -0.01,
-        ...             0.02,
-        ...             0.0,
-        ...             -0.015,
-        ...             0.02,
-        ...             -0.01,
-        ...             0.04,
-        ...             -0.03,
-        ...             0.01,
-        ...             0.025,
-        ...             -0.02,
-        ...         ],
+        ...         "ticker": ["AAPL"] * 7 + ["NVDA"] * 7,
+        ...         "returns": [0.01, -0.02, 0.03, -0.01, 0.02, 0.0, -0.015]
+        ...         + [0.02, -0.01, 0.04, -0.03, 0.01, 0.025, -0.02],
         ...     }
         ... )
         >>> expr = downside_deviation_rolling(pl.col("returns"), window=3, periods_per_year=252)
@@ -612,23 +582,9 @@ def kelly_criterion(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 7 + ["B"] * 7,
-        ...         "returns": [
-        ...             0.03,
-        ...             -0.01,
-        ...             0.02,
-        ...             -0.015,
-        ...             0.01,
-        ...             0.005,
-        ...             -0.02,
-        ...             0.04,
-        ...             -0.02,
-        ...             0.03,
-        ...             -0.01,
-        ...             0.02,
-        ...             0.01,
-        ...             -0.03,
-        ...         ],
+        ...         "ticker": ["AAPL"] * 7 + ["NVDA"] * 7,
+        ...         "returns": [0.03, -0.01, 0.02, -0.015, 0.01, 0.005, -0.02]
+        ...         + [0.04, -0.02, 0.03, -0.01, 0.02, 0.01, -0.03],
         ...     }
         ... )
         >>> expr = kelly_criterion(pl.col("returns"))
@@ -726,23 +682,9 @@ def kurtosis(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 7 + ["B"] * 7,
-        ...         "returns": [
-        ...             0.01,
-        ...             -0.02,
-        ...             0.015,
-        ...             -0.03,
-        ...             0.005,
-        ...             -0.01,
-        ...             0.02,
-        ...             0.02,
-        ...             -0.01,
-        ...             0.03,
-        ...             -0.02,
-        ...             0.01,
-        ...             -0.005,
-        ...             0.025,
-        ...         ],
+        ...         "ticker": ["AAPL"] * 7 + ["NVDA"] * 7,
+        ...         "returns": [0.01, -0.02, 0.015, -0.03, 0.005, -0.01, 0.02]
+        ...         + [0.02, -0.01, 0.03, -0.02, 0.01, -0.005, 0.025],
         ...     }
         ... )
         >>> expr = kurtosis(pl.col("returns"))
@@ -835,28 +777,14 @@ def kurtosis_rolling(
         >>> frame.select(kurtosis_rolling=expr.round(4))["kurtosis_rolling"].to_list()
         [None, None, None, -1.4266, -1.7785, -1.64, -1.099]
 
-        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up on its own (the ``B`` group never
-        borrows ``A``'s tail):
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up on its own (the ``NVDA`` group never
+        borrows ``AAPL``'s tail):
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 7 + ["B"] * 7,
-        ...         "returns": [
-        ...             0.01,
-        ...             -0.02,
-        ...             0.03,
-        ...             -0.01,
-        ...             0.02,
-        ...             0.0,
-        ...             -0.015,
-        ...             0.02,
-        ...             -0.01,
-        ...             0.04,
-        ...             -0.03,
-        ...             0.01,
-        ...             0.025,
-        ...             -0.02,
-        ...         ],
+        ...         "ticker": ["AAPL"] * 7 + ["NVDA"] * 7,
+        ...         "returns": [0.01, -0.02, 0.03, -0.01, 0.02, 0.0, -0.015]
+        ...         + [0.02, -0.01, 0.04, -0.03, 0.01, 0.025, -0.02],
         ...     }
         ... )
         >>> expr = kurtosis_rolling(pl.col("returns"), window=4)
@@ -952,23 +880,9 @@ def payoff_ratio(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 7 + ["B"] * 7,
-        ...         "returns": [
-        ...             0.03,
-        ...             -0.01,
-        ...             0.02,
-        ...             -0.015,
-        ...             0.01,
-        ...             0.005,
-        ...             -0.02,
-        ...             0.04,
-        ...             -0.02,
-        ...             0.03,
-        ...             -0.01,
-        ...             0.02,
-        ...             0.01,
-        ...             -0.03,
-        ...         ],
+        ...         "ticker": ["AAPL"] * 7 + ["NVDA"] * 7,
+        ...         "returns": [0.03, -0.01, 0.02, -0.015, 0.01, 0.005, -0.02]
+        ...         + [0.04, -0.02, 0.03, -0.01, 0.02, 0.01, -0.03],
         ...     }
         ... )
         >>> expr = payoff_ratio(pl.col("returns"))
@@ -1065,23 +979,9 @@ def profit_factor(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 7 + ["B"] * 7,
-        ...         "returns": [
-        ...             0.03,
-        ...             -0.01,
-        ...             0.02,
-        ...             -0.015,
-        ...             0.01,
-        ...             0.005,
-        ...             -0.02,
-        ...             0.04,
-        ...             -0.02,
-        ...             0.03,
-        ...             -0.01,
-        ...             0.02,
-        ...             0.01,
-        ...             -0.03,
-        ...         ],
+        ...         "ticker": ["AAPL"] * 7 + ["NVDA"] * 7,
+        ...         "returns": [0.03, -0.01, 0.02, -0.015, 0.01, 0.005, -0.02]
+        ...         + [0.04, -0.02, 0.03, -0.01, 0.02, 0.01, -0.03],
         ...     }
         ... )
         >>> expr = profit_factor(pl.col("returns"))
@@ -1196,13 +1096,13 @@ def risk_of_ruin(
         >>> frame.select(risk_of_ruin(pl.col("returns")).round(4)).item()
         1.0
 
-        On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently (here ``A`` has no
-        edge, so its ruin is certain, while the winning ``B`` is small):
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently (here ``AAPL`` has
+        no edge, so its ruin is certain, while the winning ``NVDA`` is small):
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 4 + ["B"] * 4,
-        ...         "returns": [0.02, -0.01, 0.03, -0.02, 0.02, 0.01, 0.03, -0.02],
+        ...         "ticker": ["AAPL"] * 4 + ["NVDA"] * 4,
+        ...         "returns": [0.02, -0.01, 0.03, -0.02] + [0.02, 0.01, 0.03, -0.02],
         ...     }
         ... )
         >>> expr = risk_of_ruin(pl.col("returns"))
@@ -1310,23 +1210,9 @@ def skewness(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 7 + ["B"] * 7,
-        ...         "returns": [
-        ...             0.01,
-        ...             -0.02,
-        ...             0.015,
-        ...             -0.03,
-        ...             0.005,
-        ...             -0.01,
-        ...             0.02,
-        ...             0.02,
-        ...             -0.01,
-        ...             0.03,
-        ...             -0.02,
-        ...             0.01,
-        ...             -0.005,
-        ...             0.025,
-        ...         ],
+        ...         "ticker": ["AAPL"] * 7 + ["NVDA"] * 7,
+        ...         "returns": [0.01, -0.02, 0.015, -0.03, 0.005, -0.01, 0.02]
+        ...         + [0.02, -0.01, 0.03, -0.02, 0.01, -0.005, 0.025],
         ...     }
         ... )
         >>> expr = skewness(pl.col("returns"))
@@ -1425,28 +1311,14 @@ def skewness_rolling(
         >>> frame.select(skewness_rolling=expr.round(4))["skewness_rolling"].to_list()
         [None, None, None, 0.278, -0.0, -0.0, 0.6568]
 
-        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up on its own (the ``B`` group never
-        borrows ``A``'s tail):
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up on its own (the ``NVDA`` group never
+        borrows ``AAPL``'s tail):
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 7 + ["B"] * 7,
-        ...         "returns": [
-        ...             0.01,
-        ...             -0.02,
-        ...             0.03,
-        ...             -0.01,
-        ...             0.02,
-        ...             0.0,
-        ...             -0.015,
-        ...             0.02,
-        ...             -0.01,
-        ...             0.04,
-        ...             -0.03,
-        ...             0.01,
-        ...             0.025,
-        ...             -0.02,
-        ...         ],
+        ...         "ticker": ["AAPL"] * 7 + ["NVDA"] * 7,
+        ...         "returns": [0.01, -0.02, 0.03, -0.01, 0.02, 0.0, -0.015]
+        ...         + [0.02, -0.01, 0.04, -0.03, 0.01, 0.025, -0.02],
         ...     }
         ... )
         >>> expr = skewness_rolling(pl.col("returns"), window=4)
@@ -1535,8 +1407,8 @@ def tail_ratio(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 5 + ["B"] * 5,
-        ...         "returns": [0.02, -0.04, 0.01, -0.06, 0.03, 0.05, -0.02, 0.04, -0.03, 0.02],
+        ...         "ticker": ["AAPL"] * 5 + ["NVDA"] * 5,
+        ...         "returns": [0.02, -0.04, 0.01, -0.06, 0.03] + [0.05, -0.02, 0.04, -0.03, 0.02],
         ...     }
         ... )
         >>> expr = tail_ratio(pl.col("returns"))
@@ -1627,28 +1499,14 @@ def tail_ratio_rolling(
         >>> frame.select(tail_ratio_rolling=expr.round(4))["tail_ratio_rolling"].to_list()
         [None, None, None, None, 1.5556, 1.5556, 2.0]
 
-        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up on its own (the ``B`` group never
-        borrows ``A``'s tail):
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up on its own (the ``NVDA`` group never
+        borrows ``AAPL``'s tail):
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 7 + ["B"] * 7,
-        ...         "returns": [
-        ...             0.01,
-        ...             -0.02,
-        ...             0.03,
-        ...             -0.01,
-        ...             0.02,
-        ...             0.0,
-        ...             -0.015,
-        ...             0.02,
-        ...             -0.01,
-        ...             0.04,
-        ...             -0.03,
-        ...             0.01,
-        ...             0.025,
-        ...             -0.02,
-        ...         ],
+        ...         "ticker": ["AAPL"] * 7 + ["NVDA"] * 7,
+        ...         "returns": [0.01, -0.02, 0.03, -0.01, 0.02, 0.0, -0.015]
+        ...         + [0.02, -0.01, 0.04, -0.03, 0.01, 0.025, -0.02],
         ...     }
         ... )
         >>> expr = tail_ratio_rolling(pl.col("returns"), window=5)
@@ -1762,8 +1620,8 @@ def value_at_risk(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 5 + ["B"] * 5,
-        ...         "returns": [0.02, -0.04, 0.01, -0.06, 0.03, 0.01, -0.02, 0.04, -0.03, 0.02],
+        ...         "ticker": ["AAPL"] * 5 + ["NVDA"] * 5,
+        ...         "returns": [0.02, -0.04, 0.01, -0.06, 0.03] + [0.01, -0.02, 0.04, -0.03, 0.02],
         ...     }
         ... )
         >>> expr = value_at_risk(pl.col("returns"), confidence=0.95)
@@ -1863,29 +1721,9 @@ def value_at_risk_modified(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 10 + ["B"] * 10,
-        ...         "returns": [
-        ...             0.02,
-        ...             -0.04,
-        ...             0.01,
-        ...             -0.06,
-        ...             0.03,
-        ...             -0.05,
-        ...             0.04,
-        ...             -0.02,
-        ...             0.01,
-        ...             -0.03,
-        ...             0.03,
-        ...             -0.03,
-        ...             0.02,
-        ...             -0.05,
-        ...             0.04,
-        ...             -0.04,
-        ...             0.03,
-        ...             -0.01,
-        ...             0.02,
-        ...             -0.02,
-        ...         ],
+        ...         "ticker": ["AAPL"] * 10 + ["NVDA"] * 10,
+        ...         "returns": [0.02, -0.04, 0.01, -0.06, 0.03, -0.05, 0.04, -0.02, 0.01, -0.03]
+        ...         + [0.03, -0.03, 0.02, -0.05, 0.04, -0.04, 0.03, -0.01, 0.02, -0.02],
         ...     }
         ... )
         >>> expr = value_at_risk_modified(pl.col("returns"))
@@ -2026,8 +1864,8 @@ def value_at_risk_parametric(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 5 + ["B"] * 5,
-        ...         "returns": [0.02, -0.04, 0.01, -0.06, 0.03, 0.01, -0.02, 0.04, -0.03, 0.02],
+        ...         "ticker": ["AAPL"] * 5 + ["NVDA"] * 5,
+        ...         "returns": [0.02, -0.04, 0.01, -0.06, 0.03] + [0.01, -0.02, 0.04, -0.03, 0.02],
         ...     }
         ... )
         >>> expr = value_at_risk_parametric(pl.col("returns"))
@@ -2122,28 +1960,14 @@ def value_at_risk_rolling(
         >>> frame.select(value_at_risk_rolling=expr.round(4))["value_at_risk_rolling"].to_list()
         [None, None, None, -0.0185, -0.0185, -0.0085, -0.0142]
 
-        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up on its own (the ``B`` group never
-        borrows ``A``'s tail):
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up on its own (the ``NVDA`` group never
+        borrows ``AAPL``'s tail):
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 7 + ["B"] * 7,
-        ...         "returns": [
-        ...             0.01,
-        ...             -0.02,
-        ...             0.03,
-        ...             -0.01,
-        ...             0.02,
-        ...             0.0,
-        ...             -0.015,
-        ...             0.02,
-        ...             -0.01,
-        ...             0.04,
-        ...             -0.03,
-        ...             0.01,
-        ...             0.025,
-        ...             -0.02,
-        ...         ],
+        ...         "ticker": ["AAPL"] * 7 + ["NVDA"] * 7,
+        ...         "returns": [0.01, -0.02, 0.03, -0.01, 0.02, 0.0, -0.015]
+        ...         + [0.02, -0.01, 0.04, -0.03, 0.01, 0.025, -0.02],
         ...     }
         ... )
         >>> expr = value_at_risk_rolling(pl.col("returns"), window=4)
@@ -2235,8 +2059,8 @@ def volatility(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 5 + ["B"] * 5,
-        ...         "returns": [0.01, -0.02, 0.015, 0.005, -0.01, 0.02, 0.01, -0.03, 0.0, 0.01],
+        ...         "ticker": ["AAPL"] * 5 + ["NVDA"] * 5,
+        ...         "returns": [0.01, -0.02, 0.015, 0.005, -0.01] + [0.02, 0.01, -0.03, 0.0, 0.01],
         ...     }
         ... )
         >>> expr = volatility(pl.col("returns"), periods_per_year=252)
@@ -2332,28 +2156,14 @@ def volatility_rolling(
         >>> frame.select(volatility_rolling=expr.round(4))["volatility_rolling"].to_list()
         [None, None, 0.3995, 0.42, 0.3305, 0.2425, 0.2787]
 
-        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up on its own (the ``B`` group never
-        borrows ``A``'s tail):
+        On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up on its own (the ``NVDA`` group never
+        borrows ``AAPL``'s tail):
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 7 + ["B"] * 7,
-        ...         "returns": [
-        ...             0.01,
-        ...             -0.02,
-        ...             0.03,
-        ...             -0.01,
-        ...             0.02,
-        ...             0.0,
-        ...             -0.015,
-        ...             0.02,
-        ...             -0.01,
-        ...             0.04,
-        ...             -0.03,
-        ...             0.01,
-        ...             0.025,
-        ...             -0.02,
-        ...         ],
+        ...         "ticker": ["AAPL"] * 7 + ["NVDA"] * 7,
+        ...         "returns": [0.01, -0.02, 0.03, -0.01, 0.02, 0.0, -0.015]
+        ...         + [0.02, -0.01, 0.04, -0.03, 0.01, 0.025, -0.02],
         ...     }
         ... )
         >>> expr = volatility_rolling(pl.col("returns"), window=3, periods_per_year=252)
@@ -2455,23 +2265,9 @@ def win_rate(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 7 + ["B"] * 7,
-        ...         "returns": [
-        ...             0.03,
-        ...             -0.01,
-        ...             0.02,
-        ...             -0.015,
-        ...             0.01,
-        ...             0.005,
-        ...             -0.02,
-        ...             0.04,
-        ...             -0.02,
-        ...             0.03,
-        ...             0.01,
-        ...             0.02,
-        ...             0.01,
-        ...             -0.03,
-        ...         ],
+        ...         "ticker": ["AAPL"] * 7 + ["NVDA"] * 7,
+        ...         "returns": [0.03, -0.01, 0.02, -0.015, 0.01, 0.005, -0.02]
+        ...         + [0.04, -0.02, 0.03, 0.01, 0.02, 0.01, -0.03],
         ...     }
         ... )
         >>> expr = win_rate(pl.col("returns"))

@@ -86,8 +86,8 @@ def returns_log(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 4 + ["B"] * 4,
-        ...         "close": [100.0, 105.0, 102.0, 108.0, 50.0, 52.0, 51.0, 55.0],
+        ...         "ticker": ["AAPL"] * 4 + ["NVDA"] * 4,
+        ...         "close": [100.0, 105.0, 102.0, 108.0] + [50.0, 52.0, 51.0, 55.0],
         ...     }
         ... )
         >>> expr = returns_log(pl.col("close"))
@@ -207,8 +207,8 @@ def returns_simple(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 4 + ["B"] * 4,
-        ...         "close": [100.0, 105.0, 102.0, 108.0, 50.0, 52.0, 51.0, 55.0],
+        ...         "ticker": ["AAPL"] * 4 + ["NVDA"] * 4,
+        ...         "close": [100.0, 105.0, 102.0, 108.0] + [50.0, 52.0, 51.0, 55.0],
         ...     }
         ... )
         >>> expr = returns_simple(pl.col("close"))

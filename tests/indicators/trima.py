@@ -153,7 +153,7 @@ TRIMA = suite_indicators(
         Example(
             inputs={"expr": (1.0, 2.0, 3.0, 10.0, 20.0, 30.0)},
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-            partition=("A", "A", "A", "B", "B", "B"),
+            partition=("AAPL",) * 3 + ("NVDA",) * 3,
             params={"window": 2},
             round_to=4,
         ),

@@ -64,7 +64,7 @@ ULCER_INDEX = suite_metrics(
         Example(
             inputs={"equity_curve": (1.0, 1.1, 1.05, 1.2, 0.9, 1.0, 1.1, 1.0, 0.95, 1.05, 1.0, 1.15, 1.1, 1.2)},
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
-            partition=("A", "A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B", "B"),
+            partition=("AAPL",) * 7 + ("NVDA",) * 7,
             round_to=4,
         ),
         Example(

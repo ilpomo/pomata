@@ -85,7 +85,7 @@ CAPTURE_DOWNSIDE_RATIO = suite_metrics(
                 "benchmark": (0.015, -0.008, 0.025, -0.015, 0.01, 0.004, 0.012, 0.02, -0.01, 0.006, -0.004, 0.01),
             },
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
-            partition=("A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B"),
+            partition=("AAPL",) * 6 + ("NVDA",) * 6,
             params={"periods_per_year": 252},
             round_to=4,
         ),

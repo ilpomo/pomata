@@ -123,7 +123,7 @@ STOCHASTIC_FAST = suite_indicators(
                 "close": (9.5, 10.5, 11.5, 11.0, 19.5, 20.5, 21.5, 21.0),
             },
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            partition=("AAPL",) * 4 + ("NVDA",) * 4,
             params={"window_k": 2, "window_d": 2},
             round_to=4,
             fields=("k",),

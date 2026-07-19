@@ -99,7 +99,7 @@ COST_NOTIONAL = suite_pnl(
         Example(
             inputs={"quantity": (10.0, 10.0, -5.0, 2.0, 2.0, 2.0), "price": (100.0, 102.0, 101.0, 50.0, 51.0, 49.0)},
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker starts flat:",
-            partition=("A", "A", "A", "B", "B", "B"),
+            partition=("AAPL",) * 3 + ("NVDA",) * 3,
             params={"rate": 0.001},
             round_to=4,
         ),

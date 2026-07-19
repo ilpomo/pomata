@@ -114,7 +114,7 @@ RSI_STOCHASTIC = suite_indicators(
                 "wave": (50.0, 51.0, 50.5, 52.0, 51.5, 53.0, 52.0, 54.0, 40.0, 41.0, 40.5, 42.0, 41.5, 43.0, 42.0, 44.0)
             },
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-            partition=("A", "A", "A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B", "B", "B"),
+            partition=("AAPL",) * 8 + ("NVDA",) * 8,
             params={"window_rsi": 3, "window_k": 3, "window_d": 2},
             round_to=4,
             fields=("k",),

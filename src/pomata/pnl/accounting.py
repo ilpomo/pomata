@@ -86,8 +86,8 @@ def cumulative_pnl(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 4 + ["B"] * 4,
-        ...         "returns": [0.1, 0.2, -0.05, 0.1, 0.0, 0.1, 0.1, -0.2],
+        ...         "ticker": ["AAPL"] * 4 + ["NVDA"] * 4,
+        ...         "returns": [0.1, 0.2, -0.05, 0.1] + [0.0, 0.1, 0.1, -0.2],
         ...     }
         ... )
         >>> expr = cumulative_pnl(pl.col("returns"))
@@ -186,9 +186,9 @@ def dividend(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 4 + ["B"] * 4,
-        ...         "quantity": [100.0, 100.0, 100.0, 0.0, 50.0, 50.0, -50.0, -50.0],
-        ...         "dividend_per_share": [0.0, 0.0, 0.5, 0.0, 0.0, 0.3, 0.3, 0.3],
+        ...         "ticker": ["AAPL"] * 4 + ["NVDA"] * 4,
+        ...         "quantity": [100.0, 100.0, 100.0, 0.0] + [50.0, 50.0, -50.0, -50.0],
+        ...         "dividend_per_share": [0.0, 0.0, 0.5, 0.0] + [0.0, 0.3, 0.3, 0.3],
         ...     }
         ... )
         >>> expr = dividend(pl.col("quantity"), pl.col("dividend_per_share"))
@@ -294,8 +294,8 @@ def equity_curve(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 4 + ["B"] * 4,
-        ...         "returns": [0.1, 0.2, -0.05, 0.1, 0.0, 0.1, 0.1, -0.2],
+        ...         "ticker": ["AAPL"] * 4 + ["NVDA"] * 4,
+        ...         "returns": [0.1, 0.2, -0.05, 0.1] + [0.0, 0.1, 0.1, -0.2],
         ...     }
         ... )
         >>> expr = equity_curve(pl.col("returns"))
@@ -410,9 +410,9 @@ def pnl_gross(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 4 + ["B"] * 4,
-        ...         "quantity": [10.0, 10.0, -5.0, -5.0, 2.0, 2.0, 2.0, 2.0],
-        ...         "price": [100.0, 102.0, 101.0, 104.0, 50.0, 51.0, 49.0, 52.0],
+        ...         "ticker": ["AAPL"] * 4 + ["NVDA"] * 4,
+        ...         "quantity": [10.0, 10.0, -5.0, -5.0] + [2.0, 2.0, 2.0, 2.0],
+        ...         "price": [100.0, 102.0, 101.0, 104.0] + [50.0, 51.0, 49.0, 52.0],
         ...     }
         ... )
         >>> expr = pnl_gross(pl.col("quantity"), pl.col("price"))
@@ -555,9 +555,9 @@ def pnl_gross_inverse(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 4 + ["B"] * 4,
-        ...         "quantity": [1.0, 1.0, -2.0, -2.0, 2.0, 2.0, 2.0, 2.0],
-        ...         "price": [100.0, 110.0, 105.0, 120.0, 50.0, 55.0, 52.0, 58.0],
+        ...         "ticker": ["AAPL"] * 4 + ["NVDA"] * 4,
+        ...         "quantity": [1.0, 1.0, -2.0, -2.0] + [2.0, 2.0, 2.0, 2.0],
+        ...         "price": [100.0, 110.0, 105.0, 120.0] + [50.0, 55.0, 52.0, 58.0],
         ...     }
         ... )
         >>> expr = pnl_gross_inverse(pl.col("quantity"), pl.col("price"))
@@ -684,9 +684,9 @@ def pnl_net(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 4 + ["B"] * 4,
-        ...         "pnl_gross": [20.0, 5.0, -15.0, -20.0, 8.0, 12.0, -3.0, 10.0],
-        ...         "cost": [2.0, 0.0, 3.0, 0.0, 1.0, 2.0, 0.0, 1.0],
+        ...         "ticker": ["AAPL"] * 4 + ["NVDA"] * 4,
+        ...         "pnl_gross": [20.0, 5.0, -15.0, -20.0] + [8.0, 12.0, -3.0, 10.0],
+        ...         "cost": [2.0, 0.0, 3.0, 0.0] + [1.0, 2.0, 0.0, 1.0],
         ...     }
         ... )
         >>> expr = pnl_net(pl.col("pnl_gross"), pl.col("cost"))
@@ -809,9 +809,9 @@ def returns_gross(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 4 + ["B"] * 4,
-        ...         "weight": [1.0, -1.0, 0.5, 0.5, 0.5, 0.5, -1.0, 1.0],
-        ...         "asset_returns": [0.02, 0.03, -0.01, 0.04, -0.02, 0.01, 0.03, -0.01],
+        ...         "ticker": ["AAPL"] * 4 + ["NVDA"] * 4,
+        ...         "weight": [1.0, -1.0, 0.5, 0.5] + [0.5, 0.5, -1.0, 1.0],
+        ...         "asset_returns": [0.02, 0.03, -0.01, 0.04] + [-0.02, 0.01, 0.03, -0.01],
         ...     }
         ... )
         >>> expr = returns_gross(pl.col("weight"), pl.col("asset_returns"))
@@ -924,9 +924,9 @@ def returns_net(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 4 + ["B"] * 4,
-        ...         "returns_gross": [0.05, -0.02, 0.03, 0.01, 0.0, 0.04, -0.01, 0.02],
-        ...         "cost": [0.0005, 0.0015, 0.0005, 0.0, 0.0005, 0.001, 0.0, 0.0005],
+        ...         "ticker": ["AAPL"] * 4 + ["NVDA"] * 4,
+        ...         "returns_gross": [0.05, -0.02, 0.03, 0.01] + [0.0, 0.04, -0.01, 0.02],
+        ...         "cost": [0.0005, 0.0015, 0.0005, 0.0] + [0.0005, 0.001, 0.0, 0.0005],
         ...     }
         ... )
         >>> expr = returns_net(pl.col("returns_gross"), pl.col("cost"))
@@ -1038,8 +1038,8 @@ def turnover(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 4 + ["B"] * 4,
-        ...         "weight": [0.5, 1.0, -0.5, -0.5, 1.0, 1.0, 0.0, 0.5],
+        ...         "ticker": ["AAPL"] * 4 + ["NVDA"] * 4,
+        ...         "weight": [0.5, 1.0, -0.5, -0.5] + [1.0, 1.0, 0.0, 0.5],
         ...     }
         ... )
         >>> frame.with_columns(turnover=turnover(pl.col("weight")).over("ticker").round(4))["turnover"].to_list()

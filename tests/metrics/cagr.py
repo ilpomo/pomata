@@ -100,7 +100,7 @@ CAGR = suite_metrics(
         Example(
             inputs={"equity_curve": (1.1, 1.21, 1.05, 1.1025)},
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
-            partition=("A", "A", "B", "B"),
+            partition=("AAPL",) * 2 + ("NVDA",) * 2,
             params={"periods_per_year": 1},
             round_to=4,
         ),

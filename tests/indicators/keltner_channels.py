@@ -131,7 +131,7 @@ KELTNER_CHANNELS = suite_indicators(
                 "close": (2.0, 3.0, 4.0, 5.0, 12.0, 13.0, 14.0, 15.0),
             },
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker's bands warm up independently:",
-            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            partition=("AAPL",) * 4 + ("NVDA",) * 4,
             params={"window": 2, "window_atr": 2},
             round_to=4,
             fields=("middle",),

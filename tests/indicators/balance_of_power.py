@@ -114,7 +114,7 @@ BALANCE_OF_POWER = suite_indicators(
             },
             intro="Balance of Power is elementwise, so ``.over`` is optional; each ticker yields the same "
             "per-bar reading:",
-            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            partition=("AAPL",) * 4 + ("NVDA",) * 4,
             round_to=4,
         ),
         Example(

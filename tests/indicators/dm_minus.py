@@ -127,7 +127,7 @@ DM_MINUS = suite_indicators(
                 "low": (9.0, 10.0, 11.0, 10.5, 12.0, 18.0, 20.0, 17.0, 21.0, 18.0),
             },
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-            partition=("A", "A", "A", "A", "A", "B", "B", "B", "B", "B"),
+            partition=("AAPL",) * 5 + ("NVDA",) * 5,
             params={"window": 2},
             round_to=4,
         ),

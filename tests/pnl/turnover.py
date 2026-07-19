@@ -87,7 +87,7 @@ TURNOVER = suite_pnl(
             inputs={"weight": (0.5, 1.0, -0.5, -0.5, 1.0, 1.0, 0.0, 0.5)},
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker starts flat and never "
             "differences across the boundary:",
-            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            partition=("AAPL",) * 4 + ("NVDA",) * 4,
             round_to=4,
         ),
         Example(

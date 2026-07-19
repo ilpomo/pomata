@@ -100,7 +100,7 @@ TOTAL_RETURN_ROLLING = suite_metrics(
         Example(
             inputs={"equity_curve": (1.0, 1.1, 1.05, 1.2, 1.15, 1.0, 1.02, 1.08, 1.05, 1.12)},
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-            partition=("A", "A", "A", "A", "A", "B", "B", "B", "B", "B"),
+            partition=("AAPL",) * 5 + ("NVDA",) * 5,
             params={"window": 3},
             round_to=4,
         ),

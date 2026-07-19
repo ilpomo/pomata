@@ -134,7 +134,7 @@ COST_FUNDING = suite_pnl(
             },
             intro="On a multi-ticker panel, partition with ``.over`` — for this elementwise holding cost it "
             "is optional (the result is identical without it) and shown here only for consistency:",
-            partition=("A", "A", "A", "B", "B", "B"),
+            partition=("AAPL",) * 3 + ("NVDA",) * 3,
             round_to=6,
         ),
         Example(

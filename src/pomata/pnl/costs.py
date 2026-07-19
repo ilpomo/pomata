@@ -103,9 +103,9 @@ def cost_borrow(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 3 + ["B"] * 3,
-        ...         "quantity": [100.0, -50.0, -50.0, -20.0, -20.0, 30.0],
-        ...         "price": [10.0, 11.0, 12.0, 13.0, 14.0, 15.0],
+        ...         "ticker": ["AAPL"] * 3 + ["NVDA"] * 3,
+        ...         "quantity": [100.0, -50.0, -50.0] + [-20.0, -20.0, 30.0],
+        ...         "price": [10.0, 11.0, 12.0] + [13.0, 14.0, 15.0],
         ...     }
         ... )
         >>> expr = cost_borrow(pl.col("quantity"), pl.col("price"), rate=0.0001)
@@ -217,8 +217,8 @@ def cost_fixed(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 3 + ["B"] * 3,
-        ...         "quantity": [10.0, 10.0, -5.0, 2.0, 2.0, 2.0],
+        ...         "ticker": ["AAPL"] * 3 + ["NVDA"] * 3,
+        ...         "quantity": [10.0, 10.0, -5.0] + [2.0, 2.0, 2.0],
         ...     }
         ... )
         >>> expr = cost_fixed(pl.col("quantity"), fee=1.0)
@@ -338,10 +338,10 @@ def cost_funding(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 3 + ["B"] * 3,
-        ...         "quantity": [10.0, 10.0, -5.0, 2.0, 2.0, -3.0],
-        ...         "price": [100.0, 102.0, 101.0, 50.0, 51.0, 49.0],
-        ...         "funding_rate": [0.0001, 0.0001, 0.0001, 0.0001, -0.0001, 0.0001],
+        ...         "ticker": ["AAPL"] * 3 + ["NVDA"] * 3,
+        ...         "quantity": [10.0, 10.0, -5.0] + [2.0, 2.0, -3.0],
+        ...         "price": [100.0, 102.0, 101.0] + [50.0, 51.0, 49.0],
+        ...         "funding_rate": [0.0001, 0.0001, 0.0001] + [0.0001, -0.0001, 0.0001],
         ...     }
         ... )
         >>> expr = cost_funding(pl.col("quantity"), pl.col("price"), pl.col("funding_rate"))
@@ -463,9 +463,9 @@ def cost_notional(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 3 + ["B"] * 3,
-        ...         "quantity": [10.0, 10.0, -5.0, 2.0, 2.0, 2.0],
-        ...         "price": [100.0, 102.0, 101.0, 50.0, 51.0, 49.0],
+        ...         "ticker": ["AAPL"] * 3 + ["NVDA"] * 3,
+        ...         "quantity": [10.0, 10.0, -5.0] + [2.0, 2.0, 2.0],
+        ...         "price": [100.0, 102.0, 101.0] + [50.0, 51.0, 49.0],
         ...     }
         ... )
         >>> expr = cost_notional(pl.col("quantity"), pl.col("price"), rate=0.001)
@@ -575,8 +575,8 @@ def cost_per_share(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 3 + ["B"] * 3,
-        ...         "quantity": [10.0, 10.0, -5.0, 2.0, 2.0, 2.0],
+        ...         "ticker": ["AAPL"] * 3 + ["NVDA"] * 3,
+        ...         "quantity": [10.0, 10.0, -5.0] + [2.0, 2.0, 2.0],
         ...     }
         ... )
         >>> expr = cost_per_share(pl.col("quantity"), fee=0.01)
@@ -680,8 +680,8 @@ def cost_proportional(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 3 + ["B"] * 3,
-        ...         "weight": [0.5, 1.0, -0.5, 1.0, 1.0, 0.0],
+        ...         "ticker": ["AAPL"] * 3 + ["NVDA"] * 3,
+        ...         "weight": [0.5, 1.0, -0.5] + [1.0, 1.0, 0.0],
         ...     }
         ... )
         >>> expr = cost_proportional(pl.col("weight"), rate=0.001)
@@ -785,8 +785,8 @@ def cost_slippage(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 3 + ["B"] * 3,
-        ...         "weight": [0.5, 1.0, -0.5, 1.0, 1.0, 0.0],
+        ...         "ticker": ["AAPL"] * 3 + ["NVDA"] * 3,
+        ...         "weight": [0.5, 1.0, -0.5] + [1.0, 1.0, 0.0],
         ...     }
         ... )
         >>> expr = cost_slippage(pl.col("weight"), half_spread=0.002)

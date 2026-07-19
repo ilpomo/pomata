@@ -103,7 +103,7 @@ AROON = suite_indicators(
             },
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker's channel warms up "
             "independently:",
-            partition=("A", "A", "A", "A", "A", "B", "B", "B", "B", "B"),
+            partition=("AAPL",) * 5 + ("NVDA",) * 5,
             params={"window": 3},
             round_to=4,
             fields=("up",),

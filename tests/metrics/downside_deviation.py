@@ -86,7 +86,7 @@ DOWNSIDE_DEVIATION = suite_metrics(
         Example(
             inputs={"returns": (0.02, -0.04, 0.01, -0.06, 0.03, 0.01, -0.02, 0.04, -0.03, 0.02)},
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
-            partition=("A", "A", "A", "A", "A", "B", "B", "B", "B", "B"),
+            partition=("AAPL",) * 5 + ("NVDA",) * 5,
             params={"periods_per_year": 252},
             round_to=4,
         ),

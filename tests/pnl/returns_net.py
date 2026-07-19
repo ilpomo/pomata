@@ -90,7 +90,7 @@ RETURNS_NET = suite_pnl(
             },
             intro="The subtraction is elementwise, so ``.over`` partitions identically and is shown only "
             "for consistency:",
-            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            partition=("AAPL",) * 4 + ("NVDA",) * 4,
             round_to=4,
         ),
         Example(
