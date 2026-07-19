@@ -7,7 +7,7 @@ from typing import Final
 
 import polars as pl
 
-from pomata._expr import float64_expr, validate_window, validate_window_order
+from pomata._expr import float64_expr, rolling_is_constant, validate_window, validate_window_order
 from pomata.indicators.moving_average import ema, rma, sma
 from pomata.indicators.price_transform import price_median, price_typical
 
@@ -836,7 +836,7 @@ def cci(
     raw = (typical_price - typical_mean) / (0.015 * mean_deviation)
     # A flat window (every typical price equal) is the 0/0 degenerate: detect it exactly via the rolling extremes, so a
     # sub-ULP residual in the rolling-mean denominator cannot fake a finite reading, and return NaN as documented.
-    is_flat = typical_price.rolling_max(window) == typical_price.rolling_min(window)
+    is_flat = rolling_is_constant(typical_price, window)
     return pl.when(is_flat).then(float("nan")).otherwise(raw).name.keep()
 
 
