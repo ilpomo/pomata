@@ -17,8 +17,12 @@ COST_FUNDING = suite_pnl(
     space=SpaceCost.CASH,
     sign=ConventionSign.LONG_SHORT,
     oracle=reference_cost_funding,
-    # Degree-1 homogeneous in the position; the quantity axis stands in for the symmetric product.
-    scaling=(ScaleAxis(roles=("quantity",), degree=1),),
+    # Degree-1 homogeneous in the position, the price, and the funding rate (each scales the flow linearly).
+    scaling=(
+        ScaleAxis(roles=("quantity",), degree=1),
+        ScaleAxis(roles=("price",), degree=1),
+        ScaleAxis(roles=("funding_rate",), degree=1),
+    ),
     golden=Golden(
         inputs={
             "quantity": (10.0, 10.0, -5.0, -5.0, 20.0),

@@ -13,7 +13,7 @@ from tests.metrics.kurtosis import KURTOSIS
 from tests.metrics.oracles import reference_kurtosis_rolling
 from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 from tests.support.strategies import windows_well_conditioned
-from tests.support.tolerances import TOLERANCE_RELATIVE_ROLLING_ORACLE
+from tests.support.tolerances import TOLERANCE_ABSOLUTE_ROLLING_MOMENT, TOLERANCE_RELATIVE_ROLLING_ORACLE
 
 
 def _windows_well_conditioned(frame: pl.DataFrame) -> bool:
@@ -111,7 +111,7 @@ KURTOSIS_ROLLING = suite_metrics(
         ),
     ),
     oracle_rel_tol=TOLERANCE_RELATIVE_ROLLING_ORACLE,
-    oracle_abs_tol=1e-07,
+    oracle_abs_tol=TOLERANCE_ABSOLUTE_ROLLING_MOMENT,
     reference='Joanes, D. N. & Gill, C. A. (1998). "Comparing Measures of Sample Skewness and '
     'Kurtosis." *Journal of the Royal Statistical Society: Series D (The Statistician)*, '
     "47(1), 183-189.",

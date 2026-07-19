@@ -36,7 +36,7 @@ default) or made mandatory by a plain `__post_init__`.
   enum to the leading-null count the generic declaration speaks, assembles the `Declaration`, and registers it.
 - **Rung** — `support/rungs.py`: one plain function of a `Declaration`, wrapped once in `test_rungs.py` and
   parametrized over `registry_all()`, so the pytest id names the function (`test_oracle_agreement[cost_borrow]`). A
-  check a declaration does not activate (no golden, no pins, a scale-exempt function) skips cleanly with a reason.
+  check a declaration does not activate (no golden, no pins) skips cleanly with a reason.
 - **The engine** — `support/`: the frozen data types and the small engine the rungs delegate to (`declaration.py`),
   the probe-frame builders with by-construction distinct roles (`frames.py`), the regime synthesis that *constructs* a
   degenerate input from a declared axis (`synthesis.py`), the comparison / tolerance layer (`compare.py`,
@@ -140,8 +140,8 @@ Derived, never declared: `name` (from the factory), `landing` (the first input's
   family that declares no such contract skips).
 - **twin_coherence** — a rolling function's row `i` equals its `rolling_of` twin reduced over the trailing window.
 - **annualization** — a closed-form annualization scales the output by the declared period-count ratio.
-- **scaling** — each homogeneity axis scales every lane by the declared degree; a `ScaleExempt` verifies it is not
-  secretly homogeneous.
+- **scaling** — each homogeneity axis scales every lane by the declared degree; a `ScaleExempt` is counter-probed —
+  scaling every input must fit no clean integer degree — so an exemption cannot hide a declarable axis.
 - **raises** — each validation counterexample raises its canonical `ValueError`.
 - **type_error** — a bare column-name string in place of a `pl.Expr` raises the canonical `TypeError` through
   the shared validation hub.
@@ -195,6 +195,8 @@ The guards, by that test:
   mirrors disclose that they confirm internal consistency, not independence — the disclosing set held to be exactly
   the structural-mirror set (a bijection, so an independent oracle can never claim the disclosure).
 - `test_precision_table.py` — the published precision figures in `docs/correctness.md` stay reproducible.
+- `test_scripts.py` — every project import a `scripts/` regenerator states resolves against the live modules (AST,
+  never executing a script), so the `docs/correctness.md` invitation to rerun them cannot rot invisibly.
 - `test_versions.py` — the support claims (Polars floor, Python versions, OS list) in the README, the docs site, the
   contributing guide, and the CI matrix all match `pyproject.toml`.
 - `test_package.py` — import smoke for every subpackage and the exposed `__version__`.

@@ -36,23 +36,12 @@ Tiers (smallest band first):
   approaches the conditioning floor. Measured worst |impl - oracle| across a 4,000-frame boundary-stressed sweep:
   ``3.7e-11`` (skewness) / ``2.3e-9`` (kurtosis), so the ``1e-7`` floor keeps ~1.5 orders of margin over the worst
   case while staying 10x inside the plain rolling band.
-- **Streaming-at-magnitude** — a streaming statistic vs a two-pass oracle at extreme magnitude, where catastrophic
-  cancellation forces a loose absolute term; the large-magnitude checks use :func:`input_scale` to size it to the data,
-  or ``TOLERANCE_ABSOLUTE_STREAMING`` for the fixed large-magnitude case.
-
-The **magnitude-relative factors** size an absolute tolerance to the data as ``input_scale ** degree * factor``: a
-streaming or recursive statistic and its two-pass oracle diverge by about ``magnitude ** degree * machine_eps`` on
-degenerate inputs, so a fixed absolute tolerance is wrong at the extremes. The factor is set per the statistic's
-conditioning -- the worst-case residual it predicts on degenerate windows, which the property tiers then hold the
-implementation to:
-
-- ``TOLERANCE_FACTOR_STREAMING`` (degree 1, the square-root-amplified streaming statistics): the square root amplifies
-  the relative error as the variance approaches zero, worst residual about ``1e-8``, so ``1e-6``; consumed through
-  :func:`streaming_abs_tol`.
-- ``TOLERANCE_FACTOR_EXACT`` (degree 1, well-conditioned kernels -- recursive, windowed, or stateless): the
-  impl-vs-oracle residual is at most a few ULP (exactly zero for the recursive and stateless kernels; a
-  streaming-vs-two-pass rounding for the windowed means), far below ``1e-9``, which is generous slack that still rejects
-  any real coding error.
+The **magnitude-relative factor** ``TOLERANCE_FACTOR_EXACT`` sizes an absolute tolerance to the data as
+``input_scale ** degree * factor``: a streaming or recursive statistic and its two-pass oracle diverge by about
+``magnitude ** degree * machine_eps`` on degenerate inputs, so a fixed absolute tolerance is wrong at the extremes. For
+the well-conditioned kernels (recursive, windowed, or stateless) the impl-vs-oracle residual is at most a few ULP
+(exactly zero for the recursive and stateless kernels; a streaming-vs-two-pass rounding for the windowed means), far
+below ``1e-9``, which is generous slack that still rejects any real coding error.
 
 A scale-INVARIANT output (a cycle period or phase, a 0/1 flag) is ``O(1)`` whatever the input magnitude, so its
 tolerance is ABSOLUTE (``TOLERANCE_ABSOLUTE_REFERENCE``), never ``input_scale``-sized -- sizing an ``O(1)`` value to the
@@ -72,9 +61,7 @@ TOLERANCE_RELATIVE_SCALE = 1e-6
 TOLERANCE_RELATIVE_ROLLING_ORACLE = 1e-6
 TOLERANCE_ABSOLUTE_ROLLING_ORACLE = 1e-6
 TOLERANCE_ABSOLUTE_ROLLING_MOMENT = 1e-7
-TOLERANCE_ABSOLUTE_STREAMING = 1e-3
 TOLERANCE_FACTOR_EXACT = 1e-9
-TOLERANCE_FACTOR_STREAMING = 1e-6
 
 
 def input_scale(values: Sequence[float | None]) -> float:
@@ -85,7 +72,7 @@ def input_scale(values: Sequence[float | None]) -> float:
     oracle, the two diverge by roughly ``(input magnitude) ** degree * machine_eps`` on degenerate (near-constant)
     windows — e.g. a window of equal values left behind once a large value slides out has a true variance of ``0`` but a
     small non-zero streaming residual. The absolute tolerance must scale with this rather than stay fixed; multiply the
-    result by :data:`TOLERANCE_FACTOR_STREAMING`.
+    result by :data:`TOLERANCE_FACTOR_EXACT`.
 
     Args:
         values: The raw observations to size the tolerance from; ``None`` and ``float('nan')`` entries are skipped.
@@ -95,22 +82,3 @@ def input_scale(values: Sequence[float | None]) -> float:
     """
     finite = [abs(value) for value in values if isinstance(value, float) and math.isfinite(value)]
     return max(finite, default=1.0)
-
-
-def streaming_abs_tol(values: Sequence[float | None], *, periods: int = 1) -> float:
-    """
-    The magnitude-relative absolute tolerance for a streaming statistic, sized to the data's own scale.
-
-    Sizes the band to the data via :func:`input_scale` and :data:`TOLERANCE_FACTOR_STREAMING`. Pass ``periods`` to scale
-    it by ``sqrt(periods)`` for an annualized output (volatility, downside deviation), matching that metric's own
-    sqrt-of-time scaling; the default ``periods=1`` leaves it on the per-period (own) scale used by the quantile
-    metrics.
-
-    Args:
-        values: The raw observations to size the tolerance from.
-        periods: The annualization factor the metric applies; the band is scaled by ``sqrt(periods)``.
-
-    Returns:
-        The magnitude-relative absolute tolerance.
-    """
-    return input_scale(values) * math.sqrt(periods) * TOLERANCE_FACTOR_STREAMING

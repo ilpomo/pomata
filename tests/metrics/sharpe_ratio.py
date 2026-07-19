@@ -5,11 +5,20 @@ invariant.
 
 import math
 
-from pomata.metrics import sharpe_ratio
+import polars as pl
+
+from pomata.metrics import sharpe_ratio, volatility
 from tests.metrics.enums import Annualization, BehaviorNan, BehaviorNull, Degenerate
 from tests.metrics.harness import suite_metrics
 from tests.metrics.oracles import reference_sharpe_ratio
 from tests.support.declaration import Example, Golden, Pin, ScaleAxis
+
+
+def _sharpe_component() -> pl.Expr:
+    """Sharpe recomposed from the public ``volatility`` factory at the spec's default params (rf 0.0, 252 periods)."""
+    rf_period = math.pow(1.0 + 0.0, 1.0 / 252) - 1.0
+    return (pl.col("returns") - rf_period).mean() * 252 / volatility(pl.col("returns"), periods_per_year=252)
+
 
 SHARPE_RATIO = suite_metrics(
     factory=sharpe_ratio,
@@ -20,6 +29,7 @@ SHARPE_RATIO = suite_metrics(
     annualization=Annualization.SQRT_TIME,
     degenerate=Degenerate.RATIO_SIGNED_INF_OR_NAN,
     oracle=reference_sharpe_ratio,
+    recomposition=_sharpe_component,
     scaling=(ScaleAxis(roles=("returns",), degree=0),),
     raises=(
         ({"periods_per_year": 0}, r"periods_per_year must be >= 1"),

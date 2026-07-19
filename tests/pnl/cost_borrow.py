@@ -17,8 +17,11 @@ COST_BORROW = suite_pnl(
     space=SpaceCost.CASH,
     sign=ConventionSign.SHORT_ONLY,
     oracle=reference_cost_borrow,
-    # Degree-1 homogeneous in the short notional; only the quantity axis is exercised.
-    scaling=(ScaleAxis(roles=("quantity",), degree=1),),
+    # Degree-1 homogeneous in the position and in the price (each scales the borrow charge linearly).
+    scaling=(
+        ScaleAxis(roles=("quantity",), degree=1),
+        ScaleAxis(roles=("price",), degree=1),
+    ),
     raises=(
         ({"rate": -0.0001}, r"rate must be a finite number >= 0"),
         ({"rate": math.nan}, r"rate must be a finite number >= 0"),

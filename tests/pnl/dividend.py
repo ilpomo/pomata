@@ -17,8 +17,11 @@ DIVIDEND = suite_pnl(
     space=SpaceCost.CASH,
     sign=ConventionSign.LONG_SHORT,
     oracle=reference_dividend,
-    # Degree-1 homogeneous in the position; only the quantity axis is exercised.
-    scaling=(ScaleAxis(roles=("quantity",), degree=1),),
+    # Degree-1 homogeneous in the position and in the per-share dividend (each scales the cash flow linearly).
+    scaling=(
+        ScaleAxis(roles=("quantity",), degree=1),
+        ScaleAxis(roles=("dividend_per_share",), degree=1),
+    ),
     golden=Golden(
         inputs={
             "quantity": (100.0, 100.0, 100.0, 0.0, -50.0),
