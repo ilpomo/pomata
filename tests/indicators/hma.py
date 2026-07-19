@@ -6,7 +6,7 @@ from pomata.indicators import hma
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_hma
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 HMA = suite_indicators(
     factory=hma,
@@ -99,7 +99,22 @@ HMA = suite_indicators(
     args_prose={
         "window": "Number of observations in the moving window. Must be ``>= 2``.",
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-    intro_missing="A ``null`` (skipped, and any window it touches yields ``null``) and a ``NaN`` (which "
-    "propagates) make the exact handling visible at a glance:",
+    example_columns={"expr": "close"},
+    examples=(
+        Example(inputs={"expr": (1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0)}, params={"window": 4}, round_to=4),
+        Example(
+            inputs={"expr": (10.0, 11.0, 12.0, 11.0, 13.0, 20.0, 22.0, 21.0, 23.0, 22.0)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "A", "A", "B", "B", "B", "B", "B"),
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={"expr": (10.0, 11.0, 12.0, 13.0, None, 15.0, float("nan"), 17.0, 18.0, 19.0)},
+            intro="A ``null`` (skipped, and any window it touches yields ``null``) and a ``NaN`` (which "
+            "propagates) make the exact handling visible at a glance:",
+            params={"window": 2},
+            round_to=4,
+        ),
+    ),
 )

@@ -6,9 +6,10 @@ left untouched. Everything from ``Args:`` to the closing quotes (the *tail*) is 
 per-parameter ``args_prose`` (falling back to the mined shared table) drives ``Args``, ``returns_body`` drives
 ``Returns``, ``raises_prose`` the ValueError clause of ``Raises``, the Note opener template plus ``note_extension``,
 ``notes``, and the whole ``bullets`` list drive ``Note``, and the reference fields plus ``see_also`` supply
-``References`` / ``See Also`` verbatim. The Examples section supplies the import header (with ``example_imports`` and
-``example_alias``) and the scenario intros; the scenario frames, calls, and executed outputs are regenerated in a
-following pass once the corpus call style is normalized (the style is not rule-derivable from data today).
+``References`` / ``See Also`` verbatim. The Examples section is rendered in full: the import header (with
+``example_imports`` and ``example_alias``), each scenario's intro, and — for every declared ``Example`` — its frame,
+its call in the canonical style, and the executed output, run at generation so a captured value can never drift from
+what the doctest prints.
 
 Only the family-shared prose is a *template mined from the corpus by majority* (the Note opener body per family, the
 TypeError line, the shared Args descriptions); the sanctioned opener variant for a rolling metric is keyed off the
@@ -23,12 +24,15 @@ from __future__ import annotations
 
 import inspect
 import math
+import re
 from collections.abc import Mapping, Sequence
+
+import polars as pl
 
 import pomata.indicators
 import pomata.metrics
 import pomata.pnl
-from tests.support.declaration import Declaration, ScalarParam, build_expr
+from tests.support.declaration import Declaration, Example, ScalarParam, Shape, build_expr
 from tests.support.frames import materialize
 
 # --- layout constants ---
@@ -245,7 +249,7 @@ def _raises(declaration: Declaration) -> list[str]:
     """The Raises section: the shared TypeError line, then the per-function ValueError clause where one is declared."""
     body = [BASE + BASE + _TYPE_ERROR]
     if declaration.raises_prose:
-        body += _paragraph(declaration.raises_prose, BASE + BASE)
+        body += _wrap(declaration.raises_prose, BASE + BASE, BASE + BASE + "    ")
     return [BASE + "Raises:", *body]
 
 
@@ -253,12 +257,22 @@ def _raises(declaration: Declaration) -> list[str]:
 
 
 def _returns(declaration: Declaration) -> list[str]:
-    """The Returns section: the declared body, its blank-line-separated paragraphs each greedily wrapped."""
+    """The Returns section: the declared body, its blank-line-separated paragraphs each greedily wrapped.
+
+    A paragraph that opens a struct's field list (``- ``field`` — ...``) is split back into one bullet per field —
+    each field ends its clause with a period before the next ``- ``field`` marker, while any interior ``-`` sits inside
+    a code span — and each bullet wraps under a two-space hanging indent so it renders as a list, not a run-on
+    paragraph.
+    """
     body: list[str] = []
     for i, para in enumerate(declaration.returns_body.split("\n\n")):
         if i:
             body.append("")
-        body += _paragraph(para, BASE + BASE)
+        if para.startswith("- "):
+            for bullet in re.split(r"(?<=\.) (?=- ``)", para):
+                body += _wrap(bullet, BASE + BASE, BASE + BASE + "  ")
+        else:
+            body += _paragraph(para, BASE + BASE)
     return [BASE + "Returns:", *body]
 
 
@@ -279,33 +293,204 @@ def _args(declaration: Declaration) -> list[str]:
     return [BASE + "Args:", *body]
 
 
-# --- Examples (the import header; the frames and outputs are per-function and executed where derivable) ---
+# --- Examples (rendered in the canonical idiom and executed at generation) ---
+
+_EX = BASE + BASE  # the eight-space indent of an Examples ``>>>`` code line
+
+
+def _partition_literal(labels: tuple[str, ...]) -> str:
+    """The panel partition column as the run-length idiom ``["A"] * 5 + ["B"] * 5`` (its labels are contiguous runs)."""
+    runs: list[tuple[str, int]] = []
+    for label in labels:
+        if runs and runs[-1][0] == label:
+            runs[-1] = (label, runs[-1][1] + 1)
+        else:
+            runs.append((label, 1))
+    return " + ".join(f'["{label}"] * {count}' for label, count in runs)
+
+
+def _display_columns(declaration: Declaration, example: Example) -> dict[str, str]:
+    """Ordered ``{display column: source literal}`` for the frame dict — the partition first, then the input roles."""
+    columns: dict[str, str] = {}
+    if example.partition:
+        columns[example.partition_col] = _partition_literal(example.partition)
+    for role in declaration.inputs:
+        name = declaration.example_columns.get(role, role)
+        columns[name] = lane_literal(list(example.inputs[role]))
+    return columns
+
+
+def _column_lines(name: str, literal: str) -> list[str]:
+    """One frame-dict column: inline when it fits, else a plain-list lane exploded one element per line."""
+    inline = _EX + f'...         "{name}": {literal},'
+    plain_list = literal.startswith("[") and literal.endswith("]") and " + " not in literal and " * " not in literal
+    if len(inline) <= _WIDTH or not plain_list:
+        return [inline]
+    elements = literal[1:-1].split(", ")
+    return [
+        _EX + f'...         "{name}": [',
+        *(_EX + f"...             {element}," for element in elements),
+        _EX + "...         ],",
+    ]
+
+
+def _frame_lines(columns: dict[str, str]) -> list[str]:
+    """The ``>>> frame = pl.DataFrame(...)`` lines: inline for a single column that fits, multi-line otherwise."""
+    inline = "pl.DataFrame({" + ", ".join(f'"{name}": {literal}' for name, literal in columns.items()) + "})"
+    if len(columns) == 1 and len(_EX + ">>> frame = " + inline) <= _WIDTH:
+        return [_EX + ">>> frame = " + inline]
+    body = [_EX + ">>> frame = pl.DataFrame(", _EX + "...     {"]
+    for name, literal in columns.items():
+        body += _column_lines(name, literal)
+    body += [_EX + "...     }", _EX + "... )"]
+    return body
+
+
+def _call_parts(declaration: Declaration, example: Example) -> tuple[str, list[str]]:
+    """The call's ``(name, args)`` — the input columns then the params as keywords — for inline or wrapped rendering."""
+    name = declaration.example_alias or declaration.name
+    args = [f'pl.col("{declaration.example_columns.get(role, role)}")' for role in declaration.inputs]
+    args += [f"{key}={value!r}" for key, value in example.params.items()]
+    return name, args
+
+
+def _call(declaration: Declaration, example: Example) -> str:
+    """The factory call ``name(pl.col("close"), window=3)`` — the inputs as columns, then the params as keywords."""
+    name, args = _call_parts(declaration, example)
+    return f"{name}({', '.join(args)})"
+
+
+def _example_frame(declaration: Declaration, example: Example) -> pl.DataFrame:
+    """The eager ``Float64`` frame a scenario runs against (the partition column stays its own string column)."""
+    data: dict[str, pl.Series] = {}
+    if example.partition:
+        data[example.partition_col] = pl.Series(example.partition_col, list(example.partition))
+    for role in declaration.inputs:
+        name = declaration.example_columns.get(role, role)
+        data[name] = pl.Series(name, list(example.inputs[role]), dtype=pl.Float64)
+    return pl.DataFrame(data)
+
+
+def _round_expr(expr: pl.Expr, round_to: int | None) -> pl.Expr:
+    return expr.round(round_to) if round_to is not None else expr
+
+
+def _execute(declaration: Declaration, example: Example) -> list[str]:
+    """The executed output line(s), formatted exactly as the doctest prints them (commitment 2: outputs are truth).
+
+    Builds the same expression the canonical code renders and materializes it, so a captured value can never drift
+    from what running the emitted doctest produces: one line per displayed struct field, else the single lane.
+    """
+    frame = _example_frame(declaration, example)
+    expr = declaration.factory(
+        *(pl.col(declaration.example_columns.get(role, role)) for role in declaration.inputs),
+        **example.params,
+    )
+    if example.partition:
+        expr = expr.over(example.partition_col)
+    if declaration.shape is Shape.STRUCT:
+        return [
+            repr(frame.select(_round_expr(expr.struct.field(name), example.round_to).alias("_"))["_"].to_list())
+            for name in example.fields
+        ]
+    column = frame.select(_round_expr(expr, example.round_to).alias("_"))["_"]
+    if declaration.shape is Shape.REDUCING:
+        return [repr(column.unique().sort().to_list() if example.partition else column.item())]
+    return [repr(column.to_list())]
+
+
+def _binding_lines(declaration: Declaration, example: Example, suffix: str) -> list[str]:
+    """``>>> expr = name(args)suffix`` — one line when it fits, else the call wrapped across continuation lines."""
+    name, args = _call_parts(declaration, example)
+    flat = f">>> expr = {name}({', '.join(args)}){suffix}"
+    if len(_EX + flat) <= _WIDTH:
+        return [_EX + flat]
+    joined = _EX + "...     " + ", ".join(args)
+    if len(joined) <= _WIDTH:
+        return [_EX + f">>> expr = {name}(", joined, _EX + f"... ){suffix}"]
+    return [_EX + f">>> expr = {name}(", *(_EX + f"...     {arg}," for arg in args), _EX + f"... ){suffix}"]
+
+
+def _display_line(display: str) -> list[str]:
+    """A ``>>> frame.<accessor>(...)[...]`` display line — one line when it fits, else the subscript wrapped."""
+    line = _EX + ">>> " + display
+    if len(line) <= _WIDTH:
+        return [line]
+    head, _, rest = display.partition("[")
+    key, _, terminal = rest.partition("]")
+    return [_EX + ">>> " + head + "[", _EX + "...     " + key, _EX + "... ]" + terminal]
+
+
+def _scenario_lines(declaration: Declaration, example: Example) -> list[str]:
+    """One scenario's rendered ``>>>`` code and executed output — the canonical idiom keyed by shape and partition."""
+    if example.verbatim:
+        return [_EX + line for line in example.verbatim]
+    lines = _frame_lines(_display_columns(declaration, example))
+    name = declaration.example_alias or declaration.name
+    outputs = _execute(declaration, example)
+    over = f'.over("{example.partition_col}")' if example.partition else ""
+    rounding = f".round({example.round_to})" if example.round_to is not None else ""
+    # a panel broadcasts a series with ``.with_columns``; a reduction (one row per group) uses ``.select``
+    accessor = "with_columns" if example.partition and declaration.shape is not Shape.REDUCING else "select"
+    if declaration.shape is Shape.STRUCT:
+        lines += _binding_lines(declaration, example, "")
+        for field_name, output in zip(example.fields, outputs, strict=True):
+            field_expr = f'expr{over}.struct.field("{field_name}"){rounding}'
+            lines += _display_line(f'frame.{accessor}({field_name}={field_expr})["{field_name}"].to_list()')
+            lines.append(_EX + output)
+        return lines
+    # series / reducing: a ``.item()`` for a printable scalar, a list otherwise (a null reduction prints nothing via
+    # ``.item()``, so it is shown as a list). The call is inlined when it fits, else hoisted to an ``expr`` binding.
+    null_reduction = declaration.shape is Shape.REDUCING and not example.partition and outputs[0] == "None"
+    expression = f"{_call(declaration, example)}{over}{rounding}"
+
+    def display(token: str) -> str:
+        if declaration.shape is Shape.REDUCING and not example.partition and not null_reduction:
+            return f"frame.select({token}).item()"
+        reducing_panel = bool(example.partition) and declaration.shape is Shape.REDUCING
+        terminal = "unique().sort().to_list()" if reducing_panel else "to_list()"
+        return f'frame.{accessor}({name}={token})["{name}"].{terminal}'
+
+    inline = display(expression)
+    if len(_EX + ">>> " + inline) <= _WIDTH:
+        lines += _display_line(inline)
+    else:
+        # Hoist the bare call to ``expr`` and carry ``.over(...).round(...)`` in the display, so the binding is a plain
+        # call ruff wraps cleanly (no trailing method chain to reparenthesize) — the idiom the struct branch uses.
+        lines += _binding_lines(declaration, example, "")
+        lines += _display_line(display(f"expr{over}{rounding}"))
+    lines.append(_EX + ("[None]" if null_reduction else outputs[0]))
+    return lines
 
 
 def _examples(declaration: Declaration) -> list[str]:
-    """The Examples section: the optional basic intro, the import header, then the ``.over`` / null+NaN intros.
+    """The Examples section: the optional block intro, the import header, then each scenario rendered and executed.
 
     The import header carries the per-function extra imports (``import math`` for the closed-form cycle checks) and
-    the import alias (``as m_squared``). The trio intros come from the declaration verbatim. The scenario frames,
-    call lines, and executed outputs are regenerated in sub-PR 2 (the call style is not rule-derivable from data —
-    a function mixes positional and keyword window arguments across its own examples — so it is normalized first).
+    the import alias (``as m_squared``). Each scenario is preceded by a blank line and, where declared, its prose
+    intro; a bespoke scenario (a computed cycle frame, the struct ``.columns`` demonstration) is emitted verbatim.
     """
     lines = [BASE + "Examples:"]
     if declaration.intro_basic:
         lines += _paragraph(declaration.intro_basic, BASE + BASE)
+        lines.append("")  # docutils needs a blank line between the intro paragraph and the ``>>>`` import block
     for statement in declaration.example_imports:
-        lines.append(BASE + BASE + f">>> {statement}")
-    lines.append(BASE + BASE + ">>> import polars as pl")
+        lines.append(_EX + f">>> {statement}")
+    lines.append(_EX + ">>> import polars as pl")
     alias = f" as {declaration.example_alias}" if declaration.example_alias else ""
-    lines.append(BASE + BASE + f">>> from pomata.{declaration.family} import {declaration.name}{alias}")
-    lines.append(BASE + BASE + ">>>")
-    for intro in (declaration.intro_over, declaration.intro_missing):
-        if intro:
-            lines += _paragraph(intro, BASE + BASE)
+    lines.append(_EX + f">>> from pomata.{declaration.family} import {declaration.name}{alias}")
+    lines.append(_EX + ">>>")
+    for index, example in enumerate(declaration.examples):
+        if index:  # the first scenario follows the import header directly; later ones are blank-line separated
+            lines.append("")
+        if example.intro:
+            lines += _paragraph(example.intro, BASE + BASE)
+            lines.append("")
+        lines += _scenario_lines(declaration, example)
     return lines
 
 
-# --- Examples (regenerated and executed) ---
+# --- Examples (single-lane execution helper, for the golden-capture self-test) ---
 
 
 def lane_literal(values: Sequence[float | None]) -> str:
@@ -344,9 +529,9 @@ def tail_for(declaration: Declaration) -> str:
     """The docstring tail — ``Args:`` through the closing quotes — as source-form text built from the declaration.
 
     Reproduces the prose sections (Args, Returns, Raises, the Note opener with its extension and the whole Edge-case
-    bullet list, See Also, References) verbatim from the declaration's data and mined templates. The Examples section
-    reproduces the import header and the scenario intros; the scenario frames, calls, and executed outputs are the
-    remaining per-function content, regenerated in sub-PR 2 once the corpus call style is normalized.
+    bullet list, See Also, References) verbatim from the declaration's data and mined templates, and the Examples
+    section in full — the import header, each scenario's intro, and every scenario's frame, canonical-style call, and
+    executed output.
     """
     sections = [
         _args(declaration),

@@ -4,7 +4,7 @@ from pomata.indicators import variance_ewma
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_variance_ewma
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 from tests.support.tolerances import TOLERANCE_ABSOLUTE_ROLLING_ORACLE, TOLERANCE_RELATIVE_ROLLING_ORACLE
 
 VARIANCE_EWMA = suite_indicators(
@@ -101,6 +101,21 @@ VARIANCE_EWMA = suite_indicators(
         "``False`` the unbiased sample variance (the reliability correction ``1 - sum(w ** 2) / "
         "(sum w) ** 2``). ``True`` mirrors the ``ddof = 0`` default of :func:`variance_rolling`.",
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-    intro_missing="A ``null`` (decays across the gap) and a ``NaN`` (which propagates) make the handling visible:",
+    example_columns={"price": "x"},
+    examples=(
+        Example(inputs={"price": (10.0, 11.0, 13.0, 12.0, 14.0, 13.0, 15.0)}, params={"window": 3}, round_to=4),
+        Example(
+            inputs={"price": (10.0, 11.0, 13.0, 12.0, 20.0, 22.0, 21.0, 24.0)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            params={"window": 3},
+            round_to=4,
+        ),
+        Example(
+            inputs={"price": (10.0, 11.0, 13.0, None, 14.0, float("nan"), 16.0, 17.0)},
+            intro="A ``null`` (decays across the gap) and a ``NaN`` (which propagates) make the handling visible:",
+            params={"window": 3},
+            round_to=4,
+        ),
+    ),
 )

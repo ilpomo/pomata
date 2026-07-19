@@ -8,7 +8,7 @@ from pomata.indicators import mama
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_mama
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 from tests.support.strategies import spans_even_lag_run
 
 # A clean 20-bar-period carrier: 40 bars leave 8 emitted values past the 32-bar settling warm-up.
@@ -137,6 +137,15 @@ MAMA = suite_indicators(
         "be in ``(0, 1]``.",
     },
     example_imports=("import math",),
-    intro_basic="Both adaptive lines track the level of a clean period-20 cycle (here ``100``), at the "
-    "last bar: >>> import math",
+    intro_basic="Both adaptive lines track the level of a clean period-20 cycle (here ``100``), at the last bar:",
+    examples=(
+        Example(
+            verbatim=(
+                ">>> frame = pl.select(close=100.0 + (2 * math.pi * pl.int_range(200) / 20).sin())",
+                '>>> lines = frame.select(mama=mama(pl.col("close"))).unnest("mama")',
+                '>>> round(lines["mama"][-1], 2), round(lines["fama"][-1], 2)',
+                "(99.67, 99.96)",
+            )
+        ),
+    ),
 )

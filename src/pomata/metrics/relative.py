@@ -238,8 +238,8 @@ def alpha(
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004, 0.012, 0.02, -0.01, 0.006, -0.004, 0.01],
         ...     }
         ... )
-        >>> reduced = alpha(pl.col("returns"), pl.col("benchmark"), periods_per_year=252).over("ticker").round(4)
-        >>> frame.select(alpha=reduced)["alpha"].unique().sort().to_list()
+        >>> expr = alpha(pl.col("returns"), pl.col("benchmark"), periods_per_year=252)
+        >>> frame.select(alpha=expr.over("ticker").round(4))["alpha"].unique().sort().to_list()
         [-0.2798, 0.0233]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -364,9 +364,8 @@ def alpha_rolling(
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004, -0.012, 0.018],
         ...     }
         ... )
-        >>> frame.select(
-        ...     alpha_rolling(pl.col("returns"), pl.col("benchmark"), 4, periods_per_year=252).round(4)
-        ... ).to_series().to_list()
+        >>> expr = alpha_rolling(pl.col("returns"), pl.col("benchmark"), window=4, periods_per_year=252)
+        >>> frame.select(alpha_rolling=expr.round(4))["alpha_rolling"].to_list()
         [None, None, None, -0.0864, -0.0096, -0.0227, 0.4932, 0.7998]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -378,10 +377,8 @@ def alpha_rolling(
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004, 0.012, 0.02, -0.01, 0.006, -0.004, 0.01],
         ...     }
         ... )
-        >>> expr = (
-        ...     alpha_rolling(pl.col("returns"), pl.col("benchmark"), 4, periods_per_year=252).over("ticker").round(4)
-        ... )
-        >>> frame.with_columns(alpha_rolling=expr)["alpha_rolling"].to_list()
+        >>> expr = alpha_rolling(pl.col("returns"), pl.col("benchmark"), window=4, periods_per_year=252)
+        >>> frame.with_columns(alpha_rolling=expr.over("ticker").round(4))["alpha_rolling"].to_list()
         [None, None, None, -0.0864, -0.0096, -0.0227, None, None, None, -0.3956, -0.1613, -0.1561]
 
         A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make the handling visible:
@@ -392,9 +389,8 @@ def alpha_rolling(
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004, -0.012, 0.018],
         ...     }
         ... )
-        >>> frame.select(
-        ...     alpha_rolling(pl.col("returns"), pl.col("benchmark"), 4, periods_per_year=252).round(4)
-        ... ).to_series().to_list()
+        >>> expr = alpha_rolling(pl.col("returns"), pl.col("benchmark"), window=4, periods_per_year=252)
+        >>> frame.select(alpha_rolling=expr.round(4))["alpha_rolling"].to_list()
         [None, None, None, None, nan, -0.0227, 0.4932, 0.7998]
 
         **Degenerate denominator** — a null in the returns leg wins over the constant-benchmark ``NaN`` branch on
@@ -502,8 +498,8 @@ def beta(
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004, 0.012, 0.02, -0.01, 0.006, -0.004, 0.01],
         ...     }
         ... )
-        >>> reduced = beta(pl.col("returns"), pl.col("benchmark")).over("ticker").round(4)
-        >>> frame.select(beta=reduced)["beta"].unique().sort().to_list()
+        >>> expr = beta(pl.col("returns"), pl.col("benchmark"))
+        >>> frame.select(beta=expr.over("ticker").round(4))["beta"].unique().sort().to_list()
         [1.2591, 1.2726]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -620,7 +616,8 @@ def beta_rolling(
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004, -0.012, 0.018],
         ...     }
         ... )
-        >>> frame.select(beta_rolling(pl.col("returns"), pl.col("benchmark"), 4).round(4)).to_series().to_list()
+        >>> expr = beta_rolling(pl.col("returns"), pl.col("benchmark"), window=4)
+        >>> frame.select(beta_rolling=expr.round(4))["beta_rolling"].to_list()
         [None, None, None, 1.2608, 1.2628, 1.2652, 1.2592, 1.0331]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -632,8 +629,8 @@ def beta_rolling(
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004, 0.012, 0.02, -0.01, 0.006, -0.004, 0.01],
         ...     }
         ... )
-        >>> expr = beta_rolling(pl.col("returns"), pl.col("benchmark"), 4).over("ticker").round(4)
-        >>> frame.with_columns(beta_rolling=expr)["beta_rolling"].to_list()
+        >>> expr = beta_rolling(pl.col("returns"), pl.col("benchmark"), window=4)
+        >>> frame.with_columns(beta_rolling=expr.over("ticker").round(4))["beta_rolling"].to_list()
         [None, None, None, 1.2608, 1.2628, 1.2652, None, None, None, 1.2851, 1.3159, 1.3466]
 
         A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make the handling visible:
@@ -644,7 +641,8 @@ def beta_rolling(
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004, -0.012, 0.018],
         ...     }
         ... )
-        >>> frame.select(beta_rolling(pl.col("returns"), pl.col("benchmark"), 4).round(4)).to_series().to_list()
+        >>> expr = beta_rolling(pl.col("returns"), pl.col("benchmark"), window=4)
+        >>> frame.select(beta_rolling=expr.round(4))["beta_rolling"].to_list()
         [None, None, None, None, nan, 1.2652, 1.2592, 1.0331]
 
         **Degenerate denominator** — a window holding a ``null`` yields ``null`` under the pairwise-complete gate rather
@@ -709,9 +707,9 @@ def capture_downside_ratio(
 
         - **Null** — an observation is used only where both legs are present; a ``null`` in either drops that pair.
         - **NaN** — a ``NaN`` in either leg of a retained pair propagates, yielding ``NaN``.
-        - **Domain** — the compounded (geometric) leg growth is defined only while every selected gross return
-          ``1 + r`` stays positive; a selected return at or below ``-1`` wipes that leg out of domain, so the result is
-          a loud ``NaN`` — never a plausible wrong number.
+        - **Domain** — the compounded (geometric) leg growth is defined only while every selected gross return ``1 + r``
+          stays positive; a selected return at or below ``-1`` wipes that leg out of domain, so the result is a loud
+          ``NaN`` — never a plausible wrong number.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -733,9 +731,8 @@ def capture_downside_ratio(
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004],
         ...     }
         ... )
-        >>> frame.select(
-        ...     capture_downside_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252).round(4)
-        ... ).item()
+        >>> expr = capture_downside_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252)
+        >>> frame.select(expr.round(4)).item()
         1.0339
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:
@@ -747,12 +744,10 @@ def capture_downside_ratio(
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004, 0.012, 0.02, -0.01, 0.006, -0.004, 0.01],
         ...     }
         ... )
-        >>> reduced = (
-        ...     capture_downside_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252)
-        ...     .over("ticker")
-        ...     .round(4)
-        ... )
-        >>> frame.select(capture_downside_ratio=reduced)["capture_downside_ratio"].unique().sort().to_list()
+        >>> expr = capture_downside_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252)
+        >>> frame.select(capture_downside_ratio=expr.over("ticker").round(4))[
+        ...     "capture_downside_ratio"
+        ... ].unique().sort().to_list()
         [1.0339, 1.1095]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -763,9 +758,8 @@ def capture_downside_ratio(
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004],
         ...     }
         ... )
-        >>> frame.select(
-        ...     capture_downside_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252).round(4)
-        ... ).item()
+        >>> expr = capture_downside_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252)
+        >>> frame.select(expr.round(4)).item()
         nan
 
         **Domain** — a selected portfolio return at or below ``-1`` wipes that leg out of the geometric-growth domain,
@@ -811,8 +805,8 @@ def capture_ratio(
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
 
     Returns:
-        A single ``Float64`` value: the capture ratio (one value in ``select``, one per group under ``.over``).
-        ``null`` when either capture ratio is undefined (no complete pairs, or a missing up- or down-market regime).
+        A single ``Float64`` value: the capture ratio (one value in ``select``, one per group under ``.over``). ``null``
+        when either capture ratio is undefined (no complete pairs, or a missing up- or down-market regime).
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
@@ -828,9 +822,9 @@ def capture_ratio(
 
         - **Null** — an observation is used only where both legs are present; a ``null`` in either drops that pair.
         - **NaN** — a ``NaN`` in either leg of a retained pair propagates, yielding ``NaN``.
-        - **Domain** — the compounded (geometric) leg growth is defined only while every selected gross return
-          ``1 + r`` stays positive; a selected return at or below ``-1`` wipes that leg out of domain, so the result is
-          a loud ``NaN`` — never a plausible wrong number.
+        - **Domain** — the compounded (geometric) leg growth is defined only while every selected gross return ``1 + r``
+          stays positive; a selected return at or below ``-1`` wipes that leg out of domain, so the result is a loud
+          ``NaN`` — never a plausible wrong number.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -864,10 +858,8 @@ def capture_ratio(
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004, 0.012, 0.02, -0.01, 0.006, -0.004, 0.01],
         ...     }
         ... )
-        >>> reduced = (
-        ...     capture_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252).over("ticker").round(4)
-        ... )
-        >>> frame.select(capture_ratio=reduced)["capture_ratio"].unique().sort().to_list()
+        >>> expr = capture_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252)
+        >>> frame.select(capture_ratio=expr.over("ticker").round(4))["capture_ratio"].unique().sort().to_list()
         [1.4154, 2.6612]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -945,9 +937,9 @@ def capture_upside_ratio(
 
         - **Null** — an observation is used only where both legs are present; a ``null`` in either drops that pair.
         - **NaN** — a ``NaN`` in either leg of a retained pair propagates, yielding ``NaN``.
-        - **Domain** — the compounded (geometric) leg growth is defined only while every selected gross return
-          ``1 + r`` stays positive; a selected return at or below ``-1`` wipes that leg out of domain, so the result is
-          a loud ``NaN`` — never a plausible wrong number.
+        - **Domain** — the compounded (geometric) leg growth is defined only while every selected gross return ``1 + r``
+          stays positive; a selected return at or below ``-1`` wipes that leg out of domain, so the result is a loud
+          ``NaN`` — never a plausible wrong number.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -969,9 +961,8 @@ def capture_upside_ratio(
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004],
         ...     }
         ... )
-        >>> frame.select(
-        ...     capture_upside_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252).round(4)
-        ... ).item()
+        >>> expr = capture_upside_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252)
+        >>> frame.select(expr.round(4)).item()
         2.7513
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:
@@ -983,12 +974,10 @@ def capture_upside_ratio(
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004, 0.012, 0.02, -0.01, 0.006, -0.004, 0.01],
         ...     }
         ... )
-        >>> reduced = (
-        ...     capture_upside_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252)
-        ...     .over("ticker")
-        ...     .round(4)
-        ... )
-        >>> frame.select(capture_upside_ratio=reduced)["capture_upside_ratio"].unique().sort().to_list()
+        >>> expr = capture_upside_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252)
+        >>> frame.select(capture_upside_ratio=expr.over("ticker").round(4))[
+        ...     "capture_upside_ratio"
+        ... ].unique().sort().to_list()
         [1.5705, 2.7513]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -999,9 +988,8 @@ def capture_upside_ratio(
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004],
         ...     }
         ... )
-        >>> frame.select(
-        ...     capture_upside_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252).round(4)
-        ... ).item()
+        >>> expr = capture_upside_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252)
+        >>> frame.select(expr.round(4)).item()
         nan
 
         **Domain** — a selected up-market return at or below ``-1`` is outside the geometric-growth domain, so the
@@ -1067,8 +1055,8 @@ def information_ratio(
         - **NaN** — a ``NaN`` in either leg of a retained pair propagates, yielding ``NaN``.
         - **Insufficient sample** — fewer than two complete pairs leaves the sample tracking error undefined, so the
           result is ``null``.
-        - **Degenerate denominator** — a constant active series has zero tracking error, so the result is ``+/-inf``
-          (or ``NaN`` when the mean active is also zero, the ``0 / 0``) — reported, not clipped.
+        - **Degenerate denominator** — a constant active series has zero tracking error, so the result is ``+/-inf`` (or
+          ``NaN`` when the mean active is also zero, the ``0 / 0``) — reported, not clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -1092,9 +1080,8 @@ def information_ratio(
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004],
         ...     }
         ... )
-        >>> frame.select(
-        ...     information_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252).round(4)
-        ... ).item()
+        >>> expr = information_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252)
+        >>> frame.select(expr.round(4)).item()
         5.5663
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:
@@ -1106,10 +1093,8 @@ def information_ratio(
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004, 0.012, 0.02, -0.01, 0.006, -0.004, 0.01],
         ...     }
         ... )
-        >>> reduced = (
-        ...     information_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252).over("ticker").round(4)
-        ... )
-        >>> frame.select(information_ratio=reduced)["information_ratio"].unique().sort().to_list()
+        >>> expr = information_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252)
+        >>> frame.select(information_ratio=expr.over("ticker").round(4))["information_ratio"].unique().sort().to_list()
         [0.7463, 5.5663]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -1120,9 +1105,8 @@ def information_ratio(
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004],
         ...     }
         ... )
-        >>> frame.select(
-        ...     information_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252).round(4)
-        ... ).item()
+        >>> expr = information_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252)
+        >>> frame.select(expr.round(4)).item()
         nan
 
         **Insufficient sample** — a single complete pair yields ``null``, since the tracking error needs two
@@ -1216,8 +1200,8 @@ def information_ratio_rolling(
 
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
-        - **Degenerate denominator** — a constant active window has zero tracking error, so the result is ``+/-inf``
-          (or ``NaN`` when the mean active is also zero) — reported, not clipped.
+        - **Degenerate denominator** — a constant active window has zero tracking error, so the result is ``+/-inf`` (or
+          ``NaN`` when the mean active is also zero) — reported, not clipped.
         - **Stability** — a near-flat (non-bit-identical) active-return window sits at the float-conditioning limit the
           documentation's *Correctness* page documents: the one-pass rolling tracking error and an exact two-pass
           recomputation can round a vanishing denominator apart without bound there. The bit-flat window is pinned
@@ -1246,9 +1230,8 @@ def information_ratio_rolling(
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004, -0.012, 0.018],
         ...     }
         ... )
-        >>> frame.select(
-        ...     information_ratio_rolling(pl.col("returns"), pl.col("benchmark"), 4, periods_per_year=252).round(4)
-        ... ).to_series().to_list()
+        >>> expr = information_ratio_rolling(pl.col("returns"), pl.col("benchmark"), window=4, periods_per_year=252)
+        >>> frame.select(information_ratio_rolling=expr.round(4))["information_ratio_rolling"].to_list()
         [None, None, None, 2.3539, 2.3539, 5.0387, 2.8393, 22.9129]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -1260,12 +1243,10 @@ def information_ratio_rolling(
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004, 0.012, 0.02, -0.01, 0.006, -0.004, 0.01],
         ...     }
         ... )
-        >>> expr = (
-        ...     information_ratio_rolling(pl.col("returns"), pl.col("benchmark"), 4, periods_per_year=252)
-        ...     .over("ticker")
-        ...     .round(4)
-        ... )
-        >>> frame.with_columns(information_ratio_rolling=expr)["information_ratio_rolling"].to_list()
+        >>> expr = information_ratio_rolling(pl.col("returns"), pl.col("benchmark"), window=4, periods_per_year=252)
+        >>> frame.with_columns(information_ratio_rolling=expr.over("ticker").round(4))[
+        ...     "information_ratio_rolling"
+        ... ].to_list()
         [None, None, None, 2.3539, 2.3539, 5.0387, None, None, None, 0.0, 0.929, -2.3932]
 
         A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make the handling visible:
@@ -1276,9 +1257,8 @@ def information_ratio_rolling(
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004, -0.012, 0.018],
         ...     }
         ... )
-        >>> frame.select(
-        ...     information_ratio_rolling(pl.col("returns"), pl.col("benchmark"), 4, periods_per_year=252).round(4)
-        ... ).to_series().to_list()
+        >>> expr = information_ratio_rolling(pl.col("returns"), pl.col("benchmark"), window=4, periods_per_year=252)
+        >>> frame.select(information_ratio_rolling=expr.round(4))["information_ratio_rolling"].to_list()
         [None, None, None, None, nan, 5.0387, 2.8393, 22.9129]
 
         **Degenerate denominator** — once the outlier slides out of the window, the window is bit-constant with zero
@@ -1290,10 +1270,8 @@ def information_ratio_rolling(
         ...         "benchmark": [0.0, 0.0, 0.0, 0.0, 0.0],
         ...     }
         ... )
-        >>> expr = information_ratio_rolling(
-        ...     pl.col("returns"), pl.col("benchmark"), window=3, periods_per_year=252
-        ... ).round(4)
-        >>> frame.select(information_ratio_rolling=expr)["information_ratio_rolling"].to_list()
+        >>> expr = information_ratio_rolling(pl.col("returns"), pl.col("benchmark"), window=3, periods_per_year=252)
+        >>> frame.select(information_ratio_rolling=expr.round(4))["information_ratio_rolling"].to_list()
         [None, None, 9.1652, inf, inf]
 
         **Degenerate denominator** — a window whose active returns are all exactly zero is the ``0 / 0`` case, so the
@@ -1305,10 +1283,8 @@ def information_ratio_rolling(
         ...         "benchmark": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
         ...     }
         ... )
-        >>> expr = information_ratio_rolling(
-        ...     pl.col("returns"), pl.col("benchmark"), window=4, periods_per_year=252
-        ... ).round(4)
-        >>> frame.select(information_ratio_rolling=expr)["information_ratio_rolling"].to_list()
+        >>> expr = information_ratio_rolling(pl.col("returns"), pl.col("benchmark"), window=4, periods_per_year=252)
+        >>> frame.select(information_ratio_rolling=expr.round(4))["information_ratio_rolling"].to_list()
         [None, None, None, -4.5223, -1.8213, 7.9373, 7.9373, nan]
     """
     returns = float64_expr(returns)
@@ -1376,8 +1352,8 @@ def modigliani_risk_adjusted_performance(
         - **NaN** — a ``NaN`` in either leg of a retained pair propagates, yielding ``NaN``.
         - **Insufficient sample** — fewer than two complete pairs leaves the embedded Sharpe ratio and benchmark
           volatility undefined, so the result is ``null``.
-        - **Degenerate denominator** — a constant portfolio has zero volatility, so its :func:`sharpe_ratio` is
-          infinite and the result is ``+/-inf`` — reported, not clipped.
+        - **Degenerate denominator** — a constant portfolio has zero volatility, so its :func:`sharpe_ratio` is infinite
+          and the result is ``+/-inf`` — reported, not clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -1414,10 +1390,8 @@ def modigliani_risk_adjusted_performance(
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004, 0.012, 0.02, -0.01, 0.006, -0.004, 0.01],
         ...     }
         ... )
-        >>> reduced = m_squared(pl.col("returns"), pl.col("benchmark"), periods_per_year=252).over("ticker").round(4)
-        >>> frame.select(modigliani_risk_adjusted_performance=reduced)[
-        ...     "modigliani_risk_adjusted_performance"
-        ... ].unique().sort().to_list()
+        >>> expr = m_squared(pl.col("returns"), pl.col("benchmark"), periods_per_year=252)
+        >>> frame.select(m_squared=expr.over("ticker").round(4))["m_squared"].unique().sort().to_list()
         [1.1541, 1.3163]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -1453,8 +1427,7 @@ def modigliani_risk_adjusted_performance(
         ...         "benchmark": [0.02, -0.01, 0.03],
         ...     }
         ... )
-        >>> expr = m_squared(pl.col("returns"), pl.col("benchmark"), periods_per_year=252)
-        >>> frame.select(expr).item()
+        >>> frame.select(m_squared(pl.col("returns"), pl.col("benchmark"), periods_per_year=252)).item()
         inf
     """
     returns = float64_expr(returns)
@@ -1517,8 +1490,8 @@ def treynor_ratio(
           is ``null``.
         - **Degenerate denominator** — a zero beta gives ``+/-inf`` (or ``NaN`` when the excess return is also zero) —
           reported, not clipped; a zero-variance benchmark instead makes :func:`beta` ``NaN``, which propagates here.
-        - **Stability** — a beta bounded away from zero is the one regime the excess-over-beta quotient genuinely
-          needs: as the slope vanishes the division amplifies rounding without bound, so a near-zero beta sits at the
+        - **Stability** — a beta bounded away from zero is the one regime the excess-over-beta quotient genuinely needs:
+          as the slope vanishes the division amplifies rounding without bound, so a near-zero beta sits at the
           float-conditioning limit the documentation's *Correctness* page documents. The exact zero-beta case is guarded
           (``+/-inf``); real market betas are far from the regime.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
@@ -1556,10 +1529,8 @@ def treynor_ratio(
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004, 0.012, 0.02, -0.01, 0.006, -0.004, 0.01],
         ...     }
         ... )
-        >>> reduced = (
-        ...     treynor_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252).over("ticker").round(4)
-        ... )
-        >>> frame.select(treynor_ratio=reduced)["treynor_ratio"].unique().sort().to_list()
+        >>> expr = treynor_ratio(pl.col("returns"), pl.col("benchmark"), periods_per_year=252)
+        >>> frame.select(treynor_ratio=expr.over("ticker").round(4))["treynor_ratio"].unique().sort().to_list()
         [1.1675, 1.3201]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -1654,8 +1625,8 @@ def treynor_ratio_rolling(
             Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + risk_free_rate >= 0``).
 
     Returns:
-        The rolling Treynor ratio for each row, the same length as the input. The first ``window - 1`` rows are
-        ``null`` (warm-up): the window must hold ``window`` complete pairs before a result is emitted.
+        The rolling Treynor ratio for each row, the same length as the input. The first ``window - 1`` rows are ``null``
+        (warm-up): the window must hold ``window`` complete pairs before a result is emitted.
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
@@ -1698,9 +1669,8 @@ def treynor_ratio_rolling(
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004, -0.012, 0.018],
         ...     }
         ... )
-        >>> frame.select(
-        ...     treynor_ratio_rolling(pl.col("returns"), pl.col("benchmark"), 4, periods_per_year=252).round(4)
-        ... ).to_series().to_list()
+        >>> expr = treynor_ratio_rolling(pl.col("returns"), pl.col("benchmark"), window=4, periods_per_year=252)
+        >>> frame.select(treynor_ratio_rolling=expr.round(4))["treynor_ratio_rolling"].to_list()
         [None, None, None, 0.9993, 0.7483, 1.4938, -0.5003, 1.8295]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -1712,12 +1682,8 @@ def treynor_ratio_rolling(
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004, 0.012, 0.02, -0.01, 0.006, -0.004, 0.01],
         ...     }
         ... )
-        >>> expr = (
-        ...     treynor_ratio_rolling(pl.col("returns"), pl.col("benchmark"), 4, periods_per_year=252)
-        ...     .over("ticker")
-        ...     .round(4)
-        ... )
-        >>> frame.with_columns(treynor_ratio_rolling=expr)["treynor_ratio_rolling"].to_list()
+        >>> expr = treynor_ratio_rolling(pl.col("returns"), pl.col("benchmark"), window=4, periods_per_year=252)
+        >>> frame.with_columns(treynor_ratio_rolling=expr.over("ticker").round(4))["treynor_ratio_rolling"].to_list()
         [None, None, None, 0.9993, 0.7483, 1.4938, None, None, None, 1.3726, 0.6224, 0.0]
 
         A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make the handling visible:
@@ -1728,9 +1694,8 @@ def treynor_ratio_rolling(
         ...         "benchmark": [0.015, -0.008, 0.025, -0.015, 0.01, 0.004, -0.012, 0.018],
         ...     }
         ... )
-        >>> frame.select(
-        ...     treynor_ratio_rolling(pl.col("returns"), pl.col("benchmark"), 4, periods_per_year=252).round(4)
-        ... ).to_series().to_list()
+        >>> expr = treynor_ratio_rolling(pl.col("returns"), pl.col("benchmark"), window=4, periods_per_year=252)
+        >>> frame.select(treynor_ratio_rolling=expr.round(4))["treynor_ratio_rolling"].to_list()
         [None, None, None, None, nan, 1.4938, -0.5003, 1.8295]
 
         **Degenerate denominator** — a ``null`` in a window yields ``null`` under the pairwise-complete gate before the

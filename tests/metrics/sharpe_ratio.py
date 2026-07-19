@@ -9,7 +9,7 @@ from pomata.metrics import sharpe_ratio
 from tests.metrics.enums import Annualization, BehaviorNan, BehaviorNull, Degenerate
 from tests.metrics.harness import suite_metrics
 from tests.metrics.oracles import reference_sharpe_ratio
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 
 SHARPE_RATIO = suite_metrics(
     factory=sharpe_ratio,
@@ -92,7 +92,59 @@ SHARPE_RATIO = suite_metrics(
         "``0.0``). Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + "
         "risk_free_rate >= 0``).",
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
-    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
-    "handling visible:",
+    examples=(
+        Example(
+            inputs={"returns": (0.03, -0.01, 0.02, -0.015, 0.01, 0.005, -0.02)},
+            params={"periods_per_year": 252},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "returns": (
+                    0.03,
+                    -0.01,
+                    0.02,
+                    -0.015,
+                    0.01,
+                    0.005,
+                    -0.02,
+                    0.02,
+                    -0.005,
+                    0.015,
+                    -0.01,
+                    0.025,
+                    0.0,
+                    -0.012,
+                )
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+            partition=("A", "A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B", "B"),
+            params={"periods_per_year": 252},
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (0.03, None, 0.02, -0.015, float("nan"), 0.005, -0.02)},
+            intro="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+            "handling visible:",
+            params={"periods_per_year": 252},
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (0.05,)},
+            intro="**Insufficient sample** — a single return has no sample dispersion, so the result is ``null``:",
+            params={"periods_per_year": 252},
+        ),
+        Example(
+            inputs={"returns": (0.01, 0.01, 0.01, 0.01)},
+            intro="**Degenerate denominator** — a constant series has zero dispersion with a positive mean "
+            "excess, so the ratio is ``+inf``:",
+            params={"periods_per_year": 252},
+        ),
+        Example(
+            inputs={"returns": (0.0, 0.0, 0.0, 0.0)},
+            intro="**Degenerate denominator** — an all-zero series at a zero risk-free rate is the ``0/0`` "
+            "case (zero mean over zero dispersion), so the ratio is ``NaN``:",
+            params={"periods_per_year": 252},
+        ),
+    ),
 )

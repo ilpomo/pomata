@@ -9,7 +9,7 @@ from pomata.indicators import absolute_price_oscillator, ema, macd
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_macd
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 from tests.support.tolerances import TOLERANCE_ABSOLUTE_ROLLING_ORACLE, TOLERANCE_RELATIVE_ROLLING_ORACLE
 
 
@@ -114,7 +114,29 @@ MACD = suite_indicators(
         "window_signal": "Span of the signal EMA over the MACD line (canonically ``9``). Must be ``>= 1``.",
     },
     intro_basic="Basic usage on a single price series:",
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker's EMAs warm up independently:",
-    intro_missing="A ``null`` (which the recursive EMAs bridge) and a ``NaN`` (which latches) make the "
-    "handling visible on the MACD line:",
+    example_columns={"expr": "close"},
+    examples=(
+        Example(
+            inputs={"expr": (10.0, 11.0, 12.0, 11.0, 13.0, 14.0, 13.0, 15.0)},
+            params={"window_fast": 2, "window_slow": 3, "window_signal": 2},
+            round_to=4,
+            fields=("macd", "signal", "histogram"),
+        ),
+        Example(
+            inputs={"expr": (10.0, 11.0, 12.0, 11.0, 20.0, 22.0, 24.0, 22.0)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker's EMAs warm up independently:",
+            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            params={"window_fast": 2, "window_slow": 3, "window_signal": 2},
+            round_to=4,
+            fields=("macd",),
+        ),
+        Example(
+            inputs={"expr": (10.0, 11.0, None, 13.0, float("nan"), 15.0)},
+            intro="A ``null`` (which the recursive EMAs bridge) and a ``NaN`` (which latches) make the "
+            "handling visible on the MACD line:",
+            params={"window_fast": 2, "window_slow": 3, "window_signal": 2},
+            round_to=4,
+            fields=("macd",),
+        ),
+    ),
 )

@@ -6,7 +6,7 @@ from pomata.pnl import cost_per_share
 from tests.pnl.enums import BehaviorNan, BehaviorNull, ConventionSign, SpaceCost
 from tests.pnl.harness import suite_pnl
 from tests.pnl.oracles import reference_cost_per_share
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 
 COST_PER_SHARE = suite_pnl(
     factory=cost_per_share,
@@ -86,7 +86,28 @@ COST_PER_SHARE = suite_pnl(
         "fee": "Commission per unit traded, in the account currency (e.g. ``0.01`` = one cent per "
         "share). Must be a finite number ``>= 0``.",
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker starts flat:",
-    intro_missing="A ``null`` (which voids its own row and the next) and a ``NaN`` make the missing-data "
-    "handling visible:",
+    examples=(
+        Example(inputs={"quantity": (10.0, 10.0, -5.0, -5.0, 20.0)}, params={"fee": 0.01}, round_to=4),
+        Example(
+            inputs={"quantity": (10.0, 10.0, -5.0, 2.0, 2.0, 2.0)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker starts flat:",
+            partition=("A", "A", "A", "B", "B", "B"),
+            params={"fee": 0.01},
+            round_to=4,
+        ),
+        Example(
+            inputs={"quantity": (10.0, None, -5.0, float("nan"), 20.0)},
+            intro="A ``null`` (which voids its own row and the next) and a ``NaN`` make the missing-data "
+            "handling visible:",
+            params={"fee": 0.01},
+            round_to=4,
+        ),
+        Example(
+            inputs={"quantity": (float("inf"), float("inf"), 1.0, float("-inf"))},
+            intro="**Non-finite input** — two consecutive same-sign infinite quantities make the turnover "
+            "``inf - inf`` at the second bar, so that bar's cost is ``NaN`` while the surrounding "
+            "infinite trades still cost ``inf``:",
+            params={"fee": 0.01},
+        ),
+    ),
 )

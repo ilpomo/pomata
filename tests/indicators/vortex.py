@@ -8,7 +8,7 @@ from pomata.indicators import vortex
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_vortex
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 VORTEX = suite_indicators(
     factory=vortex,
@@ -108,8 +108,59 @@ VORTEX = suite_indicators(
         "window": "Number of observations in the moving window. Must be ``>= 1``.",
     },
     intro_basic="On a small OHLC frame, reading each vortex line with ``.struct.field``:",
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-    intro_missing="A leading ``null`` ``close`` (absorbed by the true-range maximum) and a later ``NaN`` "
-    "(which contaminates only the bars whose window spans it, then clears) make the handling "
-    "visible:",
+    examples=(
+        Example(
+            inputs={
+                "high": (2.0, 4.0, 6.0, 5.0, 7.0, 6.5, 8.0, 7.5),
+                "low": (1.0, 3.0, 4.0, 4.0, 5.0, 5.5, 6.0, 6.5),
+                "close": (1.5, 3.5, 5.0, 4.5, 6.0, 6.0, 7.0, 7.0),
+            },
+            params={"window": 2},
+            round_to=4,
+            fields=("plus", "minus"),
+        ),
+        Example(
+            inputs={
+                "high": (2.0, 4.0, 6.0, 5.0, 7.0, 12.0, 11.0, 13.0, 10.0, 12.0),
+                "low": (1.0, 3.0, 4.0, 4.0, 5.0, 10.0, 9.0, 11.0, 8.0, 10.0),
+                "close": (1.5, 3.5, 5.0, 4.5, 6.0, 11.0, 10.0, 12.0, 9.0, 11.0),
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "A", "A", "B", "B", "B", "B", "B"),
+            params={"window": 2},
+            round_to=4,
+            fields=("plus", "minus"),
+        ),
+        Example(
+            inputs={
+                "high": (2.0, 4.0, 6.0, 5.0, 7.0, 6.5, 8.0, 7.5),
+                "low": (1.0, 3.0, 4.0, 4.0, 5.0, 5.5, 6.0, 6.5),
+                "close": (None, 3.5, 5.0, 4.5, float("nan"), 6.0, 7.0, 7.0),
+            },
+            intro="A leading ``null`` ``close`` (absorbed by the true-range maximum) and a later ``NaN`` "
+            "(which contaminates only the bars whose window spans it, then clears) make the handling "
+            "visible:",
+            params={"window": 2},
+            round_to=4,
+            fields=("plus", "minus"),
+        ),
+        Example(
+            inputs={
+                "high": (10.0, 10.0, 10.0, 10.0, 10.0, 10.0),
+                "low": (10.0, 10.0, 10.0, 10.0, 10.0, 10.0),
+                "close": (10.0, 10.0, 10.0, 10.0, 10.0, 10.0),
+            },
+            intro="**Degenerate denominator** — a flat window has zero summed true range and zero summed "
+            "movement, so both lines are the indeterminate ``0/0``, i.e. ``NaN``, after warm-up:",
+            params={"window": 2},
+            fields=("plus",),
+        ),
+        Example(
+            inputs={"high": (2.0, 4.0, 6.0), "low": (1.0, 3.0, 4.0), "close": (1.5, 3.5, 5.0)},
+            intro="**window == 1** — each line reduces to a single bar's vortex movement over its own true "
+            "range; the first row is ``null`` (no prior bar for the lag):",
+            params={"window": 1},
+            fields=("plus",),
+        ),
+    ),
 )

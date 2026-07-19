@@ -13,8 +13,9 @@ Usage::
     uv run python tests/regenerate_docstrings.py --diff       # --check plus a unified diff per mismatch
 
 The default is ``--check`` so an accidental run never touches ``src/``. ``--check`` exits non-zero when any tail
-differs from what the generator produces; while the declaration does not yet carry every per-function prose field, a
-difference is expected and is the input to the parity report, not a failure of the source.
+differs from what the generator produces; the sources are kept in sync with the declarations, so a difference means a
+docstring was hand-edited or a declaration prose field changed without regenerating (``test_docstring_roundtrip.py``
+is the gating form of the same comparison).
 """
 
 from __future__ import annotations

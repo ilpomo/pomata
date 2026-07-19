@@ -6,7 +6,7 @@ from pomata.indicators import rsi
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_rsi
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 RSI = suite_indicators(
     factory=rsi,
@@ -130,8 +130,42 @@ RSI = suite_indicators(
         "window": "Number of observations in the Wilder moving window. Must be ``>= 1``.",
     },
     intro_basic="Basic usage on a single price series:",
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so the difference and the recursion "
-    "restart per group -- note that each ticker warms up independently:",
-    intro_missing="A ``null`` (skipped, and any window it touches yields ``null``) and a ``NaN`` (which "
-    "propagates) make the exact handling visible at a glance:",
+    example_columns={"expr": "close"},
+    examples=(
+        Example(
+            inputs={"expr": (44.34, 44.09, 44.15, 43.61, 44.33, 44.83, 45.1, 45.42)}, params={"window": 3}, round_to=4
+        ),
+        Example(
+            inputs={"expr": (10.0, 11.0, 10.5, 11.5, 12.5, 50.0, 49.0, 51.0, 50.5, 52.0)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so the difference and the recursion "
+            "restart per group -- note that each ticker warms up independently:",
+            partition=("A", "A", "A", "A", "A", "B", "B", "B", "B", "B"),
+            params={"window": 3},
+            round_to=2,
+        ),
+        Example(
+            inputs={"expr": (10.0, 11.0, 12.0, 13.0, None, 15.0, float("nan"), 17.0, 18.0, 19.0)},
+            intro="A ``null`` (skipped, and any window it touches yields ``null``) and a ``NaN`` (which "
+            "propagates) make the exact handling visible at a glance:",
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={"expr": (42.0,)},
+            intro="**Insufficient sample** — a one-element series has no difference to seed the recursion:",
+            params={"window": 1},
+        ),
+        Example(
+            inputs={"expr": (5.0, 5.0, 5.0, 5.0)},
+            intro="**Degenerate denominator** — zero gain and zero loss is the indeterminate ``0/0`` "
+            "relative strength, surfaced as ``NaN``:",
+            params={"window": 2},
+        ),
+        Example(
+            inputs={"expr": (1.0, 3.0, 2.0, 5.0)},
+            intro="**window == 1** — a one-bar window collapses the Wilder smoothing to the raw move "
+            "direction: ``100`` up, ``0`` down:",
+            params={"window": 1},
+        ),
+    ),
 )

@@ -6,7 +6,7 @@ from pomata.indicators import trend_mode
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_trend_mode
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 _SAMPLE = tuple(100.0 + 10.0 * math.sin(2 * math.pi * index / 20) for index in range(80))
 
@@ -75,4 +75,14 @@ TREND_MODE = suite_indicators(
     example_imports=("import math",),
     intro_basic="A small pure cycle -- its swing below ~1.5% of price -- stays in cycle mode, so the flag "
     "stays ``0`` over a clean low-amplitude period-20 sine:",
+    examples=(
+        Example(
+            verbatim=(
+                ">>> frame = pl.select(close=100.0 + (2 * math.pi * pl.int_range(200) / 20).sin())",
+                ">>> "
+                'frame.select(trend_mode=trend_mode(pl.col("close")))["trend_mode"].drop_nulls().unique().to_list()',
+                "[0.0]",
+            )
+        ),
+    ),
 )

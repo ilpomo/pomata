@@ -6,7 +6,7 @@ from pomata.indicators import fisher_transform
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_fisher_transform
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 FISHER_TRANSFORM = suite_indicators(
     factory=fisher_transform,
@@ -115,6 +115,52 @@ FISHER_TRANSFORM = suite_indicators(
         "window": "Number of observations in the moving window (canonically ``10``). Must be ``>= 1``.",
     },
     intro_basic="Basic usage on high-low bars:",
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker's channel warms up independently:",
-    intro_missing="A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make it visible:",
+    examples=(
+        Example(
+            inputs={
+                "high": (10.0, 11.0, 12.0, 13.0, 14.0, 13.0, 12.0, 13.0, 14.0, 15.0),
+                "low": (9.0, 10.0, 11.0, 12.0, 13.0, 12.0, 11.0, 12.0, 13.0, 14.0),
+            },
+            params={"window": 3},
+            round_to=4,
+            fields=("fisher", "signal"),
+        ),
+        Example(
+            inputs={
+                "high": (10.0, 11.0, 12.0, 11.5, 13.0, 20.0, 21.0, 22.0, 21.5, 23.0),
+                "low": (9.0, 10.0, 11.0, 10.5, 12.0, 19.0, 20.0, 21.0, 20.5, 22.0),
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker's channel warms up "
+            "independently:",
+            partition=("A", "A", "A", "A", "A", "B", "B", "B", "B", "B"),
+            params={"window": 3},
+            round_to=4,
+            fields=("fisher",),
+        ),
+        Example(
+            inputs={
+                "high": (10.0, 11.0, 12.0, None, 13.0, float("nan"), 15.0),
+                "low": (9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 14.0),
+            },
+            intro="A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make it visible:",
+            params={"window": 3},
+            round_to=4,
+            fields=("fisher",),
+        ),
+        Example(
+            inputs={"high": (11.0,), "low": (9.0,)},
+            intro="**Insufficient sample** — a one-bar window is flat by construction (``max == min``), so "
+            "``fisher`` is ``NaN`` from the first row:",
+            params={"window": 1},
+            fields=("fisher",),
+        ),
+        Example(
+            inputs={"high": (10.0, 10.0, 10.0, 10.0, 10.0, 10.0), "low": (10.0, 10.0, 10.0, 10.0, 10.0, 10.0)},
+            intro="**Degenerate denominator** — a constant series has ``max == min`` over every window, so "
+            "the channel normalization is the ``0/0`` boundary, which bridges through the recursion "
+            "as ``NaN``:",
+            params={"window": 3},
+            fields=("fisher",),
+        ),
+    ),
 )

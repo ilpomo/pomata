@@ -7,7 +7,7 @@ from pomata.metrics import conditional_value_at_risk
 from tests.metrics.enums import Annualization, BehaviorNan, BehaviorNull
 from tests.metrics.harness import suite_metrics
 from tests.metrics.oracles import reference_conditional_value_at_risk
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 
 CONDITIONAL_VALUE_AT_RISK = suite_metrics(
     factory=conditional_value_at_risk,
@@ -80,7 +80,44 @@ CONDITIONAL_VALUE_AT_RISK = suite_metrics(
         "confidence": "The tail confidence level (canonically ``0.95``); the shortfall is averaged over the "
         "worst ``1 - confidence`` of returns. Must be in the open interval ``(0, 1)``.",
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
-    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
-    "handling visible:",
+    examples=(
+        Example(
+            inputs={"returns": (0.03, -0.05, 0.02, -0.08, 0.01, -0.06, 0.04, -0.02)},
+            params={"confidence": 0.75},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "returns": (
+                    0.03,
+                    -0.05,
+                    0.02,
+                    -0.08,
+                    0.01,
+                    -0.06,
+                    0.04,
+                    -0.02,
+                    0.02,
+                    -0.03,
+                    0.05,
+                    -0.04,
+                    0.01,
+                    -0.07,
+                    0.03,
+                    -0.01,
+                )
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+            partition=("A", "A", "A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B", "B", "B"),
+            params={"confidence": 0.75},
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (0.03, None, -0.05, 0.02, float("nan"), -0.08, 0.01, -0.06)},
+            intro="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+            "handling visible:",
+            params={"confidence": 0.75},
+            round_to=4,
+        ),
+    ),
 )

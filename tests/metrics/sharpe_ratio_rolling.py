@@ -12,7 +12,7 @@ from tests.metrics.enums import BehaviorNan, BehaviorNull
 from tests.metrics.harness import suite_metrics
 from tests.metrics.oracles import reference_sharpe_ratio_rolling
 from tests.metrics.sharpe_ratio import SHARPE_RATIO
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 from tests.support.strategies import windows_well_spread
 from tests.support.tolerances import TOLERANCE_RELATIVE_ROLLING_ORACLE
 
@@ -135,7 +135,56 @@ SHARPE_RATIO_ROLLING = suite_metrics(
         "``0.0``). Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + "
         "risk_free_rate >= 0``).",
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-    intro_missing="A ``null`` (which voids every window that spans it) and a ``NaN`` (which propagates to "
-    "its windows) make the missing-data handling visible:",
+    examples=(
+        Example(
+            inputs={"returns": (0.03, -0.01, 0.02, -0.015, 0.025, -0.005, 0.02)},
+            params={"window": 3, "periods_per_year": 252},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "returns": (
+                    0.03,
+                    -0.01,
+                    0.02,
+                    -0.015,
+                    0.025,
+                    -0.005,
+                    0.02,
+                    0.02,
+                    -0.005,
+                    0.015,
+                    -0.01,
+                    0.025,
+                    0.0,
+                    -0.012,
+                )
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B", "B"),
+            params={"window": 3, "periods_per_year": 252},
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (0.03, None, 0.02, -0.015, 0.025, float("nan"), 0.02, -0.01, 0.015)},
+            intro="A ``null`` (which voids every window that spans it) and a ``NaN`` (which propagates to "
+            "its windows) make the missing-data handling visible:",
+            params={"window": 3, "periods_per_year": 252},
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (0.5, 0.5, 0.5, 0.5)},
+            intro="**Degenerate denominator** — a constant window has zero dispersion with a positive mean, "
+            "so the ratio is ``+inf``:",
+            params={"window": 3, "periods_per_year": 252},
+        ),
+        Example(
+            inputs={"returns": (-0.3233, -0.6457, 0.0, 0.4404, 0.0, 0.0, 0.0, 0.0)},
+            intro="**Degenerate denominator** — a trailing window of exact zeros, reached after larger "
+            "values slide out, has zero mean and zero dispersion, so the ratio is a ``0 / 0``, i.e. "
+            "``NaN``:",
+            params={"window": 4, "periods_per_year": 252},
+            round_to=4,
+        ),
+    ),
 )

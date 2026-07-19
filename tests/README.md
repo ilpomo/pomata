@@ -176,6 +176,13 @@ The guards, by that test:
   an executed Examples block; warm-up sentence ⇔ declared warm-up; Raises section ⇔ declared counterexamples; TA-Lib
   divergence header ⇔ declared relation; `ddof` header ⇔ signature; opener variant ⇔ the mirror-oracle disclosure;
   scalar knobs keyword-only; a Note header renders as its own paragraph.
+- `test_docstring_roundtrip.py` — the docstring tail (`Args:` to the closing quotes) is byte-for-byte what its
+  declaration generates. `support/docstring.py` builds the tail from the declaration's prose fields and executed
+  Examples, and `regenerate_docstrings.py` splices it under the human-authored head (the summary and formula); the
+  guard reads each source tail and asserts it equals `tail_for(declaration)`, so a hand-edited docstring or a
+  declaration prose field changed without regenerating fails here. Repair by rewriting the tails from the
+  declarations: `uv run python tests/regenerate_docstrings.py --write` (the default `--check` compares without
+  touching `src/`).
 - `test_docs_surface.py` — the README and docs-site catalogs: each family's list and headline count ⇔ `__all__`; each
   indicators / metrics category ⇔ its source module; the pnl cash / returns split ⇔ `SpaceCost`; the reducer count and
   rolling-twin pairing; the TA-Lib split ⇔ `RelationTalib`; the kernel-modules note; the single-dependency claim.

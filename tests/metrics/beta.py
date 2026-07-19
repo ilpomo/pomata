@@ -9,7 +9,7 @@ from pomata.metrics import beta
 from tests.metrics.enums import Annualization, BehaviorNan, BehaviorNull, Degenerate
 from tests.metrics.harness import suite_metrics
 from tests.metrics.oracles import reference_beta
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 
 BETA = suite_metrics(
     factory=beta,
@@ -101,7 +101,41 @@ BETA = suite_metrics(
     ),
     returns_body="A single ``Float64`` value: the regression slope (one value in ``select``, one per group "
     "under ``.over``). ``null`` when fewer than two complete pairs are present.",
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
-    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
-    "handling visible:",
+    examples=(
+        Example(
+            inputs={
+                "returns": (0.02, -0.01, 0.03, -0.02, 0.015, 0.005),
+                "benchmark": (0.015, -0.008, 0.025, -0.015, 0.01, 0.004),
+            },
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "returns": (0.02, -0.01, 0.03, -0.02, 0.015, 0.005, 0.01, 0.025, -0.015, 0.008, -0.005, 0.012),
+                "benchmark": (0.015, -0.008, 0.025, -0.015, 0.01, 0.004, 0.012, 0.02, -0.01, 0.006, -0.004, 0.01),
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+            partition=("A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B"),
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "returns": (None, 0.02, 0.03, float("nan"), 0.015, 0.005),
+                "benchmark": (0.015, -0.008, 0.025, -0.015, 0.01, 0.004),
+            },
+            intro="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+            "handling visible:",
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (0.05,), "benchmark": (0.04,)},
+            intro="**Insufficient sample** — one complete pair has no regression slope, since at least two "
+            "observations are needed, so the result is ``null``:",
+        ),
+        Example(
+            inputs={"returns": (0.01, -0.02, 0.03), "benchmark": (0.1, 0.1, 0.1)},
+            intro="**Degenerate denominator** — a constant (zero-variance) benchmark leaves the slope "
+            "undefined, the ``0 / 0`` case, so the result is ``NaN``:",
+        ),
+    ),
 )

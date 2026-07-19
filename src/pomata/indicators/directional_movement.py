@@ -60,11 +60,11 @@ def adx(
 
         - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
           ``null`` at that position while the recursion continues across the gap.
-        - **NaN** — a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null
-          position — except at ``window == 1``, where every Wilder smoothing in the stack is the identity and nothing
-          latches: the ``NaN`` clears once it leaves the inputs' finite reach.
-        - **Degenerate denominator** — ``di+`` and ``di-`` are both zero, so the result is a ``0 / 0``, i.e.
-          ``NaN`` — the underlying :func:`dx` is the immediate ``0 / 0``, which then poisons the ADX recursion.
+        - **NaN** — a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null position
+          — except at ``window == 1``, where every Wilder smoothing in the stack is the identity and nothing latches:
+          the ``NaN`` clears once it leaves the inputs' finite reach.
+        - **Degenerate denominator** — ``di+`` and ``di-`` are both zero, so the result is a ``0 / 0``, i.e. ``NaN`` —
+          the underlying :func:`dx` is the immediate ``0 / 0``, which then poisons the ADX recursion.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -90,8 +90,7 @@ def adx(
         ...         "close": [9.5, 10.5, 11.5, 11.0, 12.5, 12.0, 13.5, 13.0, 14.5, 14.0],
         ...     }
         ... )
-        >>> expr = adx(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
-        >>> frame.select(adx=expr)["adx"].to_list()
+        >>> frame.select(adx=adx(pl.col("high"), pl.col("low"), pl.col("close"), window=2).round(4))["adx"].to_list()
         [None, None, 100.0, 60.0, 68.2353, 44.1176, 58.3602, 39.1801, 55.4486, 37.7243]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -104,8 +103,8 @@ def adx(
         ...         "close": [9.5, 10.5, 11.5, 11.0, 12.5, 12.0, 19.0, 21.0, 18.0, 22.0, 19.0, 23.0],
         ...     }
         ... )
-        >>> expr = adx(pl.col("high"), pl.col("low"), pl.col("close"), 2).over("ticker").round(4)
-        >>> frame.with_columns(adx=expr)["adx"].to_list()
+        >>> expr = adx(pl.col("high"), pl.col("low"), pl.col("close"), window=2)
+        >>> frame.with_columns(adx=expr.over("ticker").round(4))["adx"].to_list()
         [None, None, 100.0, 60.0, 68.2353, 44.1176, None, None, 75.0, 62.5, 43.75, 45.0893]
 
         A leading ``null`` ``close`` (absorbed by the true-range maximum) and a later ``NaN`` (which poisons the
@@ -118,8 +117,7 @@ def adx(
         ...         "close": [None, 10.5, 11.5, 11.0, float("nan"), 12.0, 13.5, 13.0],
         ...     }
         ... )
-        >>> expr = adx(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
-        >>> frame.select(adx=expr)["adx"].to_list()
+        >>> frame.select(adx=adx(pl.col("high"), pl.col("low"), pl.col("close"), window=2).round(4))["adx"].to_list()
         [None, None, 100.0, 60.0, 68.2353, nan, nan, nan]
 
         **Degenerate denominator** — a fully flat window leaves both directional indicators at zero, the indeterminate
@@ -197,11 +195,10 @@ def adxr(
         - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
           ``null`` at that position while the recursion continues across the gap — inherited from :func:`adx`; a row
           whose ADX or whose ``window``-ago ADX is missing is itself missing.
-        - **NaN** — a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null
-          position — inherited from :func:`adx`.
-        - **Degenerate denominator** — ``di+`` and ``di-`` are both zero, so the result is a ``0 / 0``, i.e.
-          ``NaN`` — inherited from :func:`adx`, which then poisons the averaging of the current and ``window``-ago
-          values.
+        - **NaN** — a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null position
+          — inherited from :func:`adx`.
+        - **Degenerate denominator** — ``di+`` and ``di-`` are both zero, so the result is a ``0 / 0``, i.e. ``NaN`` —
+          inherited from :func:`adx`, which then poisons the averaging of the current and ``window``-ago values.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -227,8 +224,7 @@ def adxr(
         ...         "close": [9.5, 10.5, 11.5, 11.0, 12.5, 12.0, 13.5, 13.0, 14.5, 14.0],
         ...     }
         ... )
-        >>> expr = adxr(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
-        >>> frame.select(adxr=expr)["adxr"].to_list()
+        >>> frame.select(adxr=adxr(pl.col("high"), pl.col("low"), pl.col("close"), window=2).round(4))["adxr"].to_list()
         [None, None, None, None, 84.1176, 52.0588, 63.2977, 41.6489, 56.9044, 38.4522]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -241,12 +237,12 @@ def adxr(
         ...         "close": [9.5, 10.5, 11.5, 11.0, 12.5, 12.0, 13.5, 19.0, 21.0, 18.0, 22.0, 19.0, 23.0, 20.0],
         ...     }
         ... )
-        >>> expr = adxr(pl.col("high"), pl.col("low"), pl.col("close"), 2).over("ticker").round(4)
-        >>> frame.with_columns(adxr=expr)["adxr"].to_list()
+        >>> expr = adxr(pl.col("high"), pl.col("low"), pl.col("close"), window=2)
+        >>> frame.with_columns(adxr=expr.over("ticker").round(4))["adxr"].to_list()
         [None, None, None, None, 84.1176, 52.0588, 63.2977, None, None, None, None, 59.375, 53.7946, 38.4358]
 
-        A leading ``null`` ``close`` (absorbed by the true-range maximum) and a later ``NaN`` (which latches)
-        make the handling visible:
+        A leading ``null`` ``close`` (absorbed by the true-range maximum) and a later ``NaN`` (which latches) make the
+        handling visible:
 
         >>> frame = pl.DataFrame(
         ...     {
@@ -255,8 +251,7 @@ def adxr(
         ...         "close": [None, 10.5, 11.5, 11.0, float("nan"), 12.0, 13.5, 13.0],
         ...     }
         ... )
-        >>> expr = adxr(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
-        >>> frame.select(adxr=expr)["adxr"].to_list()
+        >>> frame.select(adxr=adxr(pl.col("high"), pl.col("low"), pl.col("close"), window=2).round(4))["adxr"].to_list()
         [None, None, None, None, 84.1176, nan, nan, nan]
 
         **Degenerate denominator** — a fully flat window leaves both directional indicators at zero, the indeterminate
@@ -331,14 +326,13 @@ def di_minus(
           ``null`` at that position while the recursion continues across the gap — a ``null`` prior close drops the
           close-based true-range terms and shrinks the ATR, so on a gap the ratio can exceed the nominal ``[0, 100]``
           bound.
-        - **NaN** — a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null
-          position — except at ``window == 1``, where the smoothing is the identity and nothing latches: the ``NaN``
-          clears once it leaves the one-bar reach of the differencing and the true range.
+        - **NaN** — a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null position
+          — except at ``window == 1``, where the smoothing is the identity and nothing latches: the ``NaN`` clears once
+          it leaves the one-bar reach of the differencing and the true range.
         - **Degenerate denominator** — for ``window >= 2`` the whole series so far must be flat (both the ATR and the
           smoothed movement zero, since the ATR is an infinite-memory Wilder RMA), so the result is a ``0 / 0``, i.e.
-          ``NaN``; a merely local flat patch after earlier movement leaves the ATR small-but-positive and the DI
-          finite, while at ``window == 1`` there is no memory, so a single bar with zero range and zero gap already
-          triggers it.
+          ``NaN``; a merely local flat patch after earlier movement leaves the ATR small-but-positive and the DI finite,
+          while at ``window == 1`` there is no memory, so a single bar with zero range and zero gap already triggers it.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -364,8 +358,8 @@ def di_minus(
         ...         "close": [9.5, 10.5, 11.5, 11.0, 12.5, 12.0, 13.5, 13.0],
         ...     }
         ... )
-        >>> expr = di_minus(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
-        >>> frame.select(di_minus=expr)["di_minus"].to_list()
+        >>> expr = di_minus(pl.col("high"), pl.col("low"), pl.col("close"), window=2)
+        >>> frame.select(di_minus=expr.round(4))["di_minus"].to_list()
         [None, 0.0, 0.0, 21.0526, 7.8431, 24.0964, 9.4787, 24.7788]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -378,12 +372,12 @@ def di_minus(
         ...         "close": [9.5, 10.5, 11.5, 11.0, 12.5, 19.0, 21.0, 18.0, 22.0, 19.0],
         ...     }
         ... )
-        >>> expr = di_minus(pl.col("high"), pl.col("low"), pl.col("close"), 2).over("ticker").round(4)
-        >>> frame.with_columns(di_minus=expr)["di_minus"].to_list()
+        >>> expr = di_minus(pl.col("high"), pl.col("low"), pl.col("close"), window=2)
+        >>> frame.with_columns(di_minus=expr.over("ticker").round(4))["di_minus"].to_list()
         [None, 0.0, 0.0, 21.0526, 7.8431, None, 0.0, 46.1538, 18.1818, 46.1538]
 
-        A leading ``null`` ``close`` (absorbed by the ATR's true-range maximum) and a later ``NaN`` (which latches)
-        make the handling visible:
+        A leading ``null`` ``close`` (absorbed by the ATR's true-range maximum) and a later ``NaN`` (which latches) make
+        the handling visible:
 
         >>> frame = pl.DataFrame(
         ...     {
@@ -392,8 +386,8 @@ def di_minus(
         ...         "close": [None, 10.5, 11.5, 11.0, float("nan"), 12.0, 13.5, 13.0],
         ...     }
         ... )
-        >>> expr = di_minus(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
-        >>> frame.select(di_minus=expr)["di_minus"].to_list()
+        >>> expr = di_minus(pl.col("high"), pl.col("low"), pl.col("close"), window=2)
+        >>> frame.select(di_minus=expr.round(4))["di_minus"].to_list()
         [None, 0.0, 0.0, 22.2222, 8.0, nan, nan, nan]
 
         **Degenerate denominator** — a fully flat window makes the average true range zero, so the smoothed movement
@@ -467,14 +461,13 @@ def di_plus(
           ``null`` at that position while the recursion continues across the gap — a ``null`` prior close drops the
           close-based true-range terms and shrinks the ATR, so on a gap the ratio can exceed the nominal ``[0, 100]``
           bound.
-        - **NaN** — a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null
-          position — except at ``window == 1``, where the smoothing is the identity and nothing latches: the ``NaN``
-          clears once it leaves the one-bar reach of the differencing and the true range.
+        - **NaN** — a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null position
+          — except at ``window == 1``, where the smoothing is the identity and nothing latches: the ``NaN`` clears once
+          it leaves the one-bar reach of the differencing and the true range.
         - **Degenerate denominator** — for ``window >= 2`` the whole series so far must be flat (both the ATR and the
           smoothed movement zero, since the ATR is an infinite-memory Wilder RMA), so the result is a ``0 / 0``, i.e.
-          ``NaN``; a merely local flat patch after earlier movement leaves the ATR small-but-positive and the DI
-          finite, while at ``window == 1`` there is no memory, so a single bar with zero range and zero gap already
-          triggers it.
+          ``NaN``; a merely local flat patch after earlier movement leaves the ATR small-but-positive and the DI finite,
+          while at ``window == 1`` there is no memory, so a single bar with zero range and zero gap already triggers it.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -500,8 +493,8 @@ def di_plus(
         ...         "close": [9.5, 10.5, 11.5, 11.0, 12.5, 12.0, 13.5, 13.0],
         ...     }
         ... )
-        >>> expr = di_plus(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
-        >>> frame.select(di_plus=expr)["di_plus"].to_list()
+        >>> expr = di_plus(pl.col("high"), pl.col("low"), pl.col("close"), window=2)
+        >>> frame.select(di_plus=expr.round(4))["di_plus"].to_list()
         [None, 40.0, 54.5455, 31.5789, 58.8235, 36.1446, 59.7156, 37.1681]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -514,12 +507,12 @@ def di_plus(
         ...         "close": [9.5, 10.5, 11.5, 11.0, 12.5, 19.0, 21.0, 18.0, 22.0, 19.0],
         ...     }
         ... )
-        >>> expr = di_plus(pl.col("high"), pl.col("low"), pl.col("close"), 2).over("ticker").round(4)
-        >>> frame.with_columns(di_plus=expr)["di_plus"].to_list()
+        >>> expr = di_plus(pl.col("high"), pl.col("low"), pl.col("close"), window=2)
+        >>> frame.with_columns(di_plus=expr.over("ticker").round(4))["di_plus"].to_list()
         [None, 40.0, 54.5455, 31.5789, 58.8235, None, 40.0, 15.3846, 54.5455, 27.6923]
 
-        A leading ``null`` ``close`` (absorbed by the ATR's true-range maximum) and a later ``NaN`` (which latches)
-        make the handling visible:
+        A leading ``null`` ``close`` (absorbed by the ATR's true-range maximum) and a later ``NaN`` (which latches) make
+        the handling visible:
 
         >>> frame = pl.DataFrame(
         ...     {
@@ -528,8 +521,8 @@ def di_plus(
         ...         "close": [None, 10.5, 11.5, 11.0, float("nan"), 12.0, 13.5, 13.0],
         ...     }
         ... )
-        >>> expr = di_plus(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
-        >>> frame.select(di_plus=expr)["di_plus"].to_list()
+        >>> expr = di_plus(pl.col("high"), pl.col("low"), pl.col("close"), window=2)
+        >>> frame.select(di_plus=expr.round(4))["di_plus"].to_list()
         [None, 50.0, 60.0, 33.3333, 60.0, nan, nan, nan]
 
         **Degenerate denominator** — a fully flat window makes the average true range zero, so the smoothed movement
@@ -600,13 +593,12 @@ def dm_minus(
 
         Row ``0`` has no previous bar, so its raw movement is ``0`` and seeds the smoothing. The raw directional
         movement is then smoothed by Wilder's :func:`rma`, the mean-scale recursion
-        ``m_t = m_{t-1} - m_{t-1} / window + raw_t / window`` (smoothing factor ``1 / window``).
-        Wilder's original presentation instead smooths on the sum scale (``S_t = S_{t-1} - S_{t-1} / window + raw_t``,
-        seeded from a simple sum of the first ``window`` raw movements), which equals ``window`` times the mean-scale
-        value in steady state. That factor of ``window`` is structural and persists for every row — it is not a warm-up
-        seed difference that washes out — so this series reads roughly ``window`` times smaller than the sum-scale
-        convention throughout. The factor cancels in :func:`di_minus`, :func:`dx`, and :func:`adx`, which are therefore
-        unaffected.
+        ``m_t = m_{t-1} - m_{t-1} / window + raw_t / window`` (smoothing factor ``1 / window``). Wilder's original
+        presentation instead smooths on the sum scale (``S_t = S_{t-1} - S_{t-1} / window + raw_t``, seeded from a
+        simple sum of the first ``window`` raw movements), which equals ``window`` times the mean-scale value in steady
+        state. That factor of ``window`` is structural and persists for every row — it is not a warm-up seed difference
+        that washes out — so this series reads roughly ``window`` times smaller than the sum-scale convention
+        throughout. The factor cancels in :func:`di_minus`, :func:`dx`, and :func:`adx`, which are therefore unaffected.
 
         **Edge-case behavior**
 
@@ -615,9 +607,9 @@ def dm_minus(
           ``window - 1`` warm-up nulls from :func:`rma`.
         - **NaN** — a ``NaN`` in ``low`` (the own-side input) poisons the recursion and yields ``NaN`` for every
           subsequent non-null row (except at ``window == 1``, where the smoothing is the identity and nothing latches:
-          the ``NaN`` clears once it leaves the differencing's one-bar reach); a ``NaN`` in ``high`` (the opposing
-          side) instead makes the directional comparison false, so the affected raw movement is sent to ``0`` and
-          genuine downward movement is silently dropped there.
+          the ``NaN`` clears once it leaves the differencing's one-bar reach); a ``NaN`` in ``high`` (the opposing side)
+          instead makes the directional comparison false, so the affected raw movement is sent to ``0`` and genuine
+          downward movement is silently dropped there.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -642,7 +634,7 @@ def dm_minus(
         ...         "low": [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5],
         ...     }
         ... )
-        >>> frame.select(dm_minus=dm_minus(pl.col("high"), pl.col("low"), 2).round(4))["dm_minus"].to_list()
+        >>> frame.select(dm_minus=dm_minus(pl.col("high"), pl.col("low"), window=2).round(4))["dm_minus"].to_list()
         [None, 0.0, 0.0, 0.25, 0.125, 0.3125, 0.1562, 0.3281]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -654,8 +646,8 @@ def dm_minus(
         ...         "low": [9.0, 10.0, 11.0, 10.5, 12.0, 18.0, 20.0, 17.0, 21.0, 18.0],
         ...     }
         ... )
-        >>> expr = dm_minus(pl.col("high"), pl.col("low"), 2).over("ticker").round(4)
-        >>> frame.with_columns(dm_minus=expr)["dm_minus"].to_list()
+        >>> expr = dm_minus(pl.col("high"), pl.col("low"), window=2)
+        >>> frame.with_columns(dm_minus=expr.over("ticker").round(4))["dm_minus"].to_list()
         [None, 0.0, 0.0, 0.25, 0.125, None, 0.0, 1.5, 0.75, 1.875]
 
         On a falling frame, a leading ``null`` ``low`` (which zeroes the raw movement it touches) and a later ``NaN``
@@ -667,7 +659,7 @@ def dm_minus(
         ...         "low": [None, 7.0, 6.5, 5.5, float("nan"), 5.0, 4.5, 4.0],
         ...     }
         ... )
-        >>> frame.select(dm_minus=dm_minus(pl.col("high"), pl.col("low"), 2).round(4))["dm_minus"].to_list()
+        >>> frame.select(dm_minus=dm_minus(pl.col("high"), pl.col("low"), window=2).round(4))["dm_minus"].to_list()
         [None, 0.0, 0.25, 0.625, nan, nan, nan, nan]
     """
     high = float64_expr(high)
@@ -726,13 +718,12 @@ def dm_plus(
 
         Row ``0`` has no previous bar, so its raw movement is ``0`` and seeds the smoothing. The raw directional
         movement is then smoothed by Wilder's :func:`rma`, the mean-scale recursion
-        ``m_t = m_{t-1} - m_{t-1} / window + raw_t / window`` (smoothing factor ``1 / window``).
-        Wilder's original presentation instead smooths on the sum scale (``S_t = S_{t-1} - S_{t-1} / window + raw_t``,
-        seeded from a simple sum of the first ``window`` raw movements), which equals ``window`` times the mean-scale
-        value in steady state. That factor of ``window`` is structural and persists for every row — it is not a warm-up
-        seed difference that washes out — so this series reads roughly ``window`` times smaller than the sum-scale
-        convention throughout. The factor cancels in :func:`di_plus`, :func:`dx`, and :func:`adx`, which are therefore
-        unaffected.
+        ``m_t = m_{t-1} - m_{t-1} / window + raw_t / window`` (smoothing factor ``1 / window``). Wilder's original
+        presentation instead smooths on the sum scale (``S_t = S_{t-1} - S_{t-1} / window + raw_t``, seeded from a
+        simple sum of the first ``window`` raw movements), which equals ``window`` times the mean-scale value in steady
+        state. That factor of ``window`` is structural and persists for every row — it is not a warm-up seed difference
+        that washes out — so this series reads roughly ``window`` times smaller than the sum-scale convention
+        throughout. The factor cancels in :func:`di_plus`, :func:`dx`, and :func:`adx`, which are therefore unaffected.
 
         **Edge-case behavior**
 
@@ -741,9 +732,9 @@ def dm_plus(
           ``window - 1`` warm-up nulls from :func:`rma`.
         - **NaN** — a ``NaN`` in ``high`` (the own-side input) poisons the recursion and yields ``NaN`` for every
           subsequent non-null row (except at ``window == 1``, where the smoothing is the identity and nothing latches:
-          the ``NaN`` clears once it leaves the differencing's one-bar reach); a ``NaN`` in ``low`` (the opposing
-          side) instead makes the directional comparison false, so the affected raw movement is sent to ``0`` and
-          genuine upward movement is silently dropped there.
+          the ``NaN`` clears once it leaves the differencing's one-bar reach); a ``NaN`` in ``low`` (the opposing side)
+          instead makes the directional comparison false, so the affected raw movement is sent to ``0`` and genuine
+          upward movement is silently dropped there.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -768,7 +759,7 @@ def dm_plus(
         ...         "low": [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5],
         ...     }
         ... )
-        >>> frame.select(dm_plus=dm_plus(pl.col("high"), pl.col("low"), 2).round(4))["dm_plus"].to_list()
+        >>> frame.select(dm_plus=dm_plus(pl.col("high"), pl.col("low"), window=2).round(4))["dm_plus"].to_list()
         [None, 0.5, 0.75, 0.375, 0.9375, 0.4688, 0.9844, 0.4922]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -780,8 +771,8 @@ def dm_plus(
         ...         "low": [9.0, 10.0, 11.0, 10.5, 12.0, 18.0, 20.0, 17.0, 21.0, 18.0],
         ...     }
         ... )
-        >>> expr = dm_plus(pl.col("high"), pl.col("low"), 2).over("ticker").round(4)
-        >>> frame.with_columns(dm_plus=expr)["dm_plus"].to_list()
+        >>> expr = dm_plus(pl.col("high"), pl.col("low"), window=2)
+        >>> frame.with_columns(dm_plus=expr.over("ticker").round(4))["dm_plus"].to_list()
         [None, 0.5, 0.75, 0.375, 0.9375, None, 1.0, 0.5, 2.25, 1.125]
 
         A leading ``null`` ``high`` (which zeroes the raw movement it touches) and a later ``NaN`` ``high`` (the own
@@ -793,7 +784,7 @@ def dm_plus(
         ...         "low": [9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5],
         ...     }
         ... )
-        >>> frame.select(dm_plus=dm_plus(pl.col("high"), pl.col("low"), 2).round(4))["dm_plus"].to_list()
+        >>> frame.select(dm_plus=dm_plus(pl.col("high"), pl.col("low"), window=2).round(4))["dm_plus"].to_list()
         [None, 0.0, 0.5, 0.25, nan, nan, nan, nan]
     """
     high = float64_expr(high)
@@ -853,9 +844,9 @@ def dx(
 
         - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
           ``null`` at that position while the recursion continues across the gap.
-        - **NaN** — a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null
-          position — except at ``window == 1``, where the smoothing is the identity and nothing latches: the ``NaN``
-          clears once it leaves the one-bar reach of the differencing and the true range.
+        - **NaN** — a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null position
+          — except at ``window == 1``, where the smoothing is the identity and nothing latches: the ``NaN`` clears once
+          it leaves the one-bar reach of the differencing and the true range.
         - **Degenerate denominator** — ``+DI`` and ``-DI`` are both zero (no movement either way), so the result is a
           ``0 / 0``, i.e. ``NaN``.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
@@ -883,8 +874,7 @@ def dx(
         ...         "close": [9.5, 10.5, 11.5, 11.0, 12.5, 12.0, 13.5, 13.0],
         ...     }
         ... )
-        >>> expr = dx(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
-        >>> frame.select(dx=expr)["dx"].to_list()
+        >>> frame.select(dx=dx(pl.col("high"), pl.col("low"), pl.col("close"), window=2).round(4))["dx"].to_list()
         [None, 100.0, 100.0, 20.0, 76.4706, 20.0, 72.6027, 20.0]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -897,8 +887,8 @@ def dx(
         ...         "close": [9.5, 10.5, 11.5, 11.0, 12.5, 19.0, 21.0, 18.0, 22.0, 19.0],
         ...     }
         ... )
-        >>> expr = dx(pl.col("high"), pl.col("low"), pl.col("close"), 2).over("ticker").round(4)
-        >>> frame.with_columns(dx=expr)["dx"].to_list()
+        >>> expr = dx(pl.col("high"), pl.col("low"), pl.col("close"), window=2)
+        >>> frame.with_columns(dx=expr.over("ticker").round(4))["dx"].to_list()
         [None, 100.0, 100.0, 20.0, 76.4706, None, 100.0, 50.0, 50.0, 25.0]
 
         A leading ``null`` ``close`` (absorbed by the underlying ATR's true-range maximum) and a later ``NaN`` (which
@@ -911,8 +901,7 @@ def dx(
         ...         "close": [None, 10.5, 11.5, 11.0, float("nan"), 12.0, 13.5, 13.0],
         ...     }
         ... )
-        >>> expr = dx(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
-        >>> frame.select(dx=expr)["dx"].to_list()
+        >>> frame.select(dx=dx(pl.col("high"), pl.col("low"), pl.col("close"), window=2).round(4))["dx"].to_list()
         [None, 100.0, 100.0, 20.0, 76.4706, nan, nan, nan]
 
         **Degenerate denominator** — a fully flat window has no movement either way, so both directional indicators are
@@ -990,16 +979,16 @@ def vortex(
 
         **Edge-case behavior**
 
-        - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values)
-          — including via the one-bar lag, which makes the first movement ``null``.
+        - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values) —
+          including via the one-bar lag, which makes the first movement ``null``.
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
-        - **Degenerate denominator** — a window has zero summed true range and zero summed movement, so the result is
-          a ``0 / 0``, i.e. ``NaN`` — detected per line via the residual-free rolling maxima of the true range and the
-          movement; a near-flat window (tiny ranges after a much larger one has slid out) is not silenced, since
-          ``VI+`` is unbounded above and the streaming quotient cannot be clipped to a range, degrading in precision
-          past a sane dynamic range.
-        - **window == 1** — each line reduces to a single bar's vortex movement over its own true range; the first
-          row is ``null`` (there is no prior bar for the lag).
+        - **Degenerate denominator** — a window has zero summed true range and zero summed movement, so the result is a
+          ``0 / 0``, i.e. ``NaN`` — detected per line via the residual-free rolling maxima of the true range and the
+          movement; a near-flat window (tiny ranges after a much larger one has slid out) is not silenced, since ``VI+``
+          is unbounded above and the streaming quotient cannot be clipped to a range, degrading in precision past a sane
+          dynamic range.
+        - **window == 1** — each line reduces to a single bar's vortex movement over its own true range; the first row
+          is ``null`` (there is no prior bar for the lag).
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -1026,10 +1015,10 @@ def vortex(
         ...         "close": [1.5, 3.5, 5.0, 4.5, 6.0, 6.0, 7.0, 7.0],
         ...     }
         ... )
-        >>> bands = vortex(pl.col("high"), pl.col("low"), pl.col("close"), 2)
-        >>> frame.select(plus=bands.struct.field("plus").round(4))["plus"].to_list()
+        >>> expr = vortex(pl.col("high"), pl.col("low"), pl.col("close"), window=2)
+        >>> frame.select(plus=expr.struct.field("plus").round(4))["plus"].to_list()
         [None, None, 1.2, 1.1429, 1.1429, 1.2857, 1.3333, 1.3333]
-        >>> frame.select(minus=bands.struct.field("minus").round(4))["minus"].to_list()
+        >>> frame.select(minus=expr.struct.field("minus").round(4))["minus"].to_list()
         [None, None, 0.2, 0.5714, 0.5714, 0.4286, 0.6667, 0.6667]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -1042,10 +1031,10 @@ def vortex(
         ...         "close": [1.5, 3.5, 5.0, 4.5, 6.0, 11.0, 10.0, 12.0, 9.0, 11.0],
         ...     }
         ... )
-        >>> expr = vortex(pl.col("high"), pl.col("low"), pl.col("close"), 2).over("ticker")
-        >>> frame.with_columns(plus=expr.struct.field("plus").round(4))["plus"].to_list()
+        >>> expr = vortex(pl.col("high"), pl.col("low"), pl.col("close"), window=2)
+        >>> frame.with_columns(plus=expr.over("ticker").struct.field("plus").round(4))["plus"].to_list()
         [None, None, 1.2, 1.1429, 1.1429, None, None, 1.0, 0.7143, 0.7143]
-        >>> frame.with_columns(minus=expr.struct.field("minus").round(4))["minus"].to_list()
+        >>> frame.with_columns(minus=expr.over("ticker").struct.field("minus").round(4))["minus"].to_list()
         [None, None, 0.2, 0.5714, 0.5714, None, None, 0.6, 0.7143, 0.7143]
 
         A leading ``null`` ``close`` (absorbed by the true-range maximum) and a later ``NaN`` (which contaminates only
@@ -1058,10 +1047,10 @@ def vortex(
         ...         "close": [None, 3.5, 5.0, 4.5, float("nan"), 6.0, 7.0, 7.0],
         ...     }
         ... )
-        >>> bands = vortex(pl.col("high"), pl.col("low"), pl.col("close"), 2)
-        >>> frame.select(plus=bands.struct.field("plus").round(4))["plus"].to_list()
+        >>> expr = vortex(pl.col("high"), pl.col("low"), pl.col("close"), window=2)
+        >>> frame.select(plus=expr.struct.field("plus").round(4))["plus"].to_list()
         [None, None, 1.7143, 1.1429, 1.1429, nan, nan, 1.3333]
-        >>> frame.select(minus=bands.struct.field("minus").round(4))["minus"].to_list()
+        >>> frame.select(minus=expr.struct.field("minus").round(4))["minus"].to_list()
         [None, None, 0.2857, 0.5714, 0.5714, nan, nan, 0.6667]
 
         **Degenerate denominator** — a flat window has zero summed true range and zero summed movement, so both lines

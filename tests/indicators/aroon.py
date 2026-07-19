@@ -7,7 +7,7 @@ from pomata.indicators import aroon
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_aroon
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 AROON = suite_indicators(
     factory=aroon,
@@ -86,7 +86,38 @@ AROON = suite_indicators(
         "window": "Look-back length; the extreme is sought over the last ``window + 1`` bars. Must be ``>= 1``.",
     },
     intro_basic="Basic usage on high-low bars:",
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker's channel warms up independently:",
-    intro_missing="A ``null`` (which nulls the affected line) and a ``NaN`` (which propagates) in ``high`` "
-    "make the handling visible on the ``up`` line:",
+    examples=(
+        Example(
+            inputs={
+                "high": (10.0, 11.0, 12.0, 11.0, 13.0, 12.0, 14.0, 13.0),
+                "low": (9.0, 10.0, 11.0, 10.0, 12.0, 11.0, 13.0, 12.0),
+            },
+            params={"window": 3},
+            round_to=4,
+            fields=("up", "down"),
+        ),
+        Example(
+            inputs={
+                "high": (10.0, 11.0, 12.0, 11.0, 13.0, 20.0, 22.0, 24.0, 22.0, 26.0),
+                "low": (9.0, 10.0, 11.0, 10.0, 12.0, 19.0, 21.0, 23.0, 21.0, 25.0),
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker's channel warms up "
+            "independently:",
+            partition=("A", "A", "A", "A", "A", "B", "B", "B", "B", "B"),
+            params={"window": 3},
+            round_to=4,
+            fields=("up",),
+        ),
+        Example(
+            inputs={
+                "high": (10.0, 11.0, 12.0, 13.0, None, 15.0, 16.0, 17.0, 18.0, float("nan"), 20.0, 21.0),
+                "low": (9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0),
+            },
+            intro="A ``null`` (which nulls the affected line) and a ``NaN`` (which propagates) in ``high`` "
+            "make the handling visible on the ``up`` line:",
+            params={"window": 3},
+            round_to=4,
+            fields=("up",),
+        ),
+    ),
 )

@@ -6,7 +6,7 @@ from pomata.pnl import cost_borrow
 from tests.pnl.enums import BehaviorNan, BehaviorNull, ConventionSign, SpaceCost
 from tests.pnl.harness import suite_pnl
 from tests.pnl.oracles import reference_cost_borrow
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 
 COST_BORROW = suite_pnl(
     factory=cost_borrow,
@@ -109,7 +109,38 @@ COST_BORROW = suite_pnl(
         "rate": "Per-bar borrow rate, as a fraction of the short notional (e.g. an annual rate divided by "
         "the bars per year). Must be a finite number ``>= 0``.",
     },
-    intro_over="On a multi-ticker panel, partition with ``.over`` — for this elementwise holding cost it "
-    "is optional (the result is identical without it) and shown here only for consistency:",
-    intro_missing="A ``null`` (which propagates) and a ``NaN`` make the missing-data handling visible:",
+    examples=(
+        Example(
+            inputs={"quantity": (100.0, -50.0, -50.0, -20.0, -20.0), "price": (10.0, 11.0, 12.0, 13.0, 14.0)},
+            params={"rate": 0.0001},
+            round_to=6,
+        ),
+        Example(
+            inputs={
+                "quantity": (100.0, -50.0, -50.0, -20.0, -20.0, 30.0),
+                "price": (10.0, 11.0, 12.0, 13.0, 14.0, 15.0),
+            },
+            intro="On a multi-ticker panel, partition with ``.over`` — for this elementwise holding cost it "
+            "is optional (the result is identical without it) and shown here only for consistency:",
+            partition=("A", "A", "A", "B", "B", "B"),
+            params={"rate": 0.0001},
+            round_to=6,
+        ),
+        Example(
+            inputs={
+                "quantity": (-50.0, None, -50.0, float("nan"), -20.0),
+                "price": (10.0, 11.0, float("nan"), 12.0, 13.0),
+            },
+            intro="A ``null`` (which propagates) and a ``NaN`` make the missing-data handling visible:",
+            params={"rate": 0.0001},
+            round_to=6,
+        ),
+        Example(
+            inputs={"quantity": (float("inf"), -2.0, float("-inf")), "price": (10.0, float("inf"), 20.0)},
+            intro="**Non-finite input** — an infinite long holds for free (only the short side pays borrow) "
+            "while an infinite short notional charges an infinite fee, so the cost is ``0`` or "
+            "``inf``:",
+            params={"rate": 0.0001},
+        ),
+    ),
 )

@@ -6,7 +6,7 @@ from pomata.pnl import pnl_net
 from tests.pnl.enums import BehaviorNan, BehaviorNull, ConventionSign, SpaceCost
 from tests.pnl.harness import suite_pnl
 from tests.pnl.oracles import reference_pnl_net
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 
 PNL_NET = suite_pnl(
     factory=pnl_net,
@@ -74,7 +74,34 @@ PNL_NET = suite_pnl(
         "(sum several with ``+``).",
     },
     intro_basic="Basic usage on a gross P&L and a cost series:",
-    intro_over="The subtraction is elementwise, so ``.over`` partitions identically and is shown only for consistency:",
-    intro_missing="A ``null`` then a ``NaN`` in ``pnl_gross`` (both propagate through the subtraction) make "
-    "the missing-data handling visible:",
+    examples=(
+        Example(
+            inputs={
+                "pnl_gross": (20.0, 5.0, -15.0, -20.0, 8.0, 12.0, -3.0, 10.0),
+                "cost": (2.0, 0.0, 3.0, 0.0, 1.0, 2.0, 0.0, 1.0),
+            },
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "pnl_gross": (20.0, 5.0, -15.0, -20.0, 8.0, 12.0, -3.0, 10.0),
+                "cost": (2.0, 0.0, 3.0, 0.0, 1.0, 2.0, 0.0, 1.0),
+            },
+            intro="The subtraction is elementwise, so ``.over`` partitions identically and is shown only "
+            "for consistency:",
+            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            round_to=4,
+        ),
+        Example(
+            inputs={"pnl_gross": (20.0, None, -15.0, float("nan"), 8.0), "cost": (2.0, 3.0, 3.0, 0.0, 1.0)},
+            intro="A ``null`` then a ``NaN`` in ``pnl_gross`` (both propagate through the subtraction) make "
+            "the missing-data handling visible:",
+            round_to=4,
+        ),
+        Example(
+            inputs={"pnl_gross": (float("inf"), 5.0), "cost": (float("inf"), 1.0)},
+            intro="**Non-finite input** — a same-sign infinite gross PnL and cost cancel to ``inf - inf``, "
+            "so the net PnL is ``NaN``:",
+        ),
+    ),
 )

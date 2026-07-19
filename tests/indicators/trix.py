@@ -6,7 +6,7 @@ from pomata.indicators import trix
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_trix
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 from tests.support.tolerances import TOLERANCE_ABSOLUTE_ROLLING_ORACLE, TOLERANCE_RELATIVE_ROLLING_ORACLE
 
 TRIX = suite_indicators(
@@ -82,6 +82,35 @@ TRIX = suite_indicators(
         "window": "Span of each of the three EMA passes. Must be ``>= 1``.",
     },
     intro_basic="Basic usage on a single price series:",
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker's EMA chain warms up independently:",
-    intro_missing="A ``null`` (which the EMA chain bridges) and a ``NaN`` (which latches) make the handling visible:",
+    example_columns={"price": "close"},
+    examples=(
+        Example(inputs={"price": (10.0, 11.0, 12.0, 11.0, 13.0, 14.0, 13.0, 15.0)}, params={"window": 2}, round_to=4),
+        Example(
+            inputs={"price": (10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 20.0, 22.0, 24.0, 26.0, 28.0, 30.0)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker's EMA chain warms up "
+            "independently:",
+            partition=("A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B"),
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={"price": (10.0, 11.0, 12.0, None, 14.0, float("nan"), 16.0, 17.0)},
+            intro="A ``null`` (which the EMA chain bridges) and a ``NaN`` (which latches) make the handling visible:",
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={"price": (0.0, 0.0, 0.0, 0.0, 0.0, 5.0)},
+            intro="**Degenerate denominator** — a zero-valued history drives the triple EMA to exactly "
+            "zero, so the rate of change divides by that zero: a ``0/0`` while the EMA holds at zero, "
+            "``+/-inf`` the moment it moves off it:",
+            params={"window": 2},
+        ),
+        Example(
+            inputs={"price": (100.0, 120.0, 90.0, 108.0)},
+            intro="**window == 1** — a one-bar window makes every EMA pass the identity, degenerating TRIX "
+            "to the one-period percentage ROC of the raw input:",
+            params={"window": 1},
+        ),
+    ),
 )

@@ -6,7 +6,7 @@ from pomata.pnl import returns_net
 from tests.pnl.enums import BehaviorNan, BehaviorNull, ConventionSign, SpaceCost
 from tests.pnl.harness import suite_pnl
 from tests.pnl.oracles import reference_returns_net
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 
 RETURNS_NET = suite_pnl(
     factory=returns_net,
@@ -75,7 +75,37 @@ RETURNS_NET = suite_pnl(
         "several with ``+``).",
     },
     intro_basic="Basic usage on a gross return and a cost series:",
-    intro_over="The subtraction is elementwise, so ``.over`` partitions identically and is shown only for consistency:",
-    intro_missing="A ``null`` then a ``NaN`` in ``returns_gross`` (both propagate through the subtraction) "
-    "make the missing-data handling visible:",
+    examples=(
+        Example(
+            inputs={
+                "returns_gross": (0.05, -0.02, 0.03, 0.01, 0.0, 0.04, -0.01, 0.02),
+                "cost": (0.0005, 0.0015, 0.0005, 0.0, 0.0005, 0.001, 0.0, 0.0005),
+            },
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "returns_gross": (0.05, -0.02, 0.03, 0.01, 0.0, 0.04, -0.01, 0.02),
+                "cost": (0.0005, 0.0015, 0.0005, 0.0, 0.0005, 0.001, 0.0, 0.0005),
+            },
+            intro="The subtraction is elementwise, so ``.over`` partitions identically and is shown only "
+            "for consistency:",
+            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "returns_gross": (0.05, None, 0.03, float("nan"), 0.0),
+                "cost": (0.0005, 0.0015, 0.0005, 0.0, 0.0005),
+            },
+            intro="A ``null`` then a ``NaN`` in ``returns_gross`` (both propagate through the subtraction) "
+            "make the missing-data handling visible:",
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns_gross": (float("inf"), 0.05), "cost": (float("inf"), 0.01)},
+            intro="**Non-finite input** — a same-sign infinite gross return and cost cancel to ``inf - "
+            "inf``, so the net return is ``NaN``:",
+        ),
+    ),
 )

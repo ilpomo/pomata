@@ -8,7 +8,7 @@ from pomata.indicators import chaikin_money_flow
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_chaikin_money_flow
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 CHAIKIN_MONEY_FLOW = suite_indicators(
     factory=chaikin_money_flow,
@@ -109,7 +109,64 @@ CHAIKIN_MONEY_FLOW = suite_indicators(
     args_prose={
         "window": "Number of observations in the moving window. Must be ``>= 1``.",
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-    intro_missing="A ``null`` (skipped, and any window it touches yields ``null``) and a ``NaN`` (which "
-    "propagates) make the exact handling visible at a glance:",
+    examples=(
+        Example(
+            inputs={
+                "high": (10.0, 12.0, 11.0, 13.0, 14.0),
+                "low": (8.0, 9.0, 9.0, 10.0, 11.0),
+                "close": (9.0, 11.0, 10.0, 12.0, 13.0),
+                "volume": (100.0, 200.0, 150.0, 300.0, 250.0),
+            },
+            params={"window": 3},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "high": (12.0, 13.0, 12.5, 14.0, 22.0, 24.0, 23.0, 25.0),
+                "low": (10.0, 11.0, 11.0, 12.0, 20.0, 21.0, 21.0, 23.0),
+                "close": (11.0, 12.5, 11.5, 13.5, 21.5, 21.5, 22.5, 24.0),
+                "volume": (100.0, 120.0, 90.0, 110.0, 100.0, 120.0, 90.0, 110.0),
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "high": (12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0),
+                "low": (10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0),
+                "close": (11.5, 12.5, 13.0, 14.5, None, 16.0, float("nan"), 18.0),
+                "volume": (100.0, 120.0, 90.0, 110.0, 130.0, 100.0, 95.0, 140.0),
+            },
+            intro="A ``null`` (skipped, and any window it touches yields ``null``) and a ``NaN`` (which "
+            "propagates) make the exact handling visible at a glance:",
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "high": (10.0, 12.0, 11.0),
+                "low": (8.0, 9.0, 9.0),
+                "close": (9.0, 11.0, 10.0),
+                "volume": (0.0, 0.0, 0.0),
+            },
+            intro="**Degenerate denominator** — a window whose total volume is zero is the genuine ``0/0``, "
+            "so the flow reads ``NaN``:",
+            params={"window": 2},
+        ),
+        Example(
+            inputs={
+                "high": (12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0),
+                "low": (10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0),
+                "close": (11.0, 12.5, 13.5, 14.0, 15.5, 16.0, 17.5),
+                "volume": (1e16, 0.1, 0.2, 0.3, 0.0, 0.0, 0.0),
+            },
+            intro="**Degenerate denominator** — once a large volume has slid out of the window, the "
+            "rolling-sum denominator can carry a sub-ULP residual, yet the exact all-zero-volume "
+            "detection still resolves the final window to ``NaN`` rather than a spurious finite "
+            "ratio:",
+            params={"window": 3},
+        ),
+    ),
 )

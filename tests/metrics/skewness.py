@@ -8,7 +8,7 @@ from pomata.metrics import skewness
 from tests.metrics.enums import Annualization, BehaviorNan, BehaviorNull, Degenerate
 from tests.metrics.harness import suite_metrics
 from tests.metrics.oracles import reference_skewness
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 from tests.support.strategies import well_spread
 
 
@@ -94,7 +94,46 @@ SKEWNESS = suite_metrics(
     returns_body="A single ``Float64`` value: the skewness (one value in ``select``, one per group under "
     "``.over``). ``null`` when there are no returns, and ``NaN`` when the returns have zero "
     "variance (fewer than two distinct values).",
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
-    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
-    "handling visible:",
+    examples=(
+        Example(inputs={"returns": (0.01, -0.02, 0.015, -0.03, 0.005, -0.01, 0.02)}, round_to=4),
+        Example(
+            inputs={
+                "returns": (
+                    0.01,
+                    -0.02,
+                    0.015,
+                    -0.03,
+                    0.005,
+                    -0.01,
+                    0.02,
+                    0.02,
+                    -0.01,
+                    0.03,
+                    -0.02,
+                    0.01,
+                    -0.005,
+                    0.025,
+                )
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+            partition=("A", "A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B", "B"),
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (0.01, None, -0.02, 0.015, float("nan"), -0.03, 0.005)},
+            intro="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+            "handling visible:",
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (0.05,)},
+            intro="**Insufficient sample** — one observation has zero variance, so the standardized third "
+            "moment is ``0/0``, i.e. ``NaN``:",
+        ),
+        Example(
+            inputs={"returns": (0.01, 0.01, 0.01)},
+            intro="**Degenerate denominator** — a constant series has zero variance, so the standardized "
+            "moment is ``0/0``, i.e. ``NaN``:",
+        ),
+    ),
 )

@@ -6,7 +6,7 @@ from pomata.indicators import variance_rolling
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_variance_rolling
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 from tests.support.tolerances import TOLERANCE_ABSOLUTE_ROLLING_ORACLE, TOLERANCE_RELATIVE_ROLLING_ORACLE
 
 VARIANCE_ROLLING = suite_indicators(
@@ -100,7 +100,36 @@ VARIANCE_ROLLING = suite_indicators(
         "**sample** variance, the unbiased estimator used when the window is a sample of a larger "
         "population). Must be ``< window`` (the divisor ``window - ddof`` must be positive).",
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-    intro_missing="A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make "
-    "the handling visible:",
+    example_columns={"price": "x"},
+    examples=(
+        Example(inputs={"price": (10.0, 11.0, 12.0, 11.0, 13.0)}, params={"window": 3}, round_to=4),
+        Example(
+            inputs={"price": (10.0, 11.0, 12.0, 20.0, 22.0, 21.0)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "B", "B", "B"),
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={"price": (10.0, None, 12.0, float("nan"), 14.0, 15.0)},
+            intro="A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make "
+            "the handling visible:",
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={"price": (1000000.0, 0.1, 0.1, 0.1, 0.1)},
+            intro="**Degenerate denominator** — a constant window keeps exactly zero dispersion even after "
+            "a much larger value has left it, avoiding the cancellation residue an incremental "
+            "computation would leave, so the variance is ``0``:",
+            params={"window": 3},
+            round_to=4,
+        ),
+        Example(
+            inputs={"price": (1.0, 2.0, 3.0)},
+            intro="**window == 1** — a window of one observation has no spread, so the variance is ``0`` at "
+            "every row, with no warm-up:",
+            params={"window": 1},
+        ),
+    ),
 )

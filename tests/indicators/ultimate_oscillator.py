@@ -9,7 +9,7 @@ from pomata.indicators import ultimate_oscillator
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_ultimate_oscillator
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 _HLC_HIGH = (10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 14.0, 13.5, 15.0, 14.5)
 
@@ -156,7 +156,50 @@ ULTIMATE_OSCILLATOR = suite_indicators(
         "Must be ``>= 1``.",
     },
     intro_basic="Basic usage on high-low-close bars:",
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-    intro_missing="A ``null`` (which nulls the windows that cover it) and a ``NaN`` (which propagates, also "
-    "poisoning the next bar's true range) in ``close`` make the handling visible:",
+    examples=(
+        Example(
+            inputs={
+                "high": (10.0, 11.0, 12.0, 11.5, 13.0, 12.5),
+                "low": (9.0, 10.0, 11.0, 10.5, 12.0, 11.5),
+                "close": (9.5, 10.5, 11.5, 11.0, 12.5, 12.0),
+            },
+            params={"window_short": 2, "window_medium": 3, "window_long": 4},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "high": (10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 20.0, 21.0, 22.0, 21.5, 23.0, 22.5),
+                "low": (9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 19.0, 20.0, 21.0, 20.5, 22.0, 21.5),
+                "close": (9.5, 10.5, 11.5, 11.0, 12.5, 12.0, 19.5, 20.5, 21.5, 21.0, 22.5, 22.0),
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B"),
+            params={"window_short": 2, "window_medium": 3, "window_long": 4},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "high": (10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 14.0, 13.5, 15.0, 14.5, 16.0, 15.5, 17.0),
+                "low": (9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5, 14.0, 13.5, 15.0, 14.5, 16.0),
+                "close": (9.5, 10.5, 11.5, 11.0, 12.5, 12.0, None, 13.0, 12.5, 13.5, float("nan"), 14.0, 15.0),
+            },
+            intro="A ``null`` (which nulls the windows that cover it) and a ``NaN`` (which propagates, also "
+            "poisoning the next bar's true range) in ``close`` make the handling visible:",
+            params={"window_short": 2, "window_medium": 3, "window_long": 4},
+            round_to=4,
+        ),
+        Example(
+            inputs={"high": (10.0, 10.0, 10.0), "low": (10.0, 10.0, 10.0), "close": (10.0, 10.0, 10.0)},
+            intro="**Degenerate denominator** — the ``0/0`` degenerate on a flat well-formed series, "
+            "detected via residual-free rolling maxima:",
+            params={"window_short": 1, "window_medium": 1, "window_long": 2},
+        ),
+        Example(
+            inputs={"high": (10.0, 8.0), "low": (10.0, None), "close": (10.0, 12.0)},
+            intro="**Degenerate denominator** — a missing low sends the true range to zero through the "
+            "prior-close fallback while the buying pressure stays positive, so the quotient is "
+            "``+/-inf``:",
+            params={"window_short": 1, "window_medium": 1, "window_long": 2},
+        ),
+    ),
 )

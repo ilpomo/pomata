@@ -6,7 +6,7 @@ from pomata.indicators import adx
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_adx
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 ADX = suite_indicators(
     factory=adx,
@@ -84,7 +84,48 @@ ADX = suite_indicators(
         "window": "Number of observations in the Wilder moving window. Must be ``>= 1``.",
     },
     intro_basic="On a small OHLC frame with a short window:",
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-    intro_missing="A leading ``null`` ``close`` (absorbed by the true-range maximum) and a later ``NaN`` "
-    "(which poisons the recursion and latches) make the handling visible:",
+    examples=(
+        Example(
+            inputs={
+                "high": (10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 14.0, 13.5, 15.0, 14.5),
+                "low": (9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5, 14.0, 13.5),
+                "close": (9.5, 10.5, 11.5, 11.0, 12.5, 12.0, 13.5, 13.0, 14.5, 14.0),
+            },
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "high": (10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 20.0, 22.0, 19.0, 23.0, 20.0, 24.0),
+                "low": (9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 18.0, 20.0, 17.0, 21.0, 18.0, 22.0),
+                "close": (9.5, 10.5, 11.5, 11.0, 12.5, 12.0, 19.0, 21.0, 18.0, 22.0, 19.0, 23.0),
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B"),
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "high": (10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 14.0, 13.5),
+                "low": (9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5),
+                "close": (None, 10.5, 11.5, 11.0, float("nan"), 12.0, 13.5, 13.0),
+            },
+            intro="A leading ``null`` ``close`` (absorbed by the true-range maximum) and a later ``NaN`` "
+            "(which poisons the recursion and latches) make the handling visible:",
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "high": (10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0),
+                "low": (10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0),
+                "close": (10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0),
+            },
+            intro="**Degenerate denominator** — a fully flat window leaves both directional indicators at "
+            "zero, the indeterminate ``0/0``, which poisons the Wilder smoothing recursion, so the "
+            "result is ``NaN`` after warm-up:",
+            params={"window": 3},
+        ),
+    ),
 )

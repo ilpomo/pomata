@@ -6,7 +6,7 @@ from pomata.indicators import accumulation_distribution_oscillator
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_accumulation_distribution_oscillator
-from tests.support.declaration import Golden, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, ScaleAxis, Shape
 
 ACCUMULATION_DISTRIBUTION_OSCILLATOR = suite_indicators(
     factory=accumulation_distribution_oscillator,
@@ -76,7 +76,40 @@ ACCUMULATION_DISTRIBUTION_OSCILLATOR = suite_indicators(
         "window_fast": "Span of the fast EMA (canonically ``3``). Must be ``>= 1``.",
         "window_slow": "Span of the slow EMA (canonically ``10``). Must be ``>= 1`` and ``>= window_fast``.",
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-    intro_missing="A ``null`` (which voids the line and its EMAs) and a ``NaN`` (which propagates) make the "
-    "exact handling visible at a glance:",
+    examples=(
+        Example(
+            inputs={
+                "high": (10.2, 10.5, 10.7, 10.3, 10.8),
+                "low": (9.8, 10.0, 10.2, 9.9, 10.3),
+                "close": (10.0, 10.3, 10.5, 10.1, 10.6),
+                "volume": (100.0, 150.0, 120.0, 200.0, 180.0),
+            },
+            params={"window_fast": 2, "window_slow": 3},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "high": (12.0, 13.0, 12.5, 14.0, 22.0, 24.0, 23.0, 25.0),
+                "low": (10.0, 11.0, 11.0, 12.0, 20.0, 21.0, 21.0, 23.0),
+                "close": (11.0, 12.5, 11.5, 13.5, 21.5, 21.5, 22.5, 24.0),
+                "volume": (100.0, 120.0, 90.0, 110.0, 100.0, 120.0, 90.0, 110.0),
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            params={"window_fast": 2, "window_slow": 3},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "high": (12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0),
+                "low": (10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0),
+                "close": (11.5, 12.5, 13.0, 14.5, None, 16.0, float("nan"), 18.0),
+                "volume": (100.0, 120.0, 90.0, 110.0, 130.0, 100.0, 95.0, 140.0),
+            },
+            intro="A ``null`` (which voids the line and its EMAs) and a ``NaN`` (which propagates) make the "
+            "exact handling visible at a glance:",
+            params={"window_fast": 2, "window_slow": 3},
+            round_to=4,
+        ),
+    ),
 )

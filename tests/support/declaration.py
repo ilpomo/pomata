@@ -47,6 +47,10 @@ def _no_prose() -> dict[str, str]:
     return {}
 
 
+def _no_lanes() -> dict[str, "Lane"]:
+    return {}
+
+
 class Shape(enum.Enum):
     """What one probe row observes — stated, not derived, so a rung can gate its applicability by hand."""
 
@@ -117,6 +121,27 @@ class Pin:
     # only allowed together with at least one such pin (checked in ``__post_init__``), so no input regime is ever
     # silently asserted away.
     covers_conditioning: bool = False
+
+
+@dataclass(frozen=True, kw_only=True)
+class Example:
+    """
+    One Examples scenario, as data the docstring generator renders in the canonical idiom and executes at build time.
+
+    A standard scenario states its ``inputs`` (role → lane, the frame the example loads), the per-call ``params``, the
+    display ``round_to`` and struct ``fields``, and an optional ``partition`` (the ``.over(...)`` panel). A bespoke
+    scenario the idiom cannot render — a computed cycle frame, the struct ``.columns`` demonstration — carries its exact
+    source lines in ``verbatim`` instead; the two forms are mutually exclusive (checked on the owning declaration).
+    """
+
+    inputs: Mapping[str, Lane] = field(default_factory=_no_lanes)  # role → lane; the frame's input columns
+    intro: str = ""  # the prose intro opening the scenario; empty opens straight into code
+    partition: tuple[str, ...] = ()  # the ``.over(...)`` group labels; empty for a non-panel scenario
+    partition_col: str = "ticker"  # the panel's partition column name (``session`` for an intraday anchor)
+    params: Mapping[str, ScalarParam] = field(default_factory=_no_params)  # the per-call params for this scenario
+    round_to: int | None = None  # the ``.round(N)`` digit applied before display; ``None`` shows the raw value
+    fields: tuple[str, ...] = ()  # the struct fields displayed, each its own output line; empty for a single lane
+    verbatim: tuple[str, ...] = ()  # a bespoke scenario's exact source lines, re-emitted as-is; empty for a standard
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -249,11 +274,16 @@ class Declaration:
     # Extra Examples imports beyond ``import polars as pl`` (e.g. ``import math`` for the closed-form cycle checks),
     # each a full import statement, rendered after the polars import.
     example_imports: tuple[str, ...] = ()
-    # The Examples scenario intros, verbatim: the optional line opening the basic block, the ``.over`` panel intro,
-    # and the null / NaN intro. Empty where the corpus opens the block straight into code.
+    # The optional prose line opening the whole Examples block, before the import header. Empty where the block opens
+    # straight into the import header (the common case); a per-scenario intro lives on its :class:`Example` instead.
     intro_basic: str = ""
-    intro_over: str = ""
-    intro_missing: str = ""
+    # The Examples column names: each declared input role → the display column the examples load it under (the ``expr``
+    # role shown as ``close``, the ``price`` role as ``x``). A role absent here is shown under its own name. Every key
+    # must be a declared input (checked in ``__post_init__``).
+    example_columns: Mapping[str, str] = field(default_factory=_no_prose)
+    # The Examples scenarios in source order — the canonical trio (basic, ``.over`` panel, null / NaN) and the edge
+    # scenarios — each rendered in the canonical idiom and executed at generation. Empty for a function with none.
+    examples: tuple[Example, ...] = ()
 
     def __post_init__(self) -> None:
         """Conditional requirements, checked loudly at construction (import time) — the one obvious place they live."""
@@ -268,6 +298,7 @@ class Declaration:
         self._check_rolling()
         self._check_talib()
         self._check_prose()
+        self._check_examples()
         if self.params and not self.raises:
             msg = f"{self.name}: declares params but no raises counterexamples — the validation rung would be a no-op"
             raise ValueError(msg)
@@ -417,6 +448,28 @@ class Declaration:
         if unknown:
             msg = f"{self.name}: args_prose describes {unknown}, which are not parameters of {self.name}"
             raise ValueError(msg)
+
+    def _check_examples(self) -> None:
+        stray = sorted(role for role in self.example_columns if role not in self.inputs)
+        if stray:
+            msg = f"{self.name}: example_columns names {stray}, which are not declared inputs {list(self.inputs)}"
+            raise ValueError(msg)
+        for i, example in enumerate(self.examples):
+            if bool(example.inputs) == bool(example.verbatim):
+                msg = f"{self.name}: example {i} must state either inputs or verbatim source, not both nor neither"
+                raise ValueError(msg)
+            if example.verbatim:
+                continue
+            if set(example.inputs) != set(self.inputs):
+                msg = f"{self.name}: example {i} inputs {sorted(example.inputs)} must match inputs {list(self.inputs)}"
+                raise ValueError(msg)
+            bad = sorted(field_name for field_name in example.fields if field_name not in self.fields)
+            if bad:
+                msg = f"{self.name}: example {i} displays fields {bad}, which are not declared struct fields"
+                raise ValueError(msg)
+            if example.partition and any(len(lane) != len(example.partition) for lane in example.inputs.values()):
+                msg = f"{self.name}: example {i} partition length must match each input lane length"
+                raise ValueError(msg)
 
     # --- derived, never declared: read off the factory ---
 

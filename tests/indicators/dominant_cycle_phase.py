@@ -11,7 +11,7 @@ from pomata.indicators import dominant_cycle_phase
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_dominant_cycle_phase
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 from tests.support.strategies import spans_even_lag_run
 
 _SAMPLE = tuple(100.0 + 10.0 * math.sin(2 * math.pi * index / 20) for index in range(80))
@@ -142,6 +142,15 @@ DOMINANT_CYCLE_PHASE = suite_indicators(
     "``63`` rows are ``null`` (the warm-up: the smoothers' settling plus the dominant-cycle "
     "look-back).",
     example_imports=("import math",),
-    intro_basic="The dominant-cycle phase of a clean period-20 sine, read at the last bar (in degrees): "
-    ">>> import math",
+    intro_basic="The dominant-cycle phase of a clean period-20 sine, read at the last bar (in degrees):",
+    examples=(
+        Example(
+            verbatim=(
+                ">>> frame = pl.select(close=100.0 + (2 * math.pi * pl.int_range(200) / 20).sin())",
+                '>>> expr = dominant_cycle_phase(pl.col("close"))',
+                '>>> round(frame.select(dominant_cycle_phase=expr)["dominant_cycle_phase"][-1], 2)',
+                "-17.84",
+            )
+        ),
+    ),
 )

@@ -6,7 +6,7 @@ from pomata.pnl import cost_funding
 from tests.pnl.enums import BehaviorNan, BehaviorNull, ConventionSign, SpaceCost
 from tests.pnl.harness import suite_pnl
 from tests.pnl.oracles import reference_cost_funding
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 
 COST_FUNDING = suite_pnl(
     factory=cost_funding,
@@ -117,7 +117,44 @@ COST_FUNDING = suite_pnl(
         "``0`` on the bars between funding events (e.g. ``0.0001`` = 1 bp); a positive rate "
         "charges longs and rebates shorts.",
     },
-    intro_over="On a multi-ticker panel, partition with ``.over`` — for this elementwise holding cost it "
-    "is optional (the result is identical without it) and shown here only for consistency:",
-    intro_missing="A ``null`` (which propagates) and a ``NaN`` make the missing-data handling visible:",
+    examples=(
+        Example(
+            inputs={
+                "quantity": (10.0, 10.0, -5.0, -5.0, 20.0),
+                "price": (100.0, 102.0, 101.0, 104.0, 103.0),
+                "funding_rate": (0.0001, 0.0001, 0.0001, -0.0001, 0.0001),
+            },
+            round_to=6,
+        ),
+        Example(
+            inputs={
+                "quantity": (10.0, 10.0, -5.0, 2.0, 2.0, -3.0),
+                "price": (100.0, 102.0, 101.0, 50.0, 51.0, 49.0),
+                "funding_rate": (0.0001, 0.0001, 0.0001, 0.0001, -0.0001, 0.0001),
+            },
+            intro="On a multi-ticker panel, partition with ``.over`` — for this elementwise holding cost it "
+            "is optional (the result is identical without it) and shown here only for consistency:",
+            partition=("A", "A", "A", "B", "B", "B"),
+            round_to=6,
+        ),
+        Example(
+            inputs={
+                "quantity": (10.0, None, -5.0, float("nan"), 20.0),
+                "price": (100.0, 102.0, 101.0, 104.0, 103.0),
+                "funding_rate": (0.0001, 0.0001, 0.0001, 0.0001, 0.0001),
+            },
+            intro="A ``null`` (which propagates) and a ``NaN`` make the missing-data handling visible:",
+            round_to=6,
+        ),
+        Example(
+            inputs={
+                "quantity": (float("inf"), -2.0, float("-inf")),
+                "price": (10.0, float("inf"), 20.0),
+                "funding_rate": (0.01, 0.02, -0.01),
+            },
+            intro="**Non-finite input** — the signed triple product keeps its sign at infinite magnitude, "
+            "so the funding cost is ``inf`` or ``-inf`` following the sign of ``quantity * price * "
+            "funding_rate``:",
+        ),
+    ),
 )

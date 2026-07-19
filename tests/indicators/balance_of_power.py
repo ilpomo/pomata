@@ -9,7 +9,7 @@ from pomata.indicators import balance_of_power
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_balance_of_power
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 BALANCE_OF_POWER = suite_indicators(
     factory=balance_of_power,
@@ -95,8 +95,43 @@ BALANCE_OF_POWER = suite_indicators(
     returns_body="The balance of power for each row, the same length as the inputs. There is no window and "
     "no warm-up -- every row is defined from row ``0``.",
     intro_basic="Basic usage on a small OHLC frame:",
-    intro_over="Balance of Power is elementwise, so ``.over`` is optional; each ticker yields the same "
-    "per-bar reading:",
-    intro_missing="A flat bar (``high == low``, giving ``0``), then a ``null`` and a ``NaN`` in ``close`` "
-    "make the edge handling visible:",
+    examples=(
+        Example(
+            inputs={
+                "open": (10.0, 11.0, 12.0, 11.0),
+                "high": (11.0, 13.0, 12.0, 13.0),
+                "low": (9.0, 10.0, 11.0, 10.0),
+                "close": (10.5, 12.0, 11.5, 12.0),
+            },
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "open": (10.0, 11.0, 12.0, 11.0, 20.0, 21.0, 22.0, 21.0),
+                "high": (11.0, 13.0, 12.0, 13.0, 21.0, 23.0, 22.0, 23.0),
+                "low": (9.0, 10.0, 11.0, 10.0, 19.0, 20.0, 21.0, 20.0),
+                "close": (10.5, 12.0, 11.5, 12.0, 20.5, 22.0, 21.5, 22.0),
+            },
+            intro="Balance of Power is elementwise, so ``.over`` is optional; each ticker yields the same "
+            "per-bar reading:",
+            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "open": (10.0, 12.0, 11.0, 12.0, 12.0),
+                "high": (11.0, 12.0, 13.0, 14.0, 13.0),
+                "low": (9.0, 12.0, 11.0, 12.0, 11.0),
+                "close": (10.5, 12.0, None, 13.0, float("nan")),
+            },
+            intro="A flat bar (``high == low``, giving ``0``), then a ``null`` and a ``NaN`` in ``close`` "
+            "make the edge handling visible:",
+            round_to=4,
+        ),
+        Example(
+            inputs={"open": (10.0, 12.0), "high": (11.0, 12.0), "low": (9.0, 12.0), "close": (10.5, 11.0)},
+            intro="**Degenerate denominator** — a flat bar with ``high`` equal to ``low`` has an exact zero "
+            "range, the bare ``0/0``, but returns ``0`` by convention:",
+        ),
+    ),
 )

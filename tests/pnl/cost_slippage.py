@@ -6,7 +6,7 @@ from pomata.pnl import cost_slippage
 from tests.pnl.enums import BehaviorNan, BehaviorNull, ConventionSign, SpaceCost
 from tests.pnl.harness import suite_pnl
 from tests.pnl.oracles import reference_cost_slippage
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 
 COST_SLIPPAGE = suite_pnl(
     factory=cost_slippage,
@@ -88,8 +88,29 @@ COST_SLIPPAGE = suite_pnl(
         "half_spread": "Fixed bid-ask half-spread crossed per trade, as a fraction (half the full spread; e.g. "
         "``0.002``). Must be a finite number ``>= 0``.",
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker starts flat and never "
-    "reaches across the boundary:",
-    intro_missing="A ``null`` (which voids its own row and the next) and a ``NaN`` make the missing-data "
-    "handling visible:",
+    examples=(
+        Example(inputs={"weight": (0.5, 1.0, -0.5, -0.5, 0.0)}, params={"half_spread": 0.002}, round_to=4),
+        Example(
+            inputs={"weight": (0.5, 1.0, -0.5, 1.0, 1.0, 0.0)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker starts flat and never "
+            "reaches across the boundary:",
+            partition=("A", "A", "A", "B", "B", "B"),
+            params={"half_spread": 0.002},
+            round_to=4,
+        ),
+        Example(
+            inputs={"weight": (0.5, None, -0.5, float("nan"), 0.0)},
+            intro="A ``null`` (which voids its own row and the next) and a ``NaN`` make the missing-data "
+            "handling visible:",
+            params={"half_spread": 0.002},
+            round_to=4,
+        ),
+        Example(
+            inputs={"weight": (float("inf"), float("inf"), 1.0, float("-inf"))},
+            intro="**Non-finite input** — two consecutive same-sign infinite weights make the turnover "
+            "``inf - inf`` at the second bar, so that bar's cost is ``NaN`` while the surrounding "
+            "infinite trades still cost ``inf``:",
+            params={"half_spread": 0.002},
+        ),
+    ),
 )

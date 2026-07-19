@@ -6,7 +6,7 @@ from pomata.pnl import cost_fixed
 from tests.pnl.enums import BehaviorNan, BehaviorNull, ConventionSign, SpaceCost
 from tests.pnl.harness import suite_pnl
 from tests.pnl.oracles import reference_cost_fixed
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 
 COST_FIXED = suite_pnl(
     factory=cost_fixed,
@@ -87,7 +87,27 @@ COST_FIXED = suite_pnl(
         "quantity": "Signed position size in units / shares / contracts held over the bar (e.g. ``100``, ``-2``).",
         "fee": "Flat charge per trade, in the account currency. Must be a finite number ``>= 0``.",
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker starts flat:",
-    intro_missing="A ``null`` (which voids its own row and the next) and a ``NaN`` make the missing-data "
-    "handling visible:",
+    examples=(
+        Example(inputs={"quantity": (10.0, 10.0, -5.0, -5.0, 20.0)}, params={"fee": 1.0}, round_to=4),
+        Example(
+            inputs={"quantity": (10.0, 10.0, -5.0, 2.0, 2.0, 2.0)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker starts flat:",
+            partition=("A", "A", "A", "B", "B", "B"),
+            params={"fee": 1.0},
+            round_to=4,
+        ),
+        Example(
+            inputs={"quantity": (10.0, None, -5.0, float("nan"), 20.0)},
+            intro="A ``null`` (which voids its own row and the next) and a ``NaN`` make the missing-data "
+            "handling visible:",
+            params={"fee": 1.0},
+            round_to=4,
+        ),
+        Example(
+            inputs={"quantity": (float("inf"), float("inf"), 1.0, float("-inf"))},
+            intro="**Non-finite input** — two consecutive same-sign infinite quantities make the turnover "
+            "``inf - inf``, so the fee for that bar is ``NaN``:",
+            params={"fee": 1.0},
+        ),
+    ),
 )

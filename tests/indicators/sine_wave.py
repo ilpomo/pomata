@@ -8,7 +8,7 @@ from pomata.indicators import sine_wave
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_sine_wave
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 from tests.support.strategies import spans_even_lag_run
 
 _SAMPLE = tuple(100.0 + 10.0 * math.sin(2 * math.pi * index / 20) for index in range(80))
@@ -147,6 +147,15 @@ SINE_WAVE = suite_indicators(
     "The first ``63`` rows are ``null`` (warm-up). Read one line with "
     '``.struct.field("sine")`` or split both with ``.struct.unnest()``.',
     example_imports=("import math",),
-    intro_basic="The sine and lead-sine of a clean period-20 cycle, at the last bar (both in ``[-1, "
-    "1]``): >>> import math",
+    intro_basic="The sine and lead-sine of a clean period-20 cycle, at the last bar (both in ``[-1, 1]``):",
+    examples=(
+        Example(
+            verbatim=(
+                ">>> frame = pl.select(close=100.0 + (2 * math.pi * pl.int_range(200) / 20).sin())",
+                '>>> waves = frame.select(sine_wave=sine_wave(pl.col("close"))).unnest("sine_wave")',
+                '>>> round(waves["sine"][-1], 2), round(waves["lead_sine"][-1], 2)',
+                "(-0.31, 0.46)",
+            )
+        ),
+    ),
 )

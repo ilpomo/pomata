@@ -7,7 +7,7 @@ from pomata.indicators import atr_normalized
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_atr_normalized
-from tests.support.declaration import Golden, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, ScaleAxis, Shape
 
 ATR_NORMALIZED = suite_indicators(
     factory=atr_normalized,
@@ -64,8 +64,38 @@ ATR_NORMALIZED = suite_indicators(
     args_prose={
         "window": "Number of observations in the Wilder moving window. Must be ``>= 1``.",
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-    intro_missing="A ``null`` ``close`` (voiding the ratio at that row) then a ``NaN`` ``close`` (which "
-    "propagates through the ratio and the latched ATR) make the missing-data handling visible "
-    "at a glance:",
+    examples=(
+        Example(
+            inputs={
+                "high": (10.2, 10.5, 10.7, 10.3, 10.8),
+                "low": (9.8, 10.0, 10.2, 9.9, 10.3),
+                "close": (10.0, 10.3, 10.5, 10.1, 10.6),
+            },
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "high": (10.2, 10.5, 10.7, 10.3, 20.4, 21.0, 21.4, 20.6),
+                "low": (9.8, 10.0, 10.2, 9.9, 19.6, 20.0, 20.4, 19.8),
+                "close": (10.0, 10.3, 10.5, 10.1, 20.0, 20.6, 21.0, 20.2),
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "high": (10.2, 10.5, 10.7, 10.9, 11.1, 11.3, 11.5, 11.7),
+                "low": (9.8, 10.0, 10.2, 10.4, 10.6, 10.8, 11.0, 11.2),
+                "close": (10.0, 10.3, None, 10.7, float("nan"), 11.1, 11.3, 11.5),
+            },
+            intro="A ``null`` ``close`` (voiding the ratio at that row) then a ``NaN`` ``close`` (which "
+            "propagates through the ratio and the latched ATR) make the missing-data handling visible "
+            "at a glance:",
+            params={"window": 2},
+            round_to=4,
+        ),
+    ),
 )

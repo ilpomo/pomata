@@ -6,7 +6,7 @@ from pomata.pnl import cost_proportional
 from tests.pnl.enums import BehaviorNan, BehaviorNull, ConventionSign, SpaceCost
 from tests.pnl.harness import suite_pnl
 from tests.pnl.oracles import reference_cost_proportional
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 
 COST_PROPORTIONAL = suite_pnl(
     factory=cost_proportional,
@@ -89,8 +89,29 @@ COST_PROPORTIONAL = suite_pnl(
         "rate": "Proportional cost rate, the fee as a fraction of traded notional (e.g. ``0.001`` = 10 "
         "bps). Must be a finite number ``>= 0``.",
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker starts flat and never "
-    "reaches across the boundary:",
-    intro_missing="A ``null`` (which voids its own row and the next) and a ``NaN`` make the missing-data "
-    "handling visible:",
+    examples=(
+        Example(inputs={"weight": (0.5, 1.0, -0.5, -0.5, 0.0)}, params={"rate": 0.001}, round_to=4),
+        Example(
+            inputs={"weight": (0.5, 1.0, -0.5, 1.0, 1.0, 0.0)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker starts flat and never "
+            "reaches across the boundary:",
+            partition=("A", "A", "A", "B", "B", "B"),
+            params={"rate": 0.001},
+            round_to=4,
+        ),
+        Example(
+            inputs={"weight": (0.5, None, -0.5, float("nan"), 0.0)},
+            intro="A ``null`` (which voids its own row and the next) and a ``NaN`` make the missing-data "
+            "handling visible:",
+            params={"rate": 0.001},
+            round_to=4,
+        ),
+        Example(
+            inputs={"weight": (float("inf"), float("inf"), 1.0, float("-inf"))},
+            intro="**Non-finite input** — two consecutive same-sign infinite weights make the turnover "
+            "``inf - inf`` at the second bar, so that bar's cost is ``NaN`` while the surrounding "
+            "infinite trades still cost ``inf``:",
+            params={"rate": 0.001},
+        ),
+    ),
 )
