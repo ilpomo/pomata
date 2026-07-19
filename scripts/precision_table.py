@@ -23,11 +23,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from pomata.indicators import atr, ema, macd, rsi, sma
 from tests.indicators.oracles import (
-    atr_reference,
-    ema_reference,
-    macd_reference,
-    rsi_reference,
-    sma_reference,
+    reference_atr,
+    reference_ema,
+    reference_macd,
+    reference_rsi,
+    reference_sma,
 )
 from tests.test_precision_table import CLOSE, HIGH, LOW, residual_cell
 
@@ -55,11 +55,11 @@ POMATA = {
     "macd(12,26,9)": _pomata_last(_macd_line),
 }
 ORACLE = {
-    "sma(20)": _last(sma_reference(CLOSE, 20)),
-    "ema(20)": _last(ema_reference(CLOSE, 20)),
-    "rsi(14)": _last(rsi_reference(CLOSE, 14)),
-    "atr(14)": _last(atr_reference(HIGH, LOW, CLOSE, 14)),
-    "macd(12,26,9)": _last(macd_reference(CLOSE, 12, 26, 9)["macd"]),
+    "sma(20)": _last(reference_sma(CLOSE, 20)),
+    "ema(20)": _last(reference_ema(CLOSE, 20)),
+    "rsi(14)": _last(reference_rsi(CLOSE, 14)),
+    "atr(14)": _last(reference_atr(HIGH, LOW, CLOSE, 14)),
+    "macd(12,26,9)": _last(reference_macd(CLOSE, 12, 26, 9)["macd"]),
 }
 TALIB = {
     "sma(20)": float(talib.SMA(_close, 20)[-1]),

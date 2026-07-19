@@ -23,17 +23,17 @@ import polars as pl
 # The oracles live under tests/; make the repo root importable when run as a plain script (as precision_table.py does).
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from pomata.indicators import dema, ema, hma, rma, rsi, sma, tema, trima, wma  # noqa: E402
-from tests.indicators.oracles import (  # noqa: E402
-    dema_reference,
-    ema_reference,
-    hma_reference,
-    rma_reference,
-    rsi_reference,
-    sma_reference,
-    tema_reference,
-    trima_reference,
-    wma_reference,
+from pomata.indicators import dema, ema, hma, rma, rsi, sma, tema, trima, wma
+from tests.indicators.oracles import (
+    reference_dema,
+    reference_ema,
+    reference_hma,
+    reference_rma,
+    reference_rsi,
+    reference_sma,
+    reference_tema,
+    reference_trima,
+    reference_wma,
 )
 
 GUARANTEE = 1e-10
@@ -47,15 +47,15 @@ Oracle = Callable[[Sequence[float], int], list[float | None]]
 # A representative set of well-conditioned, single-input (close, window) indicators -- the recursive and windowed means
 # the 1e-10 band is claimed for. Each pairs the shipped factory with its independent reference oracle.
 CURATED: tuple[tuple[str, Indicator, Oracle, int], ...] = (
-    ("sma", sma, sma_reference, 20),
-    ("ema", ema, ema_reference, 20),
-    ("rma", rma, rma_reference, 14),
-    ("wma", wma, wma_reference, 20),
-    ("hma", hma, hma_reference, 16),
-    ("dema", dema, dema_reference, 20),
-    ("tema", tema, tema_reference, 20),
-    ("trima", trima, trima_reference, 20),
-    ("rsi", rsi, rsi_reference, 14),
+    ("sma", sma, reference_sma, 20),
+    ("ema", ema, reference_ema, 20),
+    ("rma", rma, reference_rma, 14),
+    ("wma", wma, reference_wma, 20),
+    ("hma", hma, reference_hma, 16),
+    ("dema", dema, reference_dema, 20),
+    ("tema", tema, reference_tema, 20),
+    ("trima", trima, reference_trima, 20),
+    ("rsi", rsi, reference_rsi, 14),
 )
 
 
