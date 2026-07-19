@@ -6,7 +6,7 @@ from pomata.indicators import stochastic_fast
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_stochastic_fast
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 STOCHASTIC_FAST = suite_indicators(
     factory=stochastic_fast,
@@ -52,6 +52,108 @@ STOCHASTIC_FAST = suite_indicators(
             expected={"k": (None, math.inf, math.inf), "d": (None, math.inf, math.inf)},
             reason="a malformed bar whose close sits above a flat high==low look-back makes the raw %K a non-zero "
             "over zero, so %K is +inf, which the %D pass carries through — the infinity beside the 0/0 NaN pin",
+        ),
+    ),
+    reference='Lane, G. C. (1984). "Lane\'s Stochastics." *Technical Analysis of Stocks & Commodities*, 2(3), 87-90.',
+    wikipedia="https://en.wikipedia.org/wiki/Stochastic_oscillator",
+    see_also=(
+        ("stochastic_slow", "The slow variant, %K smoothed once more before %D."),
+        ("rsi_stochastic", "The same oscillator applied to :func:`rsi` instead of price."),
+        ("sma", "The moving average that forms %D."),
+    ),
+    notes=(
+        (
+            "Composition",
+            "%D is the :func:`sma` of %K, so it inherits that warm-up and the ``null`` / ``NaN`` "
+            "handling on top of %K's own.",
+        ),
+    ),
+    note_extension="\n\n"
+    "Both lines are scale-invariant under a positive common rescaling of ``high``, ``low``, "
+    "and ``close`` (a ratio of price ranges), and lie in ``[0, 100]`` for well-formed bars "
+    "(``low <= close <= high``).",
+    bullets=(
+        (
+            "Null",
+            "a window containing a ``null`` yields ``null`` (the window must hold ``window_k`` "
+            "non-null values) — including a ``null`` in the current ``close``, which %K reads "
+            "outright rather than through a window.",
+        ),
+        ("NaN", "a ``NaN`` inside the window propagates, yielding ``NaN`` there."),
+        (
+            "Degenerate denominator",
+            "the highest ``high`` equals the lowest ``low`` over the look-back and the close sits on "
+            "that flat level, so the result is a ``0 / 0``, i.e. ``NaN`` — off that level it is "
+            "``+/-inf`` instead (a malformed bar whose close sits outside its own high-low range; "
+            "unreachable when ``low <= close <= high``).",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A struct ``pl.Expr`` with two ``Float64`` fields, the same length as the inputs:"
+    "\n\n"
+    "- ``k`` — the raw %K line, ``100 * (close - LL) / (HH - LL)``. - ``d`` — the %D signal "
+    "line, the :func:`sma` of %K over ``window_d``."
+    "\n\n"
+    'Read one line with ``.struct.field("k")`` (etc.) or split both into columns with '
+    "``.struct.unnest()``. The first ``window_k - 1`` rows are ``null`` on ``k`` (the "
+    "look-back warm-up), and a further ``window_d - 1`` on ``d``.",
+    raises_prose="ValueError: If ``window_k < 1`` or ``window_d < 1``.",
+    args_prose={
+        "window_k": "Number of observations in the %K look-back range (canonically ``14``). Must be ``>= 1``.",
+        "window_d": "Number of observations in the %D moving average of %K (canonically ``3``). Must be ``>= 1``.",
+    },
+    examples=(
+        Example(
+            inputs={
+                "high": (10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 14.0, 13.5),
+                "low": (9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5),
+                "close": (9.5, 10.5, 11.5, 11.0, 12.5, 12.0, 13.5, 13.0),
+            },
+            params={"window_k": 3, "window_d": 2},
+            round_to=4,
+            fields=("k", "d"),
+        ),
+        Example(
+            inputs={
+                "high": (10.0, 11.0, 12.0, 11.5, 20.0, 21.0, 22.0, 21.5),
+                "low": (9.0, 10.0, 11.0, 10.5, 19.0, 20.0, 21.0, 20.5),
+                "close": (9.5, 10.5, 11.5, 11.0, 19.5, 20.5, 21.5, 21.0),
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            params={"window_k": 2, "window_d": 2},
+            round_to=4,
+            fields=("k",),
+        ),
+        Example(
+            inputs={
+                "high": (10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 14.0, 13.5),
+                "low": (9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5),
+                "close": (9.5, 10.5, 11.5, None, 12.5, float("nan"), 13.5, 13.0),
+            },
+            intro="A ``null`` (yields ``null`` on ``k`` at that row) and a ``NaN`` (which propagates) in "
+            "``close`` surface on the %K line:",
+            params={"window_k": 3, "window_d": 2},
+            round_to=4,
+            fields=("k",),
+        ),
+        Example(
+            inputs={"high": (10.0, 10.0, 10.0), "low": (10.0, 10.0, 10.0), "close": (10.0, 10.0, 10.0)},
+            intro="**Degenerate denominator** — a flat window makes the raw %K's ``0/0`` division ``NaN``, "
+            "which the %D pass carries through:",
+            params={"window_k": 2, "window_d": 1},
+            fields=("k",),
+        ),
+        Example(
+            inputs={"high": (10.0, 10.0, 10.0), "low": (10.0, 10.0, 10.0), "close": (20.0, 20.0, 20.0)},
+            intro="**Degenerate denominator** — a malformed bar whose close sits above a flat ``high == "
+            "low`` look-back makes the raw %K a nonzero over zero, so %K is ``+inf``, which the %D "
+            "pass carries through:",
+            params={"window_k": 2, "window_d": 1},
+            fields=("k",),
         ),
     ),
 )

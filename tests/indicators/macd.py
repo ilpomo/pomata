@@ -9,7 +9,7 @@ from pomata.indicators import absolute_price_oscillator, ema, macd
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_macd
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 from tests.support.tolerances import TOLERANCE_ABSOLUTE_ROLLING_ORACLE, TOLERANCE_RELATIVE_ROLLING_ORACLE
 
 
@@ -63,6 +63,80 @@ MACD = suite_indicators(
             },
             reason="equal fast/slow windows make the MACD line identically zero (x - x is exact +0.0), so signal and "
             "histogram are zero too",
+        ),
+    ),
+    reference="Appel, G. (2005). *Technical Analysis: Power Tools for Active Investors*. FT Press.",
+    wikipedia="https://en.wikipedia.org/wiki/MACD",
+    see_also=(
+        ("absolute_price_oscillator", "The Absolute Price Oscillator, the MACD line without the signal and histogram."),
+        ("percentage_price_oscillator", "The percentage counterpart of the MACD line."),
+        ("ema", "The exponential moving average all three lines are built from."),
+    ),
+    notes=(
+        (
+            "Scaling",
+            "Every field is homogeneous of degree ``1`` in ``expr`` (the EMAs and their differences "
+            "all scale with the price), so multiplying the close by ``k`` scales all three fields by "
+            "``k``.",
+        ),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a leading ``null`` run stays ``null`` until the first non-null seed; an interior "
+            "``null`` yields ``null`` at that position while the recursion continues across the gap.",
+        ),
+        (
+            "NaN",
+            "a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null position.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A struct ``pl.Expr`` with three ``Float64`` fields, the same length as ``expr``:"
+    "\n\n"
+    "- ``macd`` — the fast-minus-slow EMA gap, ``null`` for its ``max(window_fast, "
+    "window_slow) - 1`` warm-up rows. - ``signal`` — the EMA of the MACD line, carrying the "
+    "additional ``window_signal - 1`` warm-up rows on top. - ``histogram`` — ``macd`` minus "
+    "``signal``, sharing the signal line's warm-up."
+    "\n\n"
+    'Access the fields with ``.struct.field("macd")`` / ``"signal"`` / ``"histogram"`` or '
+    "``.struct.unnest()``.",
+    raises_prose="ValueError: If ``window_fast < 1``, ``window_slow < 1``, ``window_signal < 1``, or "
+    "``window_fast > window_slow`` (the fast leg must be the shorter one; ``window_fast == "
+    "window_slow`` is allowed and gives an identically-zero MACD line, signal, and "
+    "histogram).",
+    args_prose={
+        "window_fast": "Span of the fast EMA (canonically ``12``). Must be ``>= 1``.",
+        "window_slow": "Span of the slow EMA (canonically ``26``). Must be ``>= 1`` and ``>= window_fast``.",
+        "window_signal": "Span of the signal EMA over the MACD line (canonically ``9``). Must be ``>= 1``.",
+    },
+    intro_basic="Basic usage on a single price series:",
+    example_columns={"expr": "close"},
+    examples=(
+        Example(
+            inputs={"expr": (10.0, 11.0, 12.0, 11.0, 13.0, 14.0, 13.0, 15.0)},
+            params={"window_fast": 2, "window_slow": 3, "window_signal": 2},
+            round_to=4,
+            fields=("macd", "signal", "histogram"),
+        ),
+        Example(
+            inputs={"expr": (10.0, 11.0, 12.0, 11.0, 20.0, 22.0, 24.0, 22.0)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker's EMAs warm up independently:",
+            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            params={"window_fast": 2, "window_slow": 3, "window_signal": 2},
+            round_to=4,
+            fields=("macd",),
+        ),
+        Example(
+            inputs={"expr": (10.0, 11.0, None, 13.0, float("nan"), 15.0)},
+            intro="A ``null`` (which the recursive EMAs bridge) and a ``NaN`` (which latches) make the "
+            "handling visible on the MACD line:",
+            params={"window_fast": 2, "window_slow": 3, "window_signal": 2},
+            round_to=4,
+            fields=("macd",),
         ),
     ),
 )

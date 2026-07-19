@@ -8,7 +8,7 @@ from pomata.metrics import cagr, calmar_ratio, max_drawdown
 from tests.metrics.enums import Annualization, BehaviorNan, BehaviorNull, Degenerate
 from tests.metrics.harness import suite_metrics
 from tests.metrics.oracles import reference_calmar_ratio
-from tests.support.declaration import Golden, Pin, ScaleExempt
+from tests.support.declaration import Example, Golden, Pin, ScaleExempt
 
 CALMAR_RATIO = suite_metrics(
     factory=calmar_ratio,
@@ -52,6 +52,79 @@ CALMAR_RATIO = suite_metrics(
             expected=(math.nan,),
             reason="a flat multi-row curve has zero maximum drawdown and zero growth, so the ratio is a 0/0, "
             "i.e. NaN — the degenerate-denominator NaN beside the +inf pin",
+        ),
+    ),
+    reference='Young, T. W. (1991). "Calmar Ratio: A Smoother Tool." *Futures Magazine*.',
+    wikipedia="https://en.wikipedia.org/wiki/Calmar_ratio",
+    see_also=(
+        ("cagr", "The numerator (annualized growth)."),
+        ("max_drawdown", "The denominator (worst decline)."),
+        ("recovery_ratio", "The same worst-drawdown denominator with a total-return numerator."),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a ``null`` equity is skipped (excluded from both the growth and the drawdown); an "
+            "all-null (or empty) series yields ``null``.",
+        ),
+        ("NaN", "a ``NaN`` equity propagates, yielding ``NaN``."),
+        (
+            "Insufficient sample",
+            "a single observation has zero growth over zero maximum drawdown, so the result is a ``0 "
+            "/ 0``, i.e. ``NaN``.",
+        ),
+        (
+            "Degenerate denominator",
+            "a monotonically non-decreasing curve has zero maximum drawdown, so the ratio is "
+            "``+/-inf`` (or ``NaN`` when the growth is also zero) — reported, not clipped.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A single ``Float64`` value: the Calmar ratio (one value in ``select``, one per group "
+    "under ``.over``). ``null`` when there are no observations.",
+    raises_prose="ValueError: If ``periods_per_year < 1``.",
+    args_prose={
+        "equity_curve": "Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive.",
+    },
+    example_columns={"equity_curve": "equity"},
+    examples=(
+        Example(
+            inputs={"equity_curve": (1.1, 1.05, 1.2, 1.15, 1.3, 1.25, 1.4)}, params={"periods_per_year": 1}, round_to=4
+        ),
+        Example(
+            inputs={"equity_curve": (1.1, 1.05, 1.2, 1.15, 1.3, 1.25, 1.4, 1.0, 1.02, 1.01, 1.05, 1.08, 1.06, 1.12)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+            partition=("A", "A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B", "B"),
+            params={"periods_per_year": 1},
+            round_to=4,
+        ),
+        Example(
+            inputs={"equity_curve": (1.1, None, 1.2, 1.15, float("nan"), 1.25, 1.4)},
+            intro="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+            "handling visible:",
+            params={"periods_per_year": 1},
+            round_to=4,
+        ),
+        Example(
+            inputs={"equity_curve": (1.0,)},
+            intro="**Insufficient sample** — a single observation has zero growth and zero maximum "
+            "drawdown, so the ratio is a ``0 / 0``, i.e. ``NaN``:",
+            params={"periods_per_year": 252},
+        ),
+        Example(
+            inputs={"equity_curve": (1.0, 1.1, 1.21)},
+            intro="**Degenerate denominator** — a monotonically rising curve has zero maximum drawdown with "
+            "positive growth, so the ratio is ``+inf``:",
+            params={"periods_per_year": 1},
+        ),
+        Example(
+            inputs={"equity_curve": (1.0, 1.0, 1.0)},
+            intro="**Degenerate denominator** — a flat multi-row curve has zero maximum drawdown and zero "
+            "growth, so the ratio is a ``0 / 0``, i.e. ``NaN``:",
+            params={"periods_per_year": 252},
         ),
     ),
 )

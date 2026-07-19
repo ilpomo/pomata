@@ -4,7 +4,7 @@ from pomata.indicators import variance_ewma
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_variance_ewma
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 from tests.support.tolerances import TOLERANCE_ABSOLUTE_ROLLING_ORACLE, TOLERANCE_RELATIVE_ROLLING_ORACLE
 
 VARIANCE_EWMA = suite_indicators(
@@ -51,6 +51,71 @@ VARIANCE_EWMA = suite_indicators(
             expected=(None, None, 2.7, 1.3095238095238095, 2.347058823529412),
             reason="the debiased sample variance (bias=False), the second correctness branch a single biased golden "
             "cannot carry — mirroring variance_rolling's ddof=1 pin",
+        ),
+    ),
+    reference="J.P. Morgan / Reuters (1996). *RiskMetrics — Technical Document* (4th ed.). Cited for "
+    "the concept of an exponentially-weighted variance in finance; pomata computes the "
+    "mean-centered, span-parameterized form above, not RiskMetrics' zero-mean recursion with "
+    "a ``lambda`` decay factor (``0.94`` daily).",
+    see_also=(
+        ("standard_deviation_ewma", "Its square root, in the input's own units."),
+        ("variance_rolling", "The equal-weighted (rolling-window) counterpart."),
+        (
+            "ema",
+            "The related exponential mean — note the deviations here are measured from Polars' native "
+            "``ewm`` mean (seeded on the first observation), not from pomata's SMA-seeded "
+            ":func:`ema`, so the two only converge past the warm-up.",
+        ),
+    ),
+    note_extension="\n\n"
+    "``window`` must be ``>= 2``: a single observation yields a well-defined ``0`` under the "
+    "default ``bias=True``, but divides by zero under the unbiased ``bias=False`` correction, "
+    "so a minimum of ``2`` is enforced uniformly across both paths. It is homogeneous of "
+    "degree ``2`` in ``expr`` (a variance scales with the square of the input).",
+    bullets=(
+        (
+            "Null",
+            "a leading ``null`` run stays ``null`` until the first non-null seed; an interior "
+            "``null`` yields ``null`` at that position while the recursion continues across the gap "
+            "(a leading run consumes no warm-up, and an interior gap decays the carried weight across "
+            "it, per Polars' ``ignore_nulls=False`` convention).",
+        ),
+        (
+            "NaN",
+            "a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null position.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The exponentially-weighted variance for each row, the same length as the input. The "
+    "first ``window - 1`` values are ``null`` (warm-up): the recursion emits only once "
+    "``window`` non-null observations have been seen.",
+    raises_prose="ValueError: If ``window < 2``.",
+    args_prose={
+        "window": "Span of the exponential weighting, mapped to ``alpha = 2 / (window + 1)``. Must be ``>= 2``.",
+        "adjust": "When ``False`` (default) use the recursive form; when ``True`` use the finite-window "
+        "bias-corrected weighting (the same flag as :func:`ema`).",
+        "bias": "When ``True`` (default) the population variance (divides by the weight total); when "
+        "``False`` the unbiased sample variance (the reliability correction ``1 - sum(w ** 2) / "
+        "(sum w) ** 2``). ``True`` mirrors the ``ddof = 0`` default of :func:`variance_rolling`.",
+    },
+    example_columns={"price": "x"},
+    examples=(
+        Example(inputs={"price": (10.0, 11.0, 13.0, 12.0, 14.0, 13.0, 15.0)}, params={"window": 3}, round_to=4),
+        Example(
+            inputs={"price": (10.0, 11.0, 13.0, 12.0, 20.0, 22.0, 21.0, 24.0)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            params={"window": 3},
+            round_to=4,
+        ),
+        Example(
+            inputs={"price": (10.0, 11.0, 13.0, None, 14.0, float("nan"), 16.0, 17.0)},
+            intro="A ``null`` (decays across the gap) and a ``NaN`` (which propagates) make the handling visible:",
+            params={"window": 3},
+            round_to=4,
         ),
     ),
 )

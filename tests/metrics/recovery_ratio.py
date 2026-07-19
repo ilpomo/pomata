@@ -11,7 +11,7 @@ from pomata.metrics import max_drawdown, recovery_ratio, total_return
 from tests.metrics.enums import Annualization, BehaviorNan, BehaviorNull, Degenerate
 from tests.metrics.harness import suite_metrics
 from tests.metrics.oracles import reference_recovery_ratio
-from tests.support.declaration import Golden, Pin, ScaleExempt
+from tests.support.declaration import Example, Golden, Pin, ScaleExempt
 
 RECOVERY_RATIO = suite_metrics(
     factory=recovery_ratio,
@@ -54,6 +54,71 @@ RECOVERY_RATIO = suite_metrics(
             expected=(math.nan,),
             reason="a flat multi-row curve has zero maximum drawdown and zero total return, so the ratio is "
             "a 0/0, i.e. NaN — the degenerate-denominator NaN beside the +inf pin",
+        ),
+    ),
+    reference="Pardo, R. (2008). *The Evaluation and Optimization of Trading Strategies* (2nd ed.). Wiley.",
+    see_also=(
+        ("total_return", "The numerator (overall growth)."),
+        ("max_drawdown", "The denominator (worst decline)."),
+        ("calmar_ratio", "The annualized-growth counterpart over the same drawdown."),
+    ),
+    note_extension="\n\n"
+    "Only the drawdown denominator is taken in magnitude; the total-return numerator keeps "
+    "its sign, so a losing curve (a negative total return) reports a negative recovery "
+    "factor.",
+    bullets=(
+        ("Null", "a ``null`` equity is skipped; an all-null (or empty) series yields ``null``."),
+        ("NaN", "a ``NaN`` equity propagates, yielding ``NaN``."),
+        (
+            "Insufficient sample",
+            "a single observation has zero total return over zero maximum drawdown, so the result is "
+            "a ``0 / 0``, i.e. ``NaN``.",
+        ),
+        (
+            "Degenerate denominator",
+            "a monotonically non-decreasing curve has zero maximum drawdown, so the ratio is "
+            "``+/-inf`` with the sign of the total return (or ``NaN`` when the total return is also "
+            "zero) — reported, not clipped.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A single ``Float64`` value: the recovery factor (one value in ``select``, one per group "
+    "under ``.over``). ``null`` when there are no observations.",
+    args_prose={
+        "equity_curve": "Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive.",
+    },
+    example_columns={"equity_curve": "equity"},
+    examples=(
+        Example(inputs={"equity_curve": (1.1, 1.05, 1.2, 1.15, 1.3, 1.25, 1.4)}, round_to=4),
+        Example(
+            inputs={"equity_curve": (1.1, 1.05, 1.2, 1.15, 1.3, 1.25, 1.4, 1.0, 1.02, 1.01, 1.05, 1.08, 1.06, 1.12)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+            partition=("A", "A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B", "B"),
+            round_to=4,
+        ),
+        Example(
+            inputs={"equity_curve": (1.1, None, 1.2, 1.15, float("nan"), 1.25, 1.4)},
+            intro="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+            "handling visible:",
+            round_to=4,
+        ),
+        Example(
+            inputs={"equity_curve": (1.0,)},
+            intro="**Insufficient sample** — a single observation has zero total return and zero maximum "
+            "drawdown, so the ratio is a ``0 / 0``, i.e. ``NaN``:",
+        ),
+        Example(
+            inputs={"equity_curve": (1.0, 1.1, 1.21)},
+            intro="**Degenerate denominator** — a monotonically rising curve has zero maximum drawdown with "
+            "a positive total return, so the ratio is ``+inf``:",
+        ),
+        Example(
+            inputs={"equity_curve": (1.0, 1.0, 1.0)},
+            intro="**Degenerate denominator** — a flat multi-row curve has zero maximum drawdown and zero "
+            "total return, so the ratio is a ``0 / 0``, i.e. ``NaN``:",
         ),
     ),
 )

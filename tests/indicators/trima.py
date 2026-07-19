@@ -6,7 +6,7 @@ from pomata.indicators import trima
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_trima
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 _SWEEP = (3.0, 1.0, 4.0, 1.0, 5.0, 9.0, 2.0, 6.0)
 
@@ -113,6 +113,62 @@ TRIMA = suite_indicators(
             expected=(None, None, None, None, None, 3.25, 3.916666666666667, 4.833333333333334),
             params_override={"window": 6},
             reason="the widest window of the reference sweep, one past the canonical window",
+        ),
+    ),
+    wikipedia="https://en.wikipedia.org/wiki/Moving_average",
+    see_also=(
+        ("sma", "The single-pass simple moving average this double-smooths."),
+        ("wma", "A single-pass linearly-weighted average, also tilting the window's weights off uniform."),
+        ("hma", "Another average built by composing simpler moving averages."),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null "
+            "values) — built from two :func:`sma` passes, each holding to that same "
+            "``min_samples=window`` contract.",
+        ),
+        (
+            "NaN",
+            "a ``NaN`` inside the window propagates, yielding ``NaN`` there — through both "
+            ":func:`sma` passes it composes.",
+        ),
+        ("Insufficient sample", "a series shorter than ``window`` observations, so the result is ``null``."),
+        ("window == 1", "both sub-windows are ``1``, so the TRIMA reproduces the input."),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The triangular moving average for each row, the same length as the input. The first "
+    "``window - 1`` values are ``null`` (warm-up), matching the uniform warm-up of the "
+    "moving-average family.",
+    raises_prose="ValueError: If ``window < 1``.",
+    args_prose={
+        "window": "Number of observations in the moving window. Must be ``>= 1``.",
+    },
+    example_columns={"expr": "x"},
+    examples=(
+        Example(inputs={"expr": (1.0, 2.0, 3.0, 4.0, 5.0, 6.0)}, params={"window": 4}, round_to=4),
+        Example(
+            inputs={"expr": (1.0, 2.0, 3.0, 10.0, 20.0, 30.0)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "B", "B", "B"),
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={"expr": (1.0, None, 3.0, float("nan"), 5.0, 6.0)},
+            intro="A ``null`` (which both passes propagate) and a ``NaN`` make the missing-data handling visible:",
+            params={"window": 3},
+            round_to=4,
+        ),
+        Example(
+            inputs={"expr": (42.0,)},
+            intro="**Insufficient sample** — a one-row series has nothing to average beyond itself, so at "
+            "``window=1`` the triangular smoothing is the identity and the value passes through "
+            "unchanged:",
+            params={"window": 1},
         ),
     ),
 )

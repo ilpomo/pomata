@@ -9,7 +9,7 @@ from pomata.indicators import aroon, aroon_oscillator
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_aroon_oscillator
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 
 def _aroon_oscillator_component() -> pl.Expr:
@@ -50,6 +50,74 @@ AROON_OSCILLATOR = suite_indicators(
             expected=(None, 100.0, 100.0, -100.0, 100.0, -100.0, 100.0, -100.0, 100.0, -100.0),
             reason="window=1 collapses the Aroon lookback to the last two bars, so a strictly alternating series "
             "saturates the oscillator at plus or minus 100 from the second row on",
+        ),
+    ),
+    reference='Chande, T. S. (1995). "The Time Price Oscillator." *Technical Analysis of Stocks & '
+    "Commodities*, 13(9), 369-374.",
+    reference_url="https://chartschool.stockcharts.com/table-of-contents/technical-indicators-and-overlays/technical-indicators/aroon",
+    see_also=(
+        ("aroon", "The two-line indicator this collapses into one."),
+        ("donchian_channels", "The rolling high/low extremes the lines are built from."),
+        ("williams_r", "Another windowed high-low range oscillator."),
+    ),
+    bullets=(
+        ("Null", "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values)."),
+        ("NaN", "a ``NaN`` inside the window propagates, yielding ``NaN`` there."),
+        (
+            "window == 1",
+            "the look-back collapses to the last two bars, so each Aroon line is ``0`` or ``100`` and "
+            "the oscillator takes only ``-100``, ``0``, or ``+100``.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The oscillator for each row, the same length as the inputs, in ``[-100, 100]``. The "
+    "first ``window`` rows are ``null`` (warm-up), inherited from :func:`aroon`.",
+    raises_prose="ValueError: If ``window < 1``.",
+    args_prose={
+        "window": "Look-back length; the extremes are sought over the last ``window + 1`` bars. Must be ``>= 1``.",
+    },
+    intro_basic="Basic usage on high-low bars:",
+    examples=(
+        Example(
+            inputs={
+                "high": (10.0, 11.0, 12.0, 11.0, 13.0, 12.0, 14.0, 13.0),
+                "low": (9.0, 10.0, 11.0, 10.0, 12.0, 11.0, 13.0, 12.0),
+            },
+            params={"window": 3},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "high": (10.0, 11.0, 12.0, 11.0, 13.0, 20.0, 22.0, 24.0, 22.0, 26.0),
+                "low": (9.0, 10.0, 11.0, 10.0, 12.0, 19.0, 21.0, 23.0, 21.0, 25.0),
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "A", "A", "B", "B", "B", "B", "B"),
+            params={"window": 3},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "high": (10.0, 11.0, 12.0, 13.0, None, 15.0, 16.0, 17.0, 18.0, float("nan"), 20.0, 21.0),
+                "low": (9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0),
+            },
+            intro="A ``null`` (which nulls the oscillator) and a ``NaN`` (which propagates) in ``high`` "
+            "make the handling visible:",
+            params={"window": 3},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "high": (10.0, 11.0, 12.0, 11.0, 13.0, 12.0, 14.0, 13.0, 15.0, 14.0),
+                "low": (9.0, 10.0, 11.0, 10.0, 12.0, 11.0, 13.0, 12.0, 14.0, 13.0),
+            },
+            intro="**window == 1** — a one-bar look-back collapses each Aroon line to the last two bars, so "
+            "a strictly alternating series saturates the oscillator at ``+100`` or ``-100`` from the "
+            "second row on:",
+            params={"window": 1},
         ),
     ),
 )

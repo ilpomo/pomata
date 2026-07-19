@@ -6,7 +6,7 @@ from pomata.pnl import cost_borrow
 from tests.pnl.enums import BehaviorNan, BehaviorNull, ConventionSign, SpaceCost
 from tests.pnl.harness import suite_pnl
 from tests.pnl.oracles import reference_cost_borrow
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 
 COST_BORROW = suite_pnl(
     factory=cost_borrow,
@@ -69,6 +69,78 @@ COST_BORROW = suite_pnl(
             expected=(0.0, math.inf, math.inf),
             reason="an infinite long is free to hold (only the short branch pays borrow) while an infinite short "
             "notional charges an infinite fee; the property tiers set allow_infinity=False",
+        ),
+    ),
+    reference='D\'Avolio, G. (2002). "The market for borrowing stock." *Journal of Financial Economics*, '
+    "66(2-3), 271-306.",
+    doi="https://doi.org/10.1016/S0304-405X(02)00206-4",
+    wikipedia="https://en.wikipedia.org/wiki/Securities_lending",
+    see_also=(
+        ("dividend", "The equity holding cashflow on the income side."),
+        ("cost_funding", "The perpetual-swap holding cost."),
+        ("pnl_net", "Subtracts the composed cost from the gross PnL."),
+    ),
+    notes=(("Long / flat", "A non-negative quantity has zero borrow cost (only the short part is charged)."),),
+    bullets=(
+        ("Null", "a ``null`` quantity makes that row ``null`` (``null`` takes precedence over ``NaN``)."),
+        ("NaN", "a ``NaN`` quantity yields ``NaN`` for that row."),
+        (
+            "Non-finite input",
+            "an ``inf`` quantity follows IEEE-754 through the arithmetic, where the short-only clip "
+            "frees an infinite long (``0``) and an infinite short notional charges an ``inf`` fee; a "
+            "flat or long bar at an infinite ``price`` is ``0 * inf``, i.e. ``NaN`` (the sign "
+            "included).",
+        ),
+        (
+            "Partitioning",
+            "already correct on a multi-series panel: ``.over(...)`` partitions identically and is "
+            "therefore optional here.",
+        ),
+    ),
+    returns_body="The per-bar borrow cost for each row, the same length as the inputs -- a non-negative "
+    "cost on short bars (for a non-negative price; a negative price yields an economically "
+    "meaningless negative value) and ``0`` on long or flat bars.",
+    raises_prose="ValueError: If ``rate`` is not a finite number ``>= 0`` (i.e. ``< 0``, ``NaN``, or ``±inf``).",
+    args_prose={
+        "quantity": "Signed position size in units / shares / contracts held over the bar; only the short "
+        "part (``q < 0``) is charged.",
+        "price": 'Instrument price series (e.g. ``pl.col("close")``); must share a length and alignment '
+        "with ``quantity``.",
+        "rate": "Per-bar borrow rate, as a fraction of the short notional (e.g. an annual rate divided by "
+        "the bars per year). Must be a finite number ``>= 0``.",
+    },
+    examples=(
+        Example(
+            inputs={"quantity": (100.0, -50.0, -50.0, -20.0, -20.0), "price": (10.0, 11.0, 12.0, 13.0, 14.0)},
+            params={"rate": 0.0001},
+            round_to=6,
+        ),
+        Example(
+            inputs={
+                "quantity": (100.0, -50.0, -50.0, -20.0, -20.0, 30.0),
+                "price": (10.0, 11.0, 12.0, 13.0, 14.0, 15.0),
+            },
+            intro="On a multi-ticker panel, partition with ``.over`` — for this elementwise holding cost it "
+            "is optional (the result is identical without it) and shown here only for consistency:",
+            partition=("A", "A", "A", "B", "B", "B"),
+            params={"rate": 0.0001},
+            round_to=6,
+        ),
+        Example(
+            inputs={
+                "quantity": (-50.0, None, -50.0, float("nan"), -20.0),
+                "price": (10.0, 11.0, float("nan"), 12.0, 13.0),
+            },
+            intro="A ``null`` (which propagates) and a ``NaN`` make the missing-data handling visible:",
+            params={"rate": 0.0001},
+            round_to=6,
+        ),
+        Example(
+            inputs={"quantity": (float("inf"), -2.0, float("-inf")), "price": (10.0, float("inf"), 20.0)},
+            intro="**Non-finite input** — an infinite long holds for free (only the short side pays borrow) "
+            "while an infinite short notional charges an infinite fee, so the cost is ``0`` or "
+            "``inf``:",
+            params={"rate": 0.0001},
         ),
     ),
 )

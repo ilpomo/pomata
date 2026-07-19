@@ -6,7 +6,7 @@ from pomata.indicators import cci
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_cci
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 from tests.support.tolerances import TOLERANCE_ABSOLUTE_ROLLING_ORACLE, TOLERANCE_RELATIVE_ROLLING_ORACLE
 
 CCI = suite_indicators(
@@ -122,6 +122,98 @@ CCI = suite_indicators(
             params_override={"window": 3},
             expected=(None,),
             reason="a one-row input with window > length never completes a window",
+        ),
+    ),
+    reference='Lambert, D. R. (1980). "Commodity Channel Index: Tools for Trading Cyclic Trends." '
+    "*Commodities* (now *Futures*) magazine.",
+    wikipedia="https://en.wikipedia.org/wiki/Commodity_channel_index",
+    see_also=(
+        ("price_typical", "The typical price the index is built on."),
+        ("sma", "The simple moving average of the typical price it composes."),
+        ("rsi", "A bounded momentum oscillator."),
+    ),
+    bullets=(
+        ("Null", "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values)."),
+        ("NaN", "a ``NaN`` inside the window propagates, yielding ``NaN`` there."),
+        ("Insufficient sample", "a window longer than the series never completes, so the result is ``null``."),
+        (
+            "Degenerate denominator",
+            "when every typical price in the window is equal there is no spread to normalize by, so "
+            "the result is a ``0 / 0``, i.e. ``NaN``, detected exactly via the rolling extremes (its "
+            "rolling maximum equals its rolling minimum) rather than the rounding noise a sub-ULP "
+            "denominator residual would produce.",
+        ),
+        (
+            "window == 1",
+            "every one-bar window is trivially flat, so every non-null result is ``NaN`` (a ``null`` "
+            "row stays ``null``).",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The CCI for each row, the same length as the inputs. The first ``window - 1`` values are "
+    "``null`` (warm-up), inherited from the :func:`sma` of the typical price: the value is "
+    "defined only once a full window of typical prices is available.",
+    raises_prose="ValueError: If ``window < 1``.",
+    args_prose={
+        "window": "Number of observations in the moving window. Must be ``>= 1``.",
+    },
+    intro_basic="Basic usage on high-low-close bars:",
+    examples=(
+        Example(
+            inputs={
+                "high": (24.2, 24.3, 24.7, 25.0, 24.8, 24.5, 24.6),
+                "low": (23.9, 24.1, 24.3, 24.6, 24.4, 24.1, 24.2),
+                "close": (24.0, 24.2, 24.5, 24.8, 24.6, 24.3, 24.4),
+            },
+            params={"window": 3},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "high": (11.0, 12.0, 13.0, 12.0, 21.0, 23.0, 22.0, 24.0),
+                "low": (9.0, 10.0, 11.0, 10.0, 19.0, 21.0, 20.0, 22.0),
+                "close": (10.0, 11.0, 12.0, 11.0, 20.0, 22.0, 21.0, 23.0),
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "high": (11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0),
+                "low": (9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0),
+                "close": (10.0, 11.0, 12.0, None, 14.0, 15.0, float("nan"), 17.0),
+            },
+            intro="A ``null`` and a ``NaN`` in ``close`` (each voiding every window that covers it) make "
+            "the exact handling visible at a glance:",
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={"high": (10.0,), "low": (8.0,), "close": (9.0,)},
+            intro="**Insufficient sample** — a single-row series with a one-bar window is trivially flat, "
+            "so the result is ``NaN`` immediately:",
+            params={"window": 1},
+        ),
+        Example(
+            inputs={
+                "high": (10.0, 10.0, 10.0, 10.0, 10.0),
+                "low": (8.0, 8.0, 8.0, 8.0, 8.0),
+                "close": (9.0, 9.0, 9.0, 9.0, 9.0),
+            },
+            intro="**Degenerate denominator** — a constant series gives a zero mean deviation, the "
+            "flat-window ``0/0`` degenerate, so the result is ``NaN``:",
+            params={"window": 3},
+        ),
+        Example(
+            inputs={"high": (10.0, 12.0, 11.0), "low": (8.0, 9.0, 9.0), "close": (9.0, 11.0, 10.0)},
+            intro="**window == 1** — a one-bar window makes every window trivially flat, the ``0/0`` "
+            "boundary, so every result is ``NaN``:",
+            params={"window": 1},
         ),
     ),
 )

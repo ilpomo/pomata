@@ -69,8 +69,8 @@ def cost_borrow(
         - **Null** — a ``null`` quantity makes that row ``null`` (``null`` takes precedence over ``NaN``).
         - **NaN** — a ``NaN`` quantity yields ``NaN`` for that row.
         - **Non-finite input** — an ``inf`` quantity follows IEEE-754 through the arithmetic, where the short-only clip
-          frees an infinite long (``0``) and an infinite short notional charges an ``inf`` fee; a flat or long bar at
-          an infinite ``price`` is ``0 * inf``, i.e. ``NaN`` (the sign included).
+          frees an infinite long (``0``) and an infinite short notional charges an ``inf`` fee; a flat or long bar at an
+          infinite ``price`` is ``0 * inf``, i.e. ``NaN`` (the sign included).
         - **Partitioning** — already correct on a multi-series panel: ``.over(...)`` partitions identically and is
           therefore optional here.
 
@@ -94,12 +94,12 @@ def cost_borrow(
         ...         "price": [10.0, 11.0, 12.0, 13.0, 14.0],
         ...     }
         ... )
-        >>> expr = cost_borrow(pl.col("quantity"), pl.col("price"), rate=0.0001).round(6)
-        >>> frame.select(cost_borrow=expr)["cost_borrow"].to_list()
+        >>> expr = cost_borrow(pl.col("quantity"), pl.col("price"), rate=0.0001)
+        >>> frame.select(cost_borrow=expr.round(6))["cost_borrow"].to_list()
         [0.0, 0.055, 0.06, 0.026, 0.028]
 
-        On a multi-ticker panel, partition with ``.over`` — for this elementwise holding cost it is optional (the
-        result is identical without it) and shown here only for consistency:
+        On a multi-ticker panel, partition with ``.over`` — for this elementwise holding cost it is optional (the result
+        is identical without it) and shown here only for consistency:
 
         >>> frame = pl.DataFrame(
         ...     {
@@ -108,8 +108,8 @@ def cost_borrow(
         ...         "price": [10.0, 11.0, 12.0, 13.0, 14.0, 15.0],
         ...     }
         ... )
-        >>> expr = cost_borrow(pl.col("quantity"), pl.col("price"), rate=0.0001).over("ticker").round(6)
-        >>> frame.with_columns(cost_borrow=expr)["cost_borrow"].to_list()
+        >>> expr = cost_borrow(pl.col("quantity"), pl.col("price"), rate=0.0001)
+        >>> frame.with_columns(cost_borrow=expr.over("ticker").round(6))["cost_borrow"].to_list()
         [0.0, 0.055, 0.06, 0.026, 0.028, 0.0]
 
         A ``null`` (which propagates) and a ``NaN`` make the missing-data handling visible:
@@ -120,8 +120,8 @@ def cost_borrow(
         ...         "price": [10.0, 11.0, float("nan"), 12.0, 13.0],
         ...     }
         ... )
-        >>> expr = cost_borrow(pl.col("quantity"), pl.col("price"), rate=0.0001).round(6)
-        >>> frame.select(cost_borrow=expr)["cost_borrow"].to_list()
+        >>> expr = cost_borrow(pl.col("quantity"), pl.col("price"), rate=0.0001)
+        >>> frame.select(cost_borrow=expr.round(6))["cost_borrow"].to_list()
         [0.05, None, nan, nan, 0.026]
 
         **Non-finite input** — an infinite long holds for free (only the short side pays borrow) while an infinite short
@@ -192,9 +192,8 @@ def cost_fixed(
 
         - **Null** — a ``null`` quantity makes that row ``null`` (``null`` takes precedence over ``NaN``).
         - **NaN** — a ``NaN`` quantity yields ``NaN`` for that row.
-        - **Non-finite input** — an ``inf`` quantity follows IEEE-754 through the arithmetic of the turnover
-          difference, whose ``inf`` marks a trade and charges the flat ``fee`` (the sign, and any ``inf - inf = NaN``,
-          included).
+        - **Non-finite input** — an ``inf`` quantity follows IEEE-754 through the arithmetic of the turnover difference,
+          whose ``inf`` marks a trade and charges the flat ``fee`` (the sign, and any ``inf - inf = NaN``, included).
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -222,8 +221,8 @@ def cost_fixed(
         ...         "quantity": [10.0, 10.0, -5.0, 2.0, 2.0, 2.0],
         ...     }
         ... )
-        >>> expr = cost_fixed(pl.col("quantity"), fee=1.0).over("ticker").round(4)
-        >>> frame.with_columns(cost_fixed=expr)["cost_fixed"].to_list()
+        >>> expr = cost_fixed(pl.col("quantity"), fee=1.0)
+        >>> frame.with_columns(cost_fixed=expr.over("ticker").round(4))["cost_fixed"].to_list()
         [1.0, 0.0, 1.0, 1.0, 0.0, 0.0]
 
         A ``null`` (which voids its own row and the next) and a ``NaN`` make the missing-data handling visible:
@@ -273,9 +272,8 @@ def cost_funding(
     Args:
         quantity: Signed position size in units / shares / contracts held over the bar (e.g. ``100``, ``-2``).
         price: Instrument price series (e.g. ``pl.col("close")``); must share a length and alignment with ``quantity``.
-        funding_rate: Per-bar funding rate as a signed fraction of notional, supplied as a series so it can be ``0``
-            on the bars between funding events (e.g. ``0.0001`` = 1 bp); a positive rate charges longs and rebates
-            shorts.
+        funding_rate: Per-bar funding rate as a signed fraction of notional, supplied as a series so it can be ``0`` on
+            the bars between funding events (e.g. ``0.0001`` = 1 bp); a positive rate charges longs and rebates shorts.
 
     Returns:
         The per-bar funding cost for each row, the same length as the inputs -- positive where the holder pays and
@@ -331,12 +329,12 @@ def cost_funding(
         ...         "funding_rate": [0.0001, 0.0001, 0.0001, -0.0001, 0.0001],
         ...     }
         ... )
-        >>> expr = cost_funding(pl.col("quantity"), pl.col("price"), pl.col("funding_rate")).round(6)
-        >>> frame.select(cost_funding=expr)["cost_funding"].to_list()
+        >>> expr = cost_funding(pl.col("quantity"), pl.col("price"), pl.col("funding_rate"))
+        >>> frame.select(cost_funding=expr.round(6))["cost_funding"].to_list()
         [0.1, 0.102, -0.0505, 0.052, 0.206]
 
-        On a multi-ticker panel, partition with ``.over`` — for this elementwise holding cost it is optional (the
-        result is identical without it) and shown here only for consistency:
+        On a multi-ticker panel, partition with ``.over`` — for this elementwise holding cost it is optional (the result
+        is identical without it) and shown here only for consistency:
 
         >>> frame = pl.DataFrame(
         ...     {
@@ -346,8 +344,8 @@ def cost_funding(
         ...         "funding_rate": [0.0001, 0.0001, 0.0001, 0.0001, -0.0001, 0.0001],
         ...     }
         ... )
-        >>> expr = cost_funding(pl.col("quantity"), pl.col("price"), pl.col("funding_rate")).over("ticker").round(6)
-        >>> frame.with_columns(cost_funding=expr)["cost_funding"].to_list()
+        >>> expr = cost_funding(pl.col("quantity"), pl.col("price"), pl.col("funding_rate"))
+        >>> frame.with_columns(cost_funding=expr.over("ticker").round(6))["cost_funding"].to_list()
         [0.1, 0.102, -0.0505, 0.01, -0.0102, -0.0147]
 
         A ``null`` (which propagates) and a ``NaN`` make the missing-data handling visible:
@@ -359,8 +357,8 @@ def cost_funding(
         ...         "funding_rate": [0.0001, 0.0001, 0.0001, 0.0001, 0.0001],
         ...     }
         ... )
-        >>> expr = cost_funding(pl.col("quantity"), pl.col("price"), pl.col("funding_rate")).round(6)
-        >>> frame.select(cost_funding=expr)["cost_funding"].to_list()
+        >>> expr = cost_funding(pl.col("quantity"), pl.col("price"), pl.col("funding_rate"))
+        >>> frame.select(cost_funding=expr.round(6))["cost_funding"].to_list()
         [0.1, None, -0.0505, nan, 0.206]
 
         **Non-finite input** — the signed triple product keeps its sign at infinite magnitude, so the funding cost is
@@ -433,9 +431,9 @@ def cost_notional(
 
         - **Null** — a ``null`` quantity makes that row ``null`` (``null`` takes precedence over ``NaN``).
         - **NaN** — a ``NaN`` quantity yields ``NaN`` for that row.
-        - **Non-finite input** — an ``inf`` quantity follows IEEE-754 through the arithmetic of the turnover
-          difference, an infinite move charging an ``inf`` cost; a held bar at an infinite ``price`` is ``0 * inf``,
-          i.e. ``NaN`` (the sign, and any ``inf - inf = NaN``, included).
+        - **Non-finite input** — an ``inf`` quantity follows IEEE-754 through the arithmetic of the turnover difference,
+          an infinite move charging an ``inf`` cost; a held bar at an infinite ``price`` is ``0 * inf``, i.e. ``NaN``
+          (the sign, and any ``inf - inf = NaN``, included).
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -457,8 +455,8 @@ def cost_notional(
         ...         "price": [100.0, 102.0, 101.0, 104.0, 103.0],
         ...     }
         ... )
-        >>> expr = cost_notional(pl.col("quantity"), pl.col("price"), rate=0.001).round(4)
-        >>> frame.select(cost_notional=expr)["cost_notional"].to_list()
+        >>> expr = cost_notional(pl.col("quantity"), pl.col("price"), rate=0.001)
+        >>> frame.select(cost_notional=expr.round(4))["cost_notional"].to_list()
         [1.0, 0.0, 1.515, 0.0, 2.575]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker starts flat:
@@ -470,8 +468,8 @@ def cost_notional(
         ...         "price": [100.0, 102.0, 101.0, 50.0, 51.0, 49.0],
         ...     }
         ... )
-        >>> expr = cost_notional(pl.col("quantity"), pl.col("price"), rate=0.001).over("ticker").round(4)
-        >>> frame.with_columns(cost_notional=expr)["cost_notional"].to_list()
+        >>> expr = cost_notional(pl.col("quantity"), pl.col("price"), rate=0.001)
+        >>> frame.with_columns(cost_notional=expr.over("ticker").round(4))["cost_notional"].to_list()
         [1.0, 0.0, 1.515, 0.1, 0.0, 0.0]
 
         A ``null`` (which voids the rows that reference it) and a ``NaN`` make the missing-data handling visible:
@@ -482,8 +480,8 @@ def cost_notional(
         ...         "price": [100.0, 102.0, 101.0, 104.0, float("nan")],
         ...     }
         ... )
-        >>> expr = cost_notional(pl.col("quantity"), pl.col("price"), rate=0.001).round(4)
-        >>> frame.select(cost_notional=expr)["cost_notional"].to_list()
+        >>> expr = cost_notional(pl.col("quantity"), pl.col("price"), rate=0.001)
+        >>> frame.select(cost_notional=expr.round(4))["cost_notional"].to_list()
         [1.0, None, None, nan, nan]
 
         **Non-finite input** — two consecutive same-sign infinite quantities make the turnover ``inf - inf`` at the
@@ -525,8 +523,8 @@ def cost_per_share(
 
     Args:
         quantity: Signed position size in units / shares / contracts held over the bar (e.g. ``100``, ``-2``).
-        fee: Commission per unit traded, in the account currency (e.g. ``0.01`` = one cent per share). Must be a
-            finite number ``>= 0``.
+        fee: Commission per unit traded, in the account currency (e.g. ``0.01`` = one cent per share). Must be a finite
+            number ``>= 0``.
 
     Returns:
         The per-bar per-share cost for each row, the same length as ``quantity``. The first row charges on
@@ -551,8 +549,8 @@ def cost_per_share(
 
         - **Null** — a ``null`` quantity makes that row ``null`` (``null`` takes precedence over ``NaN``).
         - **NaN** — a ``NaN`` quantity yields ``NaN`` for that row.
-        - **Non-finite input** — an ``inf`` quantity follows IEEE-754 through the arithmetic of the turnover
-          difference, an infinite move charging an ``inf`` cost (the sign, and any ``inf - inf = NaN``, included).
+        - **Non-finite input** — an ``inf`` quantity follows IEEE-754 through the arithmetic of the turnover difference,
+          an infinite move charging an ``inf`` cost (the sign, and any ``inf - inf = NaN``, included).
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -569,8 +567,8 @@ def cost_per_share(
         >>> from pomata.pnl import cost_per_share
         >>>
         >>> frame = pl.DataFrame({"quantity": [10.0, 10.0, -5.0, -5.0, 20.0]})
-        >>> expr = cost_per_share(pl.col("quantity"), fee=0.01).round(4)
-        >>> frame.select(cost_per_share=expr)["cost_per_share"].to_list()
+        >>> expr = cost_per_share(pl.col("quantity"), fee=0.01)
+        >>> frame.select(cost_per_share=expr.round(4))["cost_per_share"].to_list()
         [0.1, 0.0, 0.15, 0.0, 0.25]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker starts flat:
@@ -581,15 +579,15 @@ def cost_per_share(
         ...         "quantity": [10.0, 10.0, -5.0, 2.0, 2.0, 2.0],
         ...     }
         ... )
-        >>> expr = cost_per_share(pl.col("quantity"), fee=0.01).over("ticker").round(4)
-        >>> frame.with_columns(cost_per_share=expr)["cost_per_share"].to_list()
+        >>> expr = cost_per_share(pl.col("quantity"), fee=0.01)
+        >>> frame.with_columns(cost_per_share=expr.over("ticker").round(4))["cost_per_share"].to_list()
         [0.1, 0.0, 0.15, 0.02, 0.0, 0.0]
 
         A ``null`` (which voids its own row and the next) and a ``NaN`` make the missing-data handling visible:
 
         >>> frame = pl.DataFrame({"quantity": [10.0, None, -5.0, float("nan"), 20.0]})
-        >>> expr = cost_per_share(pl.col("quantity"), fee=0.01).round(4)
-        >>> frame.select(cost_per_share=expr)["cost_per_share"].to_list()
+        >>> expr = cost_per_share(pl.col("quantity"), fee=0.01)
+        >>> frame.select(cost_per_share=expr.round(4))["cost_per_share"].to_list()
         [0.1, None, None, nan, nan]
 
         **Non-finite input** — two consecutive same-sign infinite quantities make the turnover ``inf - inf`` at the
@@ -645,8 +643,8 @@ def cost_proportional(
 
         **Flat start**
 
-        The weight before the series is taken as ``0`` (via :func:`turnover`), so the first row is ``|weight_0| *
-        rate``: establishing the initial weight carries its cost.
+        The weight before the series is taken as ``0`` (via :func:`turnover`), so the first row is
+        ``|weight_0| * rate``: establishing the initial weight carries its cost.
 
         **Edge-case behavior**
 
@@ -673,8 +671,8 @@ def cost_proportional(
         >>> from pomata.pnl import cost_proportional
         >>>
         >>> frame = pl.DataFrame({"weight": [0.5, 1.0, -0.5, -0.5, 0.0]})
-        >>> expr = cost_proportional(pl.col("weight"), rate=0.001).round(4)
-        >>> frame.select(cost_proportional=expr)["cost_proportional"].to_list()
+        >>> expr = cost_proportional(pl.col("weight"), rate=0.001)
+        >>> frame.select(cost_proportional=expr.round(4))["cost_proportional"].to_list()
         [0.0005, 0.0005, 0.0015, 0.0, 0.0005]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker starts flat and never reaches across the
@@ -686,15 +684,15 @@ def cost_proportional(
         ...         "weight": [0.5, 1.0, -0.5, 1.0, 1.0, 0.0],
         ...     }
         ... )
-        >>> expr = cost_proportional(pl.col("weight"), rate=0.001).over("ticker").round(4)
-        >>> frame.with_columns(cost_proportional=expr)["cost_proportional"].to_list()
+        >>> expr = cost_proportional(pl.col("weight"), rate=0.001)
+        >>> frame.with_columns(cost_proportional=expr.over("ticker").round(4))["cost_proportional"].to_list()
         [0.0005, 0.0005, 0.0015, 0.001, 0.0, 0.001]
 
         A ``null`` (which voids its own row and the next) and a ``NaN`` make the missing-data handling visible:
 
         >>> frame = pl.DataFrame({"weight": [0.5, None, -0.5, float("nan"), 0.0]})
-        >>> expr = cost_proportional(pl.col("weight"), rate=0.001).round(4)
-        >>> frame.select(cost_proportional=expr)["cost_proportional"].to_list()
+        >>> expr = cost_proportional(pl.col("weight"), rate=0.001)
+        >>> frame.select(cost_proportional=expr.round(4))["cost_proportional"].to_list()
         [0.0005, None, None, nan, nan]
 
         **Non-finite input** — two consecutive same-sign infinite weights make the turnover ``inf - inf`` at the second
@@ -751,8 +749,8 @@ def cost_slippage(
 
         **Flat start**
 
-        The weight before the series is taken as ``0`` (via :func:`turnover`), so the first row is ``|weight_0| *
-        half_spread``: establishing the initial weight crosses the spread.
+        The weight before the series is taken as ``0`` (via :func:`turnover`), so the first row is
+        ``|weight_0| * half_spread``: establishing the initial weight crosses the spread.
 
         **Edge-case behavior**
 
@@ -778,8 +776,8 @@ def cost_slippage(
         >>> from pomata.pnl import cost_slippage
         >>>
         >>> frame = pl.DataFrame({"weight": [0.5, 1.0, -0.5, -0.5, 0.0]})
-        >>> expr = cost_slippage(pl.col("weight"), half_spread=0.002).round(4)
-        >>> frame.select(cost_slippage=expr)["cost_slippage"].to_list()
+        >>> expr = cost_slippage(pl.col("weight"), half_spread=0.002)
+        >>> frame.select(cost_slippage=expr.round(4))["cost_slippage"].to_list()
         [0.001, 0.001, 0.003, 0.0, 0.001]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker starts flat and never reaches across the
@@ -791,15 +789,15 @@ def cost_slippage(
         ...         "weight": [0.5, 1.0, -0.5, 1.0, 1.0, 0.0],
         ...     }
         ... )
-        >>> expr = cost_slippage(pl.col("weight"), half_spread=0.002).over("ticker").round(4)
-        >>> frame.with_columns(cost_slippage=expr)["cost_slippage"].to_list()
+        >>> expr = cost_slippage(pl.col("weight"), half_spread=0.002)
+        >>> frame.with_columns(cost_slippage=expr.over("ticker").round(4))["cost_slippage"].to_list()
         [0.001, 0.001, 0.003, 0.002, 0.0, 0.002]
 
         A ``null`` (which voids its own row and the next) and a ``NaN`` make the missing-data handling visible:
 
         >>> frame = pl.DataFrame({"weight": [0.5, None, -0.5, float("nan"), 0.0]})
-        >>> expr = cost_slippage(pl.col("weight"), half_spread=0.002).round(4)
-        >>> frame.select(cost_slippage=expr)["cost_slippage"].to_list()
+        >>> expr = cost_slippage(pl.col("weight"), half_spread=0.002)
+        >>> frame.select(cost_slippage=expr.round(4))["cost_slippage"].to_list()
         [0.001, None, None, nan, nan]
 
         **Non-finite input** — two consecutive same-sign infinite weights make the turnover ``inf - inf`` at the second

@@ -80,8 +80,8 @@ def price_average(
         ...         "close": [10.0, 11.5, 12.5, 11.5, 13.5],
         ...     }
         ... )
-        >>> expr = price_average(pl.col("open"), pl.col("high"), pl.col("low"), pl.col("close")).round(4)
-        >>> frame.select(price_average=expr)["price_average"].to_list()
+        >>> expr = price_average(pl.col("open"), pl.col("high"), pl.col("low"), pl.col("close"))
+        >>> frame.select(price_average=expr.round(4))["price_average"].to_list()
         [10.0, 11.125, 12.125, 11.625, 13.125]
 
         On a multi-ticker panel, partition with ``.over`` as the windowed indicators require — for this elementwise
@@ -96,8 +96,8 @@ def price_average(
         ...         "close": [10.0, 11.5, 12.5, 20.0, 21.5, 22.5],
         ...     }
         ... )
-        >>> expr = price_average(pl.col("open"), pl.col("high"), pl.col("low"), pl.col("close")).over("ticker").round(4)
-        >>> frame.with_columns(price_average=expr)["price_average"].to_list()
+        >>> expr = price_average(pl.col("open"), pl.col("high"), pl.col("low"), pl.col("close"))
+        >>> frame.with_columns(price_average=expr.over("ticker").round(4))["price_average"].to_list()
         [10.0, 11.125, 12.125, 20.0, 21.125, 22.125]
 
         A ``null`` then a ``NaN`` in ``close`` (both propagate through the sum) make the missing-data handling visible
@@ -111,8 +111,8 @@ def price_average(
         ...         "close": [10.0, None, 12.5, float("nan"), 14.5],
         ...     }
         ... )
-        >>> expr = price_average(pl.col("open"), pl.col("high"), pl.col("low"), pl.col("close")).round(4)
-        >>> frame.select(price_average=expr)["price_average"].to_list()
+        >>> expr = price_average(pl.col("open"), pl.col("high"), pl.col("low"), pl.col("close"))
+        >>> frame.select(price_average=expr.round(4))["price_average"].to_list()
         [10.0, None, 12.125, nan, 14.125]
     """
     open = float64_expr(open)
@@ -188,8 +188,7 @@ def price_median(
         ...         "low": [9.0, 10.0, 11.0, 11.0, 12.0],
         ...     }
         ... )
-        >>> expr = price_median(pl.col("high"), pl.col("low")).round(4)
-        >>> frame.select(price_median=expr)["price_median"].to_list()
+        >>> frame.select(price_median=price_median(pl.col("high"), pl.col("low")).round(4))["price_median"].to_list()
         [10.0, 11.0, 12.0, 11.75, 13.0]
 
         On a multi-ticker panel, partition with ``.over`` as the windowed indicators require — for this elementwise
@@ -202,12 +201,12 @@ def price_median(
         ...         "low": [9.0, 10.0, 11.0, 19.0, 20.0, 21.0],
         ...     }
         ... )
-        >>> expr = price_median(pl.col("high"), pl.col("low")).over("ticker").round(4)
-        >>> frame.with_columns(price_median=expr)["price_median"].to_list()
+        >>> expr = price_median(pl.col("high"), pl.col("low"))
+        >>> frame.with_columns(price_median=expr.over("ticker").round(4))["price_median"].to_list()
         [10.0, 11.0, 12.0, 20.0, 21.0, 22.0]
 
-        A ``null`` then a ``NaN`` in ``high`` (both propagate through the sum) make the missing-data handling visible
-        at a glance:
+        A ``null`` then a ``NaN`` in ``high`` (both propagate through the sum) make the missing-data handling visible at
+        a glance:
 
         >>> frame = pl.DataFrame(
         ...     {
@@ -215,8 +214,7 @@ def price_median(
         ...         "low": [9.0, 10.0, 11.0, 12.0, 13.0],
         ...     }
         ... )
-        >>> expr = price_median(pl.col("high"), pl.col("low")).round(4)
-        >>> frame.select(price_median=expr)["price_median"].to_list()
+        >>> frame.select(price_median=price_median(pl.col("high"), pl.col("low")).round(4))["price_median"].to_list()
         [10.0, None, 12.0, nan, 14.0]
     """
     high = float64_expr(high)
@@ -294,8 +292,8 @@ def price_typical(
         ...         "close": [10.0, 11.5, 12.5, 11.5, 13.5],
         ...     }
         ... )
-        >>> expr = price_typical(pl.col("high"), pl.col("low"), pl.col("close")).round(4)
-        >>> frame.select(price_typical=expr)["price_typical"].to_list()
+        >>> expr = price_typical(pl.col("high"), pl.col("low"), pl.col("close"))
+        >>> frame.select(price_typical=expr.round(4))["price_typical"].to_list()
         [10.0, 11.1667, 12.1667, 11.6667, 13.1667]
 
         On a multi-ticker panel, partition with ``.over`` as the windowed indicators require — for this elementwise
@@ -309,8 +307,8 @@ def price_typical(
         ...         "close": [10.0, 11.5, 12.5, 20.0, 21.5, 22.5],
         ...     }
         ... )
-        >>> expr = price_typical(pl.col("high"), pl.col("low"), pl.col("close")).over("ticker").round(4)
-        >>> frame.with_columns(price_typical=expr)["price_typical"].to_list()
+        >>> expr = price_typical(pl.col("high"), pl.col("low"), pl.col("close"))
+        >>> frame.with_columns(price_typical=expr.over("ticker").round(4))["price_typical"].to_list()
         [10.0, 11.1667, 12.1667, 20.0, 21.1667, 22.1667]
 
         A ``null`` then a ``NaN`` in ``close`` (both propagate through the sum) make the missing-data handling visible
@@ -323,8 +321,8 @@ def price_typical(
         ...         "close": [10.0, None, 12.5, float("nan"), 14.5],
         ...     }
         ... )
-        >>> expr = price_typical(pl.col("high"), pl.col("low"), pl.col("close")).round(4)
-        >>> frame.select(price_typical=expr)["price_typical"].to_list()
+        >>> expr = price_typical(pl.col("high"), pl.col("low"), pl.col("close"))
+        >>> frame.select(price_typical=expr.round(4))["price_typical"].to_list()
         [10.0, None, 12.1667, nan, 14.1667]
     """
     high = float64_expr(high)
@@ -403,8 +401,8 @@ def price_weighted_close(
         ...         "close": [10.0, 11.5, 12.5, 11.5, 13.5],
         ...     }
         ... )
-        >>> expr = price_weighted_close(pl.col("high"), pl.col("low"), pl.col("close")).round(4)
-        >>> frame.select(price_weighted_close=expr)["price_weighted_close"].to_list()
+        >>> expr = price_weighted_close(pl.col("high"), pl.col("low"), pl.col("close"))
+        >>> frame.select(price_weighted_close=expr.round(4))["price_weighted_close"].to_list()
         [10.0, 11.25, 12.25, 11.625, 13.25]
 
         On a multi-ticker panel, partition with ``.over`` as the windowed indicators require — for this elementwise
@@ -418,8 +416,8 @@ def price_weighted_close(
         ...         "close": [10.0, 11.5, 12.5, 20.0, 21.5, 22.5],
         ...     }
         ... )
-        >>> expr = price_weighted_close(pl.col("high"), pl.col("low"), pl.col("close")).over("ticker").round(4)
-        >>> frame.with_columns(price_weighted_close=expr)["price_weighted_close"].to_list()
+        >>> expr = price_weighted_close(pl.col("high"), pl.col("low"), pl.col("close"))
+        >>> frame.with_columns(price_weighted_close=expr.over("ticker").round(4))["price_weighted_close"].to_list()
         [10.0, 11.25, 12.25, 20.0, 21.25, 22.25]
 
         A ``null`` then a ``NaN`` in ``close`` (both propagate through the sum) make the missing-data handling visible
@@ -432,8 +430,8 @@ def price_weighted_close(
         ...         "close": [10.0, None, 12.5, float("nan"), 14.5],
         ...     }
         ... )
-        >>> expr = price_weighted_close(pl.col("high"), pl.col("low"), pl.col("close")).round(4)
-        >>> frame.select(price_weighted_close=expr)["price_weighted_close"].to_list()
+        >>> expr = price_weighted_close(pl.col("high"), pl.col("low"), pl.col("close"))
+        >>> frame.select(price_weighted_close=expr.round(4))["price_weighted_close"].to_list()
         [10.0, None, 12.25, nan, 14.25]
     """
     high = float64_expr(high)

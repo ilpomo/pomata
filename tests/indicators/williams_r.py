@@ -9,7 +9,7 @@ from pomata.indicators import williams_r
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_williams_r
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 WILLIAMS_R = suite_indicators(
     factory=williams_r,
@@ -105,6 +105,107 @@ WILLIAMS_R = suite_indicators(
             params_override={"window": 2},
             expected=(None, math.nan, math.nan),
             reason="an all-NaN input warms up to null then poisons to NaN, distinct from the all-null rung",
+        ),
+    ),
+    reference="Williams, L. (1973). *How I Made One Million Dollars Last Year Trading Commodities*.",
+    wikipedia="https://en.wikipedia.org/wiki/Williams_%25R",
+    see_also=(
+        ("stochastic_fast", "The Fast Stochastic %K this oscillator inverts."),
+        ("rsi", "A bounded momentum oscillator on the same [0, 100]-style scale."),
+        ("cci", "Another bounded oscillator over a rolling window."),
+    ),
+    notes=(
+        (
+            "Warm-up",
+            "The warm-up is the canonical ``window - 1`` leading nulls of the rolling family, and the "
+            "``null`` / ``NaN`` contract below matches the simple moving average.",
+        ),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null "
+            "values) — this covers ``high`` and ``low``; the ``close`` enters elementwise, so a "
+            "``null`` ``close`` nulls only its own bar (``null`` takes precedence over ``NaN``).",
+        ),
+        (
+            "NaN",
+            "a ``NaN`` inside the window propagates, yielding ``NaN`` there; a ``NaN`` ``close`` "
+            "yields ``NaN`` only at its own bar.",
+        ),
+        ("Insufficient sample", "a window longer than the series never completes, so the result is ``null``."),
+        (
+            "Degenerate denominator",
+            "when the windowed range collapses (:math:`\\mathrm{HH} = \\mathrm{LL}`, e.g. a flat "
+            "high-low over the whole window) with the close on that level the ratio is indeterminate, "
+            "so the result is a ``0 / 0``, i.e. ``NaN`` — a non-zero numerator over the zero range is "
+            "``+/-inf``.",
+        ),
+        (
+            "window == 1",
+            "the highest high and lowest low collapse to the single bar's own ``high`` and ``low``, "
+            "so :math:`\\%R = -100\\,(H - C) / (H - L)`.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The Williams %R for each row, the same length as the inputs. The first ``window - 1`` "
+    "values are ``null`` (warm-up), matching the rolling moving-average family: the value is "
+    "defined only once ``window`` observations have been seen.",
+    raises_prose="ValueError: If ``window < 1``.",
+    args_prose={
+        "window": "Number of observations in the moving window. Must be ``>= 1``.",
+    },
+    intro_basic="Basic usage on high-low-close bars:",
+    examples=(
+        Example(
+            inputs={
+                "high": (10.0, 12.0, 11.0, 13.0, 15.0, 14.0),
+                "low": (8.0, 9.0, 10.0, 11.0, 12.0, 13.0),
+                "close": (9.0, 11.0, 10.5, 12.0, 14.0, 13.5),
+            },
+            params={"window": 3},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "high": (11.0, 12.0, 13.0, 12.0, 21.0, 23.0, 22.0, 24.0),
+                "low": (9.0, 10.0, 11.0, 10.0, 19.0, 21.0, 20.0, 22.0),
+                "close": (10.0, 11.0, 12.0, 11.0, 20.0, 22.0, 21.0, 23.0),
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "high": (11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0),
+                "low": (9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0),
+                "close": (10.0, 11.0, 12.0, None, 14.0, 15.0, float("nan"), 17.0),
+            },
+            intro="A ``null`` and a ``NaN`` in ``close`` (each confined to its own bar, since the close "
+            "enters elementwise) make the exact handling visible at a glance:",
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={"high": (10.0,), "low": (8.0,), "close": (9.0,)},
+            intro="**Insufficient sample** — a single bar with a one-bar window:",
+            params={"window": 1},
+        ),
+        Example(
+            inputs={"high": (5.0, 5.0, 5.0), "low": (5.0, 5.0, 5.0), "close": (5.0, 5.0, 5.0)},
+            intro="**Degenerate denominator** — a flat window with close on that level is the ``0/0`` IEEE degenerate:",
+            params={"window": 2},
+        ),
+        Example(
+            inputs={"high": (5.0, 5.0), "low": (5.0, 5.0), "close": (3.0, 3.0)},
+            intro="**Degenerate denominator** — a flat window with close off that level is a non-zero "
+            "numerator over a zero denominator, signed ``inf``:",
+            params={"window": 2},
         ),
     ),
 )

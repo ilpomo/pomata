@@ -13,7 +13,7 @@ from tests.metrics.enums import BehaviorNan, BehaviorNull
 from tests.metrics.harness import suite_metrics
 from tests.metrics.oracles import reference_treynor_ratio_rolling
 from tests.metrics.treynor_ratio import TREYNOR_RATIO
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 from tests.support.tolerances import TOLERANCE_RELATIVE_ROLLING_ORACLE
 
 # Spec-local conditioning floors. Measured: impl-vs-oracle agreement holds down to 1e-6 on BOTH axes (benchmark
@@ -137,4 +137,87 @@ TREYNOR_RATIO_ROLLING = suite_metrics(
         ),
     ),
     oracle_rel_tol=TOLERANCE_RELATIVE_ROLLING_ORACLE,
+    reference='Treynor, J. L. (1965). "How to Rate Management of Investment Funds." *Harvard Business '
+    "Review*, 43(1), 63-75.",
+    wikipedia="https://en.wikipedia.org/wiki/Treynor_ratio",
+    see_also=(
+        ("treynor_ratio", "The whole-series reducing form."),
+        ("beta_rolling", "The denominator (systematic risk)."),
+        ("alpha_rolling", "The rolling benchmark-relative excess built on the same slope."),
+    ),
+    bullets=(
+        ("Null", "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values)."),
+        ("NaN", "a ``NaN`` inside the window propagates, yielding ``NaN`` there."),
+        (
+            "Degenerate denominator",
+            "a window whose slope is zero gives ``+/-inf`` (or ``NaN``) — reported, not clipped; a "
+            "zero-variance benchmark window instead makes the slope ``NaN``, which propagates here.",
+        ),
+        (
+            "Stability",
+            "a near-flat (non-bit-identical) benchmark window sits at the float-conditioning limit "
+            "the documentation's *Correctness* page documents: the one-pass rolling slope and an "
+            "exact two-pass recomputation can round a vanishing benchmark variance — and with it the "
+            "``beta`` divisor — apart without bound there. The bit-flat window is guarded exactly "
+            "(``NaN``); real market windows are far from the regime.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The rolling Treynor ratio for each row, the same length as the input. The first ``window "
+    "- 1`` rows are ``null`` (warm-up): the window must hold ``window`` complete pairs before "
+    "a result is emitted.",
+    raises_prose="ValueError: If ``window < 2``, ``periods_per_year < 1``, or if ``risk_free_rate`` is not "
+    "finite or is ``< -1``.",
+    args_prose={
+        "window": "Number of observations in the moving window. Must be ``>= 2``.",
+        "risk_free_rate": "The annualized risk-free rate, converted to a per-period rate geometrically (default "
+        "``0.0``). Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + "
+        "risk_free_rate >= 0``).",
+    },
+    examples=(
+        Example(
+            inputs={
+                "returns": (0.02, -0.01, 0.03, -0.02, 0.015, 0.005, -0.01, 0.02),
+                "benchmark": (0.015, -0.008, 0.025, -0.015, 0.01, 0.004, -0.012, 0.018),
+            },
+            params={"window": 4, "periods_per_year": 252},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "returns": (0.02, -0.01, 0.03, -0.02, 0.015, 0.005, 0.01, 0.025, -0.015, 0.008, -0.005, 0.012),
+                "benchmark": (0.015, -0.008, 0.025, -0.015, 0.01, 0.004, 0.012, 0.02, -0.01, 0.006, -0.004, 0.01),
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B"),
+            params={"window": 4, "periods_per_year": 252},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "returns": (None, float("nan"), 0.03, -0.02, 0.015, 0.005, -0.01, 0.02),
+                "benchmark": (0.015, -0.008, 0.025, -0.015, 0.01, 0.004, -0.012, 0.018),
+            },
+            intro="A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make "
+            "the handling visible:",
+            params={"window": 4, "periods_per_year": 252},
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (0.02, None, 0.03, 0.01, 0.02), "benchmark": (0.1, 0.1, 0.1, 0.1, 0.1)},
+            intro="**Degenerate denominator** — a ``null`` in a window yields ``null`` under the "
+            "pairwise-complete gate before the constant-benchmark ``NaN`` branch, so the result stays "
+            "``null`` until the window clears and then reports ``NaN``:",
+            params={"window": 3, "periods_per_year": 252},
+        ),
+        Example(
+            inputs={"returns": (3.0, 3.0, 1.0, 1.0), "benchmark": (1.0, -1.0, 1.0, -1.0)},
+            intro="**Degenerate denominator** — a zero-beta window with a positive excess return gives "
+            "``+inf``, reported not clipped:",
+            params={"window": 4, "periods_per_year": 252},
+        ),
+    ),
 )

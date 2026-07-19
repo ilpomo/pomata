@@ -160,9 +160,9 @@ earns its place only if it answers **yes** to one of three questions; a check th
 guard but a line in the authoring canon, held by `ruff`, the type checkers, and review:
 
 1. **Truth** — does it couple the documentation to a fact the code already states, so the two cannot drift apart? (The
-   docstring's Args to the signature; the NaN vocabulary to the declared behavior; the edge-case bullets to the
-   classes the declaration activates; the README counts and catalogs to `__all__` and the source modules; the TA-Lib
-   split to `RelationTalib`; the cash-flow / returns-flow split to `SpaceCost`.)
+   generated docstring tail to its declaration; the NaN vocabulary to the declared behavior; the edge-case bullets to
+   the classes the declaration activates; the README counts and catalogs to `__all__` and the source modules; the
+   TA-Lib split to `RelationTalib`; the cash-flow / returns-flow split to `SpaceCost`.)
 2. **Distance** — does it measure mathematical correctness against an independent witness? (The oracle and golden
    agreement; the recomposition identities; the published precision figures.)
 3. **Invisible** — is it unreachable by the standard tooling? (`ruff`'s pydocstyle shell checks, the type checkers,
@@ -170,17 +170,30 @@ guard but a line in the authoring canon, held by `ruff`, the type checkers, and 
 
 The guards, by that test:
 
-- `test_docstrings.py` — the docstring truth-couplers: Args ⇔ signature; NaN vocabulary ⇔ declared behavior; Returns
-  opener ⇔ declared shape; shared parameter / Raises prose pinned; edge-case bullets ⇔ the classes the declaration
-  activates (`support/edge_classes.py`); each asserted degenerate outcome ⇔ a witnessing pin; each demanded scenario ⇔
-  an executed Examples block; warm-up sentence ⇔ declared warm-up; Raises section ⇔ declared counterexamples; TA-Lib
-  divergence header ⇔ declared relation; `ddof` header ⇔ signature; opener variant ⇔ the mirror-oracle disclosure;
-  scalar knobs keyword-only; a Note header renders as its own paragraph.
+- `test_docstrings.py` — the declaration-level docstring couplers. Because the round-trip guard makes each tail
+  byte-exact with its declaration, these no longer parse the assembled prose: they read the declaration's own data and
+  hold it to the signature, the axes, and the pins. Every parameter is described (else the generated Args would drop
+  it); the shared Args and Raises prose stay uniform across the package; the NaN vocabulary ⇔ declared behavior; the
+  Returns opener ⇔ declared shape and its warm-up formula ⇔ declared warm-up; the edge-case bullets ⇔ the classes the
+  declaration activates (`support/edge_classes.py`); each demanded scenario ⇔ an Examples record whose executed output
+  prints the asserted outcome; each asserted degenerate outcome ⇔ a witnessing pin; the two conditional Note headers
+  (`Documented TA-Lib divergence` ⇔ `RelationTalib`, `Degrees of freedom` ⇔ a `ddof` parameter) ⇔ the data they
+  explain; the Raises section names every counterexample; scalar knobs keyword-only. (The Args ⇔ signature ordering,
+  the Returns / TypeError forms, and each Note header rendering as its own paragraph are now guaranteed by the
+  generator.)
+- `test_docstring_roundtrip.py` — the docstring tail (`Args:` to the closing quotes) is byte-for-byte what its
+  declaration generates. `support/docstring.py` builds the tail from the declaration's prose fields and executed
+  Examples, and `regenerate_docstrings.py` splices it under the human-authored head (the summary and formula); the
+  guard reads each source tail and asserts it equals `tail_for(declaration)`, so a hand-edited docstring or a
+  declaration prose field changed without regenerating fails here. Repair by rewriting the tails from the
+  declarations: `uv run python tests/regenerate_docstrings.py --write` (the default `--check` compares without
+  touching `src/`).
 - `test_docs_surface.py` — the README and docs-site catalogs: each family's list and headline count ⇔ `__all__`; each
   indicators / metrics category ⇔ its source module; the pnl cash / returns split ⇔ `SpaceCost`; the reducer count and
   rolling-twin pairing; the TA-Lib split ⇔ `RelationTalib`; the kernel-modules note; the single-dependency claim.
 - `test_oracle_docstrings.py` — every reference states its missing-data contract, and the irreducibly-sequential
-  mirrors disclose that they confirm internal consistency, not independence.
+  mirrors disclose that they confirm internal consistency, not independence — the disclosing set held to be exactly
+  the structural-mirror set (a bijection, so an independent oracle can never claim the disclosure).
 - `test_precision_table.py` — the published precision figures in `docs/correctness.md` stay reproducible.
 - `test_versions.py` — the support claims (Polars floor, Python versions, OS list) in the README, the docs site, the
   contributing guide, and the CI matrix all match `pyproject.toml`.

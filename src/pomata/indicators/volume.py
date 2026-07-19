@@ -96,9 +96,9 @@ def accumulation_distribution(
         **Edge-case behavior**
 
         - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
-          ``null`` at that position while the recursion continues across the gap — on a genuine doji bar (``high ==
-          low``, both finite) the multiplier is ``0`` and ``close`` is irrelevant, so a ``null`` in ``close`` on such a
-          bar still yields ``0`` rather than ``null``.
+          ``null`` at that position while the recursion continues across the gap — on a genuine doji bar
+          (``high == low``, both finite) the multiplier is ``0`` and ``close`` is irrelevant, so a ``null`` in ``close``
+          on such a bar still yields ``0`` rather than ``null``.
         - **NaN** — a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null position
           — a bar whose ``high`` and ``low`` are both ``NaN`` does not take the doji branch (``NaN - NaN`` is ``NaN``,
           never ``== 0``), so the ``NaN`` poisons the line rather than contributing ``0``.
@@ -126,8 +126,8 @@ def accumulation_distribution(
         ...         "volume": [100.0, 200.0, 300.0, 400.0, 500.0],
         ...     }
         ... )
-        >>> expr = accumulation_distribution(pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume")).round(4)
-        >>> frame.select(accumulation_distribution=expr)["accumulation_distribution"].to_list()
+        >>> expr = accumulation_distribution(pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"))
+        >>> frame.select(accumulation_distribution=expr.round(4))["accumulation_distribution"].to_list()
         [0.0, 100.0, -200.0, 200.0, -50.0]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -141,14 +141,14 @@ def accumulation_distribution(
         ...         "volume": [100.0, 120.0, 90.0, 110.0, 100.0, 120.0, 90.0, 110.0],
         ...     }
         ... )
-        >>> expr = accumulation_distribution(
-        ...     pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume")
-        ... ).over("ticker").round(4)
-        >>> frame.with_columns(accumulation_distribution=expr)["accumulation_distribution"].to_list()
+        >>> expr = accumulation_distribution(pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"))
+        >>> frame.with_columns(accumulation_distribution=expr.over("ticker").round(4))[
+        ...     "accumulation_distribution"
+        ... ].to_list()
         [0.0, 60.0, 30.0, 85.0, 50.0, -30.0, 15.0, 15.0]
 
-        A ``null`` (skipped, the running total carrying across it) and a ``NaN`` (which propagates) make the
-        exact handling visible at a glance:
+        A ``null`` (skipped, the running total carrying across it) and a ``NaN`` (which propagates) make the exact
+        handling visible at a glance:
 
         >>> frame = pl.DataFrame(
         ...     {
@@ -158,8 +158,8 @@ def accumulation_distribution(
         ...         "volume": [100.0, 120.0, 90.0, 110.0, 130.0, 100.0, 95.0, 140.0],
         ...     }
         ... )
-        >>> expr = accumulation_distribution(pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume")).round(4)
-        >>> frame.select(accumulation_distribution=expr)["accumulation_distribution"].to_list()
+        >>> expr = accumulation_distribution(pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"))
+        >>> frame.select(accumulation_distribution=expr.round(4))["accumulation_distribution"].to_list()
         [50.0, 110.0, 110.0, 165.0, None, 165.0, nan, nan]
     """
     high = float64_expr(high)
@@ -251,8 +251,10 @@ def accumulation_distribution_oscillator(
         ... )
         >>> expr = accumulation_distribution_oscillator(
         ...     pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), window_fast=2, window_slow=3
-        ... ).round(4)
-        >>> frame.select(accumulation_distribution_oscillator=expr)["accumulation_distribution_oscillator"].to_list()
+        ... )
+        >>> frame.select(accumulation_distribution_oscillator=expr.round(4))[
+        ...     "accumulation_distribution_oscillator"
+        ... ].to_list()
         [None, None, 13.0, 8.6667, 11.0556]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -266,20 +268,16 @@ def accumulation_distribution_oscillator(
         ...         "volume": [100.0, 120.0, 90.0, 110.0, 100.0, 120.0, 90.0, 110.0],
         ...     }
         ... )
-        >>> expr = (
-        ...     accumulation_distribution_oscillator(
-        ...         pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), window_fast=2, window_slow=3
-        ...     )
-        ...     .over("ticker")
-        ...     .round(4)
+        >>> expr = accumulation_distribution_oscillator(
+        ...     pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), window_fast=2, window_slow=3
         ... )
-        >>> frame.with_columns(accumulation_distribution_oscillator=expr)[
+        >>> frame.with_columns(accumulation_distribution_oscillator=expr.over("ticker").round(4))[
         ...     "accumulation_distribution_oscillator"
         ... ].to_list()
         [None, None, 0.0, 9.1667, None, None, 1.6667, 1.1111]
 
-        A ``null`` (which voids the line and its EMAs) and a ``NaN`` (which propagates) make the exact handling
-        visible at a glance:
+        A ``null`` (which voids the line and its EMAs) and a ``NaN`` (which propagates) make the exact handling visible
+        at a glance:
 
         >>> frame = pl.DataFrame(
         ...     {
@@ -291,8 +289,10 @@ def accumulation_distribution_oscillator(
         ... )
         >>> expr = accumulation_distribution_oscillator(
         ...     pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), window_fast=2, window_slow=3
-        ... ).round(4)
-        >>> frame.select(accumulation_distribution_oscillator=expr)["accumulation_distribution_oscillator"].to_list()
+        ... )
+        >>> frame.select(accumulation_distribution_oscillator=expr.round(4))[
+        ...     "accumulation_distribution_oscillator"
+        ... ].to_list()
         [None, None, 10.0, 15.8333, None, 9.4048, nan, nan]
     """
     high = float64_expr(high)
@@ -362,13 +362,14 @@ def chaikin_money_flow(
         The zero-range convention applies only to a genuine equal-range bar (``high == low``), where the multiplier is
         ``0`` (it adds ``0`` to the numerator while its volume still counts in the denominator) — and on such a bar it
         wins outright: the multiplier is ``0`` regardless of the close, so a ``null`` or ``NaN`` close on a doji is
-        absorbed into the zero flow. On a bar with a genuine range, a ``null`` or ``NaN`` in any input leaves that
-        bar's money-flow volume ``null`` or ``NaN``, so missing data propagates rather than being silently zeroed.
+        absorbed into the zero flow. On a bar with a genuine range, a ``null`` or ``NaN`` in any input leaves that bar's
+        money-flow volume ``null`` or ``NaN``, so missing data propagates rather than being silently zeroed.
 
         **Clamp convention**
 
-        The result is clamped to its ``[-1, +1]`` bound: a malformed bar whose ``close`` prints outside its ``[low,
-        high]`` range (pushing the multiplier past ``±1``) is pinned to the bound rather than allowed to escape it.
+        The result is clamped to its ``[-1, +1]`` bound: a malformed bar whose ``close`` prints outside its
+        ``[low, high]`` range (pushing the multiplier past ``±1``) is pinned to the bound rather than allowed to escape
+        it.
 
         **Edge-case behavior**
 
@@ -402,10 +403,8 @@ def chaikin_money_flow(
         ...         "volume": [100.0, 200.0, 150.0, 300.0, 250.0],
         ...     }
         ... )
-        >>> expr = chaikin_money_flow(
-        ...     pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), window=3
-        ... ).round(4)
-        >>> frame.select(chaikin_money_flow=expr)["chaikin_money_flow"].to_list()
+        >>> expr = chaikin_money_flow(pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), window=3)
+        >>> frame.select(chaikin_money_flow=expr.round(4))["chaikin_money_flow"].to_list()
         [None, None, 0.1481, 0.2564, 0.2619]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -419,14 +418,12 @@ def chaikin_money_flow(
         ...         "volume": [100.0, 120.0, 90.0, 110.0, 100.0, 120.0, 90.0, 110.0],
         ...     }
         ... )
-        >>> expr = chaikin_money_flow(
-        ...     pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), 2
-        ... ).over("ticker").round(4)
-        >>> frame.with_columns(chaikin_money_flow=expr)["chaikin_money_flow"].to_list()
+        >>> expr = chaikin_money_flow(pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), window=2)
+        >>> frame.with_columns(chaikin_money_flow=expr.over("ticker").round(4))["chaikin_money_flow"].to_list()
         [None, 0.2727, 0.1429, 0.125, None, -0.1364, -0.1667, 0.225]
 
-        A ``null`` (skipped, and any window it touches yields ``null``) and a ``NaN`` (which propagates) make the
-        exact handling visible at a glance:
+        A ``null`` (skipped, and any window it touches yields ``null``) and a ``NaN`` (which propagates) make the exact
+        handling visible at a glance:
 
         >>> frame = pl.DataFrame(
         ...     {
@@ -436,12 +433,12 @@ def chaikin_money_flow(
         ...         "volume": [100.0, 120.0, 90.0, 110.0, 130.0, 100.0, 95.0, 140.0],
         ...     }
         ... )
-        >>> expr = chaikin_money_flow(pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), 2).round(4)
-        >>> frame.select(chaikin_money_flow=expr)["chaikin_money_flow"].to_list()
+        >>> expr = chaikin_money_flow(pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), window=2)
+        >>> frame.select(chaikin_money_flow=expr.round(4))["chaikin_money_flow"].to_list()
         [None, 0.5, 0.2857, 0.275, None, None, nan, nan]
 
-        **Degenerate denominator** — a window whose total volume is zero is the genuine ``0/0``, so the flow
-        reads ``NaN``:
+        **Degenerate denominator** — a window whose total volume is zero is the genuine ``0/0``, so the flow reads
+        ``NaN``:
 
         >>> frame = pl.DataFrame(
         ...     {
@@ -455,9 +452,9 @@ def chaikin_money_flow(
         >>> frame.select(chaikin_money_flow=expr)["chaikin_money_flow"].to_list()
         [None, nan, nan]
 
-        **Degenerate denominator** — once a large volume has slid out of the window, the rolling-sum denominator
-        can carry a sub-ULP residual, yet the exact all-zero-volume detection still resolves the final window to
-        ``NaN`` rather than a spurious finite ratio:
+        **Degenerate denominator** — once a large volume has slid out of the window, the rolling-sum denominator can
+        carry a sub-ULP residual, yet the exact all-zero-volume detection still resolves the final window to ``NaN``
+        rather than a spurious finite ratio:
 
         >>> frame = pl.DataFrame(
         ...     {
@@ -592,8 +589,8 @@ def money_flow_index(
         ...         "volume": [100.0, 150.0, 120.0, 130.0, 110.0, 160.0, 140.0, 170.0],
         ...     }
         ... )
-        >>> expr = money_flow_index(pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), window=3).round(4)
-        >>> frame.select(money_flow_index=expr)["money_flow_index"].to_list()
+        >>> expr = money_flow_index(pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), window=3)
+        >>> frame.select(money_flow_index=expr.round(4))["money_flow_index"].to_list()
         [None, None, None, 68.4466, 67.0051, 72.3404, 66.9291, 72.6384]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -607,16 +604,12 @@ def money_flow_index(
         ...         "volume": [100.0, 120.0, 90.0, 110.0, 100.0, 120.0, 90.0, 110.0],
         ...     }
         ... )
-        >>> expr = (
-        ...     money_flow_index(pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), 2)
-        ...     .over("ticker")
-        ...     .round(4)
-        ... )
-        >>> frame.with_columns(money_flow_index=expr)["money_flow_index"].to_list()
+        >>> expr = money_flow_index(pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), window=2)
+        >>> frame.with_columns(money_flow_index=expr.over("ticker").round(4))["money_flow_index"].to_list()
         [None, None, 58.1673, 57.972, None, None, 100.0, 100.0]
 
-        A ``null`` (skipped, and any window it touches yields ``null``) and a ``NaN`` (which propagates) make the
-        exact handling visible at a glance:
+        A ``null`` (skipped, and any window it touches yields ``null``) and a ``NaN`` (which propagates) make the exact
+        handling visible at a glance:
 
         >>> frame = pl.DataFrame(
         ...     {
@@ -626,12 +619,12 @@ def money_flow_index(
         ...         "volume": [100.0, 120.0, 90.0, 110.0, 130.0, 100.0, 95.0, 140.0],
         ...     }
         ... )
-        >>> expr = money_flow_index(pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), 2).round(4)
-        >>> frame.select(money_flow_index=expr)["money_flow_index"].to_list()
+        >>> expr = money_flow_index(pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"), window=2)
+        >>> frame.select(money_flow_index=expr.round(4))["money_flow_index"].to_list()
         [None, None, 100.0, 100.0, None, None, None, nan]
 
-        **Degenerate denominator** — a window whose typical price never moves leaves both money flows at zero, so
-        the ratio is the genuine ``0/0``, i.e. ``NaN``:
+        **Degenerate denominator** — a window whose typical price never moves leaves both money flows at zero, so the
+        ratio is the genuine ``0/0``, i.e. ``NaN``:
 
         >>> frame = pl.DataFrame(
         ...     {
@@ -645,8 +638,8 @@ def money_flow_index(
         >>> frame.select(money_flow_index=expr)["money_flow_index"].to_list()
         [None, None, None, nan, nan]
 
-        **window == 1** — each bar's own change alone decides the reading: a fully up bar prints ``100``, a fully
-        down bar prints ``0``:
+        **window == 1** — each bar's own change alone decides the reading: a fully up bar prints ``100``, a fully down
+        bar prints ``0``:
 
         >>> frame = pl.DataFrame(
         ...     {
@@ -771,8 +764,8 @@ def obv(
         **Documented TA-Lib divergence**
 
         TA-Lib seeds the running total with the first bar's ``volume``; pomata seeds ``OBV[0] = 0``, the first bar
-        having no predecessor to give it a direction, so the two lines sit a constant ``volume[0]`` apart at every
-        bar and the differential tier holds OBV out as a documented divergence.
+        having no predecessor to give it a direction, so the two lines sit a constant ``volume[0]`` apart at every bar
+        and the differential tier holds OBV out as a documented divergence.
 
         **Edge-case behavior**
 
@@ -818,12 +811,11 @@ def obv(
         ...         "volume": [100.0, 120.0, 90.0, 110.0, 100.0, 120.0, 90.0, 110.0],
         ...     }
         ... )
-        >>> expr = obv(pl.col("close"), pl.col("volume")).over("ticker").round(4)
-        >>> frame.with_columns(obv=expr)["obv"].to_list()
+        >>> frame.with_columns(obv=obv(pl.col("close"), pl.col("volume")).over("ticker").round(4))["obv"].to_list()
         [0.0, 120.0, 30.0, 140.0, 0.0, 0.0, 90.0, 200.0]
 
-        A ``null`` (skipped, the running total carrying across it) and a ``NaN`` (which propagates) make the
-        exact handling visible at a glance:
+        A ``null`` (skipped, the running total carrying across it) and a ``NaN`` (which propagates) make the exact
+        handling visible at a glance:
 
         >>> frame = pl.DataFrame(
         ...     {
@@ -831,8 +823,7 @@ def obv(
         ...         "volume": [100.0, 120.0, 90.0, 110.0, 130.0, 100.0, 95.0, 140.0, 105.0, 115.0],
         ...     }
         ... )
-        >>> expr = obv(pl.col("close"), pl.col("volume")).round(4)
-        >>> frame.select(obv=expr)["obv"].to_list()
+        >>> frame.select(obv=obv(pl.col("close"), pl.col("volume")).round(4))["obv"].to_list()
         [0.0, 120.0, 210.0, 320.0, 320.0, 320.0, nan, nan, nan, nan]
     """
     expr = float64_expr(expr)
@@ -940,15 +931,15 @@ def vwap(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "session": ["a", "a", "b", "b"],
+        ...         "session": ["a"] * 2 + ["b"] * 2,
         ...         "high": [2.0, 4.0, 12.0, 14.0],
         ...         "low": [0.0, 2.0, 10.0, 12.0],
         ...         "close": [1.0, 3.0, 11.0, 13.0],
         ...         "volume": [10.0, 20.0, 10.0, 20.0],
         ...     }
         ... )
-        >>> expr = vwap(pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume")).over("session")
-        >>> frame.select(vwap=expr.round(4))["vwap"].to_list()
+        >>> expr = vwap(pl.col("high"), pl.col("low"), pl.col("close"), pl.col("volume"))
+        >>> frame.with_columns(vwap=expr.over("session").round(4))["vwap"].to_list()
         [1.0, 2.3333, 11.0, 12.3333]
 
         A ``null`` (yields ``null`` at that row) and a ``NaN`` (which latches in the running totals) make it visible:

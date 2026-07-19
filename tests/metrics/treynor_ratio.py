@@ -12,7 +12,7 @@ from pomata.metrics import beta, treynor_ratio
 from tests.metrics.enums import Annualization, BehaviorNan, BehaviorNull, Degenerate
 from tests.metrics.harness import suite_metrics
 from tests.metrics.oracles import reference_treynor_ratio
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 
 # Spec-local beta floor. Measured: impl and oracle agree at 1e-13..1e-16 relative deviation everywhere down to
 # |beta| = 1e-5, and real disagreement starts only at |beta| ~3e-8..1e-7, so a floor of 1e-5 keeps a ~2-3 order
@@ -128,6 +128,97 @@ TREYNOR_RATIO = suite_metrics(
             inputs={"returns": (0.01, -0.02, 0.03), "benchmark": (0.123456789, 0.123456789, 0.123456789)},
             expected=(math.nan,),
             reason="the same guard at a third magnitude, firing regardless of the constant",
+        ),
+    ),
+    reference='Treynor, J. L. (1965). "How to Rate Management of Investment Funds." *Harvard Business '
+    "Review*, 43(1), 63-75.",
+    wikipedia="https://en.wikipedia.org/wiki/Treynor_ratio",
+    see_also=(
+        ("beta", "The denominator (systematic risk)."),
+        ("sharpe_ratio", "The total-risk analog."),
+        ("alpha", "The benchmark-relative excess built on the same beta."),
+        ("treynor_ratio_rolling", "The rolling (windowed) form."),
+    ),
+    bullets=(
+        ("Null", "an observation is used only where both legs are present; a ``null`` in either drops that pair."),
+        ("NaN", "a ``NaN`` in either leg of a retained pair propagates, yielding ``NaN``."),
+        (
+            "Insufficient sample",
+            "fewer than two complete pairs leaves the regression slope undefined, so the result is ``null``.",
+        ),
+        (
+            "Degenerate denominator",
+            "a zero beta gives ``+/-inf`` (or ``NaN`` when the excess return is also zero) — "
+            "reported, not clipped; a zero-variance benchmark instead makes :func:`beta` ``NaN``, "
+            "which propagates here.",
+        ),
+        (
+            "Stability",
+            "a beta bounded away from zero is the one regime the excess-over-beta quotient genuinely "
+            "needs: as the slope vanishes the division amplifies rounding without bound, so a "
+            "near-zero beta sits at the float-conditioning limit the documentation's *Correctness* "
+            "page documents. The exact zero-beta case is guarded (``+/-inf``); real market betas are "
+            "far from the regime.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A single ``Float64`` value: the annualized Treynor ratio (one value in ``select``, one "
+    "per group under ``.over``). ``null`` when fewer than two complete pairs are present.",
+    raises_prose="ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite or is ``< -1``.",
+    args_prose={
+        "risk_free_rate": "The annualized risk-free rate, converted to a per-period rate geometrically (default "
+        "``0.0``). Must be finite and ``>= -1`` (the geometric per-period conversion needs ``1 + "
+        "risk_free_rate >= 0``).",
+    },
+    examples=(
+        Example(
+            inputs={
+                "returns": (0.02, -0.01, 0.03, -0.02, 0.015, 0.005),
+                "benchmark": (0.015, -0.008, 0.025, -0.015, 0.01, 0.004),
+            },
+            params={"periods_per_year": 252},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "returns": (0.02, -0.01, 0.03, -0.02, 0.015, 0.005, 0.01, 0.025, -0.015, 0.008, -0.005, 0.012),
+                "benchmark": (0.015, -0.008, 0.025, -0.015, 0.01, 0.004, 0.012, 0.02, -0.01, 0.006, -0.004, 0.01),
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+            partition=("A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B"),
+            params={"periods_per_year": 252},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "returns": (None, 0.02, 0.03, float("nan"), 0.015, 0.005),
+                "benchmark": (0.015, -0.008, 0.025, -0.015, 0.01, 0.004),
+            },
+            intro="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+            "handling visible:",
+            params={"periods_per_year": 252},
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (0.05,), "benchmark": (0.04,)},
+            intro="**Insufficient sample** — a single complete pair yields ``null``, since the regression "
+            "slope needs two observations:",
+            params={"periods_per_year": 252},
+        ),
+        Example(
+            inputs={"returns": (3.0, 3.0, 1.0, 1.0), "benchmark": (1.0, -1.0, 1.0, -1.0)},
+            intro="**Degenerate denominator** — a zero beta with a positive excess return gives ``+inf``, "
+            "reported not clipped:",
+            params={"periods_per_year": 252},
+        ),
+        Example(
+            inputs={"returns": (0.01, -0.02, 0.03), "benchmark": (0.1, 0.1, 0.1)},
+            intro="**Degenerate denominator** — a constant benchmark makes the embedded beta ``NaN``, so "
+            "the excess-over-beta ratio is ``NaN``:",
+            params={"periods_per_year": 252},
         ),
     ),
 )

@@ -8,7 +8,7 @@ from pomata.indicators import chande_momentum_oscillator
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_chande_momentum_oscillator
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 from tests.support.strategies import windows_well_spread
 
 
@@ -131,6 +131,87 @@ CHANDE_MOMENTUM_OSCILLATOR = suite_indicators(
             params_override={"window": 1},
             expected=(None, 100.0, -100.0, 100.0),
             reason="window=1 collapses the rolling gain/loss sums to the raw move direction: +100 up, -100 down",
+        ),
+    ),
+    reference="Chande, T. S. & Kroll, S. (1994). *The New Technical Trader*. Wiley.",
+    see_also=(
+        ("rsi", "The Wilder-smoothed sibling, bounded in ``[0, 100]``."),
+        ("roc", "A simpler single-horizon momentum measure."),
+        ("mom", "The absolute-difference momentum sibling."),
+    ),
+    notes=(
+        (
+            "Documented TA-Lib divergence",
+            "TA-Lib Wilder-smooths the gains and losses, so its CMO equals ``2 * RSI - 100``; pomata "
+            "sums them over a fixed window, Chande's original 1994 construction, so the two never "
+            "agree even at steady state and the differential tier holds the CMO out as a documented "
+            "divergence.",
+        ),
+    ),
+    note_extension="For this oscillator the limit is concrete: the windowed gain / loss sums ride Polars' "
+    "incremental sliding kernel, so a window whose scale sits tens of orders of magnitude "
+    "below a value that has already slid out can inherit a stale residue; the clamp keeps the "
+    "output inside ``[-100, 100]``, and no real market series builds that spread.",
+    bullets=(
+        ("Null", "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values)."),
+        ("NaN", "a ``NaN`` inside the window propagates, yielding ``NaN`` there."),
+        (
+            "Degenerate denominator",
+            "an exactly-flat window has every change zero, detected via the residual-free rolling "
+            "maximum of ``|change|``, so the result is a ``0 / 0``, i.e. ``NaN``.",
+        ),
+        (
+            "Stability",
+            "a near-flat window (tiny changes after a much larger one has slid out of the streaming "
+            "sums) is not silenced: its quotient is clipped to ``[-100, +100]``, so it stays in range "
+            "but, past a sane dynamic range, degrades in precision (see the precision note above).",
+        ),
+        (
+            "window == 1",
+            "the rolling sums collapse to the single change, so each row reports ``+100`` on an up "
+            "move, ``-100`` on a down move, and ``NaN`` on no move.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The oscillator (in percent) for each row, the same length as the input. The first "
+    "``window`` rows are ``null`` (warm-up): row ``0`` has no change, and the rolling sums "
+    "need ``window`` non-null changes before emitting.",
+    raises_prose="ValueError: If ``window < 1``.",
+    args_prose={
+        "window": "Number of one-step changes summed in the window. Must be ``>= 1``.",
+    },
+    intro_basic="Basic usage on a single price series:",
+    example_columns={"price": "close"},
+    examples=(
+        Example(inputs={"price": (10.0, 11.0, 12.0, 11.0, 13.0, 14.0, 13.0, 15.0)}, params={"window": 3}, round_to=4),
+        Example(
+            inputs={"price": (10.0, 11.0, 12.0, 11.0, 13.0, 20.0, 19.0, 21.0, 22.0, 20.0)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "A", "A", "B", "B", "B", "B", "B"),
+            params={"window": 3},
+            round_to=4,
+        ),
+        Example(
+            inputs={"price": (10.0, 11.0, 12.0, None, 14.0, float("nan"), 16.0, 17.0)},
+            intro="A ``null`` (any window it touches yields ``null``) and a ``NaN`` (which propagates) make "
+            "the handling visible:",
+            params={"window": 3},
+            round_to=4,
+        ),
+        Example(
+            inputs={"price": (10.0, 10.0, 10.0, 10.0, 10.0)},
+            intro="**Degenerate denominator** — an all-flat window has every change exactly zero, the "
+            "``0/0`` degenerate, so the result is ``NaN``:",
+            params={"window": 3},
+        ),
+        Example(
+            inputs={"price": (1.0, 3.0, 2.0, 5.0)},
+            intro="**window == 1** — a one-bar window collapses the rolling gain/loss sums to the raw move "
+            "direction, so each row reports ``+100`` on an up move and ``-100`` on a down move:",
+            params={"window": 1},
         ),
     ),
 )

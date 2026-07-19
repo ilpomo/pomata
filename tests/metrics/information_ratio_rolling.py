@@ -9,7 +9,7 @@ from tests.metrics.enums import BehaviorNan, BehaviorNull
 from tests.metrics.harness import suite_metrics
 from tests.metrics.information_ratio import INFORMATION_RATIO
 from tests.metrics.oracles import reference_information_ratio_rolling
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 from tests.support.strategies import windows_well_conditioned
 from tests.support.tolerances import TOLERANCE_RELATIVE_ROLLING_ORACLE
 
@@ -105,4 +105,88 @@ INFORMATION_RATIO_ROLLING = suite_metrics(
         ),
     ),
     oracle_rel_tol=TOLERANCE_RELATIVE_ROLLING_ORACLE,
+    reference='Goodwin, T. H. (1998). "The Information Ratio." *Financial Analysts Journal*, 54(4), 34-43.',
+    doi="https://doi.org/10.2469/faj.v54.n4.2196",
+    wikipedia="https://en.wikipedia.org/wiki/Information_ratio",
+    see_also=(
+        ("information_ratio", "The whole-series reducing form."),
+        ("sharpe_ratio_rolling", "The rolling total-risk analog measured against a risk-free rate."),
+        ("alpha_rolling", "The rolling benchmark-active return measured per unit of beta."),
+    ),
+    bullets=(
+        ("Null", "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values)."),
+        ("NaN", "a ``NaN`` inside the window propagates, yielding ``NaN`` there."),
+        (
+            "Degenerate denominator",
+            "a constant active window has zero tracking error, so the result is ``+/-inf`` (or "
+            "``NaN`` when the mean active is also zero) — reported, not clipped.",
+        ),
+        (
+            "Stability",
+            "a near-flat (non-bit-identical) active-return window sits at the float-conditioning "
+            "limit the documentation's *Correctness* page documents: the one-pass rolling tracking "
+            "error and an exact two-pass recomputation can round a vanishing denominator apart "
+            "without bound there. The bit-flat window is pinned exactly (a zero tracking error, the "
+            "documented ``+/-inf`` / ``NaN``); real market windows are far from the regime.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The rolling information ratio for each row, the same length as the input. The first "
+    "``window - 1`` rows are ``null`` (warm-up): the window must hold ``window`` complete "
+    "pairs before a result is emitted.",
+    raises_prose="ValueError: If ``window < 2``, or if ``periods_per_year < 1``.",
+    args_prose={
+        "window": "Number of observations in the moving window. Must be ``>= 2``.",
+    },
+    examples=(
+        Example(
+            inputs={
+                "returns": (0.02, -0.01, 0.03, -0.02, 0.015, 0.005, -0.01, 0.02),
+                "benchmark": (0.015, -0.008, 0.025, -0.015, 0.01, 0.004, -0.012, 0.018),
+            },
+            params={"window": 4, "periods_per_year": 252},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "returns": (0.02, -0.01, 0.03, -0.02, 0.015, 0.005, 0.01, 0.025, -0.015, 0.008, -0.005, 0.012),
+                "benchmark": (0.015, -0.008, 0.025, -0.015, 0.01, 0.004, 0.012, 0.02, -0.01, 0.006, -0.004, 0.01),
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B"),
+            params={"window": 4, "periods_per_year": 252},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "returns": (None, float("nan"), 0.03, -0.02, 0.015, 0.005, -0.01, 0.02),
+                "benchmark": (0.015, -0.008, 0.025, -0.015, 0.01, 0.004, -0.012, 0.018),
+            },
+            intro="A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make "
+            "the handling visible:",
+            params={"window": 4, "periods_per_year": 252},
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (1000000.0, 0.1, 0.1, 0.1, 0.1), "benchmark": (0.0, 0.0, 0.0, 0.0, 0.0)},
+            intro="**Degenerate denominator** — once the outlier slides out of the window, the window is "
+            "bit-constant with zero tracking error, so the ratio is ``+inf``:",
+            params={"window": 3, "periods_per_year": 252},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "returns": (-0.3233, -0.6457, 0.0, 0.4404, 0.0, 0.0, 0.0, 0.0),
+                "benchmark": (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+            },
+            intro="**Degenerate denominator** — a window whose active returns are all exactly zero is the "
+            "``0 / 0`` case, so the result is ``NaN`` even once larger active values have slid out of "
+            "the window:",
+            params={"window": 4, "periods_per_year": 252},
+            round_to=4,
+        ),
+    ),
 )

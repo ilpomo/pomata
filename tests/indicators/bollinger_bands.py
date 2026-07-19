@@ -8,7 +8,7 @@ from pomata.indicators import bollinger_bands
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_bollinger_bands
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 from tests.support.tolerances import TOLERANCE_ABSOLUTE_ROLLING_ORACLE, TOLERANCE_RELATIVE_ROLLING_ORACLE
 
 BOLLINGER_BANDS = suite_indicators(
@@ -68,6 +68,97 @@ BOLLINGER_BANDS = suite_indicators(
             reason="a constant window has exactly zero (pinned) deviation, so all three bands collapse onto the middle "
             "even after a much larger value has left the window, where the rolling kernel would otherwise leave a "
             "residue",
+        ),
+    ),
+    reference="Bollinger, J. (2001). *Bollinger on Bollinger Bands*. McGraw-Hill.",
+    wikipedia="https://en.wikipedia.org/wiki/Bollinger_Bands",
+    see_also=(
+        ("sma", "The center band."),
+        ("standard_deviation_rolling", "The band half-width, before scaling by ``multiplier``."),
+        ("keltner_channels", "The same band shape with ATR width instead of a standard deviation."),
+    ),
+    notes=(
+        (
+            "Composition",
+            "The bands are built from :func:`sma` (center) and the population "
+            ":func:`standard_deviation_rolling` (width), so they inherit the warm-up and missing-data "
+            "behavior of both — identically on every field of the struct.",
+        ),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null "
+            "values) — on all three fields.",
+        ),
+        ("NaN", "a ``NaN`` inside the window propagates, yielding ``NaN`` there — on all three fields."),
+        (
+            "Degenerate denominator",
+            "a window of equal values has zero standard deviation (see "
+            ":func:`standard_deviation_rolling`), so all three bands collapse onto the constant — "
+            "even at ``window == 1``, or just after a much larger value has left the window.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A struct ``pl.Expr`` with three ``Float64`` fields, the same length as ``expr``:"
+    "\n\n"
+    "- ``lower`` — the lower band, ``middle - multiplier * sigma``. - ``middle`` — the center "
+    "band, the :func:`sma` of ``expr``. - ``upper`` — the upper band, ``middle + multiplier * "
+    "sigma``."
+    "\n\n"
+    'Read one band with ``.struct.field("middle")`` (etc.) or split all three into columns '
+    "with ``.struct.unnest()``. For the first ``window - 1`` rows (warm-up) every field of "
+    "the struct is ``null`` (the struct row itself stays a valid struct).",
+    raises_prose="ValueError: If ``window < 1``, or if ``multiplier`` is not a finite number ``> 0`` (i.e. "
+    "``<= 0``, ``NaN``, or ``±inf``).",
+    args_prose={
+        "window": "Number of observations in the moving window. Must be ``>= 1``.",
+        "multiplier": "Number of standard deviations between the center band and each outer band (default "
+        "``2.0``). Must be a finite number ``> 0`` (a non-positive width would collapse or invert "
+        "the bands). The bands are symmetric; for asymmetric bands compose :func:`sma` and "
+        ":func:`standard_deviation_rolling` directly.",
+    },
+    example_columns={"price": "close"},
+    examples=(
+        Example(
+            inputs={"price": (10.0, 11.0, 12.0, 11.0, 13.0)},
+            params={"window": 3},
+            round_to=4,
+            fields=("lower", "middle", "upper"),
+        ),
+        Example(
+            intro="Split the struct into three columns with ``.struct.unnest()``:",
+            verbatim=(
+                '>>> frame.select(bollinger_bands=expr).unnest("bollinger_bands").columns',
+                "['lower', 'middle', 'upper']",
+            ),
+        ),
+        Example(
+            inputs={"price": (10.0, 11.0, 12.0, 20.0, 22.0, 21.0)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "B", "B", "B"),
+            params={"window": 2},
+            round_to=4,
+            fields=("middle",),
+        ),
+        Example(
+            inputs={"price": (10.0, None, 12.0, float("nan"), 14.0, 15.0)},
+            intro="A ``null`` and a ``NaN`` propagate to every band; the middle band makes the handling visible:",
+            params={"window": 2},
+            round_to=4,
+            fields=("middle",),
+        ),
+        Example(
+            inputs={"price": (1000000.0, 0.1, 0.1, 0.1, 0.1)},
+            intro="**Degenerate denominator** — a constant window has zero deviation, so all three bands "
+            "collapse onto the middle even after a much larger value has left the window, where the "
+            "rolling kernel would otherwise leave a residue:",
+            params={"window": 3},
+            round_to=4,
+            fields=("lower",),
         ),
     ),
 )

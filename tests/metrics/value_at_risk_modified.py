@@ -10,7 +10,7 @@ from pomata.metrics import value_at_risk_modified
 from tests.metrics.enums import Annualization, BehaviorNan, BehaviorNull, Degenerate
 from tests.metrics.harness import suite_metrics
 from tests.metrics.oracles import reference_value_at_risk_modified
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 from tests.support.strategies import well_spread
 
 
@@ -280,6 +280,130 @@ VALUE_AT_RISK_MODIFIED = suite_metrics(
             },
             expected=(math.nan,),
             reason="the same median-crossing domain violation on a long series ",
+        ),
+    ),
+    reference='Favre, L. & Galeano, J.-A. (2002). "Mean-Modified Value-at-Risk Optimization with Hedge '
+    'Funds." *Journal of Alternative Investments*, 5(2), 21-25.',
+    doi="https://doi.org/10.3905/jai.2002.319052",
+    wikipedia="https://en.wikipedia.org/wiki/Cornish%E2%80%93Fisher_expansion",
+    see_also=(
+        ("value_at_risk_parametric", "The Gaussian form this corrects."),
+        ("value_at_risk", "The historical (empirical) form."),
+        ("conditional_value_at_risk", "The expected shortfall beyond the VaR threshold."),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a ``null`` return is skipped (excluded from every moment); an all-null (or empty) series yields ``null``.",
+        ),
+        ("NaN", "a ``NaN`` return propagates, yielding ``NaN``."),
+        (
+            "Domain",
+            "the one-term Cornish-Fisher expansion is order-preserving only where its quantile map is "
+            "locally monotonic at the requested quantile and the corrected quantile stays on the "
+            "Gaussian one's side of the median; tail moments outside that region make the corrected "
+            "number meaningless (it can even flip sign, reporting a crash-bearing series as a gain), "
+            "so the result is a loud ``NaN`` — never a plausible wrong number.",
+        ),
+        (
+            "Insufficient sample",
+            "fewer than two returns leave the sample standard deviation undefined, so the result is ``null``.",
+        ),
+        (
+            "Degenerate denominator",
+            "a constant series has undefined skewness and kurtosis, so the result is a ``0 / 0``, i.e. ``NaN``.",
+        ),
+        (
+            "Stability",
+            "on a near-constant series the skewness and kurtosis the Cornish-Fisher term consumes are "
+            "a rounding-dominated ``0 / 0``; that near-constant band is excluded from the property "
+            "tiers, and the value is reported as computed.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A single ``Float64`` value: the modified value-at-risk (one value in ``select``, one per "
+    "group under ``.over``). ``null`` when fewer than two returns are present (the sample "
+    "standard deviation is undefined).",
+    raises_prose="ValueError: If ``confidence`` is not in the open interval ``(0, 1)``.",
+    args_prose={
+        "confidence": "The tail confidence level (canonically ``0.95``); the quantile taken is ``1 - "
+        "confidence``. Must be in the open interval ``(0, 1)``.",
+    },
+    examples=(
+        Example(inputs={"returns": (0.02, -0.04, 0.01, -0.06, 0.03, -0.05, 0.04, -0.02, 0.01, -0.03)}, round_to=4),
+        Example(
+            inputs={
+                "returns": (
+                    0.02,
+                    -0.04,
+                    0.01,
+                    -0.06,
+                    0.03,
+                    -0.05,
+                    0.04,
+                    -0.02,
+                    0.01,
+                    -0.03,
+                    0.03,
+                    -0.03,
+                    0.02,
+                    -0.05,
+                    0.04,
+                    -0.04,
+                    0.03,
+                    -0.01,
+                    0.02,
+                    -0.02,
+                )
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+            partition=(
+                "A",
+                "A",
+                "A",
+                "A",
+                "A",
+                "A",
+                "A",
+                "A",
+                "A",
+                "A",
+                "B",
+                "B",
+                "B",
+                "B",
+                "B",
+                "B",
+                "B",
+                "B",
+                "B",
+                "B",
+            ),
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (0.02, None, -0.04, 0.01, float("nan"), -0.06, 0.03, -0.05, 0.04, -0.02)},
+            intro="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+            "handling visible:",
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (1.0, -1.0, -1.0, -1.0)},
+            intro="**Domain** — the one-term Cornish-Fisher quantile map is not locally monotonic, so the "
+            "estimate is ``NaN``:",
+        ),
+        Example(
+            inputs={"returns": (0.05,)},
+            intro="**Insufficient sample** — a one-element series yields ``null``, since the sample "
+            "standard deviation needs at least two observations:",
+        ),
+        Example(
+            inputs={"returns": (0.01, 0.01, 0.01, 0.01)},
+            intro="**Degenerate denominator** — a constant series has undefined skewness and kurtosis, so "
+            "the result is ``NaN``:",
         ),
     ),
 )

@@ -6,7 +6,7 @@ from pomata.indicators import midpoint
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_midpoint
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 MIDPOINT = suite_indicators(
     factory=midpoint,
@@ -31,6 +31,52 @@ MIDPOINT = suite_indicators(
             expected=(1.0, 2.0, 3.0),
             reason="window=1 makes the max and min the value itself, so the midpoint reproduces the input with no "
             "warm-up",
+        ),
+    ),
+    reference="No canonical external source; the indicator is defined by the formula above.",
+    see_also=(
+        ("midprice", "The same midpoint taken across a bar's high and low instead of one series."),
+        ("sma", "The moving mean of the window, which uses every value rather than only the extremes."),
+        ("donchian_channels", "The high-low band system built from the same rolling extremes."),
+    ),
+    bullets=(
+        ("Null", "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values)."),
+        ("NaN", "a ``NaN`` inside the window propagates, yielding ``NaN`` there."),
+        ("window == 1", "the max and min are the single value, so the midpoint reproduces the input."),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The window midpoint for each row, the same length as the input. The first ``window - 1`` "
+    "values are ``null`` (warm-up): the window must hold ``window`` non-null values before a "
+    "result is emitted.",
+    raises_prose="ValueError: If ``window < 1``.",
+    args_prose={
+        "window": "Number of observations in the moving window. Must be ``>= 1``.",
+    },
+    example_columns={"expr": "x"},
+    examples=(
+        Example(inputs={"expr": (1.0, 2.0, 3.0, 4.0, 5.0, 6.0)}, params={"window": 3}, round_to=4),
+        Example(
+            inputs={"expr": (1.0, 2.0, 3.0, 10.0, 20.0, 30.0)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "B", "B", "B"),
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={"expr": (1.0, None, 3.0, float("nan"), 5.0, 6.0)},
+            intro="A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make "
+            "the handling visible:",
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={"expr": (1.0, 2.0, 3.0)},
+            intro="**window == 1** — a single-observation window makes the max and min the value itself, so "
+            "the midpoint reproduces the input with no warm-up:",
+            params={"window": 1},
         ),
     ),
 )

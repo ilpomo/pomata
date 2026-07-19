@@ -7,8 +7,9 @@ so its agreement confirms internal consistency, not independence; the reference 
 Every other reference is an independent re-derivation and states its ``null`` (and ``NaN``) contract instead.
 
 The word-boundary markers below are matched on the lowered docstring, so an incidental substring (``nan`` inside
-``dominant``) can never satisfy a contract leg. :data:`STRUCTURAL_MIRRORS` and :func:`discloses_mirror` are the shared
-source ``tests.test_docstrings`` reads for the opener-variant coupling.
+``dominant``) can never satisfy a contract leg. The disclosing references are held to be exactly
+:data:`STRUCTURAL_MIRRORS` — a bijection, so an independent oracle can never claim the mirror disclosure and no mirror
+can drop it.
 """
 
 import inspect
@@ -81,6 +82,17 @@ def discloses_mirror(declaration: Declaration) -> bool:
 def test_mirror_oracles_disclose_their_nature(declaration: Declaration) -> None:
     """Verifies each irreducibly-sequential reference states it confirms consistency, not independence."""
     assert discloses_mirror(declaration), f"{declaration.name}: no structural-mirror disclosure"
+
+
+def test_mirror_disclosure_is_exactly_the_structural_set() -> None:
+    """The references that disclose a structural-mirror nature are exactly :data:`STRUCTURAL_MIRRORS`: only a reference
+    genuinely without an independent oracle discloses it, and every such reference does — the bijection that keeps an
+    independent oracle from claiming the mirror disclosure.
+    """
+    disclosing = {declaration.name for declaration in _DECLARATIONS if discloses_mirror(declaration)}
+    assert disclosing == set(STRUCTURAL_MIRRORS), (
+        f"disclosing {sorted(disclosing)} != structural-mirror set {sorted(STRUCTURAL_MIRRORS)}"
+    )
 
 
 @pytest.mark.parametrize(

@@ -6,7 +6,7 @@ from pomata.indicators import vwma
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_vwma
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 VWMA = suite_indicators(
     factory=vwma,
@@ -121,6 +121,88 @@ VWMA = suite_indicators(
             reason="an all-zero-volume window following non-zero bars yields the exact NaN degenerate via the "
             "rolling-max(|volume|)==0 detector, not the +/-inf a rolling-sum residual would leak "
             "",
+        ),
+    ),
+    wikipedia="https://en.wikipedia.org/wiki/Moving_average",
+    see_also=(
+        ("sma", "The equal-weight mean it reduces to when volume is constant."),
+        ("vwap", "The cumulative volume-weighted price, the session-anchored cousin."),
+        ("wma", "The linearly-weighted mean."),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null "
+            "values) — whether the ``null`` is in ``expr`` or in ``volume``.",
+        ),
+        (
+            "NaN",
+            "a ``NaN`` inside the window propagates, yielding ``NaN`` there (``null`` takes precedence over ``NaN``).",
+        ),
+        ("Insufficient sample", "a series shorter than ``window`` observations, so the result is ``null``."),
+        (
+            "Degenerate denominator",
+            "every volume in the window is zero, so the result is a ``0 / 0``, i.e. ``NaN`` — the "
+            "window is detected exactly (via the rolling maximum of ``|volume|``), so a sub-ULP "
+            "rolling-sum residual cannot leak a spurious ``+/-inf`` instead.",
+        ),
+        (
+            "window == 1",
+            "with non-zero volume the single ``(price, volume)`` pair reduces to ``expr`` itself, so "
+            "the VWMA reproduces the price to within a rounding ULP (``(p * v) / v`` is one float "
+            "multiply-divide, not an identity copy — its siblings' bit-exact ``window == 1`` identity "
+            "does not apply here).",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The VWMA for each row, the same length as ``expr``. The first ``window - 1`` values are "
+    "``null`` (warm-up) -- the value is defined only once ``window`` observations have been "
+    "seen.",
+    raises_prose="ValueError: If ``window < 1``.",
+    args_prose={
+        "window": "Number of observations in the moving window. Must be ``>= 1``.",
+    },
+    example_columns={"price": "close"},
+    examples=(
+        Example(
+            inputs={"price": (10.0, 11.0, 12.0, 13.0, 14.0), "volume": (100.0, 200.0, 300.0, 400.0, 500.0)},
+            params={"window": 3},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "price": (10.0, 11.0, 12.0, 11.0, 13.0, 20.0, 22.0, 21.0, 23.0, 22.0),
+                "volume": (100.0, 120.0, 90.0, 110.0, 130.0, 100.0, 120.0, 90.0, 110.0, 130.0),
+            },
+            intro="On a multi-series panel, wrap the call in ``.over`` so each group warms up independently:",
+            partition=("A", "A", "A", "A", "A", "B", "B", "B", "B", "B"),
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "price": (10.0, 11.0, 12.0, 13.0, None, 15.0, float("nan"), 17.0, 18.0, 19.0),
+                "volume": (100.0, 120.0, 90.0, 110.0, 130.0, 100.0, 95.0, 140.0, 105.0, 115.0),
+            },
+            intro="A ``null`` (skipped, and any window it touches yields ``null``) and a ``NaN`` (which "
+            "propagates) make the exact handling visible at a glance:",
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={"price": (42.0,), "volume": (10.0,)},
+            intro="**Insufficient sample** — a one-row input has only a single (price, volume) pair, and at "
+            "``window=1`` that pair alone determines the weighted mean, so the price passes through:",
+            params={"window": 1},
+        ),
+        Example(
+            inputs={"price": (10.0, 11.0, 12.0), "volume": (0.0, 0.0, 0.0)},
+            intro="**Degenerate denominator** — an all-zero-volume window is the IEEE-754 ``0 / 0`` "
+            "degenerate, so once the window fills the ratio is ``NaN``:",
+            params={"window": 2},
         ),
     ),
 )

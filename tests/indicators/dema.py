@@ -6,7 +6,7 @@ from pomata.indicators import dema
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_dema
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 DEMA = suite_indicators(
     factory=dema,
@@ -105,6 +105,68 @@ DEMA = suite_indicators(
             expected=(None, None, None, None, 5.0, 5.0),
             params_override={"window": 3},
             reason="DEMA of a constant equals that constant once warmed up",
+        ),
+    ),
+    reference='Mulloy, P. G. (1994). "Smoothing Data with Faster Moving Averages." *Technical Analysis '
+    "of Stocks & Commodities*, 12(1).",
+    wikipedia="https://en.wikipedia.org/wiki/Double_exponential_moving_average",
+    see_also=(
+        ("ema", "The single exponential pass this is built from."),
+        ("tema", "The triple-EMA sibling."),
+        ("t3", "The six-pass Tillson member of the lag-reduced family."),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a leading ``null`` run stays ``null`` until the first non-null seed; an interior "
+            "``null`` yields ``null`` at that position while the recursion continues across the gap.",
+        ),
+        (
+            "NaN",
+            "a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null position.",
+        ),
+        ("Insufficient sample", "a series no longer than the warm-up, so the result is ``null``."),
+        ("window == 1", "each EMA reduces to the identity, so the expression reproduces the input."),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The DEMA for each row, the same length as ``expr``. The first ``2 * (window - 1)`` "
+    "values are ``null`` (warm-up), clamped to the series length: the value is composed from "
+    "two chained :func:`ema` passes of the same ``window`` (each carrying a ``window - 1`` "
+    "warm-up), so the warm-up is twice that of a plain EMA. Under the default "
+    "``adjust=False``, each pass is seeded with the SMA of the first ``window`` observations.",
+    raises_prose="ValueError: If ``window < 1``.",
+    args_prose={
+        "window": "Span of the exponential weighting, mapped to ``alpha = 2 / (window + 1)``. Must be ``>= 1``.",
+        "adjust": "When ``False`` (default) use the recursive technical-analysis EMA form; when ``True`` "
+        "use the bias-corrected (adjusted) exponential weighting. The flag is forwarded unchanged "
+        "to both :func:`ema` passes; the canonical DEMA uses ``False``.",
+    },
+    example_columns={"expr": "close"},
+    examples=(
+        Example(inputs={"expr": (2.0, 4.0, 6.0, 8.0, 10.0, 12.0)}, params={"window": 2}, round_to=4),
+        Example(
+            inputs={"expr": (10.0, 11.0, 12.0, 11.0, 13.0, 20.0, 22.0, 21.0, 23.0, 22.0)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "A", "A", "B", "B", "B", "B", "B"),
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={"expr": (10.0, 11.0, 12.0, 13.0, None, 15.0, float("nan"), 17.0, 18.0, 19.0)},
+            intro="A ``null`` (skipped: it voids its own row while the recursion bridges the gap) and a "
+            "``NaN`` (which latches) make the exact handling visible at a glance:",
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={"expr": (42.0,)},
+            intro="**Insufficient sample** — a one-row series has no history beyond the seed itself, but "
+            "with ``window=1`` both EMA passes are the identity, so the lone value passes through "
+            "unchanged:",
+            params={"window": 1},
         ),
     ),
 )

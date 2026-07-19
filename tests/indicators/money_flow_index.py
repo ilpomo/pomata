@@ -6,7 +6,7 @@ from pomata.indicators import money_flow_index
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_money_flow_index
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 from tests.support.tolerances import TOLERANCE_ABSOLUTE_ROLLING_ORACLE, TOLERANCE_RELATIVE_ROLLING_ORACLE
 
 MONEY_FLOW_INDEX = suite_indicators(
@@ -411,6 +411,127 @@ MONEY_FLOW_INDEX = suite_indicators(
             ),
             reason="a window that goes flat after large head movement leaves the rolling sums with a sub-ULP residual; "
             "the exact all-zero-change guard pins the flat tail to NaN, not a falsely-saturated 100",
+        ),
+    ),
+    reference='Quong, G. & Soudack, A. (1989). "Volume-Weighted RSI: Money Flow." *Technical Analysis '
+    "of Stocks & Commodities*, 7(3).",
+    wikipedia="https://en.wikipedia.org/wiki/Money_flow_index",
+    see_also=(
+        ("rsi", "The price-only analog (no volume weighting)."),
+        ("chaikin_money_flow", "Another volume-weighted money-flow oscillator."),
+        ("price_typical", "The per-bar typical price this weights by volume."),
+    ),
+    notes=(
+        (
+            "Classification",
+            "The up / down classification compares each typical price with the previous one, so a "
+            "missing or undefined typical price taints two consecutive change positions (its own and "
+            "the following one).",
+        ),
+        (
+            "Clamp convention",
+            "A window with no negative money flow but non-zero positive flow has money ratio ``+inf`` "
+            "and the MFI saturates at ``100``; symmetrically an all-down window (no positive flow) "
+            "saturates at ``0``.",
+        ),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null "
+            "values) — a ``null`` in ``high``, ``low``, or ``close`` voids the typical price at that "
+            "row and at the next change, so any window reaching either is affected, while a ``null`` "
+            "in ``volume`` voids only that row's money flow.",
+        ),
+        (
+            "NaN",
+            "a ``NaN`` inside the window propagates, yielding ``NaN`` there — a ``NaN`` typical price "
+            "makes both its own change and the next one undefined in sign, so each is poisoned into "
+            "the positive *and* the negative money flow as ``NaN``, voiding every window that reaches "
+            "either change; one carve-out mirrors the flat-bar convention, where a bar whose typical "
+            "price exactly equals the previous one has a flow of ``0`` by definition regardless of "
+            "volume, so a ``null`` or ``NaN`` volume there is absorbed into the zero flow rather than "
+            "voiding the window.",
+        ),
+        (
+            "Degenerate denominator",
+            "the typical price never moves over the window (both money flows are zero), so the result "
+            "is a ``0 / 0``, i.e. ``NaN``.",
+        ),
+        (
+            "window == 1",
+            "the rolling sums collapse to the single change, so each row reports ``100`` on an up "
+            "move, ``0`` on a down move, and ``NaN`` on no move.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The MFI for each row, the same length as the inputs, bounded in ``[0, 100]``. The first "
+    "``window`` values are ``null`` (warm-up): the value is defined only once ``window`` "
+    "price *changes* have accumulated, so the first defined row is at index ``window`` rather "
+    "than ``window - 1``.",
+    raises_prose="ValueError: If ``window < 1``.",
+    args_prose={
+        "window": "Number of observations in the moving window. Must be ``>= 1``.",
+    },
+    examples=(
+        Example(
+            inputs={
+                "high": (10.0, 11.0, 12.0, 11.0, 13.0, 14.0, 13.0, 15.0),
+                "low": (8.0, 9.0, 10.0, 9.0, 11.0, 12.0, 11.0, 13.0),
+                "close": (9.0, 10.0, 11.0, 10.0, 12.0, 13.0, 12.0, 14.0),
+                "volume": (100.0, 150.0, 120.0, 130.0, 110.0, 160.0, 140.0, 170.0),
+            },
+            params={"window": 3},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "high": (12.0, 13.0, 12.5, 14.0, 22.0, 24.0, 23.0, 25.0),
+                "low": (10.0, 11.0, 11.0, 12.0, 20.0, 21.0, 21.0, 23.0),
+                "close": (11.0, 12.5, 11.5, 13.5, 21.5, 21.5, 22.5, 24.0),
+                "volume": (100.0, 120.0, 90.0, 110.0, 100.0, 120.0, 90.0, 110.0),
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "high": (12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0),
+                "low": (10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0),
+                "close": (11.5, 12.5, 13.0, 14.5, None, 16.0, float("nan"), 18.0),
+                "volume": (100.0, 120.0, 90.0, 110.0, 130.0, 100.0, 95.0, 140.0),
+            },
+            intro="A ``null`` (skipped, and any window it touches yields ``null``) and a ``NaN`` (which "
+            "propagates) make the exact handling visible at a glance:",
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "high": (10.0, 10.0, 10.0, 10.0, 10.0),
+                "low": (8.0, 8.0, 8.0, 8.0, 8.0),
+                "close": (9.0, 9.0, 9.0, 9.0, 9.0),
+                "volume": (100.0, 100.0, 100.0, 100.0, 100.0),
+            },
+            intro="**Degenerate denominator** — a window whose typical price never moves leaves both money "
+            "flows at zero, so the ratio is the genuine ``0/0``, i.e. ``NaN``:",
+            params={"window": 3},
+        ),
+        Example(
+            inputs={
+                "high": (10.0, 11.0, 12.0, 11.0, 13.0),
+                "low": (8.0, 9.0, 10.0, 9.0, 11.0),
+                "close": (9.0, 10.0, 11.0, 10.0, 12.0),
+                "volume": (100.0, 150.0, 120.0, 130.0, 110.0),
+            },
+            intro="**window == 1** — each bar's own change alone decides the reading: a fully up bar prints "
+            "``100``, a fully down bar prints ``0``:",
+            params={"window": 1},
         ),
     ),
 )

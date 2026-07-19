@@ -8,7 +8,7 @@ from pomata.metrics import modigliani_risk_adjusted_performance, sharpe_ratio, v
 from tests.metrics.enums import Annualization, BehaviorNan, BehaviorNull, Degenerate
 from tests.metrics.harness import suite_metrics
 from tests.metrics.oracles import reference_modigliani_risk_adjusted_performance
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 
 
 def _modigliani_component() -> pl.Expr:
@@ -59,6 +59,84 @@ MODIGLIANI_RISK_ADJUSTED_PERFORMANCE = suite_metrics(
             "+inf, which propagates to +inf; no conditioning filter is declared: the composed oracle "
             "mirrors the same exact min == max constancy detection on both legs, so the two sides "
             "agree in kind on every constant series",
+        ),
+    ),
+    reference='Modigliani, F. & Modigliani, L. (1997). "Risk-Adjusted Performance." *The Journal of '
+    "Portfolio Management*, 23(2), 45-54.",
+    doi="https://doi.org/10.3905/jpm.23.2.45",
+    wikipedia="https://en.wikipedia.org/wiki/Modigliani_risk-adjusted_performance",
+    see_also=(
+        ("sharpe_ratio", "The risk-adjusted ratio this expresses in return units."),
+        ("volatility", "The benchmark dispersion it scales to."),
+        ("information_ratio", "Another benchmark-relative performance measure, as a ratio."),
+    ),
+    bullets=(
+        ("Null", "an observation is used only where both legs are present; a ``null`` in either drops that pair."),
+        ("NaN", "a ``NaN`` in either leg of a retained pair propagates, yielding ``NaN``."),
+        (
+            "Insufficient sample",
+            "fewer than two complete pairs leaves the embedded Sharpe ratio and benchmark volatility "
+            "undefined, so the result is ``null``.",
+        ),
+        (
+            "Degenerate denominator",
+            "a constant portfolio has zero volatility, so its :func:`sharpe_ratio` is infinite and "
+            "the result is ``+/-inf`` — reported, not clipped.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A single ``Float64`` value: the M-squared measure as an annualized return (one value in "
+    "``select``, one per group under ``.over``). ``null`` when fewer than two complete pairs "
+    "are present.",
+    raises_prose="ValueError: If ``periods_per_year < 1``, or if ``risk_free_rate`` is not finite or is ``< -1``.",
+    args_prose={
+        "risk_free_rate": "The annualized risk-free rate, used both to form the Sharpe excess (geometrically per "
+        "period) and as the additive level here (default ``0.0``). Must be finite and ``>= -1``.",
+    },
+    example_alias="m_squared",
+    examples=(
+        Example(
+            inputs={
+                "returns": (0.02, -0.01, 0.03, -0.02, 0.015, 0.005),
+                "benchmark": (0.015, -0.008, 0.025, -0.015, 0.01, 0.004),
+            },
+            params={"periods_per_year": 252},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "returns": (0.02, -0.01, 0.03, -0.02, 0.015, 0.005, 0.01, 0.025, -0.015, 0.008, -0.005, 0.012),
+                "benchmark": (0.015, -0.008, 0.025, -0.015, 0.01, 0.004, 0.012, 0.02, -0.01, 0.006, -0.004, 0.01),
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+            partition=("A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B"),
+            params={"periods_per_year": 252},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "returns": (None, 0.02, 0.03, float("nan"), 0.015, 0.005),
+                "benchmark": (0.015, -0.008, 0.025, -0.015, 0.01, 0.004),
+            },
+            intro="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+            "handling visible:",
+            params={"periods_per_year": 252},
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (0.05,), "benchmark": (0.04,)},
+            intro="**Insufficient sample** — a single complete pair leaves the embedded Sharpe ratio and "
+            "benchmark volatility undefined, so the result is ``null``:",
+            params={"periods_per_year": 252},
+        ),
+        Example(
+            inputs={"returns": (0.01, 0.01, 0.01), "benchmark": (0.02, -0.01, 0.03)},
+            intro="**Degenerate denominator** — a constant portfolio has zero dispersion, so the embedded "
+            "Sharpe ratio is ``+inf``, which propagates to ``+inf``:",
+            params={"periods_per_year": 252},
         ),
     ),
 )

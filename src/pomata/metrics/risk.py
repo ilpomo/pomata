@@ -241,8 +241,8 @@ def conditional_value_at_risk(
 
         **Edge-case behavior**
 
-        - **Null** — a ``null`` return is skipped (excluded from the count ``n`` and the tail average); an all-null
-          (or empty) series yields ``null``.
+        - **Null** — a ``null`` return is skipped (excluded from the count ``n`` and the tail average); an all-null (or
+          empty) series yields ``null``.
         - **NaN** — a ``NaN`` return propagates, yielding ``NaN``.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
@@ -291,8 +291,10 @@ def conditional_value_at_risk(
         ...         ],
         ...     }
         ... )
-        >>> reduced = conditional_value_at_risk(pl.col("returns"), confidence=0.75).over("ticker").round(4)
-        >>> frame.select(conditional_value_at_risk=reduced)["conditional_value_at_risk"].unique().sort().to_list()
+        >>> expr = conditional_value_at_risk(pl.col("returns"), confidence=0.75)
+        >>> frame.select(conditional_value_at_risk=expr.over("ticker").round(4))[
+        ...     "conditional_value_at_risk"
+        ... ].unique().sort().to_list()
         [-0.07, -0.055]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -339,9 +341,8 @@ def downside_deviation(
     Args:
         returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
-        threshold: The **per-period** return level separating gains from losses / the minimum acceptable return
-            (default ``0.0``); an annual target must be de-annualized by the caller before it is passed.
-            Must be finite.
+        threshold: The **per-period** return level separating gains from losses / the minimum acceptable return (default
+            ``0.0``); an annual target must be de-annualized by the caller before it is passed. Must be finite.
 
     Returns:
         A single ``Float64`` value: the annualized downside deviation (one value in ``select``, one per group under
@@ -394,8 +395,10 @@ def downside_deviation(
         ...         "returns": [0.02, -0.04, 0.01, -0.06, 0.03, 0.01, -0.02, 0.04, -0.03, 0.02],
         ...     }
         ... )
-        >>> reduced = downside_deviation(pl.col("returns"), periods_per_year=252).over("ticker").round(4)
-        >>> frame.select(downside_deviation=reduced)["downside_deviation"].unique().sort().to_list()
+        >>> expr = downside_deviation(pl.col("returns"), periods_per_year=252)
+        >>> frame.select(downside_deviation=expr.over("ticker").round(4))[
+        ...     "downside_deviation"
+        ... ].unique().sort().to_list()
         [0.256, 0.5119]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -441,9 +444,8 @@ def downside_deviation_rolling(
         returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
         window: Number of observations in the moving window. Must be ``>= 1``.
         periods_per_year: Observations per year for annualization (canonically ``252`` for daily). Must be ``>= 1``.
-        threshold: The **per-period** return level separating gains from losses / the minimum acceptable return
-            (default ``0.0``); an annual target must be de-annualized by the caller before it is passed.
-            Must be finite.
+        threshold: The **per-period** return level separating gains from losses / the minimum acceptable return (default
+            ``0.0``); an annual target must be de-annualized by the caller before it is passed. Must be finite.
 
     Returns:
         The rolling downside deviation for each row, the same length as the input. The first ``window - 1`` rows are
@@ -484,9 +486,8 @@ def downside_deviation_rolling(
         >>> from pomata.metrics import downside_deviation_rolling
         >>>
         >>> frame = pl.DataFrame({"returns": [0.01, -0.02, 0.03, -0.01, 0.02, 0.0, -0.015]})
-        >>> frame.select(
-        ...     downside_deviation_rolling(pl.col("returns"), 3, periods_per_year=252).round(4)
-        ... ).to_series().to_list()
+        >>> expr = downside_deviation_rolling(pl.col("returns"), window=3, periods_per_year=252)
+        >>> frame.select(downside_deviation_rolling=expr.round(4))["downside_deviation_rolling"].to_list()
         [None, None, 0.1833, 0.2049, 0.0917, 0.0917, 0.1375]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up on its own (the ``B`` group never
@@ -513,17 +514,18 @@ def downside_deviation_rolling(
         ...         ],
         ...     }
         ... )
-        >>> rolled = downside_deviation_rolling(pl.col("returns"), 3, periods_per_year=252).over("ticker").round(4)
-        >>> frame.select(downside_deviation_rolling=rolled)["downside_deviation_rolling"].to_list()
+        >>> expr = downside_deviation_rolling(pl.col("returns"), window=3, periods_per_year=252)
+        >>> frame.with_columns(downside_deviation_rolling=expr.over("ticker").round(4))[
+        ...     "downside_deviation_rolling"
+        ... ].to_list()
         [None, None, 0.1833, 0.2049, 0.0917, 0.0917, 0.1375, None, None, 0.0917, 0.2898, 0.275, 0.275, 0.1833]
 
-        A leading ``null`` and a later ``NaN`` show the per-window masking, with the result recovering once both
-        leave the window:
+        A leading ``null`` and a later ``NaN`` show the per-window masking, with the result recovering once both leave
+        the window:
 
         >>> frame = pl.DataFrame({"returns": [None, 0.01, -0.02, float("nan"), 0.03, -0.01, 0.02]})
-        >>> frame.select(
-        ...     downside_deviation_rolling(pl.col("returns"), 3, periods_per_year=252).round(4)
-        ... ).to_series().to_list()
+        >>> expr = downside_deviation_rolling(pl.col("returns"), window=3, periods_per_year=252)
+        >>> frame.select(downside_deviation_rolling=expr.round(4))["downside_deviation_rolling"].to_list()
         [None, None, None, nan, nan, nan, 0.0917]
 
         **Degenerate denominator** — a window with every return at or above the threshold has zero shortfall, so the
@@ -629,8 +631,8 @@ def kelly_criterion(
         ...         ],
         ...     }
         ... )
-        >>> reduced = kelly_criterion(pl.col("returns")).over("ticker").round(4)
-        >>> frame.select(kelly_criterion=reduced)["kelly_criterion"].unique().sort().to_list()
+        >>> expr = kelly_criterion(pl.col("returns"))
+        >>> frame.select(kelly_criterion=expr.over("ticker").round(4))["kelly_criterion"].unique().sort().to_list()
         [0.1758, 0.2286]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -646,8 +648,7 @@ def kelly_criterion(
         >>> frame.select(kelly_criterion=kelly_criterion(pl.col("returns")))["kelly_criterion"].to_list()
         [None]
 
-        **Degenerate denominator** — an all-positive series has an undefined payoff ratio, so the fraction is
-        ``null``:
+        **Degenerate denominator** — an all-positive series has an undefined payoff ratio, so the fraction is ``null``:
 
         >>> frame = pl.DataFrame({"returns": [0.01, 0.02, 0.03]})
         >>> frame.select(kelly_criterion=kelly_criterion(pl.col("returns")))["kelly_criterion"].to_list()
@@ -697,9 +698,8 @@ def kurtosis(
         - **Degenerate denominator** — a constant series (or a single value) has zero variance, so the standardized
           moment is a ``0 / 0``, i.e. ``NaN``.
         - **Stability** — on a near-constant series (relative spread far below the property tests' conditioning floor)
-          the standardized moment is a rounding-dominated ``0 / 0`` where the one-pass kernel and a two-pass
-          computation resolve apart; that band is excluded from the property tiers, and the value is reported as
-          computed.
+          the standardized moment is a rounding-dominated ``0 / 0`` where the one-pass kernel and a two-pass computation
+          resolve apart; that band is excluded from the property tiers, and the value is reported as computed.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -745,8 +745,8 @@ def kurtosis(
         ...         ],
         ...     }
         ... )
-        >>> reduced = kurtosis(pl.col("returns")).over("ticker").round(4)
-        >>> frame.select(kurtosis=reduced)["kurtosis"].unique().sort().to_list()
+        >>> expr = kurtosis(pl.col("returns"))
+        >>> frame.select(kurtosis=expr.over("ticker").round(4))["kurtosis"].unique().sort().to_list()
         [-1.4673, -1.3223]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -808,10 +808,10 @@ def kurtosis_rolling(
         - **Degenerate denominator** — a constant window has zero variance, so the standardized moment is a ``0 / 0``,
           i.e. ``NaN``.
         - **Stability** — the native kernel carries running sums, so a value leaving the window can leave a stale
-          residue behind: an exit more than one order of magnitude above the window's scale is recomputed exactly,
-          while a smaller exit onto a window whose own spread has collapsed can amplify that residue through the
-          near-zero variance into a wrong finite value — reported, not clipped (the tail of pola-rs/polars#28290,
-          fixed upstream in #28309).
+          residue behind: an exit more than one order of magnitude above the window's scale is recomputed exactly, while
+          a smaller exit onto a window whose own spread has collapsed can amplify that residue through the near-zero
+          variance into a wrong finite value — reported, not clipped (the tail of pola-rs/polars#28290, fixed upstream
+          in #28309).
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -831,7 +831,8 @@ def kurtosis_rolling(
         >>> from pomata.metrics import kurtosis_rolling
         >>>
         >>> frame = pl.DataFrame({"returns": [0.01, -0.02, 0.03, -0.01, 0.02, 0.0, -0.015]})
-        >>> frame.select(kurtosis_rolling(pl.col("returns"), 4).round(4))["returns"].to_list()
+        >>> expr = kurtosis_rolling(pl.col("returns"), window=4)
+        >>> frame.select(kurtosis_rolling=expr.round(4))["kurtosis_rolling"].to_list()
         [None, None, None, -1.4266, -1.7785, -1.64, -1.099]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up on its own (the ``B`` group never
@@ -858,15 +859,16 @@ def kurtosis_rolling(
         ...         ],
         ...     }
         ... )
-        >>> rolled = kurtosis_rolling(pl.col("returns"), 4).over("ticker").round(4)
-        >>> frame.select(kurtosis_rolling=rolled)["kurtosis_rolling"].to_list()
+        >>> expr = kurtosis_rolling(pl.col("returns"), window=4)
+        >>> frame.with_columns(kurtosis_rolling=expr.over("ticker").round(4))["kurtosis_rolling"].to_list()
         [None, None, None, -1.4266, -1.7785, -1.64, -1.099, None, None, None, -1.5244, -1.2555, -1.0441, -1.6961]
 
-        A leading ``null`` and a later ``NaN`` show the per-window masking, with the result recovering once both
-        leave the window:
+        A leading ``null`` and a later ``NaN`` show the per-window masking, with the result recovering once both leave
+        the window:
 
         >>> frame = pl.DataFrame({"returns": [None, 0.01, float("nan"), -0.02, 0.03, -0.01, 0.02, 0.0, -0.015]})
-        >>> frame.select(kurtosis_rolling(pl.col("returns"), 4).round(4))["returns"].to_list()
+        >>> expr = kurtosis_rolling(pl.col("returns"), window=4)
+        >>> frame.select(kurtosis_rolling=expr.round(4))["kurtosis_rolling"].to_list()
         [None, None, None, None, nan, nan, -1.7785, -1.64, -1.099]
 
         **Degenerate denominator** — a constant window has zero variance, so the standardized moment is ``0/0``, i.e.
@@ -925,8 +927,8 @@ def payoff_ratio(
         - **Null** — a ``null`` return is skipped; an all-null (or empty) series yields ``null``.
         - **NaN** — a ``NaN`` return propagates, yielding ``NaN``.
         - **Insufficient sample** — a one-element series leaves one side of the ratio empty, so the result is ``null``.
-        - **Degenerate denominator** — with no winning (or no losing) returns one side of the ratio is undefined, so
-          the result is ``null``.
+        - **Degenerate denominator** — with no winning (or no losing) returns one side of the ratio is undefined, so the
+          result is ``null``.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -969,8 +971,8 @@ def payoff_ratio(
         ...         ],
         ...     }
         ... )
-        >>> reduced = payoff_ratio(pl.col("returns")).over("ticker").round(4)
-        >>> frame.select(payoff_ratio=reduced)["payoff_ratio"].unique().sort().to_list()
+        >>> expr = payoff_ratio(pl.col("returns"))
+        >>> frame.select(payoff_ratio=expr.over("ticker").round(4))["payoff_ratio"].unique().sort().to_list()
         [1.0833, 1.25]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -1082,8 +1084,8 @@ def profit_factor(
         ...         ],
         ...     }
         ... )
-        >>> reduced = profit_factor(pl.col("returns")).over("ticker").round(4)
-        >>> frame.select(profit_factor=reduced)["profit_factor"].unique().sort().to_list()
+        >>> expr = profit_factor(pl.col("returns"))
+        >>> frame.select(profit_factor=expr.over("ticker").round(4))["profit_factor"].unique().sort().to_list()
         [1.4444, 1.6667]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -1162,8 +1164,8 @@ def risk_of_ruin(
         losses and ruin at the loss of all capital. It deliberately ignores win/loss size and capital units. Because the
         bet count ``n`` doubles as the capital cushion, the result is sensitive to the series length: more bars drive it
         toward ``0`` with an edge and toward ``1`` without one. Compare series of the same length. The win rate ``p``
-        counts only decisive (non-zero) bars, while ``n`` counts every non-null bar, so padding a series with flat
-        ``0`` bars raises ``n`` without moving ``p``.
+        counts only decisive (non-zero) bars, while ``n`` counts every non-null bar, so padding a series with flat ``0``
+        bars raises ``n`` without moving ``p``.
 
         **Edge-case behavior**
 
@@ -1172,8 +1174,8 @@ def risk_of_ruin(
         - **Insufficient sample** — a series with no decisive (non-zero) returns has an undefined win rate, so the
           result is ``null``.
         - **Degenerate denominator** — the ruin odds ratio is ``(1 - p) / p``: with no edge (``p <= 0.5``) it is
-          ``>= 1`` and the probability saturates at ``1`` (an all-losing ``p = 0`` divides by zero and clips to
-          ``1``), while an all-winning ``p = 1`` gives ``0``.
+          ``>= 1`` and the probability saturates at ``1`` (an all-losing ``p = 0`` divides by zero and clips to ``1``),
+          while an all-winning ``p = 1`` gives ``0``.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -1203,8 +1205,8 @@ def risk_of_ruin(
         ...         "returns": [0.02, -0.01, 0.03, -0.02, 0.02, 0.01, 0.03, -0.02],
         ...     }
         ... )
-        >>> reduced = risk_of_ruin(pl.col("returns")).over("ticker").round(4)
-        >>> frame.select(risk_of_ruin=reduced)["risk_of_ruin"].unique().sort().to_list()
+        >>> expr = risk_of_ruin(pl.col("returns"))
+        >>> frame.select(risk_of_ruin=expr.over("ticker").round(4))["risk_of_ruin"].unique().sort().to_list()
         [0.0123, 1.0]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -1259,8 +1261,8 @@ def skewness(
         returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
 
     Returns:
-        A single ``Float64`` value: the skewness (one value in ``select``, one per group under ``.over``). ``null``
-        when there are no returns, and ``NaN`` when the returns have zero variance (fewer than two distinct values).
+        A single ``Float64`` value: the skewness (one value in ``select``, one per group under ``.over``). ``null`` when
+        there are no returns, and ``NaN`` when the returns have zero variance (fewer than two distinct values).
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
@@ -1280,9 +1282,8 @@ def skewness(
         - **Degenerate denominator** — a constant series has zero variance, so the standardized moment is a ``0 / 0``,
           i.e. ``NaN``.
         - **Stability** — on a near-constant series (relative spread far below the property tests' conditioning floor)
-          the standardized moment is a rounding-dominated ``0 / 0`` where the one-pass kernel and a two-pass
-          computation resolve apart; that band is excluded from the property tiers, and the value is reported as
-          computed.
+          the standardized moment is a rounding-dominated ``0 / 0`` where the one-pass kernel and a two-pass computation
+          resolve apart; that band is excluded from the property tiers, and the value is reported as computed.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -1328,8 +1329,8 @@ def skewness(
         ...         ],
         ...     }
         ... )
-        >>> reduced = skewness(pl.col("returns")).over("ticker").round(4)
-        >>> frame.select(skewness=reduced)["skewness"].unique().sort().to_list()
+        >>> expr = skewness(pl.col("returns"))
+        >>> frame.select(skewness=expr.over("ticker").round(4))["skewness"].unique().sort().to_list()
         [-0.384, -0.1814]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -1397,10 +1398,10 @@ def skewness_rolling(
         - **Degenerate denominator** — a constant window has zero variance, so the standardized moment is a ``0 / 0``,
           i.e. ``NaN``.
         - **Stability** — the native kernel carries running sums, so a value leaving the window can leave a stale
-          residue behind: an exit more than one order of magnitude above the window's scale is recomputed exactly,
-          while a smaller exit onto a window whose own spread has collapsed can amplify that residue through the
-          near-zero variance into a wrong finite value — reported, not clipped (the tail of pola-rs/polars#28290,
-          fixed upstream in #28309).
+          residue behind: an exit more than one order of magnitude above the window's scale is recomputed exactly, while
+          a smaller exit onto a window whose own spread has collapsed can amplify that residue through the near-zero
+          variance into a wrong finite value — reported, not clipped (the tail of pola-rs/polars#28290, fixed upstream
+          in #28309).
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -1420,7 +1421,8 @@ def skewness_rolling(
         >>> from pomata.metrics import skewness_rolling
         >>>
         >>> frame = pl.DataFrame({"returns": [0.01, -0.02, 0.03, -0.01, 0.02, 0.0, -0.015]})
-        >>> frame.select(skewness_rolling(pl.col("returns"), 4).round(4))["returns"].to_list()
+        >>> expr = skewness_rolling(pl.col("returns"), window=4)
+        >>> frame.select(skewness_rolling=expr.round(4))["skewness_rolling"].to_list()
         [None, None, None, 0.278, -0.0, -0.0, 0.6568]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up on its own (the ``B`` group never
@@ -1447,15 +1449,16 @@ def skewness_rolling(
         ...         ],
         ...     }
         ... )
-        >>> rolled = skewness_rolling(pl.col("returns"), 4).over("ticker").round(4)
-        >>> frame.select(skewness_rolling=rolled)["skewness_rolling"].to_list()
+        >>> expr = skewness_rolling(pl.col("returns"), window=4)
+        >>> frame.with_columns(skewness_rolling=expr.over("ticker").round(4))["skewness_rolling"].to_list()
         [None, None, None, 0.278, -0.0, -0.0, 0.6568, None, None, None, -0.0, 0.2439, -0.6183, 0.0912]
 
-        A leading ``null`` and a later ``NaN`` show the per-window masking, with the result recovering once both
-        leave the window:
+        A leading ``null`` and a later ``NaN`` show the per-window masking, with the result recovering once both leave
+        the window:
 
         >>> frame = pl.DataFrame({"returns": [None, 0.01, float("nan"), -0.02, 0.03, -0.01, 0.02, 0.0, -0.015]})
-        >>> frame.select(skewness_rolling(pl.col("returns"), 4).round(4))["returns"].to_list()
+        >>> expr = skewness_rolling(pl.col("returns"), window=4)
+        >>> frame.select(skewness_rolling=expr.round(4))["skewness_rolling"].to_list()
         [None, None, None, None, nan, nan, -0.0, -0.0, 0.6568]
 
         **Degenerate denominator** — a constant window has zero variance, so the standardized moment is ``0/0``, i.e.
@@ -1506,8 +1509,8 @@ def tail_ratio(
 
         - **Null** — a ``null`` return is skipped; an all-null (or empty) series yields ``null``.
         - **NaN** — a ``NaN`` return propagates, yielding ``NaN``.
-        - **Degenerate denominator** — a constant series has equal 5th and 95th percentiles, so the ratio is ``1.0``
-          (an all-``0`` series is the ``0 / 0`` exception, yielding ``NaN``); when the 5th-percentile return is exactly
+        - **Degenerate denominator** — a constant series has equal 5th and 95th percentiles, so the ratio is ``1.0`` (an
+          all-``0`` series is the ``0 / 0`` exception, yielding ``NaN``); when the 5th-percentile return is exactly
           ``0`` against a non-zero 95th the ratio is ``+inf`` — reported, not clipped, following IEEE division.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
@@ -1536,8 +1539,8 @@ def tail_ratio(
         ...         "returns": [0.02, -0.04, 0.01, -0.06, 0.03, 0.05, -0.02, 0.04, -0.03, 0.02],
         ...     }
         ... )
-        >>> reduced = tail_ratio(pl.col("returns")).over("ticker").round(4)
-        >>> frame.select(tail_ratio=reduced)["tail_ratio"].unique().sort().to_list()
+        >>> expr = tail_ratio(pl.col("returns"))
+        >>> frame.select(tail_ratio=expr.over("ticker").round(4))["tail_ratio"].unique().sort().to_list()
         [0.5, 1.7143]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -1620,7 +1623,8 @@ def tail_ratio_rolling(
         >>> from pomata.metrics import tail_ratio_rolling
         >>>
         >>> frame = pl.DataFrame({"returns": [0.01, -0.02, 0.03, -0.01, 0.02, 0.0, -0.015]})
-        >>> frame.select(tail_ratio_rolling(pl.col("returns"), 5).round(4)).to_series().to_list()
+        >>> expr = tail_ratio_rolling(pl.col("returns"), window=5)
+        >>> frame.select(tail_ratio_rolling=expr.round(4))["tail_ratio_rolling"].to_list()
         [None, None, None, None, 1.5556, 1.5556, 2.0]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up on its own (the ``B`` group never
@@ -1647,15 +1651,16 @@ def tail_ratio_rolling(
         ...         ],
         ...     }
         ... )
-        >>> rolled = tail_ratio_rolling(pl.col("returns"), 5).over("ticker").round(4)
-        >>> frame.select(tail_ratio_rolling=rolled)["tail_ratio_rolling"].to_list()
+        >>> expr = tail_ratio_rolling(pl.col("returns"), window=5)
+        >>> frame.with_columns(tail_ratio_rolling=expr.over("ticker").round(4))["tail_ratio_rolling"].to_list()
         [None, None, None, None, 1.5556, 1.5556, 2.0, None, None, None, None, 1.3846, 1.4231, 1.3214]
 
-        A leading ``null`` and a later ``NaN`` show the per-window masking, with the result recovering once both
-        leave the window:
+        A leading ``null`` and a later ``NaN`` show the per-window masking, with the result recovering once both leave
+        the window:
 
         >>> frame = pl.DataFrame({"returns": [None, 0.01, float("nan"), -0.02, 0.03, -0.01, 0.02, 0.0, -0.015, 0.005]})
-        >>> frame.select(tail_ratio_rolling(pl.col("returns"), 5).round(4)).to_series().to_list()
+        >>> expr = tail_ratio_rolling(pl.col("returns"), window=5)
+        >>> frame.select(tail_ratio_rolling=expr.round(4))["tail_ratio_rolling"].to_list()
         [None, None, None, None, None, nan, nan, 1.5556, 2.0, 1.2143]
 
         **Degenerate denominator** — a window with a zero 5th-percentile and a non-zero 95th gives ``+inf``:
@@ -1761,8 +1766,8 @@ def value_at_risk(
         ...         "returns": [0.02, -0.04, 0.01, -0.06, 0.03, 0.01, -0.02, 0.04, -0.03, 0.02],
         ...     }
         ... )
-        >>> reduced = value_at_risk(pl.col("returns"), confidence=0.95).over("ticker").round(4)
-        >>> frame.select(value_at_risk=reduced)["value_at_risk"].unique().sort().to_list()
+        >>> expr = value_at_risk(pl.col("returns"), confidence=0.95)
+        >>> frame.select(value_at_risk=expr.over("ticker").round(4))["value_at_risk"].unique().sort().to_list()
         [-0.056, -0.028]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -1799,8 +1804,8 @@ def value_at_risk_modified(
 
     Args:
         returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
-        confidence: The tail confidence level (canonically ``0.95``); the quantile taken is ``1 - confidence``. Must
-            be in the open interval ``(0, 1)``.
+        confidence: The tail confidence level (canonically ``0.95``); the quantile taken is ``1 - confidence``. Must be
+            in the open interval ``(0, 1)``.
 
     Returns:
         A single ``Float64`` value: the modified value-at-risk (one value in ``select``, one per group under ``.over``).
@@ -1822,10 +1827,9 @@ def value_at_risk_modified(
           ``null``.
         - **NaN** — a ``NaN`` return propagates, yielding ``NaN``.
         - **Domain** — the one-term Cornish-Fisher expansion is order-preserving only where its quantile map is locally
-          monotonic at the requested quantile and the corrected quantile stays on the Gaussian one's side of the
-          median; tail moments outside that region make the corrected number meaningless (it can even flip sign,
-          reporting a crash-bearing series as a gain), so the result is a loud ``NaN`` — never a plausible wrong
-          number.
+          monotonic at the requested quantile and the corrected quantile stays on the Gaussian one's side of the median;
+          tail moments outside that region make the corrected number meaningless (it can even flip sign, reporting a
+          crash-bearing series as a gain), so the result is a loud ``NaN`` — never a plausible wrong number.
         - **Insufficient sample** — fewer than two returns leave the sample standard deviation undefined, so the result
           is ``null``.
         - **Degenerate denominator** — a constant series has undefined skewness and kurtosis, so the result is a
@@ -1884,8 +1888,10 @@ def value_at_risk_modified(
         ...         ],
         ...     }
         ... )
-        >>> reduced = value_at_risk_modified(pl.col("returns")).over("ticker").round(4)
-        >>> frame.select(value_at_risk_modified=reduced)["value_at_risk_modified"].unique().sort().to_list()
+        >>> expr = value_at_risk_modified(pl.col("returns"))
+        >>> frame.select(value_at_risk_modified=expr.over("ticker").round(4))[
+        ...     "value_at_risk_modified"
+        ... ].unique().sort().to_list()
         [-0.069, -0.0579]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -1965,8 +1971,8 @@ def value_at_risk_parametric(
 
     Args:
         returns: Per-bar net return series, as fractions (e.g. from :func:`~pomata.pnl.returns_net`).
-        confidence: The tail confidence level (canonically ``0.95``); the quantile taken is ``1 - confidence``. Must
-            be in the open interval ``(0, 1)``.
+        confidence: The tail confidence level (canonically ``0.95``); the quantile taken is ``1 - confidence``. Must be
+            in the open interval ``(0, 1)``.
 
     Returns:
         A single ``Float64`` value: the parametric value-at-risk (one value in ``select``, one per group under
@@ -2024,8 +2030,10 @@ def value_at_risk_parametric(
         ...         "returns": [0.02, -0.04, 0.01, -0.06, 0.03, 0.01, -0.02, 0.04, -0.03, 0.02],
         ...     }
         ... )
-        >>> reduced = value_at_risk_parametric(pl.col("returns")).over("ticker").round(4)
-        >>> frame.select(value_at_risk_parametric=reduced)["value_at_risk_parametric"].unique().sort().to_list()
+        >>> expr = value_at_risk_parametric(pl.col("returns"))
+        >>> frame.select(value_at_risk_parametric=expr.over("ticker").round(4))[
+        ...     "value_at_risk_parametric"
+        ... ].unique().sort().to_list()
         [-0.0732, -0.0434]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -2110,7 +2118,8 @@ def value_at_risk_rolling(
         >>> from pomata.metrics import value_at_risk_rolling
         >>>
         >>> frame = pl.DataFrame({"returns": [0.01, -0.02, 0.03, -0.01, 0.02, 0.0, -0.015]})
-        >>> frame.select(value_at_risk_rolling(pl.col("returns"), 4).round(4)).to_series().to_list()
+        >>> expr = value_at_risk_rolling(pl.col("returns"), window=4)
+        >>> frame.select(value_at_risk_rolling=expr.round(4))["value_at_risk_rolling"].to_list()
         [None, None, None, -0.0185, -0.0185, -0.0085, -0.0142]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up on its own (the ``B`` group never
@@ -2137,15 +2146,16 @@ def value_at_risk_rolling(
         ...         ],
         ...     }
         ... )
-        >>> rolled = value_at_risk_rolling(pl.col("returns"), 4).over("ticker").round(4)
-        >>> frame.select(value_at_risk_rolling=rolled)["value_at_risk_rolling"].to_list()
+        >>> expr = value_at_risk_rolling(pl.col("returns"), window=4)
+        >>> frame.with_columns(value_at_risk_rolling=expr.over("ticker").round(4))["value_at_risk_rolling"].to_list()
         [None, None, None, -0.0185, -0.0185, -0.0085, -0.0142, None, None, None, -0.027, -0.027, -0.024, -0.0285]
 
-        A leading ``null`` and a later ``NaN`` show the per-window masking, with the result recovering once both
-        leave the window:
+        A leading ``null`` and a later ``NaN`` show the per-window masking, with the result recovering once both leave
+        the window:
 
         >>> frame = pl.DataFrame({"returns": [None, 0.01, float("nan"), -0.02, 0.03, -0.01, 0.02, 0.0, -0.015]})
-        >>> frame.select(value_at_risk_rolling(pl.col("returns"), 4).round(4)).to_series().to_list()
+        >>> expr = value_at_risk_rolling(pl.col("returns"), window=4)
+        >>> frame.select(value_at_risk_rolling=expr.round(4))["value_at_risk_rolling"].to_list()
         [None, None, None, None, nan, nan, -0.0185, -0.0085, -0.0142]
     """
     returns = float64_expr(returns)
@@ -2229,8 +2239,8 @@ def volatility(
         ...         "returns": [0.01, -0.02, 0.015, 0.005, -0.01, 0.02, 0.01, -0.03, 0.0, 0.01],
         ...     }
         ... )
-        >>> annual = volatility(pl.col("returns"), periods_per_year=252).over("ticker").round(4)
-        >>> frame.select(volatility=annual)["volatility"].unique().sort().to_list()
+        >>> expr = volatility(pl.col("returns"), periods_per_year=252)
+        >>> frame.select(volatility=expr.over("ticker").round(4))["volatility"].unique().sort().to_list()
         [0.2314, 0.3054]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:
@@ -2318,7 +2328,8 @@ def volatility_rolling(
         >>> from pomata.metrics import volatility_rolling
         >>>
         >>> frame = pl.DataFrame({"returns": [0.01, -0.02, 0.03, -0.01, 0.02, 0.0, -0.015]})
-        >>> frame.select(volatility_rolling(pl.col("returns"), 3, periods_per_year=252).round(4))["returns"].to_list()
+        >>> expr = volatility_rolling(pl.col("returns"), window=3, periods_per_year=252)
+        >>> frame.select(volatility_rolling=expr.round(4))["volatility_rolling"].to_list()
         [None, None, 0.3995, 0.42, 0.3305, 0.2425, 0.2787]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up on its own (the ``B`` group never
@@ -2345,15 +2356,16 @@ def volatility_rolling(
         ...         ],
         ...     }
         ... )
-        >>> rolled = volatility_rolling(pl.col("returns"), 3, periods_per_year=252).over("ticker").round(4)
-        >>> frame.select(volatility_rolling=rolled)["volatility_rolling"].to_list()
+        >>> expr = volatility_rolling(pl.col("returns"), window=3, periods_per_year=252)
+        >>> frame.with_columns(volatility_rolling=expr.over("ticker").round(4))["volatility_rolling"].to_list()
         [None, None, 0.3995, 0.42, 0.3305, 0.2425, 0.2787, None, None, 0.3995, 0.5724, 0.5575, 0.4513, 0.3637]
 
-        A leading ``null`` and a later ``NaN`` show the per-window masking, with the result recovering once both
-        leave the window:
+        A leading ``null`` and a later ``NaN`` show the per-window masking, with the result recovering once both leave
+        the window:
 
         >>> frame = pl.DataFrame({"returns": [None, 0.01, -0.02, float("nan"), 0.03, -0.01, 0.02]})
-        >>> frame.select(volatility_rolling(pl.col("returns"), 3, periods_per_year=252).round(4))["returns"].to_list()
+        >>> expr = volatility_rolling(pl.col("returns"), window=3, periods_per_year=252)
+        >>> frame.select(volatility_rolling=expr.round(4))["volatility_rolling"].to_list()
         [None, None, None, nan, nan, nan, 0.3305]
 
         **Degenerate denominator** — a constant window has zero dispersion, so the volatility is exactly ``0``:
@@ -2462,8 +2474,8 @@ def win_rate(
         ...         ],
         ...     }
         ... )
-        >>> reduced = win_rate(pl.col("returns")).over("ticker").round(4)
-        >>> frame.select(win_rate=reduced)["win_rate"].unique().sort().to_list()
+        >>> expr = win_rate(pl.col("returns"))
+        >>> frame.select(win_rate=expr.over("ticker").round(4))["win_rate"].unique().sort().to_list()
         [0.5714, 0.7143]
 
         A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data handling visible:

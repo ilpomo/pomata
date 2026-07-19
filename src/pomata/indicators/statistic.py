@@ -78,7 +78,8 @@ def linear_regression(
         >>> from pomata.indicators import linear_regression
         >>>
         >>> frame = pl.DataFrame({"x": [10.0, 11.0, 13.0, 12.0, 14.0, 13.0, 15.0]})
-        >>> frame.select(linear_regression=linear_regression(pl.col("x"), 3).round(4))["linear_regression"].to_list()
+        >>> expr = linear_regression(pl.col("x"), window=3)
+        >>> frame.select(linear_regression=expr.round(4))["linear_regression"].to_list()
         [None, None, 12.8333, 12.5, 13.5, 13.5, 14.5]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -89,14 +90,15 @@ def linear_regression(
         ...         "x": [10.0, 11.0, 13.0, 12.0, 20.0, 22.0, 21.0, 24.0],
         ...     }
         ... )
-        >>> expr = linear_regression(pl.col("x"), 3).over("ticker").round(4)
-        >>> frame.with_columns(linear_regression=expr)["linear_regression"].to_list()
+        >>> expr = linear_regression(pl.col("x"), window=3)
+        >>> frame.with_columns(linear_regression=expr.over("ticker").round(4))["linear_regression"].to_list()
         [None, None, 12.8333, 12.5, None, None, 21.5, 23.3333]
 
         A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make the handling visible:
 
         >>> frame = pl.DataFrame({"x": [10.0, 11.0, 13.0, None, 14.0, float("nan"), 16.0]})
-        >>> frame.select(linear_regression=linear_regression(pl.col("x"), 3).round(4))["linear_regression"].to_list()
+        >>> expr = linear_regression(pl.col("x"), window=3)
+        >>> frame.select(linear_regression=expr.round(4))["linear_regression"].to_list()
         [None, None, 12.8333, None, None, None, nan]
     """
     expr = float64_expr(expr)
@@ -139,8 +141,8 @@ def linear_regression_angle(
 
         Unlike the other regression outputs, the angle is **not** homogeneous in ``expr``: the arctangent is non-linear,
         so scaling the input does not scale the angle: amplifying it steepens the angle toward :math:`\pm 90`,
-        attenuating it flattens the angle toward :math:`0`. The angle depends on the
-        numeric scale of ``expr`` versus its bar spacing, so it is most meaningful on a chart's own price/time units.
+        attenuating it flattens the angle toward :math:`0`. The angle depends on the numeric scale of ``expr`` versus
+        its bar spacing, so it is most meaningful on a chart's own price/time units.
 
         **Edge-case behavior**
 
@@ -163,8 +165,8 @@ def linear_regression_angle(
         >>> from pomata.indicators import linear_regression_angle
         >>>
         >>> frame = pl.DataFrame({"x": [10.0, 11.0, 13.0, 12.0, 14.0, 13.0, 15.0]})
-        >>> expr = linear_regression_angle(pl.col("x"), 3).round(4)
-        >>> frame.select(linear_regression_angle=expr)["linear_regression_angle"].to_list()
+        >>> expr = linear_regression_angle(pl.col("x"), window=3)
+        >>> frame.select(linear_regression_angle=expr.round(4))["linear_regression_angle"].to_list()
         [None, None, 56.3099, 26.5651, 26.5651, 26.5651, 26.5651]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -175,15 +177,17 @@ def linear_regression_angle(
         ...         "x": [10.0, 11.0, 13.0, 12.0, 20.0, 22.0, 21.0, 24.0],
         ...     }
         ... )
-        >>> expr = linear_regression_angle(pl.col("x"), 3).over("ticker").round(4)
-        >>> frame.with_columns(linear_regression_angle=expr)["linear_regression_angle"].to_list()
+        >>> expr = linear_regression_angle(pl.col("x"), window=3)
+        >>> frame.with_columns(linear_regression_angle=expr.over("ticker").round(4))[
+        ...     "linear_regression_angle"
+        ... ].to_list()
         [None, None, 56.3099, 26.5651, None, None, 26.5651, 45.0]
 
         A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make the handling visible:
 
         >>> frame = pl.DataFrame({"x": [10.0, 11.0, 13.0, None, 14.0, float("nan"), 16.0]})
-        >>> expr = linear_regression_angle(pl.col("x"), 3).round(4)
-        >>> frame.select(linear_regression_angle=expr)["linear_regression_angle"].to_list()
+        >>> expr = linear_regression_angle(pl.col("x"), window=3)
+        >>> frame.select(linear_regression_angle=expr.round(4))["linear_regression_angle"].to_list()
         [None, None, 56.3099, None, None, None, nan]
     """
     expr = float64_expr(expr)
@@ -249,8 +253,8 @@ def linear_regression_intercept(
         >>> from pomata.indicators import linear_regression_intercept
         >>>
         >>> frame = pl.DataFrame({"x": [10.0, 11.0, 13.0, 12.0, 14.0, 13.0, 15.0]})
-        >>> expr = linear_regression_intercept(pl.col("x"), 3).round(4)
-        >>> frame.select(linear_regression_intercept=expr)["linear_regression_intercept"].to_list()
+        >>> expr = linear_regression_intercept(pl.col("x"), window=3)
+        >>> frame.select(linear_regression_intercept=expr.round(4))["linear_regression_intercept"].to_list()
         [None, None, 9.8333, 11.5, 12.5, 12.5, 13.5]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -261,15 +265,17 @@ def linear_regression_intercept(
         ...         "x": [10.0, 11.0, 13.0, 12.0, 20.0, 22.0, 21.0, 24.0],
         ...     }
         ... )
-        >>> expr = linear_regression_intercept(pl.col("x"), 3).over("ticker").round(4)
-        >>> frame.with_columns(linear_regression_intercept=expr)["linear_regression_intercept"].to_list()
+        >>> expr = linear_regression_intercept(pl.col("x"), window=3)
+        >>> frame.with_columns(linear_regression_intercept=expr.over("ticker").round(4))[
+        ...     "linear_regression_intercept"
+        ... ].to_list()
         [None, None, 9.8333, 11.5, None, None, 20.5, 21.3333]
 
         A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make the handling visible:
 
         >>> frame = pl.DataFrame({"x": [10.0, 11.0, 13.0, None, 14.0, float("nan"), 16.0]})
-        >>> expr = linear_regression_intercept(pl.col("x"), 3).round(4)
-        >>> frame.select(linear_regression_intercept=expr)["linear_regression_intercept"].to_list()
+        >>> expr = linear_regression_intercept(pl.col("x"), window=3)
+        >>> frame.select(linear_regression_intercept=expr.round(4))["linear_regression_intercept"].to_list()
         [None, None, 9.8333, None, None, None, nan]
     """
     expr = float64_expr(expr)
@@ -339,8 +345,8 @@ def linear_regression_slope(
         >>> from pomata.indicators import linear_regression_slope
         >>>
         >>> frame = pl.DataFrame({"x": [10.0, 11.0, 13.0, 12.0, 14.0, 13.0, 15.0]})
-        >>> expr = linear_regression_slope(pl.col("x"), 3).round(4)
-        >>> frame.select(linear_regression_slope=expr)["linear_regression_slope"].to_list()
+        >>> expr = linear_regression_slope(pl.col("x"), window=3)
+        >>> frame.select(linear_regression_slope=expr.round(4))["linear_regression_slope"].to_list()
         [None, None, 1.5, 0.5, 0.5, 0.5, 0.5]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -351,15 +357,17 @@ def linear_regression_slope(
         ...         "x": [10.0, 11.0, 13.0, 12.0, 20.0, 22.0, 21.0, 24.0],
         ...     }
         ... )
-        >>> expr = linear_regression_slope(pl.col("x"), 3).over("ticker").round(4)
-        >>> frame.with_columns(linear_regression_slope=expr)["linear_regression_slope"].to_list()
+        >>> expr = linear_regression_slope(pl.col("x"), window=3)
+        >>> frame.with_columns(linear_regression_slope=expr.over("ticker").round(4))[
+        ...     "linear_regression_slope"
+        ... ].to_list()
         [None, None, 1.5, 0.5, None, None, 0.5, 1.0]
 
         A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make the handling visible:
 
         >>> frame = pl.DataFrame({"x": [10.0, 11.0, 13.0, None, 14.0, float("nan"), 16.0]})
-        >>> expr = linear_regression_slope(pl.col("x"), 3).round(4)
-        >>> frame.select(linear_regression_slope=expr)["linear_regression_slope"].to_list()
+        >>> expr = linear_regression_slope(pl.col("x"), window=3)
+        >>> frame.select(linear_regression_slope=expr.round(4))["linear_regression_slope"].to_list()
         [None, None, 1.5, None, None, None, nan]
     """
     expr = float64_expr(expr)
@@ -399,8 +407,8 @@ def standard_deviation_ewma(
         window: Span of the exponential weighting, mapped to ``alpha = 2 / (window + 1)``. Must be ``>= 2``.
         adjust: When ``False`` (default) use the recursive form; when ``True`` use the finite-window bias-corrected
             weighting (the same flag as :func:`ema`).
-        bias: When ``True`` (default) the population standard deviation; when ``False`` the sample one.
-            ``True`` mirrors the ``ddof = 0`` default of :func:`standard_deviation_rolling`. See :func:`variance_ewma`.
+        bias: When ``True`` (default) the population standard deviation; when ``False`` the sample one. ``True`` mirrors
+            the ``ddof = 0`` default of :func:`standard_deviation_rolling`. See :func:`variance_ewma`.
 
     Returns:
         The exponentially-weighted standard deviation for each row, the same length as the input. The first
@@ -423,8 +431,8 @@ def standard_deviation_ewma(
         **Edge-case behavior**
 
         - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
-          ``null`` at that position while the recursion continues across the gap (a leading run consumes no warm-up,
-          and an interior gap decays the carried weight across it, per Polars' ``ignore_nulls=False`` convention).
+          ``null`` at that position while the recursion continues across the gap (a leading run consumes no warm-up, and
+          an interior gap decays the carried weight across it, per Polars' ``ignore_nulls=False`` convention).
         - **NaN** — a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null
           position.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
@@ -433,22 +441,22 @@ def standard_deviation_ewma(
     See Also:
         - :func:`variance_ewma`: The square of this, of which it is the root.
         - :func:`standard_deviation_rolling`: The equal-weighted (rolling-window) counterpart.
-        - :func:`ema`: The related exponential mean — note the deviations here are measured from Polars' native
-          ``ewm`` mean (seeded on the first observation), not from pomata's SMA-seeded :func:`ema`, so the two only
-          converge past the warm-up.
+        - :func:`ema`: The related exponential mean — note the deviations here are measured from Polars' native ``ewm``
+          mean (seeded on the first observation), not from pomata's SMA-seeded :func:`ema`, so the two only converge
+          past the warm-up.
 
     References:
         - J.P. Morgan / Reuters (1996). *RiskMetrics — Technical Document* (4th ed.). Cited for the concept of an
-          exponentially-weighted variance in finance; pomata computes the mean-centered, span-parameterized form
-          above, not RiskMetrics' zero-mean recursion with a ``lambda`` decay factor (``0.94`` daily).
+          exponentially-weighted variance in finance; pomata computes the mean-centered, span-parameterized form above,
+          not RiskMetrics' zero-mean recursion with a ``lambda`` decay factor (``0.94`` daily).
 
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import standard_deviation_ewma
         >>>
         >>> frame = pl.DataFrame({"x": [10.0, 11.0, 13.0, 12.0, 14.0, 13.0, 15.0]})
-        >>> expr = standard_deviation_ewma(pl.col("x"), 3).round(4)
-        >>> frame.select(standard_deviation_ewma=expr)["standard_deviation_ewma"].to_list()
+        >>> expr = standard_deviation_ewma(pl.col("x"), window=3)
+        >>> frame.select(standard_deviation_ewma=expr.round(4))["standard_deviation_ewma"].to_list()
         [None, None, 1.299, 0.927, 1.2484, 0.8833, 1.1923]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -459,15 +467,17 @@ def standard_deviation_ewma(
         ...         "x": [10.0, 11.0, 13.0, 12.0, 20.0, 22.0, 21.0, 24.0],
         ...     }
         ... )
-        >>> expr = standard_deviation_ewma(pl.col("x"), 3).over("ticker").round(4)
-        >>> frame.with_columns(standard_deviation_ewma=expr)["standard_deviation_ewma"].to_list()
+        >>> expr = standard_deviation_ewma(pl.col("x"), window=3)
+        >>> frame.with_columns(standard_deviation_ewma=expr.over("ticker").round(4))[
+        ...     "standard_deviation_ewma"
+        ... ].to_list()
         [None, None, 1.299, 0.927, None, None, 0.7071, 1.5811]
 
         A ``null`` (decays across the gap) and a ``NaN`` (which propagates) make the handling visible:
 
         >>> frame = pl.DataFrame({"x": [10.0, 11.0, 13.0, None, 14.0, float("nan"), 16.0, 17.0]})
-        >>> expr = standard_deviation_ewma(pl.col("x"), 3).round(4)
-        >>> frame.select(standard_deviation_ewma=expr)["standard_deviation_ewma"].to_list()
+        >>> expr = standard_deviation_ewma(pl.col("x"), window=3)
+        >>> frame.select(standard_deviation_ewma=expr.round(4))["standard_deviation_ewma"].to_list()
         [None, None, 1.299, None, 1.299, nan, nan, nan]
     """
     expr = float64_expr(expr)
@@ -518,16 +528,16 @@ def standard_deviation_rolling(
 
         **Degrees of freedom**
 
-        ``ddof`` carries the same meaning as in :func:`variance_rolling` (population vs sample); the standard
-        deviation is just its square root. ``ddof`` must be strictly below ``window`` so the divisor stays positive.
+        ``ddof`` carries the same meaning as in :func:`variance_rolling` (population vs sample); the standard deviation
+        is just its square root. ``ddof`` must be strictly below ``window`` so the divisor stays positive.
 
         **Edge-case behavior**
 
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
-        - **Degenerate denominator** — a window of equal values has zero spread, so the result is exactly ``0`` —
-          pinned explicitly, even where a much larger value has just left the window and the incremental rolling
-          kernel would otherwise leave a cancellation residue.
+        - **Degenerate denominator** — a window of equal values has zero spread, so the result is exactly ``0`` — pinned
+          explicitly, even where a much larger value has just left the window and the incremental rolling kernel would
+          otherwise leave a cancellation residue.
         - **window == 1** — a single value has no spread, so the result is ``0`` with the default ``ddof = 0``.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
@@ -548,8 +558,8 @@ def standard_deviation_rolling(
         >>> from pomata.indicators import standard_deviation_rolling
         >>>
         >>> frame = pl.DataFrame({"x": [10.0, 11.0, 12.0, 11.0, 13.0]})
-        >>> expr = standard_deviation_rolling(pl.col("x"), 3).round(4)
-        >>> frame.select(standard_deviation_rolling=expr)["standard_deviation_rolling"].to_list()
+        >>> expr = standard_deviation_rolling(pl.col("x"), window=3)
+        >>> frame.select(standard_deviation_rolling=expr.round(4))["standard_deviation_rolling"].to_list()
         [None, None, 0.8165, 0.4714, 0.8165]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -560,27 +570,29 @@ def standard_deviation_rolling(
         ...         "x": [10.0, 11.0, 12.0, 20.0, 22.0, 21.0],
         ...     }
         ... )
-        >>> expr = standard_deviation_rolling(pl.col("x"), 2).over("ticker").round(4)
-        >>> frame.with_columns(standard_deviation_rolling=expr)["standard_deviation_rolling"].to_list()
+        >>> expr = standard_deviation_rolling(pl.col("x"), window=2)
+        >>> frame.with_columns(standard_deviation_rolling=expr.over("ticker").round(4))[
+        ...     "standard_deviation_rolling"
+        ... ].to_list()
         [None, 0.5, 0.5, None, 1.0, 0.5]
 
         A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make the handling visible:
 
         >>> frame = pl.DataFrame({"x": [10.0, None, 12.0, float("nan"), 14.0, 15.0]})
-        >>> expr = standard_deviation_rolling(pl.col("x"), 2).round(4)
-        >>> frame.select(standard_deviation_rolling=expr)["standard_deviation_rolling"].to_list()
+        >>> expr = standard_deviation_rolling(pl.col("x"), window=2)
+        >>> frame.select(standard_deviation_rolling=expr.round(4))["standard_deviation_rolling"].to_list()
         [None, None, None, nan, nan, 0.5]
 
         **Degenerate denominator** — a constant window keeps exactly zero spread even after a much larger value has left
         it, avoiding the cancellation residue an incremental computation would leave, so the deviation is ``0``:
 
         >>> frame = pl.DataFrame({"x": [1000000.0, 0.1, 0.1, 0.1, 0.1]})
-        >>> expr = standard_deviation_rolling(pl.col("x"), window=3).round(4)
-        >>> frame.select(standard_deviation_rolling=expr)["standard_deviation_rolling"].to_list()
+        >>> expr = standard_deviation_rolling(pl.col("x"), window=3)
+        >>> frame.select(standard_deviation_rolling=expr.round(4))["standard_deviation_rolling"].to_list()
         [None, None, 471404.4737, 0.0, 0.0]
 
-        **window == 1** — a window of one observation has no spread, so the deviation is ``0`` at every row,
-        with no warm-up:
+        **window == 1** — a window of one observation has no spread, so the deviation is ``0`` at every row, with no
+        warm-up:
 
         >>> frame = pl.DataFrame({"x": [1.0, 2.0, 3.0]})
         >>> expr = standard_deviation_rolling(pl.col("x"), window=1)
@@ -665,8 +677,8 @@ def time_series_forecast(
         >>> from pomata.indicators import time_series_forecast
         >>>
         >>> frame = pl.DataFrame({"x": [10.0, 11.0, 13.0, 12.0, 14.0, 13.0, 15.0]})
-        >>> expr = time_series_forecast(pl.col("x"), 3).round(4)
-        >>> frame.select(time_series_forecast=expr)["time_series_forecast"].to_list()
+        >>> expr = time_series_forecast(pl.col("x"), window=3)
+        >>> frame.select(time_series_forecast=expr.round(4))["time_series_forecast"].to_list()
         [None, None, 14.3333, 13.0, 14.0, 14.0, 15.0]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -677,15 +689,15 @@ def time_series_forecast(
         ...         "x": [10.0, 11.0, 13.0, 12.0, 20.0, 22.0, 21.0, 24.0],
         ...     }
         ... )
-        >>> expr = time_series_forecast(pl.col("x"), 3).over("ticker").round(4)
-        >>> frame.with_columns(time_series_forecast=expr)["time_series_forecast"].to_list()
+        >>> expr = time_series_forecast(pl.col("x"), window=3)
+        >>> frame.with_columns(time_series_forecast=expr.over("ticker").round(4))["time_series_forecast"].to_list()
         [None, None, 14.3333, 13.0, None, None, 22.0, 24.3333]
 
         A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make the handling visible:
 
         >>> frame = pl.DataFrame({"x": [10.0, 11.0, 13.0, None, 14.0, float("nan"), 16.0]})
-        >>> expr = time_series_forecast(pl.col("x"), 3).round(4)
-        >>> frame.select(time_series_forecast=expr)["time_series_forecast"].to_list()
+        >>> expr = time_series_forecast(pl.col("x"), window=3)
+        >>> frame.select(time_series_forecast=expr.round(4))["time_series_forecast"].to_list()
         [None, None, 14.3333, None, None, None, nan]
     """
     expr = float64_expr(expr)
@@ -749,8 +761,8 @@ def variance_ewma(
         **Edge-case behavior**
 
         - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
-          ``null`` at that position while the recursion continues across the gap (a leading run consumes no warm-up,
-          and an interior gap decays the carried weight across it, per Polars' ``ignore_nulls=False`` convention).
+          ``null`` at that position while the recursion continues across the gap (a leading run consumes no warm-up, and
+          an interior gap decays the carried weight across it, per Polars' ``ignore_nulls=False`` convention).
         - **NaN** — a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null
           position.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
@@ -759,21 +771,21 @@ def variance_ewma(
     See Also:
         - :func:`standard_deviation_ewma`: Its square root, in the input's own units.
         - :func:`variance_rolling`: The equal-weighted (rolling-window) counterpart.
-        - :func:`ema`: The related exponential mean — note the deviations here are measured from Polars' native
-          ``ewm`` mean (seeded on the first observation), not from pomata's SMA-seeded :func:`ema`, so the two only
-          converge past the warm-up.
+        - :func:`ema`: The related exponential mean — note the deviations here are measured from Polars' native ``ewm``
+          mean (seeded on the first observation), not from pomata's SMA-seeded :func:`ema`, so the two only converge
+          past the warm-up.
 
     References:
         - J.P. Morgan / Reuters (1996). *RiskMetrics — Technical Document* (4th ed.). Cited for the concept of an
-          exponentially-weighted variance in finance; pomata computes the mean-centered, span-parameterized form
-          above, not RiskMetrics' zero-mean recursion with a ``lambda`` decay factor (``0.94`` daily).
+          exponentially-weighted variance in finance; pomata computes the mean-centered, span-parameterized form above,
+          not RiskMetrics' zero-mean recursion with a ``lambda`` decay factor (``0.94`` daily).
 
     Examples:
         >>> import polars as pl
         >>> from pomata.indicators import variance_ewma
         >>>
         >>> frame = pl.DataFrame({"x": [10.0, 11.0, 13.0, 12.0, 14.0, 13.0, 15.0]})
-        >>> frame.select(variance_ewma=variance_ewma(pl.col("x"), 3).round(4))["variance_ewma"].to_list()
+        >>> frame.select(variance_ewma=variance_ewma(pl.col("x"), window=3).round(4))["variance_ewma"].to_list()
         [None, None, 1.6875, 0.8594, 1.5586, 0.7803, 1.4216]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -784,14 +796,14 @@ def variance_ewma(
         ...         "x": [10.0, 11.0, 13.0, 12.0, 20.0, 22.0, 21.0, 24.0],
         ...     }
         ... )
-        >>> expr = variance_ewma(pl.col("x"), 3).over("ticker").round(4)
-        >>> frame.with_columns(variance_ewma=expr)["variance_ewma"].to_list()
+        >>> expr = variance_ewma(pl.col("x"), window=3)
+        >>> frame.with_columns(variance_ewma=expr.over("ticker").round(4))["variance_ewma"].to_list()
         [None, None, 1.6875, 0.8594, None, None, 0.5, 2.5]
 
         A ``null`` (decays across the gap) and a ``NaN`` (which propagates) make the handling visible:
 
         >>> frame = pl.DataFrame({"x": [10.0, 11.0, 13.0, None, 14.0, float("nan"), 16.0, 17.0]})
-        >>> frame.select(variance_ewma=variance_ewma(pl.col("x"), 3).round(4))["variance_ewma"].to_list()
+        >>> frame.select(variance_ewma=variance_ewma(pl.col("x"), window=3).round(4))["variance_ewma"].to_list()
         [None, None, 1.6875, None, 1.6875, nan, nan, nan]
     """
     expr = float64_expr(expr)
@@ -820,9 +832,9 @@ def variance_rolling(
         expr: Input series, typically a price column (e.g. ``pl.col("close")``).
         window: Number of observations in the moving window. Must be ``>= 1``.
         ddof: Delta degrees of freedom — the divisor is ``window - ddof``. ``0`` (default) divides by ``window`` (the
-            **population** variance); ``1`` divides by ``window - 1`` (the **sample** variance, the
-            unbiased estimator used when the window is a sample of a larger population). Must be ``< window`` (the
-            divisor ``window - ddof`` must be positive).
+            **population** variance); ``1`` divides by ``window - 1`` (the **sample** variance, the unbiased estimator
+            used when the window is a sample of a larger population). Must be ``< window`` (the divisor
+            ``window - ddof`` must be positive).
 
     Returns:
         The rolling variance for each row, the same length as the input. The first ``window - 1`` values are ``null``
@@ -843,18 +855,18 @@ def variance_rolling(
         **Degrees of freedom**
 
         ``ddof`` selects the divisor ``window - ddof``: ``ddof = 0`` is the population variance (÷ ``window``), the
-        charting convention; ``ddof = 1`` is the sample variance (÷ ``window - 1``), Bessel's unbiased
-        estimator. The two differ by the factor ``window / (window - ddof)`` — e.g. on ``[10, 11, 12]`` the population
-        variance is ``0.6667`` and the sample variance is ``1.0``. ``ddof`` must be strictly below ``window`` so the
-        divisor stays positive.
+        charting convention; ``ddof = 1`` is the sample variance (÷ ``window - 1``), Bessel's unbiased estimator. The
+        two differ by the factor ``window / (window - ddof)`` — e.g. on ``[10, 11, 12]`` the population variance is
+        ``0.6667`` and the sample variance is ``1.0``. ``ddof`` must be strictly below ``window`` so the divisor stays
+        positive.
 
         **Edge-case behavior**
 
         - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values).
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there.
         - **Degenerate denominator** — a window of equal values has zero dispersion, so the result is exactly ``0`` —
-          pinned explicitly, even where a much larger value has just left the window and the incremental rolling
-          kernel would otherwise leave a cancellation residue.
+          pinned explicitly, even where a much larger value has just left the window and the incremental rolling kernel
+          would otherwise leave a cancellation residue.
         - **window == 1** — a single value has no spread, so the result is ``0`` with the default ``ddof = 0``.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
@@ -875,7 +887,8 @@ def variance_rolling(
         >>> from pomata.indicators import variance_rolling
         >>>
         >>> frame = pl.DataFrame({"x": [10.0, 11.0, 12.0, 11.0, 13.0]})
-        >>> frame.select(variance_rolling=variance_rolling(pl.col("x"), 3).round(4))["variance_rolling"].to_list()
+        >>> expr = variance_rolling(pl.col("x"), window=3)
+        >>> frame.select(variance_rolling=expr.round(4))["variance_rolling"].to_list()
         [None, None, 0.6667, 0.2222, 0.6667]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -886,26 +899,27 @@ def variance_rolling(
         ...         "x": [10.0, 11.0, 12.0, 20.0, 22.0, 21.0],
         ...     }
         ... )
-        >>> expr = variance_rolling(pl.col("x"), 2).over("ticker").round(4)
-        >>> frame.with_columns(variance_rolling=expr)["variance_rolling"].to_list()
+        >>> expr = variance_rolling(pl.col("x"), window=2)
+        >>> frame.with_columns(variance_rolling=expr.over("ticker").round(4))["variance_rolling"].to_list()
         [None, 0.25, 0.25, None, 1.0, 0.25]
 
         A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make the handling visible:
 
         >>> frame = pl.DataFrame({"x": [10.0, None, 12.0, float("nan"), 14.0, 15.0]})
-        >>> frame.select(variance_rolling=variance_rolling(pl.col("x"), 2).round(4))["variance_rolling"].to_list()
+        >>> expr = variance_rolling(pl.col("x"), window=2)
+        >>> frame.select(variance_rolling=expr.round(4))["variance_rolling"].to_list()
         [None, None, None, nan, nan, 0.25]
 
         **Degenerate denominator** — a constant window keeps exactly zero dispersion even after a much larger value has
         left it, avoiding the cancellation residue an incremental computation would leave, so the variance is ``0``:
 
         >>> frame = pl.DataFrame({"x": [1000000.0, 0.1, 0.1, 0.1, 0.1]})
-        >>> expr = variance_rolling(pl.col("x"), window=3).round(4)
-        >>> frame.select(variance_rolling=expr)["variance_rolling"].to_list()
+        >>> expr = variance_rolling(pl.col("x"), window=3)
+        >>> frame.select(variance_rolling=expr.round(4))["variance_rolling"].to_list()
         [None, None, 222222177777.78, 0.0, 0.0]
 
-        **window == 1** — a window of one observation has no spread, so the variance is ``0`` at every row,
-        with no warm-up:
+        **window == 1** — a window of one observation has no spread, so the variance is ``0`` at every row, with no
+        warm-up:
 
         >>> frame = pl.DataFrame({"x": [1.0, 2.0, 3.0]})
         >>> frame.select(variance_rolling=variance_rolling(pl.col("x"), window=1))["variance_rolling"].to_list()

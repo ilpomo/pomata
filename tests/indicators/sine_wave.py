@@ -8,7 +8,7 @@ from pomata.indicators import sine_wave
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_sine_wave
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 from tests.support.strategies import spans_even_lag_run
 
 _SAMPLE = tuple(100.0 + 10.0 * math.sin(2 * math.pi * index / 20) for index in range(80))
@@ -102,6 +102,60 @@ SINE_WAVE = suite_indicators(
             "rounding on every platform and inside the documented [-1, 1] bound",
             covers_conditioning=True,
             round_to=4,
+        ),
+    ),
+    reference="Ehlers, J. F. (2001). *Rocket Science for Traders: Digital Signal Processing Applications*. Wiley.",
+    see_also=(
+        ("dominant_cycle_phase", "The phase these are the sine of."),
+        ("trend_mode", "Combines these sine-wave crossings."),
+        ("dominant_cycle_period", "The cycle these trace."),
+    ),
+    opener_override="The fixed FIR smoothing and quadrature stages are computed independently, but the "
+    "adaptive dominant-cycle period feeds back into its own measurement and the stages built "
+    "on it, so the reference oracle replays Ehlers' pipeline and confirms its internal "
+    "consistency rather than independence; the independent witness is the set of frozen "
+    "golden masters, plus TA-Lib parity on the converged tail (the differential tier compares "
+    "the whole cycle cluster — every HT_* counterpart plus MAMA — against the C reference). "
+    "Where measurable the oracle agrees to ten significant figures (a ``1e-10`` band) on any "
+    "finite input within a sane dynamic range, except on a flat or period-two (even-lag) "
+    "series, where the Hilbert quadrature is a pure cancellation residual and the measurement "
+    "is ill-conditioned (there is no cycle to measure). The documentation's *Correctness* "
+    "page gives the method and the float-conditioning limit beyond it.",
+    bullets=(
+        ("Null", "a ``null`` price latches ``null`` for every row from there."),
+        ("NaN", "a ``NaN`` price latches ``null`` for every row from there, as any non-finite value does."),
+        (
+            "Stability",
+            "on a sustained even-lag run (a flat price or a period-two alternation) the phase branch "
+            "that fixes both lines genuinely flips, so the reading is numerically arbitrary — there "
+            "is no cycle to measure. That branch guards an *exact* zero of the cosine projection "
+            "(saturating to ``±90`` as that projection vanishes), rather than the inventor's fixed "
+            "``0.001`` absolute cutoff; this is the continuous limit and keeps the sine invariant "
+            "under a lossless rescale of the price, whereas a fixed threshold would be "
+            "scale-dependent.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A struct ``pl.Expr`` with two ``Float64`` fields, the same length as ``expr``:"
+    "\n\n"
+    "- ``sine`` — the sine of the dominant-cycle phase, in ``[-1, 1]``. - ``lead_sine`` — the "
+    "sine advanced ``45°``, in ``[-1, 1]``."
+    "\n\n"
+    "The first ``63`` rows are ``null`` (warm-up). Read one line with "
+    '``.struct.field("sine")`` or split both with ``.struct.unnest()``.',
+    example_imports=("import math",),
+    intro_basic="The sine and lead-sine of a clean period-20 cycle, at the last bar (both in ``[-1, 1]``):",
+    examples=(
+        Example(
+            verbatim=(
+                ">>> frame = pl.select(close=100.0 + (2 * math.pi * pl.int_range(200) / 20).sin())",
+                '>>> waves = frame.select(sine_wave=sine_wave(pl.col("close"))).unnest("sine_wave")',
+                '>>> round(waves["sine"][-1], 2), round(waves["lead_sine"][-1], 2)',
+                "(-0.31, 0.46)",
+            )
         ),
     ),
 )

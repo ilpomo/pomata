@@ -76,20 +76,20 @@ def atr(
         **Seeding**
 
         The Wilder smoothing (:func:`rma`) is seeded with the simple average of the first ``window`` true ranges --
-        Wilder's canonical initialization. The first true range is the bar's high-low range (no prior close extends
-        it), so the seed and warm-up include it.
+        Wilder's canonical initialization. The first true range is the bar's high-low range (no prior close extends it),
+        so the seed and warm-up include it.
 
         **Edge-case behavior**
 
         - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
-          ``null`` at that position while the recursion continues across the gap — the true range is ``null`` only
-          when every :func:`true_range` candidate term is ``null``.
-        - **NaN** — a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null
-          position — except at ``window == 1``, where the smoothing is the identity and no recursion exists to latch:
-          the ``NaN`` clears once it leaves the true range's one-bar reach.
-        - **window == 1** — the smoothing factor is ``1`` and the warm-up vanishes, so the ATR reproduces the true
-          range exactly: the ``max_horizontal``-reduced true range (not a textbook three-term true range whenever a
-          candidate term is dropped by a ``null``).
+          ``null`` at that position while the recursion continues across the gap — the true range is ``null`` only when
+          every :func:`true_range` candidate term is ``null``.
+        - **NaN** — a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null position
+          — except at ``window == 1``, where the smoothing is the identity and no recursion exists to latch: the ``NaN``
+          clears once it leaves the true range's one-bar reach.
+        - **window == 1** — the smoothing factor is ``1`` and the warm-up vanishes, so the ATR reproduces the true range
+          exactly: the ``max_horizontal``-reduced true range (not a textbook three-term true range whenever a candidate
+          term is dropped by a ``null``).
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -126,8 +126,8 @@ def atr(
         ...         "close": [11.0, 12.5, 11.5, 13.5, 21.5, 21.5, 22.5, 24.0],
         ...     }
         ... )
-        >>> expr = atr(pl.col("high"), pl.col("low"), pl.col("close"), 2).over("ticker").round(4)
-        >>> frame.with_columns(atr=expr)["atr"].to_list()
+        >>> expr = atr(pl.col("high"), pl.col("low"), pl.col("close"), window=2)
+        >>> frame.with_columns(atr=expr.over("ticker").round(4))["atr"].to_list()
         [None, 2.0, 1.75, 2.125, None, 2.5, 2.25, 2.375]
 
         A ``null`` ``close`` (absorbed, so the next bar falls back to ``high - low``) then a ``NaN`` ``close`` (which
@@ -140,8 +140,7 @@ def atr(
         ...         "close": [11.5, 12.5, None, 14.5, 15.5, float("nan"), 17.5, 18.0],
         ...     }
         ... )
-        >>> expr = atr(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
-        >>> frame.select(atr=expr)["atr"].to_list()
+        >>> frame.select(atr=atr(pl.col("high"), pl.col("low"), pl.col("close"), window=2).round(4))["atr"].to_list()
         [None, 2.0, 2.0, 2.0, 2.0, 2.0, nan, nan]
 
         **window == 1** — window=1 makes the Wilder smoothing the identity, so the ATR reproduces the true range:
@@ -208,9 +207,8 @@ def atr_normalized(
         - **Null** — a leading ``null`` run stays ``null`` until the first non-null seed; an interior ``null`` yields
           ``null`` at that position while the recursion continues across the gap — inherited from :func:`atr`, with a
           ``null`` ``close`` also nulling the ratio at that row.
-        - **NaN** — a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null
-          position — inherited from :func:`atr`, with a ``NaN`` ``close`` also yielding ``NaN`` for the ratio at that
-          row.
+        - **NaN** — a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null position
+          — inherited from :func:`atr`, with a ``NaN`` ``close`` also yielding ``NaN`` for the ratio at that row.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -233,8 +231,8 @@ def atr_normalized(
         ...         "close": [10.0, 10.3, 10.5, 10.1, 10.6],
         ...     }
         ... )
-        >>> expr = atr_normalized(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
-        >>> frame.select(atr_normalized=expr)["atr_normalized"].to_list()
+        >>> expr = atr_normalized(pl.col("high"), pl.col("low"), pl.col("close"), window=2)
+        >>> frame.select(atr_normalized=expr.round(4))["atr_normalized"].to_list()
         [None, 4.3689, 4.5238, 5.3218, 5.8373]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -247,8 +245,8 @@ def atr_normalized(
         ...         "close": [10.0, 10.3, 10.5, 10.1, 20.0, 20.6, 21.0, 20.2],
         ...     }
         ... )
-        >>> expr = atr_normalized(pl.col("high"), pl.col("low"), pl.col("close"), 2).over("ticker").round(4)
-        >>> frame.with_columns(atr_normalized=expr)["atr_normalized"].to_list()
+        >>> expr = atr_normalized(pl.col("high"), pl.col("low"), pl.col("close"), window=2)
+        >>> frame.with_columns(atr_normalized=expr.over("ticker").round(4))["atr_normalized"].to_list()
         [None, 4.3689, 4.5238, 5.3218, None, 4.3689, 4.5238, 5.3218]
 
         A ``null`` ``close`` (voiding the ratio at that row) then a ``NaN`` ``close`` (which propagates through the
@@ -261,8 +259,8 @@ def atr_normalized(
         ...         "close": [10.0, 10.3, None, 10.7, float("nan"), 11.1, 11.3, 11.5],
         ...     }
         ... )
-        >>> expr = atr_normalized(pl.col("high"), pl.col("low"), pl.col("close"), 2).round(4)
-        >>> frame.select(atr_normalized=expr)["atr_normalized"].to_list()
+        >>> expr = atr_normalized(pl.col("high"), pl.col("low"), pl.col("close"), window=2)
+        >>> frame.select(atr_normalized=expr.round(4))["atr_normalized"].to_list()
         [None, 4.3689, None, 4.5561, nan, nan, nan, nan]
     """
     high = float64_expr(high)
@@ -297,9 +295,9 @@ def bollinger_bands(
     Args:
         expr: Input series, typically a price column (e.g. ``pl.col("close")``).
         window: Number of observations in the moving window. Must be ``>= 1``.
-        multiplier: Number of standard deviations between the center band and each outer band (default ``2.0``).
-            Must be a finite number ``> 0`` (a non-positive width would collapse or invert the bands). The bands are
-            symmetric; for asymmetric bands compose :func:`sma` and :func:`standard_deviation_rolling` directly.
+        multiplier: Number of standard deviations between the center band and each outer band (default ``2.0``). Must be
+            a finite number ``> 0`` (a non-positive width would collapse or invert the bands). The bands are symmetric;
+            for asymmetric bands compose :func:`sma` and :func:`standard_deviation_rolling` directly.
 
     Returns:
         A struct ``pl.Expr`` with three ``Float64`` fields, the same length as ``expr``:
@@ -308,9 +306,9 @@ def bollinger_bands(
         - ``middle`` — the center band, the :func:`sma` of ``expr``.
         - ``upper`` — the upper band, ``middle + multiplier * sigma``.
 
-        Read one band with ``.struct.field("middle")`` (etc.) or split all three into columns with
-        ``.struct.unnest()``. For the first ``window - 1`` rows (warm-up) every field of the struct is ``null`` (the
-        struct row itself stays a valid struct).
+        Read one band with ``.struct.field("middle")`` (etc.) or split all three into columns with ``.struct.unnest()``.
+        For the first ``window - 1`` rows (warm-up) every field of the struct is ``null`` (the struct row itself stays a
+        valid struct).
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
@@ -331,12 +329,12 @@ def bollinger_bands(
 
         **Edge-case behavior**
 
-        - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values)
-          — on all three fields.
+        - **Null** — a window containing a ``null`` yields ``null`` (the window must hold ``window`` non-null values) —
+          on all three fields.
         - **NaN** — a ``NaN`` inside the window propagates, yielding ``NaN`` there — on all three fields.
         - **Degenerate denominator** — a window of equal values has zero standard deviation (see
-          :func:`standard_deviation_rolling`), so all three bands collapse onto the constant — even at
-          ``window == 1``, or just after a much larger value has left the window.
+          :func:`standard_deviation_rolling`), so all three bands collapse onto the constant — even at ``window == 1``,
+          or just after a much larger value has left the window.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -354,17 +352,17 @@ def bollinger_bands(
         >>> from pomata.indicators import bollinger_bands
         >>>
         >>> frame = pl.DataFrame({"close": [10.0, 11.0, 12.0, 11.0, 13.0]})
-        >>> bands = bollinger_bands(pl.col("close"), 3)
-        >>> frame.select(lower=bands.struct.field("lower").round(4))["lower"].to_list()
+        >>> expr = bollinger_bands(pl.col("close"), window=3)
+        >>> frame.select(lower=expr.struct.field("lower").round(4))["lower"].to_list()
         [None, None, 9.367, 10.3905, 10.367]
-        >>> frame.select(middle=bands.struct.field("middle").round(4))["middle"].to_list()
+        >>> frame.select(middle=expr.struct.field("middle").round(4))["middle"].to_list()
         [None, None, 11.0, 11.3333, 12.0]
-        >>> frame.select(upper=bands.struct.field("upper").round(4))["upper"].to_list()
+        >>> frame.select(upper=expr.struct.field("upper").round(4))["upper"].to_list()
         [None, None, 12.633, 12.2761, 13.633]
 
         Split the struct into three columns with ``.struct.unnest()``:
 
-        >>> frame.select(bollinger_bands=bands).unnest("bollinger_bands").columns
+        >>> frame.select(bollinger_bands=expr).unnest("bollinger_bands").columns
         ['lower', 'middle', 'upper']
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -375,15 +373,15 @@ def bollinger_bands(
         ...         "close": [10.0, 11.0, 12.0, 20.0, 22.0, 21.0],
         ...     }
         ... )
-        >>> expr = bollinger_bands(pl.col("close"), 2).over("ticker").struct.field("middle").round(4)
-        >>> frame.with_columns(middle=expr)["middle"].to_list()
+        >>> expr = bollinger_bands(pl.col("close"), window=2)
+        >>> frame.with_columns(middle=expr.over("ticker").struct.field("middle").round(4))["middle"].to_list()
         [None, 10.5, 11.5, None, 21.0, 21.5]
 
         A ``null`` and a ``NaN`` propagate to every band; the middle band makes the handling visible:
 
         >>> frame = pl.DataFrame({"close": [10.0, None, 12.0, float("nan"), 14.0, 15.0]})
-        >>> expr = bollinger_bands(pl.col("close"), 2).struct.field("middle").round(4)
-        >>> frame.select(middle=expr)["middle"].to_list()
+        >>> expr = bollinger_bands(pl.col("close"), window=2)
+        >>> frame.select(middle=expr.struct.field("middle").round(4))["middle"].to_list()
         [None, None, None, nan, nan, 14.5]
 
         **Degenerate denominator** — a constant window has zero deviation, so all three bands collapse onto the middle
@@ -462,8 +460,8 @@ def true_range(
           ``null`` at the row, but where the previous ``close`` is itself ``null`` (row ``0``, or any bar after a
           ``null`` close) the two gap distances are already ``null``, so a single ``null`` in ``high`` or ``low`` voids
           the row on its own.
-        - **NaN** — a ``NaN`` price yields ``NaN`` for that row — it is not skipped like a ``null`` (it dominates
-          the maximum), so a ``NaN`` ``close`` also contaminates the two gap terms of the next row.
+        - **NaN** — a ``NaN`` price yields ``NaN`` for that row — it is not skipped like a ``null`` (it dominates the
+          maximum), so a ``NaN`` ``close`` also contaminates the two gap terms of the next row.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -487,8 +485,8 @@ def true_range(
         ...         "close": [9.5, 11.0, 10.5, 12.5, 12.0],
         ...     }
         ... )
-        >>> expr = true_range(pl.col("high"), pl.col("low"), pl.col("close")).round(4)
-        >>> frame.select(true_range=expr)["true_range"].to_list()
+        >>> expr = true_range(pl.col("high"), pl.col("low"), pl.col("close"))
+        >>> frame.select(true_range=expr.round(4))["true_range"].to_list()
         [1.0, 2.5, 1.5, 2.5, 1.0]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -501,8 +499,8 @@ def true_range(
         ...         "close": [11.0, 12.5, 11.5, 13.5, 21.5, 21.5, 22.5, 24.0],
         ...     }
         ... )
-        >>> expr = true_range(pl.col("high"), pl.col("low"), pl.col("close")).over("ticker").round(4)
-        >>> frame.with_columns(true_range=expr)["true_range"].to_list()
+        >>> expr = true_range(pl.col("high"), pl.col("low"), pl.col("close"))
+        >>> frame.with_columns(true_range=expr.over("ticker").round(4))["true_range"].to_list()
         [2.0, 2.0, 1.5, 2.5, 2.0, 3.0, 2.0, 2.5]
 
         A ``null`` ``close`` (skipped, so the next bar falls back to ``high - low``) then a ``NaN`` ``close`` (which
@@ -515,8 +513,8 @@ def true_range(
         ...         "close": [11.5, 12.5, None, 14.5, 15.5, float("nan"), 17.5, 18.0],
         ...     }
         ... )
-        >>> expr = true_range(pl.col("high"), pl.col("low"), pl.col("close")).round(4)
-        >>> frame.select(true_range=expr)["true_range"].to_list()
+        >>> expr = true_range(pl.col("high"), pl.col("low"), pl.col("close"))
+        >>> frame.select(true_range=expr.round(4))["true_range"].to_list()
         [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, nan, 2.0]
     """
     high = float64_expr(high)

@@ -6,7 +6,7 @@ from pomata.pnl import pnl_net
 from tests.pnl.enums import BehaviorNan, BehaviorNull, ConventionSign, SpaceCost
 from tests.pnl.harness import suite_pnl
 from tests.pnl.oracles import reference_pnl_net
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 
 PNL_NET = suite_pnl(
     factory=pnl_net,
@@ -45,6 +45,63 @@ PNL_NET = suite_pnl(
             expected=(math.nan, 4.0),
             reason="a same-sign infinite gross and cost cancel to inf - inf = NaN; the property tiers set "
             "allow_infinity=False",
+        ),
+    ),
+    wikipedia="https://en.wikipedia.org/wiki/Mark-to-market_accounting",
+    see_also=(
+        ("pnl_gross", "The gross position PnL this nets costs from."),
+        ("cost_per_share", "A usual source of ``cost`` (sum several cost components with ``+``)."),
+        ("cumulative_pnl", "Cumulates these net PnL into a running currency total."),
+    ),
+    bullets=(
+        ("Null", "a ``null`` gross P&L makes that row ``null`` (``null`` takes precedence over ``NaN``)."),
+        ("NaN", "a ``NaN`` gross P&L yields ``NaN`` for that row."),
+        (
+            "Non-finite input",
+            "an ``inf`` gross P&L follows IEEE-754 through the arithmetic (the sign, and any ``inf - "
+            "inf = NaN``, included).",
+        ),
+        (
+            "Partitioning",
+            "already correct on a multi-series panel: ``.over(...)`` partitions identically and is "
+            "therefore optional here.",
+        ),
+    ),
+    returns_body="The net PnL for each row, the same length as the inputs.",
+    args_prose={
+        "pnl_gross": "Gross per-bar position PnL, typically from :func:`pnl_gross`.",
+        "cost": "Per-bar transaction cost in the same currency, typically from :func:`cost_per_share` "
+        "(sum several with ``+``).",
+    },
+    intro_basic="Basic usage on a gross P&L and a cost series:",
+    examples=(
+        Example(
+            inputs={
+                "pnl_gross": (20.0, 5.0, -15.0, -20.0, 8.0, 12.0, -3.0, 10.0),
+                "cost": (2.0, 0.0, 3.0, 0.0, 1.0, 2.0, 0.0, 1.0),
+            },
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "pnl_gross": (20.0, 5.0, -15.0, -20.0, 8.0, 12.0, -3.0, 10.0),
+                "cost": (2.0, 0.0, 3.0, 0.0, 1.0, 2.0, 0.0, 1.0),
+            },
+            intro="The subtraction is elementwise, so ``.over`` partitions identically and is shown only "
+            "for consistency:",
+            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            round_to=4,
+        ),
+        Example(
+            inputs={"pnl_gross": (20.0, None, -15.0, float("nan"), 8.0), "cost": (2.0, 3.0, 3.0, 0.0, 1.0)},
+            intro="A ``null`` then a ``NaN`` in ``pnl_gross`` (both propagate through the subtraction) make "
+            "the missing-data handling visible:",
+            round_to=4,
+        ),
+        Example(
+            inputs={"pnl_gross": (float("inf"), 5.0), "cost": (float("inf"), 1.0)},
+            intro="**Non-finite input** — a same-sign infinite gross PnL and cost cancel to ``inf - inf``, "
+            "so the net PnL is ``NaN``:",
         ),
     ),
 )

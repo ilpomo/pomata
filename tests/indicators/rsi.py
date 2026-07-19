@@ -6,7 +6,7 @@ from pomata.indicators import rsi
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_rsi
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 RSI = suite_indicators(
     factory=rsi,
@@ -73,6 +73,99 @@ RSI = suite_indicators(
             params_override={"window": 2},
             expected=(None, None, None, 100.0, 100.0),
             reason="a leading null defers the first difference; the warm-up is measured from the first non-null value ",
+        ),
+    ),
+    reference="Wilder, J. W. (1978). *New Concepts in Technical Trading Systems*. Trend Research.",
+    wikipedia="https://en.wikipedia.org/wiki/Relative_strength_index",
+    see_also=(
+        ("rma", "Wilder's moving average that smooths the gains and losses RSI is built on."),
+        ("money_flow_index", "The volume-weighted analog — the same oscillator on raw money flow."),
+        ("chande_momentum_oscillator", "The unsmoothed sibling that sums gains and losses over a fixed window."),
+    ),
+    notes=(
+        (
+            "Seeding",
+            "The gain and loss averages use Wilder's :func:`rma`, seeded with the simple average of "
+            "the first ``window`` gains and losses -- Wilder's canonical initialization, exact from "
+            "the first emitted value.",
+        ),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a leading ``null`` run stays ``null`` until the first non-null seed; an interior "
+            "``null`` yields ``null`` at that position while the recursion continues across the gap — "
+            "the one-bar difference reads the missing observation twice, so an interior ``null`` "
+            "voids its own row and the next.",
+        ),
+        (
+            "NaN",
+            "a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null position.",
+        ),
+        (
+            "Insufficient sample",
+            "a series shorter than ``window + 1`` never completes the first difference, so the result is ``null``.",
+        ),
+        (
+            "Degenerate denominator",
+            "no up and no down move leaves the relative strength indeterminate, so the result is a "
+            "``0 / 0``, i.e. ``NaN`` (genuinely undefined, not a conventional ``50`` or ``100``).",
+        ),
+        (
+            "window == 1",
+            "the smoothing vanishes: each row reports ``100`` on an up move, ``0`` on a down move, "
+            "and ``NaN`` on no move.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The RSI for each row, the same length as ``expr``. The first ``window`` values are "
+    "``null`` (warm-up) -- Wilder's RSI needs ``window + 1`` prices for its first value, "
+    "since row ``0`` has no difference and the gain / loss averages count ``window`` non-null "
+    "differences before emitting.",
+    raises_prose="ValueError: If ``window < 1``.",
+    args_prose={
+        "window": "Number of observations in the Wilder moving window. Must be ``>= 1``.",
+    },
+    intro_basic="Basic usage on a single price series:",
+    example_columns={"expr": "close"},
+    examples=(
+        Example(
+            inputs={"expr": (44.34, 44.09, 44.15, 43.61, 44.33, 44.83, 45.1, 45.42)}, params={"window": 3}, round_to=4
+        ),
+        Example(
+            inputs={"expr": (10.0, 11.0, 10.5, 11.5, 12.5, 50.0, 49.0, 51.0, 50.5, 52.0)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so the difference and the recursion "
+            "restart per group -- note that each ticker warms up independently:",
+            partition=("A", "A", "A", "A", "A", "B", "B", "B", "B", "B"),
+            params={"window": 3},
+            round_to=2,
+        ),
+        Example(
+            inputs={"expr": (10.0, 11.0, 12.0, 13.0, None, 15.0, float("nan"), 17.0, 18.0, 19.0)},
+            intro="A ``null`` (skipped, and any window it touches yields ``null``) and a ``NaN`` (which "
+            "propagates) make the exact handling visible at a glance:",
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={"expr": (42.0,)},
+            intro="**Insufficient sample** — a one-element series has no difference to seed the recursion:",
+            params={"window": 1},
+        ),
+        Example(
+            inputs={"expr": (5.0, 5.0, 5.0, 5.0)},
+            intro="**Degenerate denominator** — zero gain and zero loss is the indeterminate ``0/0`` "
+            "relative strength, surfaced as ``NaN``:",
+            params={"window": 2},
+        ),
+        Example(
+            inputs={"expr": (1.0, 3.0, 2.0, 5.0)},
+            intro="**window == 1** — a one-bar window collapses the Wilder smoothing to the raw move "
+            "direction: ``100`` up, ``0`` down:",
+            params={"window": 1},
         ),
     ),
 )

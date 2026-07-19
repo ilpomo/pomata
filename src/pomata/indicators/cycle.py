@@ -294,10 +294,10 @@ def dominant_cycle_period(
         expr: Input series, typically a price column (e.g. ``pl.col("close")``).
 
     Returns:
-        The dominant-cycle period for each row, the same length as ``expr``, settling into ``[6, 50]`` (the raw
-        estimate is clamped there before the reported double-smoothing, so every emitted row already lies inside the
-        band; the earliest rows start near its middle while the smoothers converge). The first ``32`` rows are
-        ``null`` (the warm-up the recursive smoothers need to settle).
+        The dominant-cycle period for each row, the same length as ``expr``, settling into ``[6, 50]`` (the raw estimate
+        is clamped there before the reported double-smoothing, so every emitted row already lies inside the band; the
+        earliest rows start near its middle while the smoothers converge). The first ``32`` rows are ``null`` (the
+        warm-up the recursive smoothers need to settle).
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
@@ -388,8 +388,8 @@ def dominant_cycle_phase(
         - **Stability** — on a constant (flat) price, or any sustained even-lag run, the discrete transform's
           projections are pure cancellation residuals, so the phase is numerically arbitrary — there is no cycle to
           measure. The phase branch guards an *exact* zero of the cosine projection (saturating to ``±90`` as that
-          projection vanishes), rather than the inventor's fixed ``0.001`` absolute cutoff; this is the continuous
-          limit and keeps the phase invariant under a lossless rescale of the price, whereas a fixed threshold would be
+          projection vanishes), rather than the inventor's fixed ``0.001`` absolute cutoff; this is the continuous limit
+          and keeps the phase invariant under a lossless rescale of the price, whereas a fixed threshold would be
           scale-dependent.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
@@ -506,8 +506,8 @@ def hilbert_trendline(
         expr: Input series, typically a price column (e.g. ``pl.col("close")``).
 
     Returns:
-        The instantaneous trendline for each row, the same length as ``expr``, on the price scale. The first ``63``
-        rows are ``null`` (warm-up).
+        The instantaneous trendline for each row, the same length as ``expr``, on the price scale. The first ``63`` rows
+        are ``null`` (warm-up).
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
@@ -597,10 +597,10 @@ def mama(
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
-        ValueError: If ``limit_fast`` or ``limit_slow`` is outside ``(0, 1]`` — the smoothing constant is a weight, so
-            a limit above ``1`` makes ``1 - alpha`` negative and the recurrence diverges — or if ``limit_fast <
-            limit_slow``, which would pin the adaptive smoothing constant at ``limit_slow`` and make ``limit_fast`` a
-            false upper bound.
+        ValueError: If ``limit_fast`` or ``limit_slow`` is outside ``(0, 1]`` — the smoothing constant is a weight, so a
+            limit above ``1`` makes ``1 - alpha`` negative and the recurrence diverges — or if
+            ``limit_fast < limit_slow``, which would pin the adaptive smoothing constant at ``limit_slow`` and make
+            ``limit_fast`` a false upper bound.
 
     Note:
         **Precision**
@@ -714,10 +714,10 @@ def sine_wave(
         - **Null** — a ``null`` price latches ``null`` for every row from there.
         - **NaN** — a ``NaN`` price latches ``null`` for every row from there, as any non-finite value does.
         - **Stability** — on a sustained even-lag run (a flat price or a period-two alternation) the phase branch that
-          fixes both lines genuinely flips, so the reading is numerically arbitrary — there is no cycle to measure.
-          That branch guards an *exact* zero of the cosine projection (saturating to ``±90`` as that projection
-          vanishes), rather than the inventor's fixed ``0.001`` absolute cutoff; this is the continuous limit and keeps
-          the sine invariant under a lossless rescale of the price, whereas a fixed threshold would be scale-dependent.
+          fixes both lines genuinely flips, so the reading is numerically arbitrary — there is no cycle to measure. That
+          branch guards an *exact* zero of the cosine projection (saturating to ``±90`` as that projection vanishes),
+          rather than the inventor's fixed ``0.001`` absolute cutoff; this is the continuous limit and keeps the sine
+          invariant under a lossless rescale of the price, whereas a fixed threshold would be scale-dependent.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -766,8 +766,8 @@ def trend_mode(
     Returns:
         The mode flag (``1.0`` trend / ``0.0`` cycle) for each row, the same length as ``expr``. The first ``63`` rows
         are ``null`` (warm-up). The days-in-trend count the flag thresholds has no canonical seed, so for a few dozen
-        rows past the warm-up the flag can differ from a differently-seeded implementation before that state
-        converges; the TA-Lib parity below holds on the converged tail.
+        rows past the warm-up the flag can differ from a differently-seeded implementation before that state converges;
+        the TA-Lib parity below holds on the converged tail.
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.

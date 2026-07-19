@@ -14,13 +14,21 @@ builder, the lane readers, the oracle bridge, the sizing helpers) they and the s
 """
 
 import enum
+import inspect
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import cast
 
 import polars as pl
 
+import pomata.indicators
+import pomata.metrics
+import pomata.pnl
 from tests.support.frames import KNOWN_ROLES
+
+# Every public function name, across all three families — the source of truth the ``see_also`` prose validates against
+# so a documentation cross-reference can never name a function that does not exist.
+_PUBLIC_NAMES = frozenset(name for module in (pomata.pnl, pomata.metrics, pomata.indicators) for name in module.__all__)
 
 ScalarParam = int | float | bool
 Lane = tuple[float | None, ...]
@@ -32,6 +40,14 @@ OracleFn = Callable[..., object]
 
 
 def _no_params() -> dict[str, ScalarParam]:
+    return {}
+
+
+def _no_prose() -> dict[str, str]:
+    return {}
+
+
+def _no_lanes() -> dict[str, "Lane"]:
     return {}
 
 
@@ -105,6 +121,27 @@ class Pin:
     # only allowed together with at least one such pin (checked in ``__post_init__``), so no input regime is ever
     # silently asserted away.
     covers_conditioning: bool = False
+
+
+@dataclass(frozen=True, kw_only=True)
+class Example:
+    """
+    One Examples scenario, as data the docstring generator renders in the canonical idiom and executes at build time.
+
+    A standard scenario states its ``inputs`` (role → lane, the frame the example loads), the per-call ``params``, the
+    display ``round_to`` and struct ``fields``, and an optional ``partition`` (the ``.over(...)`` panel). A bespoke
+    scenario the idiom cannot render — a computed cycle frame, the struct ``.columns`` demonstration — carries its exact
+    source lines in ``verbatim`` instead; the two forms are mutually exclusive (checked on the owning declaration).
+    """
+
+    inputs: Mapping[str, Lane] = field(default_factory=_no_lanes)  # role → lane; the frame's input columns
+    intro: str = ""  # the prose intro opening the scenario; empty opens straight into code
+    partition: tuple[str, ...] = ()  # the ``.over(...)`` group labels; empty for a non-panel scenario
+    partition_col: str = "ticker"  # the panel's partition column name (``session`` for an intraday anchor)
+    params: Mapping[str, ScalarParam] = field(default_factory=_no_params)  # the per-call params for this scenario
+    round_to: int | None = None  # the ``.round(N)`` digit applied before display; ``None`` shows the raw value
+    fields: tuple[str, ...] = ()  # the struct fields displayed, each its own output line; empty for a single lane
+    verbatim: tuple[str, ...] = ()  # a bespoke scenario's exact source lines, re-emitted as-is; empty for a standard
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -192,6 +229,62 @@ class Declaration:
     # contracting recursion — the parabolic SAR cold start, the Ehlers Fisher pipeline).
     flow_horizon: int = -1
 
+    # --- documentation prose (pure data; read by the docstring generator, by no rung) ---
+    # The three References buckets, each independent and each empty where the function documents none: the literature
+    # citation line (author, year, title), the DOI URL, and the encyclopedic (Wikipedia) reference URL.
+    reference: str = ""
+    doi: str = ""
+    wikipedia: str = ""
+    # A fourth References bucket: a reference URL that is neither a DOI nor a Wikipedia page (a methodology page), so
+    # the generator can render it without mistaking it for one of the two typed buckets (checked in ``__post_init__``).
+    reference_url: str = ""
+    # The See Also entries: each a ``(public-function name, one-line clause)`` pair; every name must be a public
+    # function in some family's ``__all__`` (checked in ``__post_init__``).
+    see_also: tuple[tuple[str, str], ...] = ()
+    # The pre-list Note subheaders: each a ``(label, body)`` pair, the family opener and the derived Edge-case list
+    # aside; each label is non-empty (checked in ``__post_init__``).
+    notes: tuple[tuple[str, str], ...] = ()
+    # A per-function replacement of the whole Note opener body, for the functions whose opener is bespoke rather than
+    # the family template (the Hilbert / cycle indicators, a rolling twin whose window clause deviates). Empty means
+    # the family template (or the rolling twin-agreement sentence) is used. Mutually exclusive with ``note_extension``.
+    opener_override: str = ""
+    # The per-function extension of the Note opener: the sentence(s) the corpus appends to the family opener body
+    # (a scale-invariance remark, a denominator clarification), beyond the shared family template. Empty by default.
+    note_extension: str = ""
+    # The Edge-case behavior bullets, each a ``(label, body)`` pair, in source order — the whole edge-bullet list as
+    # data, including the Partitioning bullet. The behavior axes remain independently verified by the rungs; this is
+    # only the prose. Each label is non-empty (checked in ``__post_init__``).
+    bullets: tuple[tuple[str, str], ...] = ()
+    # A Note paragraph rendered AFTER the Edge-case list, for the one function whose Note trails the bullet list with a
+    # standalone paragraph (a method remark that belongs to neither the opener nor a bullet). Empty for every function
+    # that ends its Note on the Edge-case list.
+    note_postscript: str = ""
+    # The Returns body, verbatim (one wrapped paragraph): per-function prose no shape template captures on its own.
+    returns_body: str = ""
+    # The Raises ValueError clause, verbatim: the ``TypeError`` line is the shared template, the ValueError text (the
+    # per-function validation clause) is not derivable from the ``raises`` match regexes, so it is carried as data.
+    raises_prose: str = ""
+    # Per-parameter Args descriptions overriding the mined majority template: keyed by a factory parameter name (a key
+    # off the signature is rejected in ``__post_init__``), each the full description for a parameter whose wording is
+    # per-function (``window`` alone carries seventeen wordings). A parameter absent here uses the shared template.
+    args_prose: Mapping[str, str] = field(default_factory=_no_prose)
+    # The Examples import alias, for the one function documented under a short alias (``as m_squared``); empty means
+    # the bare function name is imported.
+    example_alias: str = ""
+    # Extra Examples imports beyond ``import polars as pl`` (e.g. ``import math`` for the closed-form cycle checks),
+    # each a full import statement, rendered after the polars import.
+    example_imports: tuple[str, ...] = ()
+    # The optional prose line opening the whole Examples block, before the import header. Empty where the block opens
+    # straight into the import header (the common case); a per-scenario intro lives on its :class:`Example` instead.
+    intro_basic: str = ""
+    # The Examples column names: each declared input role → the display column the examples load it under (the ``expr``
+    # role shown as ``close``, the ``price`` role as ``x``). A role absent here is shown under its own name. Every key
+    # must be a declared input (checked in ``__post_init__``).
+    example_columns: Mapping[str, str] = field(default_factory=_no_prose)
+    # The Examples scenarios in source order — the canonical trio (basic, ``.over`` panel, null / NaN) and the edge
+    # scenarios — each rendered in the canonical idiom and executed at generation. Empty for a function with none.
+    examples: tuple[Example, ...] = ()
+
     def __post_init__(self) -> None:
         """Conditional requirements, checked loudly at construction (import time) — the one obvious place they live."""
         self._check_inputs()
@@ -204,6 +297,8 @@ class Declaration:
         self._check_deviant()
         self._check_rolling()
         self._check_talib()
+        self._check_prose()
+        self._check_examples()
         if self.params and not self.raises:
             msg = f"{self.name}: declares params but no raises counterexamples — the validation rung would be a no-op"
             raise ValueError(msg)
@@ -329,6 +424,59 @@ class Declaration:
         if not documented and self.talib_reason:
             msg = f"{self.name}: talib={self.talib.name} is a matching twin and takes no talib_reason"
             raise ValueError(msg)
+
+    def _check_prose(self) -> None:
+        for target, _clause in self.see_also:
+            if target not in _PUBLIC_NAMES:
+                msg = f"{self.name}: see_also names {target!r}, which is not a public function in any family __all__"
+                raise ValueError(msg)
+        for label, _body in self.notes:
+            if not label.strip():
+                msg = f"{self.name}: a note subheader must carry a non-empty label"
+                raise ValueError(msg)
+            if label.rstrip().endswith(":"):
+                msg = f"{self.name}: note subheader {label!r} must not end with a colon (it renders as a bold header)"
+                raise ValueError(msg)
+        for label, _body in self.bullets:
+            if not label.strip():
+                msg = f"{self.name}: an edge-case bullet must carry a non-empty label"
+                raise ValueError(msg)
+        if self.opener_override and self.note_extension:
+            msg = f"{self.name}: opener_override replaces the whole opener body, so note_extension cannot extend it"
+            raise ValueError(msg)
+        if self.reference_url and ("doi.org" in self.reference_url or "wikipedia.org" in self.reference_url):
+            msg = (
+                f"{self.name}: reference_url is the non-DOI/non-Wikipedia bucket — a {self.reference_url} URL belongs "
+                "in doi/wikipedia"
+            )
+            raise ValueError(msg)
+        params = set(inspect.signature(self.factory).parameters)
+        unknown = sorted(key for key in self.args_prose if key not in params)
+        if unknown:
+            msg = f"{self.name}: args_prose describes {unknown}, which are not parameters of {self.name}"
+            raise ValueError(msg)
+
+    def _check_examples(self) -> None:
+        stray = sorted(role for role in self.example_columns if role not in self.inputs)
+        if stray:
+            msg = f"{self.name}: example_columns names {stray}, which are not declared inputs {list(self.inputs)}"
+            raise ValueError(msg)
+        for i, example in enumerate(self.examples):
+            if bool(example.inputs) == bool(example.verbatim):
+                msg = f"{self.name}: example {i} must state either inputs or verbatim source, not both nor neither"
+                raise ValueError(msg)
+            if example.verbatim:
+                continue
+            if set(example.inputs) != set(self.inputs):
+                msg = f"{self.name}: example {i} inputs {sorted(example.inputs)} must match inputs {list(self.inputs)}"
+                raise ValueError(msg)
+            bad = sorted(field_name for field_name in example.fields if field_name not in self.fields)
+            if bad:
+                msg = f"{self.name}: example {i} displays fields {bad}, which are not declared struct fields"
+                raise ValueError(msg)
+            if example.partition and any(len(lane) != len(example.partition) for lane in example.inputs.values()):
+                msg = f"{self.name}: example {i} partition length must match each input lane length"
+                raise ValueError(msg)
 
     # --- derived, never declared: read off the factory ---
 

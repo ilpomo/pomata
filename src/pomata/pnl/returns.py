@@ -49,11 +49,11 @@ def returns_log(
         - **Null** — a ``null`` price makes that row ``null`` (``null`` takes precedence over ``NaN``) — reading two
           endpoints, a ``null`` at the current or the previous row voids the output that references it.
         - **NaN** — a ``NaN`` price yields ``NaN`` for that row — a fixed-lag transform of two endpoints, not a
-          recurrence, so a ``NaN`` (like a ``null``) contaminates only the rows that reference it and never latches
-          onto the rest of the series.
-        - **Domain** — a negative price relative (the prices straddle zero) is outside the logarithm's
-          strictly-positive domain, so the result is a loud ``NaN`` — except with both prices negative, where the ratio
-          is positive and the log is silently finite, an economically meaningless number the caller must screen for.
+          recurrence, so a ``NaN`` (like a ``null``) contaminates only the rows that reference it and never latches onto
+          the rest of the series.
+        - **Domain** — a negative price relative (the prices straddle zero) is outside the logarithm's strictly-positive
+          domain, so the result is a loud ``NaN`` — except with both prices negative, where the ratio is positive and
+          the log is silently finite, an economically meaningless number the caller must screen for.
         - **Degenerate denominator** — both the price and the previous price zero give a ``0 / 0``, i.e. ``NaN`` (the
           logarithm then carries the ``NaN`` through); a zero price relative logs to ``-inf`` and a positive price over
           a zero previous price logs to ``+inf`` — reported, not clipped (a negative-zero ``-0.0`` previous price swaps
@@ -90,8 +90,8 @@ def returns_log(
         ...         "close": [100.0, 105.0, 102.0, 108.0, 50.0, 52.0, 51.0, 55.0],
         ...     }
         ... )
-        >>> expr = returns_log(pl.col("close")).over("ticker").round(4)
-        >>> frame.with_columns(returns_log=expr)["returns_log"].to_list()
+        >>> expr = returns_log(pl.col("close"))
+        >>> frame.with_columns(returns_log=expr.over("ticker").round(4))["returns_log"].to_list()
         [None, 0.0488, -0.029, 0.0572, None, 0.0392, -0.0194, 0.0755]
 
         A ``null`` (whose lag voids the next bar too) and a ``NaN`` (which propagates) touch only the positions that
@@ -101,29 +101,29 @@ def returns_log(
         >>> frame.select(returns_log=returns_log(pl.col("close")).round(4))["returns_log"].to_list()
         [None, 0.0488, None, None, 0.0183, nan, nan, 0.0175]
 
-        **Domain** — a negative price relative is outside the logarithm's domain and returns ``NaN``, a zero
-        relative logs to ``-inf``, and a zero previous price makes the relative ``+inf``:
+        **Domain** — a negative price relative is outside the logarithm's domain and returns ``NaN``, a zero relative
+        logs to ``-inf``, and a zero previous price makes the relative ``+inf``:
 
         >>> frame = pl.DataFrame({"close": [10.0, -5.0, 0.0, 5.0]})
         >>> frame.select(returns_log=returns_log(pl.col("close")))["returns_log"].to_list()
         [None, nan, -inf, inf]
 
-        **Degenerate denominator** — a ``-0.0`` previous price flips the relative's sign, so a positive price
-        gives a negative relative and the log is ``NaN``:
+        **Degenerate denominator** — a ``-0.0`` previous price flips the relative's sign, so a positive price gives a
+        negative relative and the log is ``NaN``:
 
         >>> frame = pl.DataFrame({"close": [-0.0, 5.0]})
         >>> frame.select(returns_log=returns_log(pl.col("close")))["returns_log"].to_list()
         [None, nan]
 
-        **Degenerate denominator** — a ``-0.0`` previous price with a negative price gives a positive relative,
-        so the log is ``+inf``:
+        **Degenerate denominator** — a ``-0.0`` previous price with a negative price gives a positive relative, so the
+        log is ``+inf``:
 
         >>> frame = pl.DataFrame({"close": [-0.0, -5.0]})
         >>> frame.select(returns_log=returns_log(pl.col("close")))["returns_log"].to_list()
         [None, inf]
 
-        **Non-finite input** — two consecutive same-sign infinite prices divide to an indeterminate ``inf / inf``,
-        so the second log return is ``NaN``:
+        **Non-finite input** — two consecutive same-sign infinite prices divide to an indeterminate ``inf / inf``, so
+        the second log return is ``NaN``:
 
         >>> frame = pl.DataFrame({"close": [float("inf"), float("inf"), 1.0, float("-inf")]})
         >>> frame.select(returns_log=returns_log(pl.col("close")))["returns_log"].to_list()
@@ -174,8 +174,8 @@ def returns_simple(
         - **Null** — a ``null`` price makes that row ``null`` (``null`` takes precedence over ``NaN``) — reading two
           endpoints, a ``null`` at the current or the previous row voids the output that references it.
         - **NaN** — a ``NaN`` price yields ``NaN`` for that row — a fixed-lag transform of two endpoints, not a
-          recurrence, so a ``NaN`` (like a ``null``) contaminates only the rows that reference it and never latches
-          onto the rest of the series.
+          recurrence, so a ``NaN`` (like a ``null``) contaminates only the rows that reference it and never latches onto
+          the rest of the series.
         - **Degenerate denominator** — the previous price is ``0``, so a zero change is a ``0 / 0``, i.e. ``NaN`` —
           while a non-zero change over it is ``+/-inf`` (the sign tracks the change), reported, not clipped, and a
           negative-zero ``-0.0`` previous price flips that sign but does not arise from real price data.
@@ -211,8 +211,8 @@ def returns_simple(
         ...         "close": [100.0, 105.0, 102.0, 108.0, 50.0, 52.0, 51.0, 55.0],
         ...     }
         ... )
-        >>> expr = returns_simple(pl.col("close")).over("ticker").round(4)
-        >>> frame.with_columns(returns_simple=expr)["returns_simple"].to_list()
+        >>> expr = returns_simple(pl.col("close"))
+        >>> frame.with_columns(returns_simple=expr.over("ticker").round(4))["returns_simple"].to_list()
         [None, 0.05, -0.0286, 0.0588, None, 0.04, -0.0192, 0.0784]
 
         A ``null`` (whose lag voids the next bar too) and a ``NaN`` (which propagates) touch only the positions that
@@ -229,8 +229,8 @@ def returns_simple(
         >>> frame.select(returns_simple=returns_simple(pl.col("close")))["returns_simple"].to_list()
         [None, inf, -1.0, nan]
 
-        **Non-finite input** — two consecutive same-sign infinite prices divide to an indeterminate ``inf / inf``,
-        so the second return is ``NaN``:
+        **Non-finite input** — two consecutive same-sign infinite prices divide to an indeterminate ``inf / inf``, so
+        the second return is ``NaN``:
 
         >>> frame = pl.DataFrame({"close": [float("inf"), float("inf"), 1.0, float("-inf")]})
         >>> frame.select(returns_simple=returns_simple(pl.col("close")))["returns_simple"].to_list()

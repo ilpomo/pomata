@@ -6,7 +6,7 @@ from pomata.pnl import cost_fixed
 from tests.pnl.enums import BehaviorNan, BehaviorNull, ConventionSign, SpaceCost
 from tests.pnl.harness import suite_pnl
 from tests.pnl.oracles import reference_cost_fixed
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 
 COST_FIXED = suite_pnl(
     factory=cost_fixed,
@@ -50,6 +50,64 @@ COST_FIXED = suite_pnl(
             expected=(1.0, math.nan, 1.0, 1.0),
             reason="two consecutive equal-sign infinities make the turnover inf - inf = NaN and the masked fee NaN; "
             "the property tiers set allow_infinity=False",
+        ),
+    ),
+    wikipedia="https://en.wikipedia.org/wiki/Transaction_cost",
+    see_also=(
+        ("cost_per_share", "A per-unit-traded commission."),
+        ("cost_notional", "A proportional (bps-of-notional) commission."),
+        ("pnl_net", "Subtracts the composed cost from the gross PnL."),
+    ),
+    notes=(
+        (
+            "Flat start",
+            "The pre-series quantity is taken as ``0`` (via :func:`turnover`), so the first row "
+            "charges the ``fee`` (entering the initial position is a trade).",
+        ),
+    ),
+    bullets=(
+        ("Null", "a ``null`` quantity makes that row ``null`` (``null`` takes precedence over ``NaN``)."),
+        ("NaN", "a ``NaN`` quantity yields ``NaN`` for that row."),
+        (
+            "Non-finite input",
+            "an ``inf`` quantity follows IEEE-754 through the arithmetic of the turnover difference, "
+            "whose ``inf`` marks a trade and charges the flat ``fee`` (the sign, and any ``inf - inf "
+            "= NaN``, included).",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The per-bar fixed cost for each row, the same length as ``quantity`` -- ``fee`` where "
+    "the quantity changes (the first row counts as a trade from a flat start) and ``0`` where "
+    "it is held.",
+    raises_prose="ValueError: If ``fee`` is not a finite number ``>= 0`` (i.e. ``< 0``, ``NaN``, or ``±inf``).",
+    args_prose={
+        "quantity": "Signed position size in units / shares / contracts held over the bar (e.g. ``100``, ``-2``).",
+        "fee": "Flat charge per trade, in the account currency. Must be a finite number ``>= 0``.",
+    },
+    examples=(
+        Example(inputs={"quantity": (10.0, 10.0, -5.0, -5.0, 20.0)}, params={"fee": 1.0}, round_to=4),
+        Example(
+            inputs={"quantity": (10.0, 10.0, -5.0, 2.0, 2.0, 2.0)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker starts flat:",
+            partition=("A", "A", "A", "B", "B", "B"),
+            params={"fee": 1.0},
+            round_to=4,
+        ),
+        Example(
+            inputs={"quantity": (10.0, None, -5.0, float("nan"), 20.0)},
+            intro="A ``null`` (which voids its own row and the next) and a ``NaN`` make the missing-data "
+            "handling visible:",
+            params={"fee": 1.0},
+            round_to=4,
+        ),
+        Example(
+            inputs={"quantity": (float("inf"), float("inf"), 1.0, float("-inf"))},
+            intro="**Non-finite input** — two consecutive same-sign infinite quantities make the turnover "
+            "``inf - inf``, so the fee for that bar is ``NaN``:",
+            params={"fee": 1.0},
         ),
     ),
 )

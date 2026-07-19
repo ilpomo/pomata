@@ -6,7 +6,7 @@ from pomata.indicators import mom
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_mom
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 MOM = suite_indicators(
     factory=mom,
@@ -43,6 +43,67 @@ MOM = suite_indicators(
             inputs={"expr": (5.0, 5.0, 5.0, 5.0, 5.0, 5.0)},
             expected=(None, None, None, 0.0, 0.0, 0.0),
             reason="the momentum of a constant series is exactly zero once warmed up",
+        ),
+    ),
+    wikipedia="https://en.wikipedia.org/wiki/Momentum_%28technical_analysis%29",
+    see_also=(
+        ("roc", "The percentage-change sibling (scale-invariant)."),
+        ("rsi", "A bounded momentum oscillator."),
+        ("chande_momentum_oscillator", "A bounded net-of-gains-and-losses momentum oscillator."),
+    ),
+    bullets=(
+        ("Null", "a ``null`` value makes that row ``null`` (``null`` takes precedence over ``NaN``)."),
+        (
+            "NaN",
+            "a ``NaN`` inside the window propagates, yielding ``NaN`` there — a fixed-lag difference, "
+            "not a recurrence, so a ``null`` or ``NaN`` contaminates only the (at most two) positions "
+            "that reference it and never latches onto the rest of the series.",
+        ),
+        ("Degenerate denominator", "a flat look-back leaves ``x_t == x_{t-n}``, so the difference is exactly ``0``."),
+        (
+            "window == 1",
+            "the look-back is a single bar, so ``mom`` is the one-step first difference ``x_t - x_{t-1}``.",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The momentum for each row, the same length as ``expr``. The first ``window`` values are "
+    "``null`` (warm-up), clamped to the series length: unlike the moving-average family, "
+    "whose warm-up is ``window - 1`` rows, the value at row ``t`` needs the observation at "
+    "row ``t - window``, which first exists at ``t == window``.",
+    raises_prose="ValueError: If ``window < 1``.",
+    args_prose={
+        "window": "Number of observations to look back. Must be ``>= 1``.",
+    },
+    intro_basic="Basic usage on a single price series:",
+    example_columns={"expr": "close"},
+    examples=(
+        Example(inputs={"expr": (2.0, 4.0, 6.0, 8.0, 10.0)}, params={"window": 2}, round_to=4),
+        Example(
+            inputs={"expr": (10.0, 11.0, 12.0, 11.0, 13.0, 20.0, 22.0, 21.0, 23.0, 22.0)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "A", "A", "B", "B", "B", "B", "B"),
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={"expr": (10.0, 11.0, 12.0, 13.0, None, 15.0, float("nan"), 17.0, 18.0, 19.0)},
+            intro="A ``null`` (voiding the rows that reference it) and a ``NaN`` (which propagates) make "
+            "the exact handling visible at a glance:",
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={"expr": (5.0, 5.0, 5.0, 5.0, 5.0, 5.0)},
+            intro="**Degenerate denominator** — the momentum of a constant series is exactly ``0`` once warmed up:",
+            params={"window": 3},
+        ),
+        Example(
+            inputs={"expr": (2.0, 4.0, 6.0, 8.0)},
+            intro="**window == 1** — a one-bar window is the first difference with a single leading ``null``:",
+            params={"window": 1},
         ),
     ),
 )

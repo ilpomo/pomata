@@ -6,7 +6,7 @@ from pomata.pnl import returns_simple
 from tests.pnl.enums import BehaviorNan, BehaviorNull, ConventionSign, SpaceCost, Warmup
 from tests.pnl.harness import suite_pnl
 from tests.pnl.oracles import reference_returns_simple
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 
 RETURNS_SIMPLE = suite_pnl(
     factory=returns_simple,
@@ -57,6 +57,76 @@ RETURNS_SIMPLE = suite_pnl(
             expected=(None, math.nan, -1.0, -math.inf),
             reason="two consecutive equal-sign infinite prices make the second return inf / inf - 1 = NaN; the "
             "property tiers set allow_infinity=False",
+        ),
+    ),
+    reference='Meucci, A. (2010). "Quant Nugget 2: Linear vs. Compounded Returns." *GARP Risk '
+    "Professional*, April 2010, 49-51.",
+    wikipedia="https://en.wikipedia.org/wiki/Rate_of_return",
+    see_also=(
+        ("returns_log", "The logarithmic sibling, which aggregates across time rather than across assets."),
+        ("equity_curve", "Compounds the simple returns into the growth path of one unit of capital."),
+        ("cumulative_pnl", "The additive running total of a per-bar P&L or return series."),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a ``null`` price makes that row ``null`` (``null`` takes precedence over ``NaN``) — "
+            "reading two endpoints, a ``null`` at the current or the previous row voids the output "
+            "that references it.",
+        ),
+        (
+            "NaN",
+            "a ``NaN`` price yields ``NaN`` for that row — a fixed-lag transform of two endpoints, "
+            "not a recurrence, so a ``NaN`` (like a ``null``) contaminates only the rows that "
+            "reference it and never latches onto the rest of the series.",
+        ),
+        (
+            "Degenerate denominator",
+            "the previous price is ``0``, so a zero change is a ``0 / 0``, i.e. ``NaN`` — while a "
+            "non-zero change over it is ``+/-inf`` (the sign tracks the change), reported, not "
+            "clipped, and a negative-zero ``-0.0`` previous price flips that sign but does not arise "
+            "from real price data.",
+        ),
+        (
+            "Non-finite input",
+            "an ``inf`` price follows IEEE-754 through the ratio and the minus one, where two "
+            "consecutive same-sign infinite prices divide to ``inf / inf = NaN`` (the sign, and that "
+            "indeterminate ``inf / inf``, included).",
+        ),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="The simple return for each row, the same length as ``expr``. The first value is ``null`` "
+    "(warm-up) -- the lagged term ``expr.shift(1)`` is undefined for the first row, so no "
+    "return can be measured there.",
+    example_columns={"price": "close"},
+    examples=(
+        Example(inputs={"price": (100.0, 102.0, 101.0, 105.0, 104.0, 107.0, 110.0, 108.0, 112.0)}, round_to=4),
+        Example(
+            inputs={"price": (100.0, 105.0, 102.0, 108.0, 50.0, 52.0, 51.0, 55.0)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            round_to=4,
+        ),
+        Example(
+            inputs={"price": (100.0, 105.0, None, 108.0, 110.0, float("nan"), 113.0, 115.0)},
+            intro="A ``null`` (whose lag voids the next bar too) and a ``NaN`` (which propagates) touch "
+            "only the positions that reference them before the series recovers, making the "
+            "missing-data handling visible:",
+            round_to=4,
+        ),
+        Example(
+            inputs={"price": (0.0, 10.0, 0.0, 0.0)},
+            intro="**Degenerate denominator** — a nonzero price change over a zero previous price is "
+            "``+inf`` or ``-inf`` (sign-tracking), while a zero change over a zero previous price is "
+            "``NaN``:",
+        ),
+        Example(
+            inputs={"price": (float("inf"), float("inf"), 1.0, float("-inf"))},
+            intro="**Non-finite input** — two consecutive same-sign infinite prices divide to an "
+            "indeterminate ``inf / inf``, so the second return is ``NaN``:",
         ),
     ),
 )

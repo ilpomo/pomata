@@ -83,8 +83,7 @@ def stochastic_fast(
 
         **Composition**
 
-        %D is the :func:`sma` of %K, so it inherits that warm-up and the ``null`` / ``NaN`` handling on top of %K's
-        own.
+        %D is the :func:`sma` of %K, so it inherits that warm-up and the ``null`` / ``NaN`` handling on top of %K's own.
 
         **Edge-case behavior**
 
@@ -117,10 +116,10 @@ def stochastic_fast(
         ...         "close": [9.5, 10.5, 11.5, 11.0, 12.5, 12.0, 13.5, 13.0],
         ...     }
         ... )
-        >>> oscillator = stochastic_fast(pl.col("high"), pl.col("low"), pl.col("close"), window_k=3, window_d=2)
-        >>> frame.select(k=oscillator.struct.field("k").round(4))["k"].to_list()
+        >>> expr = stochastic_fast(pl.col("high"), pl.col("low"), pl.col("close"), window_k=3, window_d=2)
+        >>> frame.select(k=expr.struct.field("k").round(4))["k"].to_list()
         [None, None, 83.3333, 50.0, 80.0, 60.0, 80.0, 60.0]
-        >>> frame.select(d=oscillator.struct.field("d").round(4))["d"].to_list()
+        >>> frame.select(d=expr.struct.field("d").round(4))["d"].to_list()
         [None, None, None, 66.6667, 65.0, 70.0, 70.0, 70.0]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -137,8 +136,8 @@ def stochastic_fast(
         >>> frame.with_columns(k=expr.over("ticker").struct.field("k").round(4))["k"].to_list()
         [None, 75.0, 75.0, 33.3333, None, 75.0, 75.0, 33.3333]
 
-        A ``null`` (yields ``null`` on ``k`` at that row) and a ``NaN`` (which propagates) in ``close`` surface on
-        the %K line:
+        A ``null`` (yields ``null`` on ``k`` at that row) and a ``NaN`` (which propagates) in ``close`` surface on the
+        %K line:
 
         >>> frame = pl.DataFrame(
         ...     {
@@ -147,8 +146,8 @@ def stochastic_fast(
         ...         "close": [9.5, 10.5, 11.5, None, 12.5, float("nan"), 13.5, 13.0],
         ...     }
         ... )
-        >>> oscillator = stochastic_fast(pl.col("high"), pl.col("low"), pl.col("close"), window_k=3, window_d=2)
-        >>> frame.select(k=oscillator.struct.field("k").round(4))["k"].to_list()
+        >>> expr = stochastic_fast(pl.col("high"), pl.col("low"), pl.col("close"), window_k=3, window_d=2)
+        >>> frame.select(k=expr.struct.field("k").round(4))["k"].to_list()
         [None, None, 83.3333, None, 80.0, nan, 80.0, 60.0]
 
         **Degenerate denominator** — a flat window makes the raw %K's ``0/0`` division ``NaN``, which the %D pass
@@ -280,12 +279,12 @@ def stochastic_slow(
         ...         "close": [9.5, 10.5, 11.5, 11.0, 12.5, 12.0, 13.5, 13.0],
         ...     }
         ... )
-        >>> oscillator = stochastic_slow(
+        >>> expr = stochastic_slow(
         ...     pl.col("high"), pl.col("low"), pl.col("close"), window_k=3, window_slowing=2, window_d=2
         ... )
-        >>> frame.select(k=oscillator.struct.field("k").round(4))["k"].to_list()
+        >>> frame.select(k=expr.struct.field("k").round(4))["k"].to_list()
         [None, None, None, 66.6667, 65.0, 70.0, 70.0, 70.0]
-        >>> frame.select(d=oscillator.struct.field("d").round(4))["d"].to_list()
+        >>> frame.select(d=expr.struct.field("d").round(4))["d"].to_list()
         [None, None, None, None, 65.8333, 67.5, 70.0, 70.0]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -304,8 +303,8 @@ def stochastic_slow(
         >>> frame.with_columns(k=expr.over("ticker").struct.field("k").round(4))["k"].to_list()
         [None, None, 75.0, 54.1667, 56.6667, None, None, 75.0, 54.1667, 56.6667]
 
-        A ``null`` (nulls every slow %K window it falls in) and a ``NaN`` (which propagates the same way) in
-        ``close`` surface on the slow %K line:
+        A ``null`` (nulls every slow %K window it falls in) and a ``NaN`` (which propagates the same way) in ``close``
+        surface on the slow %K line:
 
         >>> frame = pl.DataFrame(
         ...     {
@@ -314,14 +313,14 @@ def stochastic_slow(
         ...         "close": [9.5, 10.5, 11.5, None, 12.5, float("nan"), 13.5, 13.0],
         ...     }
         ... )
-        >>> oscillator = stochastic_slow(
+        >>> expr = stochastic_slow(
         ...     pl.col("high"), pl.col("low"), pl.col("close"), window_k=2, window_slowing=2, window_d=2
         ... )
-        >>> frame.select(k=oscillator.struct.field("k").round(4))["k"].to_list()
+        >>> frame.select(k=expr.struct.field("k").round(4))["k"].to_list()
         [None, None, 75.0, None, None, nan, nan, 56.6667]
 
-        **Degenerate denominator** — a flat look-back makes the raw %K's ``0/0`` division ``NaN``, passed through by
-        the slowing and %D SMAs:
+        **Degenerate denominator** — a flat look-back makes the raw %K's ``0/0`` division ``NaN``, passed through by the
+        slowing and %D SMAs:
 
         >>> frame = pl.DataFrame(
         ...     {

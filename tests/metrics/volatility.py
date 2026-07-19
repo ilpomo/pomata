@@ -7,7 +7,7 @@ from pomata.metrics import volatility
 from tests.metrics.enums import Annualization, BehaviorNan, BehaviorNull, Degenerate
 from tests.metrics.harness import suite_metrics
 from tests.metrics.oracles import reference_volatility
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 
 VOLATILITY = suite_metrics(
     factory=volatility,
@@ -46,6 +46,62 @@ VOLATILITY = suite_metrics(
             expected=(0.18257418583505539,),
             reason="the un-annualized golden branch: the sample std of the four values",
             params_override={"periods_per_year": 1},
+        ),
+    ),
+    wikipedia="https://en.wikipedia.org/wiki/Volatility_%28finance%29",
+    see_also=(
+        ("volatility_rolling", "The rolling (windowed) form."),
+        ("downside_deviation", "The downside-only (one-sided) counterpart."),
+        ("returns_net", "The usual source of the net-return series this measures."),
+    ),
+    bullets=(
+        (
+            "Null",
+            "a ``null`` return is skipped (excluded from the standard deviation); an all-null (or "
+            "empty) series yields ``null``.",
+        ),
+        ("NaN", "a ``NaN`` return propagates, yielding ``NaN``."),
+        (
+            "Insufficient sample",
+            "fewer than two returns leave the sample standard deviation undefined, so the result is ``null``.",
+        ),
+        ("Degenerate denominator", "a constant series has zero dispersion, so the result is exactly ``0``."),
+        (
+            "Partitioning",
+            "wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its own history.",
+        ),
+    ),
+    returns_body="A single ``Float64`` value: the annualized volatility of the series (one value in "
+    "``select``, one per group under ``.over``). ``null`` when fewer than two returns are "
+    "present (the sample standard deviation is undefined).",
+    raises_prose="ValueError: If ``periods_per_year < 1``.",
+    examples=(
+        Example(inputs={"returns": (0.01, -0.02, 0.015, 0.005, -0.01)}, params={"periods_per_year": 252}, round_to=4),
+        Example(
+            inputs={"returns": (0.01, -0.02, 0.015, 0.005, -0.01, 0.02, 0.01, -0.03, 0.0, 0.01)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker's volatility is "
+            "computed independently:",
+            partition=("A", "A", "A", "A", "A", "B", "B", "B", "B", "B"),
+            params={"periods_per_year": 252},
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (0.01, None, -0.02, 0.015, float("nan"), 0.005, -0.01)},
+            intro="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+            "handling visible:",
+            params={"periods_per_year": 252},
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (0.05,)},
+            intro="**Insufficient sample** — one observation has no sample dispersion, so the result is ``null``:",
+            params={"periods_per_year": 252},
+        ),
+        Example(
+            inputs={"returns": (0.01, 0.01, 0.01, 0.01)},
+            intro="**Degenerate denominator** — a constant series has zero dispersion, so the volatility is "
+            "exactly ``0``:",
+            params={"periods_per_year": 252},
         ),
     ),
 )

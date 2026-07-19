@@ -6,7 +6,7 @@ from pomata.pnl import dividend
 from tests.pnl.enums import BehaviorNan, BehaviorNull, ConventionSign, SpaceCost
 from tests.pnl.harness import suite_pnl
 from tests.pnl.oracles import reference_dividend
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 
 DIVIDEND = suite_pnl(
     factory=dividend,
@@ -45,6 +45,66 @@ DIVIDEND = suite_pnl(
             expected=(math.inf, -math.inf, -math.inf),
             reason="the cash flow keeps the sign of quantity * dividend_per_share even at infinite magnitude; the "
             "property tiers set allow_infinity=False",
+        ),
+    ),
+    wikipedia="https://en.wikipedia.org/wiki/Dividend",
+    see_also=(
+        ("pnl_gross", "The gross position PnL this dividend income is added to."),
+        ("cost_borrow", "The equity holding cashflow on the cost side (short-borrow)."),
+        ("cost_funding", "The perpetual-swap funding leg, another per-bar holding cashflow."),
+    ),
+    bullets=(
+        ("Null", "a ``null`` quantity makes that row ``null`` (``null`` takes precedence over ``NaN``)."),
+        ("NaN", "a ``NaN`` quantity yields ``NaN`` for that row."),
+        (
+            "Non-finite input",
+            "an ``inf`` quantity follows IEEE-754 through the arithmetic, so the flow signs with "
+            "``quantity * dividend_per_share`` (the sign included).",
+        ),
+        (
+            "Partitioning",
+            "already correct on a multi-series panel: ``.over(...)`` partitions identically and is "
+            "therefore optional here.",
+        ),
+    ),
+    returns_body="The dividend cashflow for each row, the same length as the inputs.",
+    args_prose={
+        "quantity": "Signed position size in units / shares / contracts held over the bar; a long (positive) "
+        "receives the dividend, a short (negative) pays it.",
+        "dividend_per_share": 'Dividend paid per share for the bar (e.g. ``pl.col("dividend")``); zero on ordinary '
+        "bars.",
+    },
+    intro_basic="Basic usage on a held quantity and a per-share dividend:",
+    examples=(
+        Example(
+            inputs={
+                "quantity": (100.0, 100.0, 100.0, 0.0, -50.0, -50.0, 200.0, 200.0),
+                "dividend_per_share": (0.0, 0.0, 0.5, 0.0, 0.5, 0.5, 0.0, 0.0),
+            },
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "quantity": (100.0, 100.0, 100.0, 0.0, 50.0, 50.0, -50.0, -50.0),
+                "dividend_per_share": (0.0, 0.0, 0.5, 0.0, 0.0, 0.3, 0.3, 0.3),
+            },
+            intro="The product is elementwise, so ``.over`` partitions identically and is shown only for consistency:",
+            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "quantity": (100.0, None, 100.0, float("nan"), -50.0),
+                "dividend_per_share": (0.5, 0.5, 0.5, 0.5, 0.5),
+            },
+            intro="A ``null`` then a ``NaN`` in ``quantity`` (both propagate through the product) make the "
+            "missing-data handling visible:",
+            round_to=4,
+        ),
+        Example(
+            inputs={"quantity": (float("inf"), -2.0, float("-inf")), "dividend_per_share": (1.0, float("inf"), 0.5)},
+            intro="**Non-finite input** — an infinite quantity or dividend per share carries the sign of "
+            "``quantity * dividend_per_share`` into an infinite cash flow:",
         ),
     ),
 )
