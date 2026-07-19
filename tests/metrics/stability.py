@@ -9,7 +9,7 @@ from pomata.metrics import stability
 from tests.metrics.enums import Annualization, BehaviorNan, BehaviorNull, Degenerate
 from tests.metrics.harness import suite_metrics
 from tests.metrics.oracles import reference_stability
-from tests.support.declaration import Golden, Pin, ScaleExempt
+from tests.support.declaration import Example, Golden, Pin, ScaleExempt
 
 STABILITY = suite_metrics(
     factory=stability,
@@ -102,7 +102,53 @@ STABILITY = suite_metrics(
         "each must exceed ``-1`` (a return of ``-100%`` or worse makes the cumulative log "
         "undefined).",
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
-    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
-    "handling visible:",
+    examples=(
+        Example(inputs={"returns": (0.01, 0.012, 0.009, 0.011, 0.013, 0.008, 0.01, 0.012)}, round_to=4),
+        Example(
+            inputs={
+                "returns": (
+                    0.01,
+                    0.012,
+                    0.009,
+                    0.011,
+                    0.013,
+                    0.008,
+                    0.01,
+                    0.012,
+                    0.02,
+                    -0.01,
+                    0.03,
+                    -0.02,
+                    0.025,
+                    -0.015,
+                    0.018,
+                    -0.012,
+                )
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+            partition=("A", "A", "A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B", "B", "B"),
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (0.01, 0.012, None, 0.009, float("nan"), 0.011)},
+            intro="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+            "handling visible:",
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (0.02, -1.5, 0.01)},
+            intro="**Domain** — a return at or below ``-1`` makes the cumulative log undefined, so the "
+            "result is a loud ``NaN``:",
+        ),
+        Example(
+            inputs={"returns": (0.01,)},
+            intro="**Insufficient sample** — a single observation gives the regression no second point to "
+            "fit, so the result is ``null``:",
+        ),
+        Example(
+            inputs={"returns": (0.0, 0.0, 0.0)},
+            intro="**Degenerate denominator** — an all-zero series has a perfectly flat cumulative log with "
+            "zero variance to explain, so the result is the ``0 / 0`` case, ``NaN``:",
+        ),
+    ),
 )

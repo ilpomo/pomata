@@ -90,12 +90,12 @@ def cumulative_pnl(
         ...         "returns": [0.1, 0.2, -0.05, 0.1, 0.0, 0.1, 0.1, -0.2],
         ...     }
         ... )
-        >>> reduced = cumulative_pnl(pl.col("returns")).over("ticker").round(4)
-        >>> frame.with_columns(cumulative_pnl=reduced)["cumulative_pnl"].to_list()
+        >>> expr = cumulative_pnl(pl.col("returns"))
+        >>> frame.with_columns(cumulative_pnl=expr.over("ticker").round(4))["cumulative_pnl"].to_list()
         [0.1, 0.3, 0.25, 0.35, 0.0, 0.1, 0.2, 0.0]
 
-        A ``null`` (skipped, the running total carries across it) then a ``NaN`` (which contaminates every later row)
-        in ``returns`` make the missing-data handling visible:
+        A ``null`` (skipped, the running total carries across it) then a ``NaN`` (which contaminates every later row) in
+        ``returns`` make the missing-data handling visible:
 
         >>> frame = pl.DataFrame({"returns": [0.1, None, 0.2, float("nan"), 0.1]})
         >>> frame.select(cumulative_pnl=cumulative_pnl(pl.col("returns")).round(4))["cumulative_pnl"].to_list()
@@ -178,8 +178,8 @@ def dividend(
         ...         "dividend_per_share": [0.0, 0.0, 0.5, 0.0, 0.5, 0.5, 0.0, 0.0],
         ...     }
         ... )
-        >>> expr = dividend(pl.col("quantity"), pl.col("dividend_per_share")).round(4)
-        >>> frame.select(dividend=expr)["dividend"].to_list()
+        >>> expr = dividend(pl.col("quantity"), pl.col("dividend_per_share"))
+        >>> frame.select(dividend=expr.round(4))["dividend"].to_list()
         [0.0, 0.0, 50.0, 0.0, -25.0, -25.0, 0.0, 0.0]
 
         The product is elementwise, so ``.over`` partitions identically and is shown only for consistency:
@@ -191,8 +191,8 @@ def dividend(
         ...         "dividend_per_share": [0.0, 0.0, 0.5, 0.0, 0.0, 0.3, 0.3, 0.3],
         ...     }
         ... )
-        >>> expr = dividend(pl.col("quantity"), pl.col("dividend_per_share")).over("ticker").round(4)
-        >>> frame.with_columns(dividend=expr)["dividend"].to_list()
+        >>> expr = dividend(pl.col("quantity"), pl.col("dividend_per_share"))
+        >>> frame.with_columns(dividend=expr.over("ticker").round(4))["dividend"].to_list()
         [0.0, 0.0, 50.0, 0.0, 0.0, 15.0, -15.0, -15.0]
 
         A ``null`` then a ``NaN`` in ``quantity`` (both propagate through the product) make the missing-data handling
@@ -204,8 +204,8 @@ def dividend(
         ...         "dividend_per_share": [0.5, 0.5, 0.5, 0.5, 0.5],
         ...     }
         ... )
-        >>> expr = dividend(pl.col("quantity"), pl.col("dividend_per_share")).round(4)
-        >>> frame.select(dividend=expr)["dividend"].to_list()
+        >>> expr = dividend(pl.col("quantity"), pl.col("dividend_per_share"))
+        >>> frame.select(dividend=expr.round(4))["dividend"].to_list()
         [50.0, None, 50.0, nan, -25.0]
 
         **Non-finite input** — an infinite quantity or dividend per share carries the sign of
@@ -298,8 +298,8 @@ def equity_curve(
         ...         "returns": [0.1, 0.2, -0.05, 0.1, 0.0, 0.1, 0.1, -0.2],
         ...     }
         ... )
-        >>> reduced = equity_curve(pl.col("returns")).over("ticker").round(4)
-        >>> frame.with_columns(equity_curve=reduced)["equity_curve"].to_list()
+        >>> expr = equity_curve(pl.col("returns"))
+        >>> frame.with_columns(equity_curve=expr.over("ticker").round(4))["equity_curve"].to_list()
         [1.1, 1.32, 1.254, 1.3794, 1.0, 1.1, 1.21, 0.968]
 
         A leading ``null`` stays ``null`` (the curve begins at the first defined return) and a later ``NaN`` then
@@ -415,12 +415,12 @@ def pnl_gross(
         ...         "price": [100.0, 102.0, 101.0, 104.0, 50.0, 51.0, 49.0, 52.0],
         ...     }
         ... )
-        >>> reduced = pnl_gross(pl.col("quantity"), pl.col("price")).over("ticker").round(4)
-        >>> frame.with_columns(pnl_gross=reduced)["pnl_gross"].to_list()
+        >>> expr = pnl_gross(pl.col("quantity"), pl.col("price"))
+        >>> frame.with_columns(pnl_gross=expr.over("ticker").round(4))["pnl_gross"].to_list()
         [None, 20.0, 5.0, -15.0, None, 2.0, -4.0, 6.0]
 
-        A leading warm-up ``null`` (row 0, no prior price), then a ``null`` and a ``NaN`` in ``quantity`` that void
-        only their own rows:
+        A leading warm-up ``null`` (row 0, no prior price), then a ``null`` and a ``NaN`` in ``quantity`` that void only
+        their own rows:
 
         >>> frame = pl.DataFrame(
         ...     {
@@ -482,8 +482,8 @@ def pnl_gross_inverse(
         price: Instrument price series, the quote per base unit (e.g. USD per BTC, ``pl.col("close")``); must be
             strictly positive (see the **Domain** note) and share a length and alignment with ``quantity``.
         multiplier: Contract notional in the quote currency — the quote value of one contract (e.g. ``1`` USD for an
-            inverse BTC/USD perpetual, ``100`` on some venues); ``1.0`` for a one-unit contract. Must be a finite
-            number ``> 0``.
+            inverse BTC/USD perpetual, ``100`` on some venues); ``1.0`` for a one-unit contract. Must be a finite number
+            ``> 0``.
 
     Returns:
         The gross PnL for each row, the same length as the inputs, in the base coin. The first value is ``null``
@@ -529,8 +529,8 @@ def pnl_gross_inverse(
         - :func:`pnl_net`: Subtracts the composed cost from this gross PnL.
         - :func:`cost_funding`: The perpetual-swap funding leg — beware the units: it computes the **quote-margined**
           (linear) funding ``q * P * f``, while this gross PnL is in the base coin, so the coin-margined funding of an
-          inverse contract must be built directly (e.g. ``quantity * multiplier / price * funding_rate``) before the
-          two are composed.
+          inverse contract must be built directly (e.g. ``quantity * multiplier / price * funding_rate``) before the two
+          are composed.
 
     References:
         - https://en.wikipedia.org/wiki/Perpetual_futures
@@ -547,8 +547,8 @@ def pnl_gross_inverse(
         ...         "price": [100.0, 110.0, 105.0, 120.0, 115.0, 118.0, 112.0, 120.0],
         ...     }
         ... )
-        >>> expr = pnl_gross_inverse(pl.col("quantity"), pl.col("price")).round(6)
-        >>> frame.select(pnl_gross_inverse=expr)["pnl_gross_inverse"].to_list()
+        >>> expr = pnl_gross_inverse(pl.col("quantity"), pl.col("price"))
+        >>> frame.select(pnl_gross_inverse=expr.round(6))["pnl_gross_inverse"].to_list()
         [None, 0.000909, 0.000866, -0.002381, -0.001087, 0.000663, 0.000454, -0.000595]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -560,12 +560,12 @@ def pnl_gross_inverse(
         ...         "price": [100.0, 110.0, 105.0, 120.0, 50.0, 55.0, 52.0, 58.0],
         ...     }
         ... )
-        >>> reduced = pnl_gross_inverse(pl.col("quantity"), pl.col("price")).over("ticker").round(6)
-        >>> frame.with_columns(pnl_gross_inverse=reduced)["pnl_gross_inverse"].to_list()
+        >>> expr = pnl_gross_inverse(pl.col("quantity"), pl.col("price"))
+        >>> frame.with_columns(pnl_gross_inverse=expr.over("ticker").round(6))["pnl_gross_inverse"].to_list()
         [None, 0.000909, 0.000866, -0.002381, None, 0.003636, -0.002098, 0.003979]
 
-        A leading warm-up ``null`` (row 0, no prior price), then a ``null`` and a ``NaN`` in ``quantity`` that void
-        only their own rows:
+        A leading warm-up ``null`` (row 0, no prior price), then a ``null`` and a ``NaN`` in ``quantity`` that void only
+        their own rows:
 
         >>> frame = pl.DataFrame(
         ...     {
@@ -573,8 +573,8 @@ def pnl_gross_inverse(
         ...         "price": [100.0, 110.0, 105.0, 120.0, 115.0],
         ...     }
         ... )
-        >>> expr = pnl_gross_inverse(pl.col("quantity"), pl.col("price")).round(6)
-        >>> frame.select(pnl_gross_inverse=expr)["pnl_gross_inverse"].to_list()
+        >>> expr = pnl_gross_inverse(pl.col("quantity"), pl.col("price"))
+        >>> frame.select(pnl_gross_inverse=expr.round(6))["pnl_gross_inverse"].to_list()
         [None, None, 0.000866, nan, -0.001087]
 
         **Domain** — a zero current price sends the reciprocal to ``-inf``, a zero previous price sends the next bar to
@@ -599,8 +599,8 @@ def pnl_gross_inverse(
         ...         "price": [float("inf"), 20.0, 5.0],
         ...     }
         ... )
-        >>> expr = pnl_gross_inverse(pl.col("quantity"), pl.col("price")).round(4)
-        >>> frame.select(pnl_gross_inverse=expr)["pnl_gross_inverse"].to_list()
+        >>> expr = pnl_gross_inverse(pl.col("quantity"), pl.col("price"))
+        >>> frame.select(pnl_gross_inverse=expr.round(4))["pnl_gross_inverse"].to_list()
         [None, inf, -0.3]
     """
     quantity = float64_expr(quantity)
@@ -689,8 +689,8 @@ def pnl_net(
         ...         "cost": [2.0, 0.0, 3.0, 0.0, 1.0, 2.0, 0.0, 1.0],
         ...     }
         ... )
-        >>> reduced = pnl_net(pl.col("pnl_gross"), pl.col("cost")).over("ticker").round(4)
-        >>> frame.with_columns(pnl_net=reduced)["pnl_net"].to_list()
+        >>> expr = pnl_net(pl.col("pnl_gross"), pl.col("cost"))
+        >>> frame.with_columns(pnl_net=expr.over("ticker").round(4))["pnl_net"].to_list()
         [18.0, 5.0, -18.0, -20.0, 7.0, 10.0, -3.0, 9.0]
 
         A ``null`` then a ``NaN`` in ``pnl_gross`` (both propagate through the subtraction) make the missing-data
@@ -766,9 +766,9 @@ def returns_gross(
         **No lookahead (alignment is the caller's)**
 
         The product assumes ``weight`` at row ``t`` is the weight held over ``asset_returns`` at row ``t``. To stay
-        lookahead-free, that weight must depend only on information available before that return; if it is decided
-        on the same bar's close, lag it by one bar (``returns_gross(weight.shift(1), asset_returns)``). Nothing is
-        shifted for you, so a weight you have already aligned is never double-shifted.
+        lookahead-free, that weight must depend only on information available before that return; if it is decided on
+        the same bar's close, lag it by one bar (``returns_gross(weight.shift(1), asset_returns)``). Nothing is shifted
+        for you, so a weight you have already aligned is never double-shifted.
 
         **Edge-case behavior**
 
@@ -801,8 +801,8 @@ def returns_gross(
         ...         "asset_returns": [0.02, -0.01, 0.03, -0.02, 0.04, 0.01, -0.03, 0.02],
         ...     }
         ... )
-        >>> expr = returns_gross(pl.col("weight"), pl.col("asset_returns")).round(4)
-        >>> frame.select(returns_gross=expr)["returns_gross"].to_list()
+        >>> expr = returns_gross(pl.col("weight"), pl.col("asset_returns"))
+        >>> frame.select(returns_gross=expr.round(4))["returns_gross"].to_list()
         [0.02, -0.005, -0.03, 0.02, 0.02, 0.01, 0.015, 0.01]
 
         The product is elementwise, so ``.over`` partitions identically and is shown only for consistency:
@@ -814,8 +814,8 @@ def returns_gross(
         ...         "asset_returns": [0.02, 0.03, -0.01, 0.04, -0.02, 0.01, 0.03, -0.01],
         ...     }
         ... )
-        >>> expr = returns_gross(pl.col("weight"), pl.col("asset_returns")).over("ticker").round(4)
-        >>> frame.with_columns(returns_gross=expr)["returns_gross"].to_list()
+        >>> expr = returns_gross(pl.col("weight"), pl.col("asset_returns"))
+        >>> frame.with_columns(returns_gross=expr.over("ticker").round(4))["returns_gross"].to_list()
         [0.02, -0.03, -0.005, 0.02, -0.01, 0.005, -0.03, -0.01]
 
         A ``null`` then a ``NaN`` in ``asset_returns`` (both propagate through the product) make the missing-data
@@ -827,8 +827,8 @@ def returns_gross(
         ...         "asset_returns": [0.02, None, 0.03, float("nan"), 0.04],
         ...     }
         ... )
-        >>> expr = returns_gross(pl.col("weight"), pl.col("asset_returns")).round(4)
-        >>> frame.select(returns_gross=expr)["returns_gross"].to_list()
+        >>> expr = returns_gross(pl.col("weight"), pl.col("asset_returns"))
+        >>> frame.select(returns_gross=expr.round(4))["returns_gross"].to_list()
         [0.02, None, -0.03, nan, 0.02]
 
         **Non-finite input** — an infinite weight or asset return drives the gross return to an infinite value with the
@@ -916,8 +916,8 @@ def returns_net(
         ...         "cost": [0.0005, 0.0015, 0.0005, 0.0, 0.0005, 0.001, 0.0, 0.0005],
         ...     }
         ... )
-        >>> expr = returns_net(pl.col("returns_gross"), pl.col("cost")).round(4)
-        >>> frame.select(returns_net=expr)["returns_net"].to_list()
+        >>> expr = returns_net(pl.col("returns_gross"), pl.col("cost"))
+        >>> frame.select(returns_net=expr.round(4))["returns_net"].to_list()
         [0.0495, -0.0215, 0.0295, 0.01, -0.0005, 0.039, -0.01, 0.0195]
 
         The subtraction is elementwise, so ``.over`` partitions identically and is shown only for consistency:
@@ -929,8 +929,8 @@ def returns_net(
         ...         "cost": [0.0005, 0.0015, 0.0005, 0.0, 0.0005, 0.001, 0.0, 0.0005],
         ...     }
         ... )
-        >>> expr = returns_net(pl.col("returns_gross"), pl.col("cost")).over("ticker").round(4)
-        >>> frame.with_columns(returns_net=expr)["returns_net"].to_list()
+        >>> expr = returns_net(pl.col("returns_gross"), pl.col("cost"))
+        >>> frame.with_columns(returns_net=expr.over("ticker").round(4))["returns_net"].to_list()
         [0.0495, -0.0215, 0.0295, 0.01, -0.0005, 0.039, -0.01, 0.0195]
 
         A ``null`` then a ``NaN`` in ``returns_gross`` (both propagate through the subtraction) make the missing-data
@@ -942,8 +942,8 @@ def returns_net(
         ...         "cost": [0.0005, 0.0015, 0.0005, 0.0, 0.0005],
         ...     }
         ... )
-        >>> expr = returns_net(pl.col("returns_gross"), pl.col("cost")).round(4)
-        >>> frame.select(returns_net=expr)["returns_net"].to_list()
+        >>> expr = returns_net(pl.col("returns_gross"), pl.col("cost"))
+        >>> frame.select(returns_net=expr.round(4))["returns_net"].to_list()
         [0.0495, None, 0.0295, nan, -0.0005]
 
         **Non-finite input** — a same-sign infinite gross return and cost cancel to ``inf - inf``, so the net return is
@@ -987,8 +987,8 @@ def turnover(
             ``|weight| > 1`` is leverage.
 
     Returns:
-        The traded fraction for each row, the same length as ``weight``. The first row is ``|weight_0|`` (the trade
-        from a flat start), not ``null``.
+        The traded fraction for each row, the same length as ``weight``. The first row is ``|weight_0|`` (the trade from
+        a flat start), not ``null``.
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.

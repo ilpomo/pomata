@@ -6,7 +6,7 @@ from pomata.indicators import vwap
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_vwap
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 VWAP = suite_indicators(
     factory=vwap,
@@ -102,7 +102,38 @@ VWAP = suite_indicators(
     returns_body="The running VWAP for each row, the same length as the inputs. There is no warm-up -- row "
     "``0`` is defined as soon as its cumulative volume is positive (a leading zero-volume run "
     "reads ``NaN`` until volume accrues).",
-    intro_over="Anchor per session with ``.over`` so each day's VWAP restarts:",
-    intro_missing="A ``null`` (yields ``null`` at that row) and a ``NaN`` (which latches in the running "
-    "totals) make it visible:",
+    examples=(
+        Example(
+            inputs={
+                "high": (2.0, 4.0, 6.0),
+                "low": (0.0, 2.0, 4.0),
+                "close": (1.0, 3.0, 5.0),
+                "volume": (10.0, 20.0, 30.0),
+            },
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "high": (2.0, 4.0, 12.0, 14.0),
+                "low": (0.0, 2.0, 10.0, 12.0),
+                "close": (1.0, 3.0, 11.0, 13.0),
+                "volume": (10.0, 20.0, 10.0, 20.0),
+            },
+            intro="Anchor per session with ``.over`` so each day's VWAP restarts:",
+            partition=("a", "a", "b", "b"),
+            partition_col="session",
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "high": (10.0, 11.0, 12.0, 13.0, 14.0, 15.0),
+                "low": (8.0, 9.0, 10.0, 11.0, 12.0, 13.0),
+                "close": (9.0, 10.0, None, 12.0, float("nan"), 14.0),
+                "volume": (100.0, 200.0, 300.0, 400.0, 500.0, 600.0),
+            },
+            intro="A ``null`` (yields ``null`` at that row) and a ``NaN`` (which latches in the running "
+            "totals) make it visible:",
+            round_to=4,
+        ),
+    ),
 )

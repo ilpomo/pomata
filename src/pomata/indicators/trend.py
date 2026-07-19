@@ -114,9 +114,9 @@ def parabolic_sar(
     Args:
         high: High-price series (e.g. ``pl.col("high")``).
         low: Low-price series (e.g. ``pl.col("low")``).
-        acceleration: Starting acceleration factor, and its per-extreme increment (canonical default ``0.02``,
-            Wilder's step). Must be in the half-open interval ``(0, 1]``, and never
-            above ``maximum`` (so the factor is capped from the seed onward, not only on the increment path).
+        acceleration: Starting acceleration factor, and its per-extreme increment (canonical default ``0.02``, Wilder's
+            step). Must be in the half-open interval ``(0, 1]``, and never above ``maximum`` (so the factor is capped
+            from the seed onward, not only on the increment path).
         maximum: Cap on the acceleration factor. Must be in the half-open interval ``(0, 1]``, and at least
             ``acceleration``.
 
@@ -188,12 +188,12 @@ def parabolic_sar(
         ...         "low": [9.0, 10.0, 11.0, 12.0, 13.0, 19.0, 20.0, 21.0, 20.0, 19.0],
         ...     }
         ... )
-        >>> expr = parabolic_sar(pl.col("high"), pl.col("low")).over("ticker").round(4)
-        >>> frame.with_columns(parabolic_sar=expr)["parabolic_sar"].to_list()
+        >>> expr = parabolic_sar(pl.col("high"), pl.col("low"))
+        >>> frame.with_columns(parabolic_sar=expr.over("ticker").round(4))["parabolic_sar"].to_list()
         [None, 9.0, 9.0, 9.12, 9.3528, None, 19.0, 19.0, 19.12, 22.0]
 
-        A ``null`` then a ``NaN`` in ``high`` each yield ``null`` / ``NaN`` at that row and are skipped, the
-        running trend state bridging the gap:
+        A ``null`` then a ``NaN`` in ``high`` each yield ``null`` / ``NaN`` at that row and are skipped, the running
+        trend state bridging the gap:
 
         >>> frame = pl.DataFrame(
         ...     {
@@ -320,8 +320,8 @@ def supertrend(
         - ``direction`` — ``+1.0`` in an up-trend (the line below price); ``-1.0`` in a down-trend (the line above
           price).
 
-        The first ``window - 1`` rows are ``null`` (the ATR's warm-up). Read a field with ``.struct.field("line")``
-        or split both with ``.struct.unnest()``.
+        The first ``window - 1`` rows are ``null`` (the ATR's warm-up). Read a field with ``.struct.field("line")`` or
+        split both with ``.struct.unnest()``.
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
@@ -374,11 +374,10 @@ def supertrend(
         ...         "close": [9.5, 10.8, 11.8, 10.2, 12.8, 11.2, 13.8],
         ...     }
         ... )
-        >>> expr = supertrend(pl.col("high"), pl.col("low"), pl.col("close"), 2, multiplier=2.0)
-        >>> out = frame.select(supertrend=expr).unnest("supertrend")
-        >>> out.select(pl.col("line").round(4))["line"].to_list()
+        >>> expr = supertrend(pl.col("high"), pl.col("low"), pl.col("close"), window=2, multiplier=2.0)
+        >>> frame.select(line=expr.struct.field("line").round(4))["line"].to_list()
         [None, 8.0, 9.05, 9.05, 9.05, 9.05, 9.05]
-        >>> out["direction"].to_list()
+        >>> frame.select(direction=expr.struct.field("direction").round(4))["direction"].to_list()
         [None, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker's ratchet warms up independently:
@@ -391,12 +390,12 @@ def supertrend(
         ...         "close": [9.5, 10.8, 11.8, 10.2, 12.8, 19.5, 20.8, 21.8, 20.2, 22.8],
         ...     }
         ... )
-        >>> expr = supertrend(pl.col("high"), pl.col("low"), pl.col("close"), 2, multiplier=2.0)
+        >>> expr = supertrend(pl.col("high"), pl.col("low"), pl.col("close"), window=2, multiplier=2.0)
         >>> frame.with_columns(line=expr.over("ticker").struct.field("line").round(4))["line"].to_list()
         [None, 8.0, 9.05, 9.05, 9.05, None, 18.0, 19.05, 19.05, 19.05]
 
-        A ``null`` in ``close`` is skipped and bridged by the running state, while a ``NaN`` poisons the ATR
-        recursion and latches ``NaN`` thereafter:
+        A ``null`` in ``close`` is skipped and bridged by the running state, while a ``NaN`` poisons the ATR recursion
+        and latches ``NaN`` thereafter:
 
         >>> frame = pl.DataFrame(
         ...     {
@@ -405,7 +404,7 @@ def supertrend(
         ...         "close": [9.5, 10.8, 11.8, None, 12.8, float("nan"), 13.8],
         ...     }
         ... )
-        >>> expr = supertrend(pl.col("high"), pl.col("low"), pl.col("close"), 2, multiplier=2.0)
+        >>> expr = supertrend(pl.col("high"), pl.col("low"), pl.col("close"), window=2, multiplier=2.0)
         >>> frame.select(line=expr.struct.field("line").round(4))["line"].to_list()
         [None, 8.0, 9.05, None, 9.9875, nan, nan]
 

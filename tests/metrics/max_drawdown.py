@@ -4,7 +4,7 @@ from pomata.metrics import max_drawdown
 from tests.metrics.enums import Annualization, BehaviorNan, BehaviorNull
 from tests.metrics.harness import suite_metrics
 from tests.metrics.oracles import reference_max_drawdown
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 
 MAX_DRAWDOWN = suite_metrics(
     factory=max_drawdown,
@@ -66,7 +66,29 @@ MAX_DRAWDOWN = suite_metrics(
     args_prose={
         "equity_curve": "Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive.",
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
-    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
-    "handling visible:",
+    example_columns={"equity_curve": "equity"},
+    examples=(
+        Example(inputs={"equity_curve": (1.0, 1.1, 1.05, 1.2, 0.9, 1.0)}, round_to=4),
+        Example(
+            inputs={"equity_curve": (1.0, 1.1, 1.05, 1.2, 0.9, 1.0, 1.1, 1.0, 0.95, 1.05, 1.0, 1.15, 1.1, 1.2)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+            partition=("A", "A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B", "B"),
+            round_to=4,
+        ),
+        Example(
+            inputs={"equity_curve": (1.0, 1.1, None, 1.2, float("nan"), 1.0)},
+            intro="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+            "handling visible:",
+            round_to=4,
+        ),
+        Example(
+            inputs={"equity_curve": (1.0,)},
+            intro="**Insufficient sample** — a one-element series is at its own peak, so the maximum "
+            "drawdown is ``0``:",
+        ),
+        Example(
+            inputs={"equity_curve": (1.0, 1.1, 1.2, 1.3)},
+            intro="**Degenerate denominator** — a never-declining curve has zero drawdown:",
+        ),
+    ),
 )

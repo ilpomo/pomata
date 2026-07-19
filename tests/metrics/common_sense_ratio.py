@@ -10,7 +10,7 @@ from pomata.metrics import common_sense_ratio, profit_factor, tail_ratio
 from tests.metrics.enums import Annualization, BehaviorNan, BehaviorNull, Degenerate
 from tests.metrics.harness import suite_metrics
 from tests.metrics.oracles import reference_common_sense_ratio
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 
 COMMON_SENSE_RATIO = suite_metrics(
     factory=common_sense_ratio,
@@ -71,7 +71,51 @@ COMMON_SENSE_RATIO = suite_metrics(
     ),
     returns_body="A single ``Float64`` value: the common sense ratio (one value in ``select``, one per "
     "group under ``.over``). ``null`` when there are no returns.",
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
-    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
-    "handling visible:",
+    examples=(
+        Example(inputs={"returns": (0.03, -0.01, 0.02, -0.015, 0.01, 0.005, -0.02)}, round_to=4),
+        Example(
+            inputs={
+                "returns": (
+                    0.03,
+                    -0.01,
+                    0.02,
+                    -0.015,
+                    0.01,
+                    0.005,
+                    -0.02,
+                    0.02,
+                    -0.005,
+                    0.015,
+                    -0.01,
+                    0.025,
+                    0.0,
+                    -0.012,
+                )
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+            partition=("A", "A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B", "B"),
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (0.03, None, 0.02, -0.015, float("nan"), 0.005, -0.02)},
+            intro="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+            "handling visible:",
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (-0.02,)},
+            intro="**Insufficient sample** — a single loss has a zero profit factor and a unit tail ratio, "
+            "so the product is exactly ``0``:",
+        ),
+        Example(
+            inputs={"returns": (0.01, 0.02, 0.03)},
+            intro="**Degenerate denominator** — an all-positive series has an infinite profit factor and a "
+            "finite positive tail ratio, so the product is ``+inf``:",
+        ),
+        Example(
+            inputs={"returns": (0.0, 0.0, 0.0)},
+            intro="**Degenerate denominator** — an all-zero series drives both the profit factor and the "
+            "tail ratio to a ``0 / 0``, so the product is ``NaN``:",
+        ),
+    ),
 )

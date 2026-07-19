@@ -7,7 +7,7 @@ from pomata.indicators import midprice
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_midprice
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 MIDPRICE = suite_indicators(
     factory=midprice,
@@ -70,7 +70,31 @@ MIDPRICE = suite_indicators(
     args_prose={
         "window": "Number of observations in the moving window. Must be ``>= 1``.",
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-    intro_missing="A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make "
-    "the handling visible:",
+    examples=(
+        Example(
+            inputs={"high": (11.0, 12.0, 13.0, 12.5, 14.0), "low": (9.0, 10.0, 11.0, 11.0, 12.0)},
+            params={"window": 3},
+            round_to=4,
+        ),
+        Example(
+            inputs={"high": (11.0, 12.0, 13.0, 21.0, 22.0, 23.0), "low": (9.0, 10.0, 11.0, 19.0, 20.0, 21.0)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "B", "B", "B"),
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={"high": (11.0, None, 13.0, float("nan"), 15.0), "low": (9.0, 10.0, 11.0, 12.0, 13.0)},
+            intro="A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make "
+            "the handling visible:",
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={"high": (11.0, 12.0, 13.0), "low": (9.0, 10.0, 11.0)},
+            intro="**window == 1** — a single-bar window makes the extremes the bar's own ``high`` and "
+            "``low``, so the midprice reduces to the per-bar :func:`price_median` with no warm-up:",
+            params={"window": 1},
+        ),
+    ),
 )

@@ -6,7 +6,7 @@ from pomata.indicators import stochastic_fast
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_stochastic_fast
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 STOCHASTIC_FAST = suite_indicators(
     factory=stochastic_fast,
@@ -105,7 +105,55 @@ STOCHASTIC_FAST = suite_indicators(
         "window_k": "Number of observations in the %K look-back range (canonically ``14``). Must be ``>= 1``.",
         "window_d": "Number of observations in the %D moving average of %K (canonically ``3``). Must be ``>= 1``.",
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-    intro_missing="A ``null`` (yields ``null`` on ``k`` at that row) and a ``NaN`` (which propagates) in "
-    "``close`` surface on the %K line:",
+    examples=(
+        Example(
+            inputs={
+                "high": (10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 14.0, 13.5),
+                "low": (9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5),
+                "close": (9.5, 10.5, 11.5, 11.0, 12.5, 12.0, 13.5, 13.0),
+            },
+            params={"window_k": 3, "window_d": 2},
+            round_to=4,
+            fields=("k", "d"),
+        ),
+        Example(
+            inputs={
+                "high": (10.0, 11.0, 12.0, 11.5, 20.0, 21.0, 22.0, 21.5),
+                "low": (9.0, 10.0, 11.0, 10.5, 19.0, 20.0, 21.0, 20.5),
+                "close": (9.5, 10.5, 11.5, 11.0, 19.5, 20.5, 21.5, 21.0),
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            params={"window_k": 2, "window_d": 2},
+            round_to=4,
+            fields=("k",),
+        ),
+        Example(
+            inputs={
+                "high": (10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 14.0, 13.5),
+                "low": (9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5),
+                "close": (9.5, 10.5, 11.5, None, 12.5, float("nan"), 13.5, 13.0),
+            },
+            intro="A ``null`` (yields ``null`` on ``k`` at that row) and a ``NaN`` (which propagates) in "
+            "``close`` surface on the %K line:",
+            params={"window_k": 3, "window_d": 2},
+            round_to=4,
+            fields=("k",),
+        ),
+        Example(
+            inputs={"high": (10.0, 10.0, 10.0), "low": (10.0, 10.0, 10.0), "close": (10.0, 10.0, 10.0)},
+            intro="**Degenerate denominator** — a flat window makes the raw %K's ``0/0`` division ``NaN``, "
+            "which the %D pass carries through:",
+            params={"window_k": 2, "window_d": 1},
+            fields=("k",),
+        ),
+        Example(
+            inputs={"high": (10.0, 10.0, 10.0), "low": (10.0, 10.0, 10.0), "close": (20.0, 20.0, 20.0)},
+            intro="**Degenerate denominator** — a malformed bar whose close sits above a flat ``high == "
+            "low`` look-back makes the raw %K a nonzero over zero, so %K is ``+inf``, which the %D "
+            "pass carries through:",
+            params={"window_k": 2, "window_d": 1},
+            fields=("k",),
+        ),
+    ),
 )

@@ -6,7 +6,7 @@ from pomata.indicators import vwma
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_vwma
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 VWMA = suite_indicators(
     factory=vwma,
@@ -165,7 +165,44 @@ VWMA = suite_indicators(
     args_prose={
         "window": "Number of observations in the moving window. Must be ``>= 1``.",
     },
-    intro_over="On a multi-series panel, wrap the call in ``.over`` so each group warms up independently:",
-    intro_missing="A ``null`` (skipped, and any window it touches yields ``null``) and a ``NaN`` (which "
-    "propagates) make the exact handling visible at a glance:",
+    example_columns={"price": "close"},
+    examples=(
+        Example(
+            inputs={"price": (10.0, 11.0, 12.0, 13.0, 14.0), "volume": (100.0, 200.0, 300.0, 400.0, 500.0)},
+            params={"window": 3},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "price": (10.0, 11.0, 12.0, 11.0, 13.0, 20.0, 22.0, 21.0, 23.0, 22.0),
+                "volume": (100.0, 120.0, 90.0, 110.0, 130.0, 100.0, 120.0, 90.0, 110.0, 130.0),
+            },
+            intro="On a multi-series panel, wrap the call in ``.over`` so each group warms up independently:",
+            partition=("A", "A", "A", "A", "A", "B", "B", "B", "B", "B"),
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "price": (10.0, 11.0, 12.0, 13.0, None, 15.0, float("nan"), 17.0, 18.0, 19.0),
+                "volume": (100.0, 120.0, 90.0, 110.0, 130.0, 100.0, 95.0, 140.0, 105.0, 115.0),
+            },
+            intro="A ``null`` (skipped, and any window it touches yields ``null``) and a ``NaN`` (which "
+            "propagates) make the exact handling visible at a glance:",
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={"price": (42.0,), "volume": (10.0,)},
+            intro="**Insufficient sample** — a one-row input has only a single (price, volume) pair, and at "
+            "``window=1`` that pair alone determines the weighted mean, so the price passes through:",
+            params={"window": 1},
+        ),
+        Example(
+            inputs={"price": (10.0, 11.0, 12.0), "volume": (0.0, 0.0, 0.0)},
+            intro="**Degenerate denominator** — an all-zero-volume window is the IEEE-754 ``0 / 0`` "
+            "degenerate, so once the window fills the ratio is ``NaN``:",
+            params={"window": 2},
+        ),
+    ),
 )

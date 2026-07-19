@@ -7,7 +7,7 @@ from tests.metrics.enums import BehaviorNan, BehaviorNull
 from tests.metrics.harness import suite_metrics
 from tests.metrics.oracles import reference_volatility_rolling
 from tests.metrics.volatility import VOLATILITY
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 from tests.support.strategies import windows_well_spread
 
 
@@ -88,8 +88,34 @@ VOLATILITY_ROLLING = suite_metrics(
     args_prose={
         "window": "Number of observations in the moving window. Must be ``>= 2``.",
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up on its own "
-    "(the ``B`` group never borrows ``A``'s tail):",
-    intro_missing="A leading ``null`` and a later ``NaN`` show the per-window masking, with the result "
-    "recovering once both leave the window:",
+    examples=(
+        Example(
+            inputs={"returns": (0.01, -0.02, 0.03, -0.01, 0.02, 0.0, -0.015)},
+            params={"window": 3, "periods_per_year": 252},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "returns": (0.01, -0.02, 0.03, -0.01, 0.02, 0.0, -0.015, 0.02, -0.01, 0.04, -0.03, 0.01, 0.025, -0.02)
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up on its own "
+            "(the ``B`` group never borrows ``A``'s tail):",
+            partition=("A", "A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B", "B"),
+            params={"window": 3, "periods_per_year": 252},
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (None, 0.01, -0.02, float("nan"), 0.03, -0.01, 0.02)},
+            intro="A leading ``null`` and a later ``NaN`` show the per-window masking, with the result "
+            "recovering once both leave the window:",
+            params={"window": 3, "periods_per_year": 252},
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (0.01, 0.01, 0.01, 0.01)},
+            intro="**Degenerate denominator** — a constant window has zero dispersion, so the volatility is "
+            "exactly ``0``:",
+            params={"window": 3, "periods_per_year": 252},
+        ),
+    ),
 )

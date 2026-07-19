@@ -6,7 +6,7 @@ from pomata.pnl import pnl_gross
 from tests.pnl.enums import BehaviorNan, BehaviorNull, ConventionSign, SpaceCost, Warmup
 from tests.pnl.harness import suite_pnl
 from tests.pnl.oracles import reference_pnl_gross
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 
 PNL_GROSS = suite_pnl(
     factory=pnl_gross,
@@ -128,7 +128,33 @@ PNL_GROSS = suite_pnl(
         "cash equity and spot. Must be a finite number ``> 0``.",
     },
     intro_basic="Basic usage on a held quantity and a price series:",
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-    intro_missing="A leading warm-up ``null`` (row 0, no prior price), then a ``null`` and a ``NaN`` in "
-    "``quantity`` that void only their own rows:",
+    examples=(
+        Example(
+            inputs={
+                "quantity": (10.0, 10.0, -5.0, -5.0, 20.0, 20.0, -10.0, -10.0),
+                "price": (100.0, 102.0, 101.0, 104.0, 103.0, 105.0, 104.0, 106.0),
+            },
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "quantity": (10.0, 10.0, -5.0, -5.0, 2.0, 2.0, 2.0, 2.0),
+                "price": (100.0, 102.0, 101.0, 104.0, 50.0, 51.0, 49.0, 52.0),
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            round_to=4,
+        ),
+        Example(
+            inputs={"quantity": (10.0, None, -5.0, float("nan"), 20.0), "price": (100.0, 102.0, 101.0, 104.0, 103.0)},
+            intro="A leading warm-up ``null`` (row 0, no prior price), then a ``null`` and a ``NaN`` in "
+            "``quantity`` that void only their own rows:",
+            round_to=4,
+        ),
+        Example(
+            inputs={"quantity": (10.0, 10.0, 10.0, 10.0), "price": (float("inf"), float("inf"), 1.0, float("-inf"))},
+            intro="**Non-finite input** — two consecutive equal-sign infinite prices make that bar's price "
+            "change ``inf - inf``, so the PnL is ``NaN``:",
+        ),
+    ),
 )

@@ -6,7 +6,7 @@ from pomata.indicators import trima
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_trima
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 _SWEEP = (3.0, 1.0, 4.0, 1.0, 5.0, 9.0, 2.0, 6.0)
 
@@ -147,6 +147,28 @@ TRIMA = suite_indicators(
     args_prose={
         "window": "Number of observations in the moving window. Must be ``>= 1``.",
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-    intro_missing="A ``null`` (which both passes propagate) and a ``NaN`` make the missing-data handling visible:",
+    example_columns={"expr": "x"},
+    examples=(
+        Example(inputs={"expr": (1.0, 2.0, 3.0, 4.0, 5.0, 6.0)}, params={"window": 4}, round_to=4),
+        Example(
+            inputs={"expr": (1.0, 2.0, 3.0, 10.0, 20.0, 30.0)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "B", "B", "B"),
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={"expr": (1.0, None, 3.0, float("nan"), 5.0, 6.0)},
+            intro="A ``null`` (which both passes propagate) and a ``NaN`` make the missing-data handling visible:",
+            params={"window": 3},
+            round_to=4,
+        ),
+        Example(
+            inputs={"expr": (42.0,)},
+            intro="**Insufficient sample** — a one-row series has nothing to average beyond itself, so at "
+            "``window=1`` the triangular smoothing is the identity and the value passes through "
+            "unchanged:",
+            params={"window": 1},
+        ),
+    ),
 )

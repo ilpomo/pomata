@@ -8,7 +8,7 @@ from pomata.metrics import information_ratio
 from tests.metrics.enums import Annualization, BehaviorNan, BehaviorNull, Degenerate
 from tests.metrics.harness import suite_metrics
 from tests.metrics.oracles import reference_information_ratio
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 
 INFORMATION_RATIO = suite_metrics(
     factory=information_ratio,
@@ -80,7 +80,52 @@ INFORMATION_RATIO = suite_metrics(
     "one per group under ``.over``). ``null`` when fewer than two complete pairs are present "
     "(the tracking error is undefined).",
     raises_prose="ValueError: If ``periods_per_year < 1``.",
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
-    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
-    "handling visible:",
+    examples=(
+        Example(
+            inputs={
+                "returns": (0.02, -0.01, 0.03, -0.02, 0.015, 0.005),
+                "benchmark": (0.015, -0.008, 0.025, -0.015, 0.01, 0.004),
+            },
+            params={"periods_per_year": 252},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "returns": (0.02, -0.01, 0.03, -0.02, 0.015, 0.005, 0.01, 0.025, -0.015, 0.008, -0.005, 0.012),
+                "benchmark": (0.015, -0.008, 0.025, -0.015, 0.01, 0.004, 0.012, 0.02, -0.01, 0.006, -0.004, 0.01),
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+            partition=("A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B"),
+            params={"periods_per_year": 252},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "returns": (None, 0.02, 0.03, float("nan"), 0.015, 0.005),
+                "benchmark": (0.015, -0.008, 0.025, -0.015, 0.01, 0.004),
+            },
+            intro="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+            "handling visible:",
+            params={"periods_per_year": 252},
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (0.05,), "benchmark": (0.04,)},
+            intro="**Insufficient sample** — a single complete pair yields ``null``, since the tracking "
+            "error needs two observations:",
+            params={"periods_per_year": 252},
+        ),
+        Example(
+            inputs={"returns": (0.01, 0.01, 0.01), "benchmark": (0.0, 0.0, 0.0)},
+            intro="**Degenerate denominator** — a constant active series has zero tracking error with a "
+            "positive mean, so the ratio is ``+inf``:",
+            params={"periods_per_year": 252},
+        ),
+        Example(
+            inputs={"returns": (0.01, 0.02, 0.03), "benchmark": (0.01, 0.02, 0.03)},
+            intro="**Degenerate denominator** — identical legs give an exactly-zero active series, the zero "
+            "mean over zero tracking error ``0 / 0`` case, so the result is ``NaN``:",
+            params={"periods_per_year": 252},
+        ),
+    ),
 )

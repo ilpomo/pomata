@@ -4,7 +4,7 @@ from pomata.metrics import risk_of_ruin
 from tests.metrics.enums import Annualization, BehaviorNan, BehaviorNull, Degenerate
 from tests.metrics.harness import suite_metrics
 from tests.metrics.oracles import reference_risk_of_ruin
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 
 RISK_OF_RUIN = suite_metrics(
     factory=risk_of_ruin,
@@ -75,9 +75,34 @@ RISK_OF_RUIN = suite_metrics(
     returns_body="A single ``Float64`` value in ``[0, 1]``: the risk of ruin (one value in ``select``, one "
     "per group under ``.over``). ``null`` when there are no decisive (non-zero) returns (the "
     "win rate is undefined).",
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced "
-    "independently (here ``A`` has no edge, so its ruin is certain, while the winning ``B`` "
-    "is small):",
-    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
-    "handling visible:",
+    examples=(
+        Example(inputs={"returns": (0.02, -0.01, 0.03, -0.02)}, round_to=4),
+        Example(
+            inputs={"returns": (0.02, -0.01, 0.03, -0.02, 0.02, 0.01, 0.03, -0.02)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced "
+            "independently (here ``A`` has no edge, so its ruin is certain, while the winning ``B`` "
+            "is small):",
+            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (0.02, None, -0.01, 0.03, float("nan"), -0.02)},
+            intro="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+            "handling visible:",
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (0.05,)}, intro="**Insufficient sample** — a single win (``p = 1``) gives ruin ``0``:"
+        ),
+        Example(
+            inputs={"returns": (0.01, 0.02, 0.03)},
+            intro="**Degenerate denominator** — an all-winning series (``p = 1``) has no ruin risk, so the "
+            "probability is ``0``:",
+        ),
+        Example(
+            inputs={"returns": (0.0, 0.0, 0.0)},
+            intro="**Degenerate denominator** — a series of exact-zero returns has no decisive bars, so the "
+            "win rate and ruin are ``null``:",
+        ),
+    ),
 )

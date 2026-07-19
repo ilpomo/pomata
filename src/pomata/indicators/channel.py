@@ -32,8 +32,7 @@ def donchian_channels(
     Args:
         high: High-price series (e.g. ``pl.col("high")``).
         low: Low-price series (e.g. ``pl.col("low")``).
-        window: Number of observations in the moving window (canonically ``20``, the Donchian period). Must be
-            ``>= 1``.
+        window: Number of observations in the moving window (canonically ``20``, the Donchian period). Must be ``>= 1``.
 
     Returns:
         A struct ``pl.Expr`` with three ``Float64`` fields, the same length as the inputs:
@@ -42,8 +41,8 @@ def donchian_channels(
         - ``middle`` — the channel midline, ``(upper + lower) / 2`` (identical to :func:`midprice`).
         - ``upper`` — the highest ``high`` over the window.
 
-        Read one band with ``.struct.field("upper")`` (etc.) or split all three into columns with
-        ``.struct.unnest()``. The first ``window - 1`` rows are ``null`` (warm-up).
+        Read one band with ``.struct.field("upper")`` (etc.) or split all three into columns with ``.struct.unnest()``.
+        The first ``window - 1`` rows are ``null`` (warm-up).
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
@@ -92,32 +91,29 @@ def donchian_channels(
         ...         "low": [9.0, 10.0, 11.0, 11.0, 12.0],
         ...     }
         ... )
-        >>> expr = donchian_channels(pl.col("high"), pl.col("low"), 3)
-        >>> out = frame.select(donchian_channels=expr).unnest("donchian_channels")
-        >>> out["upper"].round(4).to_list()
+        >>> expr = donchian_channels(pl.col("high"), pl.col("low"), window=3)
+        >>> frame.select(upper=expr.struct.field("upper").round(4))["upper"].to_list()
         [None, None, 13.0, 13.0, 14.0]
-        >>> out["lower"].round(4).to_list()
+        >>> frame.select(lower=expr.struct.field("lower").round(4))["lower"].to_list()
         [None, None, 9.0, 10.0, 11.0]
-        >>> out["middle"].round(4).to_list()
+        >>> frame.select(middle=expr.struct.field("middle").round(4))["middle"].to_list()
         [None, None, 11.0, 11.5, 12.5]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker's bands warm up independently:
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A", "A", "A", "B", "B", "B"],
+        ...         "ticker": ["A"] * 3 + ["B"] * 3,
         ...         "high": [11.0, 12.0, 13.0, 21.0, 22.0, 23.0],
         ...         "low": [9.0, 10.0, 11.0, 19.0, 20.0, 21.0],
         ...     }
         ... )
-        >>> frame.with_columns(
-        ...     middle=donchian_channels(pl.col("high"), pl.col("low"), 2).over("ticker").struct.field("middle")
-        ... )["middle"].to_list()
+        >>> expr = donchian_channels(pl.col("high"), pl.col("low"), window=2)
+        >>> frame.with_columns(middle=expr.over("ticker").struct.field("middle"))["middle"].to_list()
         [None, 10.5, 11.5, None, 20.5, 21.5]
 
         A ``null`` (nulling every band whose window reads it — here ``upper`` and ``middle``, while ``lower`` stays
-        defined) and a ``NaN`` (which propagates) make the
-        handling visible:
+        defined) and a ``NaN`` (which propagates) make the handling visible:
 
         >>> frame = pl.DataFrame(
         ...     {
@@ -125,9 +121,8 @@ def donchian_channels(
         ...         "low": [9.0, 10.0, 11.0, 12.0, 13.0],
         ...     }
         ... )
-        >>> expr = donchian_channels(pl.col("high"), pl.col("low"), 2)
-        >>> out = frame.select(donchian_channels=expr).unnest("donchian_channels")
-        >>> out["middle"].to_list()
+        >>> expr = donchian_channels(pl.col("high"), pl.col("low"), window=2)
+        >>> frame.select(middle=expr.struct.field("middle"))["middle"].to_list()
         [None, None, None, nan, nan]
 
         **window == 1** — a single-bar window makes the upper and lower bands the bar's own ``high`` and ``low``, and
@@ -196,8 +191,9 @@ def ichimoku(
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
-        ValueError: If any window is ``< 1``, or the windows are not ordered ``window_tenkan <= window_kijun <=
-            window_senkou`` (equality is allowed and collapses the corresponding lines onto each other).
+        ValueError: If any window is ``< 1``, or the windows are not ordered
+            ``window_tenkan <= window_kijun <= window_senkou`` (equality is allowed and collapses the corresponding
+            lines onto each other).
 
     Note:
         **Precision**
@@ -214,10 +210,10 @@ def ichimoku(
         Each line is emitted aligned to the row it is computed from -- zero displacement -- so the output never reads a
         future bar and is safe to feed a backtest directly. The traditional chart instead plots the two leading spans
         ``window_kijun`` bars into the future and a *chikou* (lagging) span ``window_kijun`` bars into the past; that is
-        a presentation choice, applied on the user's side with ``.shift(...)`` -- e.g. ``...struct.field("senkou_a")
-        .shift(window_kijun)`` to lead, ``pl.col("close").shift(-window_kijun)`` to lag. The chikou span is deliberately
-        not emitted: un-displaced it is identical to ``close``, and its backward shift reads future bars, which must
-        never enter a backtest.
+        a presentation choice, applied on the user's side with ``.shift(...)`` -- e.g.
+        ``...struct.field("senkou_a") .shift(window_kijun)`` to lead, ``pl.col("close").shift(-window_kijun)`` to lag.
+        The chikou span is deliberately not emitted: un-displaced it is identical to ``close``, and its backward shift
+        reads future bars, which must never enter a backtest.
 
         **Edge-case behavior**
 
@@ -247,12 +243,10 @@ def ichimoku(
         ...         "low": [8.0, 9.0, 10.0, 11.0, 12.0, 10.0, 12.0, 11.0],
         ...     }
         ... )
-        >>> out = frame.select(
-        ...     ichimoku=ichimoku(pl.col("high"), pl.col("low"), window_tenkan=2, window_kijun=3, window_senkou=4)
-        ... ).unnest("ichimoku")
-        >>> out.select(pl.col("tenkan").round(4))["tenkan"].to_list()
+        >>> expr = ichimoku(pl.col("high"), pl.col("low"), window_tenkan=2, window_kijun=3, window_senkou=4)
+        >>> frame.select(tenkan=expr.struct.field("tenkan").round(4))["tenkan"].to_list()
         [None, 10.0, 10.5, 11.5, 12.5, 12.0, 12.5, 13.0]
-        >>> out.select(pl.col("senkou_b").round(4))["senkou_b"].to_list()
+        >>> frame.select(senkou_b=expr.struct.field("senkou_b").round(4))["senkou_b"].to_list()
         [None, None, None, 10.5, 11.5, 12.0, 12.5, 12.5]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker's lines warm up independently:
@@ -264,8 +258,8 @@ def ichimoku(
         ...         "low": [8.0, 9.0, 10.0, 11.0, 12.0, 18.0, 19.0, 20.0, 21.0, 22.0],
         ...     }
         ... )
-        >>> cloud = ichimoku(pl.col("high"), pl.col("low"), window_tenkan=2, window_kijun=3, window_senkou=4)
-        >>> frame.with_columns(kijun=cloud.over("ticker").struct.field("kijun").round(4))["kijun"].to_list()
+        >>> expr = ichimoku(pl.col("high"), pl.col("low"), window_tenkan=2, window_kijun=3, window_senkou=4)
+        >>> frame.with_columns(kijun=expr.over("ticker").struct.field("kijun").round(4))["kijun"].to_list()
         [None, None, 10.0, 11.0, 12.0, None, None, 20.0, 21.0, 22.0]
 
         A ``null`` (any line whose window touches it is ``null``) and a ``NaN`` (which propagates) make it visible:
@@ -276,8 +270,8 @@ def ichimoku(
         ...         "low": [8.0, 9.0, 10.0, 11.0, 12.0, 10.0, 12.0],
         ...     }
         ... )
-        >>> cloud = ichimoku(pl.col("high"), pl.col("low"), window_tenkan=2, window_kijun=3, window_senkou=4)
-        >>> frame.select(tenkan=cloud.struct.field("tenkan").round(4))["tenkan"].to_list()
+        >>> expr = ichimoku(pl.col("high"), pl.col("low"), window_tenkan=2, window_kijun=3, window_senkou=4)
+        >>> frame.select(tenkan=expr.struct.field("tenkan").round(4))["tenkan"].to_list()
         [None, 10.0, None, None, nan, nan, 12.5]
     """
     high = float64_expr(high)
@@ -343,9 +337,9 @@ def keltner_channels(
         - ``middle`` — the center band, the :func:`ema` of ``close``.
         - ``upper`` — the upper band, ``middle + multiplier * atr``.
 
-        Read one band with ``.struct.field("middle")`` (etc.) or split all three into columns with
-        ``.struct.unnest()``. Each band is ``null`` through its own warm-up: the midline's first ``window - 1`` rows,
-        the outer bands' first ``max(window, window_atr) - 1`` rows (they also need the ATR).
+        Read one band with ``.struct.field("middle")`` (etc.) or split all three into columns with ``.struct.unnest()``.
+        Each band is ``null`` through its own warm-up: the midline's first ``window - 1`` rows, the outer bands' first
+        ``max(window, window_atr) - 1`` rows (they also need the ATR).
 
     Raises:
         TypeError: If any input is not a ``pl.Expr``.
@@ -396,8 +390,8 @@ def keltner_channels(
         ...         "close": [2.0, 3.0, 4.0, 5.0],
         ...     }
         ... )
-        >>> bands = keltner_channels(pl.col("high"), pl.col("low"), pl.col("close"), window=2, window_atr=2)
-        >>> frame.select(middle=bands.struct.field("middle").round(4))["middle"].to_list()
+        >>> expr = keltner_channels(pl.col("high"), pl.col("low"), pl.col("close"), window=2, window_atr=2)
+        >>> frame.select(middle=expr.struct.field("middle").round(4))["middle"].to_list()
         [None, 2.5, 3.5, 4.5]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker's bands warm up independently:
@@ -410,8 +404,8 @@ def keltner_channels(
         ...         "close": [2.0, 3.0, 4.0, 5.0, 12.0, 13.0, 14.0, 15.0],
         ...     }
         ... )
-        >>> bands = keltner_channels(pl.col("high"), pl.col("low"), pl.col("close"), window=2, window_atr=2)
-        >>> frame.with_columns(middle=bands.over("ticker").struct.field("middle").round(4))["middle"].to_list()
+        >>> expr = keltner_channels(pl.col("high"), pl.col("low"), pl.col("close"), window=2, window_atr=2)
+        >>> frame.with_columns(middle=expr.over("ticker").struct.field("middle").round(4))["middle"].to_list()
         [None, 2.5, 3.5, 4.5, None, 12.5, 13.5, 14.5]
 
         A ``null`` (yields ``null`` at that row) and a ``NaN`` (which propagates) in ``close`` flow through the midline:
@@ -423,8 +417,8 @@ def keltner_channels(
         ...         "close": [2.0, 3.0, None, 5.0, float("nan"), 7.0, 8.0],
         ...     }
         ... )
-        >>> bands = keltner_channels(pl.col("high"), pl.col("low"), pl.col("close"), window=2, window_atr=2)
-        >>> frame.select(middle=bands.struct.field("middle").round(4))["middle"].to_list()
+        >>> expr = keltner_channels(pl.col("high"), pl.col("low"), pl.col("close"), window=2, window_atr=2)
+        >>> frame.select(middle=expr.struct.field("middle").round(4))["middle"].to_list()
         [None, 2.5, None, 4.6429, nan, nan, nan]
 
         **Degenerate denominator** — a flat series has zero ATR, so all three bands collapse onto the EMA of the close:
@@ -506,7 +500,7 @@ def midpoint(
         >>> from pomata.indicators import midpoint
         >>>
         >>> frame = pl.DataFrame({"x": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]})
-        >>> frame.select(midpoint=midpoint(pl.col("x"), 3).round(4))["midpoint"].to_list()
+        >>> frame.select(midpoint=midpoint(pl.col("x"), window=3).round(4))["midpoint"].to_list()
         [None, None, 2.0, 3.0, 4.0, 5.0]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -517,14 +511,13 @@ def midpoint(
         ...         "x": [1.0, 2.0, 3.0, 10.0, 20.0, 30.0],
         ...     }
         ... )
-        >>> expr = midpoint(pl.col("x"), 2).over("ticker").round(4)
-        >>> frame.with_columns(midpoint=expr)["midpoint"].to_list()
+        >>> frame.with_columns(midpoint=midpoint(pl.col("x"), window=2).over("ticker").round(4))["midpoint"].to_list()
         [None, 1.5, 2.5, None, 15.0, 25.0]
 
         A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make the handling visible:
 
         >>> frame = pl.DataFrame({"x": [1.0, None, 3.0, float("nan"), 5.0, 6.0]})
-        >>> frame.select(midpoint=midpoint(pl.col("x"), 2).round(4))["midpoint"].to_list()
+        >>> frame.select(midpoint=midpoint(pl.col("x"), window=2).round(4))["midpoint"].to_list()
         [None, None, None, nan, nan, 5.5]
 
         **window == 1** — a single-observation window makes the max and min the value itself, so the midpoint reproduces
@@ -609,8 +602,7 @@ def midprice(
         ...         "low": [9.0, 10.0, 11.0, 11.0, 12.0],
         ...     }
         ... )
-        >>> expr = midprice(pl.col("high"), pl.col("low"), 3).round(4)
-        >>> frame.select(midprice=expr)["midprice"].to_list()
+        >>> frame.select(midprice=midprice(pl.col("high"), pl.col("low"), window=3).round(4))["midprice"].to_list()
         [None, None, 11.0, 11.5, 12.5]
 
         On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:
@@ -622,8 +614,8 @@ def midprice(
         ...         "low": [9.0, 10.0, 11.0, 19.0, 20.0, 21.0],
         ...     }
         ... )
-        >>> expr = midprice(pl.col("high"), pl.col("low"), 2).over("ticker").round(4)
-        >>> frame.with_columns(midprice=expr)["midprice"].to_list()
+        >>> expr = midprice(pl.col("high"), pl.col("low"), window=2)
+        >>> frame.with_columns(midprice=expr.over("ticker").round(4))["midprice"].to_list()
         [None, 10.5, 11.5, None, 20.5, 21.5]
 
         A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make the handling visible:
@@ -634,8 +626,7 @@ def midprice(
         ...         "low": [9.0, 10.0, 11.0, 12.0, 13.0],
         ...     }
         ... )
-        >>> expr = midprice(pl.col("high"), pl.col("low"), 2).round(4)
-        >>> frame.select(midprice=expr)["midprice"].to_list()
+        >>> frame.select(midprice=midprice(pl.col("high"), pl.col("low"), window=2).round(4))["midprice"].to_list()
         [None, None, None, nan, nan]
 
         **window == 1** — a single-bar window makes the extremes the bar's own ``high`` and ``low``, so the midprice

@@ -11,7 +11,7 @@ from pomata.metrics import cagr, pain_index, sterling_ratio
 from tests.metrics.enums import Annualization, BehaviorNan, BehaviorNull, Degenerate
 from tests.metrics.harness import suite_metrics
 from tests.metrics.oracles import reference_sterling_ratio
-from tests.support.declaration import Golden, Pin, ScaleExempt
+from tests.support.declaration import Example, Golden, Pin, ScaleExempt
 
 STERLING_RATIO = suite_metrics(
     factory=sterling_ratio,
@@ -114,7 +114,42 @@ STERLING_RATIO = suite_metrics(
         "excess": "The fixed cushion added to the average drawdown denominator (default ``0.10``). Must be "
         "a finite number ``>= 0``.",
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
-    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
-    "handling visible:",
+    example_columns={"equity_curve": "equity"},
+    examples=(
+        Example(
+            inputs={"equity_curve": (1.1, 1.05, 1.2, 1.15, 1.3, 1.25, 1.4)}, params={"periods_per_year": 1}, round_to=4
+        ),
+        Example(
+            inputs={"equity_curve": (1.1, 1.05, 1.2, 1.15, 1.3, 1.25, 1.4, 1.0, 1.02, 1.01, 1.05, 1.08, 1.06, 1.12)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+            partition=("A", "A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B", "B"),
+            params={"periods_per_year": 1},
+            round_to=4,
+        ),
+        Example(
+            inputs={"equity_curve": (1.1, None, 1.2, 1.15, float("nan"), 1.25, 1.4)},
+            intro="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+            "handling visible:",
+            params={"periods_per_year": 1},
+            round_to=4,
+        ),
+        Example(
+            inputs={"equity_curve": (1.0,)},
+            intro="**Degenerate denominator** — a flat single-period curve has zero drawdown and zero "
+            "excess growth over the default cushion, so the ratio is exactly ``0``:",
+            params={"periods_per_year": 252},
+        ),
+        Example(
+            inputs={"equity_curve": (1.0, 1.1, 1.21)},
+            intro="**Degenerate denominator** — a zero cushion on a drawdown-free rising curve leaves a "
+            "zero denominator with positive growth, so the ratio is ``+inf``:",
+            params={"periods_per_year": 1, "excess": 0.0},
+        ),
+        Example(
+            inputs={"equity_curve": (1.0, 1.0, 1.0)},
+            intro="**Degenerate denominator** — a zero cushion on a flat curve leaves a zero denominator "
+            "and zero excess growth, so the ratio is a ``0 / 0``, i.e. ``NaN``:",
+            params={"periods_per_year": 1, "excess": 0.0},
+        ),
+    ),
 )

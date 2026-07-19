@@ -8,7 +8,7 @@ from pomata.indicators import chande_momentum_oscillator
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_chande_momentum_oscillator
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 from tests.support.strategies import windows_well_spread
 
 
@@ -184,7 +184,34 @@ CHANDE_MOMENTUM_OSCILLATOR = suite_indicators(
         "window": "Number of one-step changes summed in the window. Must be ``>= 1``.",
     },
     intro_basic="Basic usage on a single price series:",
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-    intro_missing="A ``null`` (any window it touches yields ``null``) and a ``NaN`` (which propagates) make "
-    "the handling visible:",
+    example_columns={"price": "close"},
+    examples=(
+        Example(inputs={"price": (10.0, 11.0, 12.0, 11.0, 13.0, 14.0, 13.0, 15.0)}, params={"window": 3}, round_to=4),
+        Example(
+            inputs={"price": (10.0, 11.0, 12.0, 11.0, 13.0, 20.0, 19.0, 21.0, 22.0, 20.0)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "A", "A", "B", "B", "B", "B", "B"),
+            params={"window": 3},
+            round_to=4,
+        ),
+        Example(
+            inputs={"price": (10.0, 11.0, 12.0, None, 14.0, float("nan"), 16.0, 17.0)},
+            intro="A ``null`` (any window it touches yields ``null``) and a ``NaN`` (which propagates) make "
+            "the handling visible:",
+            params={"window": 3},
+            round_to=4,
+        ),
+        Example(
+            inputs={"price": (10.0, 10.0, 10.0, 10.0, 10.0)},
+            intro="**Degenerate denominator** — an all-flat window has every change exactly zero, the "
+            "``0/0`` degenerate, so the result is ``NaN``:",
+            params={"window": 3},
+        ),
+        Example(
+            inputs={"price": (1.0, 3.0, 2.0, 5.0)},
+            intro="**window == 1** — a one-bar window collapses the rolling gain/loss sums to the raw move "
+            "direction, so each row reports ``+100`` on an up move and ``-100`` on a down move:",
+            params={"window": 1},
+        ),
+    ),
 )

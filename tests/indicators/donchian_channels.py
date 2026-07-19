@@ -7,7 +7,7 @@ from pomata.indicators import donchian_channels
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_donchian_channels
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 DONCHIAN_CHANNELS = suite_indicators(
     factory=donchian_channels,
@@ -100,8 +100,34 @@ DONCHIAN_CHANNELS = suite_indicators(
         "window": "Number of observations in the moving window (canonically ``20``, the Donchian period). "
         "Must be ``>= 1``.",
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker's bands warm up independently:",
-    intro_missing="A ``null`` (nulling every band whose window reads it — here ``upper`` and ``middle``, "
-    "while ``lower`` stays defined) and a ``NaN`` (which propagates) make the handling "
-    "visible:",
+    examples=(
+        Example(
+            inputs={"high": (11.0, 12.0, 13.0, 12.5, 14.0), "low": (9.0, 10.0, 11.0, 11.0, 12.0)},
+            params={"window": 3},
+            round_to=4,
+            fields=("upper", "lower", "middle"),
+        ),
+        Example(
+            inputs={"high": (11.0, 12.0, 13.0, 21.0, 22.0, 23.0), "low": (9.0, 10.0, 11.0, 19.0, 20.0, 21.0)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker's bands warm up independently:",
+            partition=("A", "A", "A", "B", "B", "B"),
+            params={"window": 2},
+            fields=("middle",),
+        ),
+        Example(
+            inputs={"high": (11.0, None, 13.0, float("nan"), 15.0), "low": (9.0, 10.0, 11.0, 12.0, 13.0)},
+            intro="A ``null`` (nulling every band whose window reads it — here ``upper`` and ``middle``, "
+            "while ``lower`` stays defined) and a ``NaN`` (which propagates) make the handling "
+            "visible:",
+            params={"window": 2},
+            fields=("middle",),
+        ),
+        Example(
+            inputs={"high": (11.0, 12.0, 13.0), "low": (9.0, 10.0, 11.0)},
+            intro="**window == 1** — a single-bar window makes the upper and lower bands the bar's own "
+            "``high`` and ``low``, and the middle their mean, with no warm-up:",
+            params={"window": 1},
+            fields=("lower",),
+        ),
+    ),
 )

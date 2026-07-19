@@ -16,6 +16,7 @@ from tests.pnl.enums import BehaviorNan, BehaviorNull, ConventionSign, NonFinite
 from tests.support.declaration import (
     Declaration,
     Deviant,
+    Example,
     FactoryExpr,
     Golden,
     OracleFn,
@@ -67,8 +68,8 @@ def suite_pnl(  # noqa: PLR0913
     example_alias: str = "",
     example_imports: tuple[str, ...] = (),
     intro_basic: str = "",
-    intro_over: str = "",
-    intro_missing: str = "",
+    example_columns: Mapping[str, str] = MappingProxyType({}),
+    examples: tuple[Example, ...] = (),
 ) -> Declaration:
     """
     Build, register, and return the :class:`Declaration` for one public ``pomata.pnl`` function.
@@ -109,9 +110,9 @@ def suite_pnl(  # noqa: PLR0913
         args_prose: Per-parameter Args descriptions overriding the mined majority template, keyed by parameter name.
         example_alias: The Examples import alias (``as ...``), or empty for the bare function name.
         example_imports: Extra Examples imports beyond ``import polars as pl``, each a full import statement.
-        intro_basic: The optional line opening the basic Examples block, or empty.
-        intro_over: The ``.over`` panel scenario intro, or empty.
-        intro_missing: The null / NaN scenario intro, or empty.
+        intro_basic: The optional prose line opening the whole Examples block, or empty.
+        example_columns: The display column name each input role is shown under (a role absent uses its own name).
+        examples: The Examples scenarios in source order, each rendered in the canonical idiom and executed.
 
     Returns:
         The registered declaration, so ``FOO = suite_pnl(...)`` both binds and enrolls it.
@@ -150,7 +151,7 @@ def suite_pnl(  # noqa: PLR0913
         example_alias=example_alias,
         example_imports=example_imports,
         intro_basic=intro_basic,
-        intro_over=intro_over,
-        intro_missing=intro_missing,
+        example_columns=example_columns,
+        examples=examples,
     )
     return register(declaration)

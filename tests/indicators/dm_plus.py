@@ -9,7 +9,7 @@ from pomata.indicators import dm_plus
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_dm_plus
-from tests.support.declaration import Deviant, Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Deviant, Example, Golden, Pin, ScaleAxis, Shape
 
 DM_PLUS = suite_indicators(
     factory=dm_plus,
@@ -112,7 +112,34 @@ DM_PLUS = suite_indicators(
         "window": "Number of observations in the Wilder moving window. Must be ``>= 1``.",
     },
     intro_basic="On a small high/low frame with a short window:",
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-    intro_missing="A leading ``null`` ``high`` (which zeroes the raw movement it touches) and a later "
-    "``NaN`` ``high`` (the own side, which poisons the recursion) make the handling visible:",
+    examples=(
+        Example(
+            inputs={
+                "high": (10.0, 11.0, 12.0, 11.5, 13.0, 12.5, 14.0, 13.5),
+                "low": (9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5),
+            },
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "high": (10.0, 11.0, 12.0, 11.5, 13.0, 20.0, 22.0, 19.0, 23.0, 20.0),
+                "low": (9.0, 10.0, 11.0, 10.5, 12.0, 18.0, 20.0, 17.0, 21.0, 18.0),
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "A", "A", "B", "B", "B", "B", "B"),
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "high": (None, 11.0, 12.0, 11.5, float("nan"), 12.5, 14.0, 13.5),
+                "low": (9.0, 10.0, 11.0, 10.5, 12.0, 11.5, 13.0, 12.5),
+            },
+            intro="A leading ``null`` ``high`` (which zeroes the raw movement it touches) and a later "
+            "``NaN`` ``high`` (the own side, which poisons the recursion) make the handling visible:",
+            params={"window": 2},
+            round_to=4,
+        ),
+    ),
 )

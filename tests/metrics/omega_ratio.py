@@ -9,7 +9,7 @@ from pomata.metrics import omega_ratio
 from tests.metrics.enums import Annualization, BehaviorNan, BehaviorNull, Degenerate
 from tests.metrics.harness import suite_metrics
 from tests.metrics.oracles import reference_omega_ratio
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 
 OMEGA_RATIO = suite_metrics(
     factory=omega_ratio,
@@ -98,7 +98,56 @@ OMEGA_RATIO = suite_metrics(
         "return (default ``0.0``); an annual target must be de-annualized by the caller before it "
         "is passed. Must be finite.",
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
-    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
-    "handling visible:",
+    examples=(
+        Example(inputs={"returns": (0.03, -0.01, 0.02, -0.015, 0.01, 0.005, -0.02)}, round_to=4),
+        Example(
+            inputs={
+                "returns": (
+                    0.03,
+                    -0.01,
+                    0.02,
+                    -0.015,
+                    0.01,
+                    0.005,
+                    -0.02,
+                    0.02,
+                    -0.005,
+                    0.015,
+                    -0.01,
+                    0.025,
+                    0.0,
+                    -0.012,
+                )
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+            partition=("A", "A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B", "B"),
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (0.03, None, 0.02, -0.015, float("nan"), 0.005, -0.02)},
+            intro="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+            "handling visible:",
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (0.05,)},
+            intro="**Insufficient sample** — a single observation above the threshold has no offsetting "
+            "loss, so the ratio is ``+inf``:",
+        ),
+        Example(
+            inputs={"returns": (0.01, 0.02, 0.03)},
+            intro="**Degenerate denominator** — returns all above the threshold have no downside, so the "
+            "ratio is ``+inf``:",
+        ),
+        Example(
+            inputs={"returns": (-0.01, -0.02, -0.03)},
+            intro="**Degenerate denominator** — returns all below the threshold have no upside, so the "
+            "ratio is exactly ``0``:",
+        ),
+        Example(
+            inputs={"returns": (0.0, 0.0, 0.0)},
+            intro="**Degenerate denominator** — returns all exactly at the threshold give a ``0 / 0``, so "
+            "the ratio is ``NaN``:",
+        ),
+    ),
 )

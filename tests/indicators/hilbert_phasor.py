@@ -8,7 +8,7 @@ from pomata.indicators import hilbert_phasor
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_hilbert_phasor
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 _SAMPLE = tuple(100.0 + 10.0 * math.sin(2 * math.pi * index / 20) for index in range(40))
 
@@ -82,4 +82,14 @@ HILBERT_PHASOR = suite_indicators(
     '``.struct.field("in_phase")`` or split both with ``.struct.unnest()``.',
     example_imports=("import math",),
     intro_basic="The in-phase and quadrature components on a clean period-20 sine, at the last bar:",
+    examples=(
+        Example(
+            verbatim=(
+                ">>> frame = pl.select(close=100.0 + (2 * math.pi * pl.int_range(200) / 20).sin())",
+                '>>> phasor = frame.select(hilbert_phasor=hilbert_phasor(pl.col("close"))).unnest("hilbert_phasor")',
+                '>>> round(phasor["in_phase"][-1], 2), round(phasor["quadrature"][-1], 2)',
+                "(-0.8, 0.61)",
+            )
+        ),
+    ),
 )

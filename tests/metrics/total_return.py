@@ -4,7 +4,7 @@ from pomata.metrics import total_return
 from tests.metrics.enums import Annualization, BehaviorNan, BehaviorNull
 from tests.metrics.harness import suite_metrics
 from tests.metrics.oracles import reference_total_return
-from tests.support.declaration import Golden, Pin, ScaleExempt
+from tests.support.declaration import Example, Golden, Pin, ScaleExempt
 
 TOTAL_RETURN = suite_metrics(
     factory=total_return,
@@ -52,7 +52,20 @@ TOTAL_RETURN = suite_metrics(
         "its ``N`` values are ``N`` period growth factors, and its final value is the total "
         "growth multiple.",
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
-    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
-    "handling visible:",
+    example_columns={"equity_curve": "equity"},
+    examples=(
+        Example(inputs={"equity_curve": (1.1, 1.045, 1.254, 1.3794)}, round_to=4),
+        Example(
+            inputs={"equity_curve": (1.1, 1.045, 1.254, 1.3794, 1.02, 1.05, 0.98, 1.12)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            round_to=4,
+        ),
+        Example(
+            inputs={"equity_curve": (1.1, 1.045, None, 1.254, float("nan"), 1.3794)},
+            intro="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+            "handling visible:",
+            round_to=4,
+        ),
+    ),
 )

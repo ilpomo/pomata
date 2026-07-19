@@ -6,7 +6,7 @@ from pomata.metrics import value_at_risk_parametric
 from tests.metrics.enums import Annualization, BehaviorNan, BehaviorNull
 from tests.metrics.harness import suite_metrics
 from tests.metrics.oracles import reference_value_at_risk_parametric
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 
 VALUE_AT_RISK_PARAMETRIC = suite_metrics(
     factory=value_at_risk_parametric,
@@ -81,7 +81,24 @@ VALUE_AT_RISK_PARAMETRIC = suite_metrics(
         "confidence": "The tail confidence level (canonically ``0.95``); the quantile taken is ``1 - "
         "confidence``. Must be in the open interval ``(0, 1)``.",
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
-    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
-    "handling visible:",
+    examples=(
+        Example(inputs={"returns": (0.02, -0.04, 0.01, -0.06, 0.03)}, round_to=4),
+        Example(
+            inputs={"returns": (0.02, -0.04, 0.01, -0.06, 0.03, 0.01, -0.02, 0.04, -0.03, 0.02)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+            partition=("A", "A", "A", "A", "A", "B", "B", "B", "B", "B"),
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (0.02, None, -0.04, 0.01, float("nan"), -0.06, 0.03)},
+            intro="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+            "handling visible:",
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (0.05,)},
+            intro="**Insufficient sample** — one observation has no sample standard deviation (``ddof=1`` "
+            "needs at least two), so the result is ``null``:",
+        ),
+    ),
 )

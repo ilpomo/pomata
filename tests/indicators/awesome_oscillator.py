@@ -4,7 +4,7 @@ from pomata.indicators import awesome_oscillator
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_awesome_oscillator
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 from tests.support.tolerances import TOLERANCE_ABSOLUTE_ROLLING_ORACLE, TOLERANCE_RELATIVE_ROLLING_ORACLE
 
 AWESOME_OSCILLATOR = suite_indicators(
@@ -98,6 +98,42 @@ AWESOME_OSCILLATOR = suite_indicators(
         "window_fast``.",
     },
     intro_basic="Basic usage on high-low bars:",
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-    intro_missing="A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make it visible:",
+    examples=(
+        Example(
+            inputs={"high": (2.0, 4.0, 6.0, 8.0, 10.0), "low": (0.0, 2.0, 4.0, 6.0, 8.0)},
+            params={"window_fast": 2, "window_slow": 3},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "high": (11.0, 12.0, 13.0, 12.5, 14.0, 21.0, 22.0, 23.0, 22.5, 24.0),
+                "low": (9.0, 10.0, 11.0, 11.0, 12.0, 19.0, 20.0, 21.0, 21.0, 22.0),
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "A", "A", "B", "B", "B", "B", "B"),
+            params={"window_fast": 2, "window_slow": 3},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "high": (11.0, 12.0, 13.0, 12.5, 14.0, None, 15.0, float("nan"), 16.0, 17.0),
+                "low": (9.0, 10.0, 11.0, 11.0, 12.0, 12.0, 13.0, 13.0, 14.0, 15.0),
+            },
+            intro="A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make it visible:",
+            params={"window_fast": 2, "window_slow": 3},
+            round_to=4,
+        ),
+        Example(
+            inputs={"high": (2.0,), "low": (0.0,)},
+            intro="**Insufficient sample** — a fast and slow window both collapsed to a single bar leave no "
+            "warm-up to wait out, so a one-row series reads a well-defined ``0``:",
+            params={"window_fast": 1, "window_slow": 1},
+        ),
+        Example(
+            inputs={"high": (5.0, 5.0, 5.0, 5.0, 5.0), "low": (5.0, 5.0, 5.0, 5.0, 5.0)},
+            intro="**Degenerate denominator** — a constant median price makes the fast and slow averages "
+            "equal, so the oscillator is exactly ``0``:",
+            params={"window_fast": 2, "window_slow": 3},
+        ),
+    ),
 )

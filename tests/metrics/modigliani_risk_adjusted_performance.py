@@ -8,7 +8,7 @@ from pomata.metrics import modigliani_risk_adjusted_performance, sharpe_ratio, v
 from tests.metrics.enums import Annualization, BehaviorNan, BehaviorNull, Degenerate
 from tests.metrics.harness import suite_metrics
 from tests.metrics.oracles import reference_modigliani_risk_adjusted_performance
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 
 
 def _modigliani_component() -> pl.Expr:
@@ -97,7 +97,46 @@ MODIGLIANI_RISK_ADJUSTED_PERFORMANCE = suite_metrics(
         "period) and as the additive level here (default ``0.0``). Must be finite and ``>= -1``.",
     },
     example_alias="m_squared",
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
-    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
-    "handling visible:",
+    examples=(
+        Example(
+            inputs={
+                "returns": (0.02, -0.01, 0.03, -0.02, 0.015, 0.005),
+                "benchmark": (0.015, -0.008, 0.025, -0.015, 0.01, 0.004),
+            },
+            params={"periods_per_year": 252},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "returns": (0.02, -0.01, 0.03, -0.02, 0.015, 0.005, 0.01, 0.025, -0.015, 0.008, -0.005, 0.012),
+                "benchmark": (0.015, -0.008, 0.025, -0.015, 0.01, 0.004, 0.012, 0.02, -0.01, 0.006, -0.004, 0.01),
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+            partition=("A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B"),
+            params={"periods_per_year": 252},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "returns": (None, 0.02, 0.03, float("nan"), 0.015, 0.005),
+                "benchmark": (0.015, -0.008, 0.025, -0.015, 0.01, 0.004),
+            },
+            intro="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+            "handling visible:",
+            params={"periods_per_year": 252},
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (0.05,), "benchmark": (0.04,)},
+            intro="**Insufficient sample** — a single complete pair leaves the embedded Sharpe ratio and "
+            "benchmark volatility undefined, so the result is ``null``:",
+            params={"periods_per_year": 252},
+        ),
+        Example(
+            inputs={"returns": (0.01, 0.01, 0.01), "benchmark": (0.02, -0.01, 0.03)},
+            intro="**Degenerate denominator** — a constant portfolio has zero dispersion, so the embedded "
+            "Sharpe ratio is ``+inf``, which propagates to ``+inf``:",
+            params={"periods_per_year": 252},
+        ),
+    ),
 )

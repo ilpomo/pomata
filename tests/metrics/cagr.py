@@ -6,7 +6,7 @@ from pomata.metrics import cagr
 from tests.metrics.enums import Annualization, BehaviorNan, BehaviorNull, Degenerate
 from tests.metrics.harness import suite_metrics
 from tests.metrics.oracles import reference_cagr
-from tests.support.declaration import Golden, Pin, ScaleExempt
+from tests.support.declaration import Example, Golden, Pin, ScaleExempt
 
 CAGR = suite_metrics(
     factory=cagr,
@@ -94,7 +94,35 @@ CAGR = suite_metrics(
         "its ``N`` values are ``N`` period growth factors, and its final value is the total "
         "growth multiple.",
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
-    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
-    "handling visible:",
+    example_columns={"equity_curve": "equity"},
+    examples=(
+        Example(inputs={"equity_curve": (1.1, 1.21)}, params={"periods_per_year": 1}, round_to=4),
+        Example(
+            inputs={"equity_curve": (1.1, 1.21, 1.05, 1.1025)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+            partition=("A", "A", "B", "B"),
+            params={"periods_per_year": 1},
+            round_to=4,
+        ),
+        Example(
+            inputs={"equity_curve": (1.0, 1.1, None, 1.21, float("nan"), 1.3)},
+            intro="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+            "handling visible:",
+            params={"periods_per_year": 1},
+            round_to=4,
+        ),
+        Example(
+            inputs={"equity_curve": (1.0, 0.5, -0.2)},
+            intro="**Domain** — a negative terminal equity falls outside the fractional-power domain, so "
+            "the result is a loud ``NaN``:",
+            params={"periods_per_year": 252},
+        ),
+        Example(
+            inputs={"equity_curve": (1.01,)},
+            intro="**Insufficient sample** — a single observation still annualizes its growth over the one "
+            "period it spans, rather than requiring a minimum count:",
+            params={"periods_per_year": 4},
+            round_to=4,
+        ),
+    ),
 )

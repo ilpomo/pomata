@@ -7,7 +7,7 @@ from tests.metrics.enums import BehaviorNan, BehaviorNull
 from tests.metrics.harness import suite_metrics
 from tests.metrics.oracles import reference_tail_ratio_rolling
 from tests.metrics.tail_ratio import TAIL_RATIO
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 
 TAIL_RATIO_ROLLING = suite_metrics(
     factory=tail_ratio_rolling,
@@ -69,8 +69,35 @@ TAIL_RATIO_ROLLING = suite_metrics(
     args_prose={
         "window": "Number of observations in the moving window. Must be ``>= 1``.",
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up on its own "
-    "(the ``B`` group never borrows ``A``'s tail):",
-    intro_missing="A leading ``null`` and a later ``NaN`` show the per-window masking, with the result "
-    "recovering once both leave the window:",
+    examples=(
+        Example(inputs={"returns": (0.01, -0.02, 0.03, -0.01, 0.02, 0.0, -0.015)}, params={"window": 5}, round_to=4),
+        Example(
+            inputs={
+                "returns": (0.01, -0.02, 0.03, -0.01, 0.02, 0.0, -0.015, 0.02, -0.01, 0.04, -0.03, 0.01, 0.025, -0.02)
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up on its own "
+            "(the ``B`` group never borrows ``A``'s tail):",
+            partition=("A", "A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B", "B"),
+            params={"window": 5},
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (None, 0.01, float("nan"), -0.02, 0.03, -0.01, 0.02, 0.0, -0.015, 0.005)},
+            intro="A leading ``null`` and a later ``NaN`` show the per-window masking, with the result "
+            "recovering once both leave the window:",
+            params={"window": 5},
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (0.0, 0.0, 0.0, 0.0, 0.02)},
+            intro="**Degenerate denominator** — a window with a zero 5th-percentile and a non-zero 95th "
+            "gives ``+inf``:",
+            params={"window": 5},
+        ),
+        Example(
+            inputs={"returns": (0.0, 0.0, 0.0)},
+            intro="**Degenerate denominator** — an all-zero window gives ``0/0``, so the ratio is ``NaN``:",
+            params={"window": 3},
+        ),
+    ),
 )

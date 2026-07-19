@@ -4,7 +4,7 @@ from pomata.indicators import obv
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_obv
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 OBV = suite_indicators(
     factory=obv,
@@ -78,7 +78,29 @@ OBV = suite_indicators(
     args_prose={
         "expr": 'Input series, conventionally the close (any series is accepted; e.g. ``pl.col("close")``).',
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-    intro_missing="A ``null`` (skipped, the running total carrying across it) and a ``NaN`` (which "
-    "propagates) make the exact handling visible at a glance:",
+    example_columns={"price": "close"},
+    examples=(
+        Example(
+            inputs={"price": (10.0, 12.0, 11.0, 11.0, 13.0, 9.0), "volume": (100.0, 200.0, 150.0, 80.0, 300.0, 250.0)},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "price": (11.0, 12.5, 11.5, 13.5, 21.5, 21.5, 22.5, 24.0),
+                "volume": (100.0, 120.0, 90.0, 110.0, 100.0, 120.0, 90.0, 110.0),
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "price": (10.0, 11.0, 12.0, 13.0, None, 15.0, float("nan"), 17.0, 18.0, 19.0),
+                "volume": (100.0, 120.0, 90.0, 110.0, 130.0, 100.0, 95.0, 140.0, 105.0, 115.0),
+            },
+            intro="A ``null`` (skipped, the running total carrying across it) and a ``NaN`` (which "
+            "propagates) make the exact handling visible at a glance:",
+            round_to=4,
+        ),
+    ),
 )

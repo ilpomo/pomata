@@ -6,7 +6,7 @@ from pomata.indicators import accumulation_distribution
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_accumulation_distribution
-from tests.support.declaration import Golden, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, ScaleAxis, Shape
 
 ACCUMULATION_DISTRIBUTION = suite_indicators(
     factory=accumulation_distribution,
@@ -74,7 +74,37 @@ ACCUMULATION_DISTRIBUTION = suite_indicators(
     returns_body="The Accumulation/Distribution Line for each row, the same length as the inputs. There is "
     "no warm-up -- the first row already carries the first bar's Money Flow Volume, and the "
     "line is the running cumulative sum from there.",
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-    intro_missing="A ``null`` (skipped, the running total carrying across it) and a ``NaN`` (which "
-    "propagates) make the exact handling visible at a glance:",
+    examples=(
+        Example(
+            inputs={
+                "high": (10.0, 11.0, 12.0, 13.0, 14.0),
+                "low": (8.0, 9.0, 10.0, 11.0, 12.0),
+                "close": (9.0, 10.5, 10.0, 13.0, 12.5),
+                "volume": (100.0, 200.0, 300.0, 400.0, 500.0),
+            },
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "high": (12.0, 13.0, 12.5, 14.0, 22.0, 24.0, 23.0, 25.0),
+                "low": (10.0, 11.0, 11.0, 12.0, 20.0, 21.0, 21.0, 23.0),
+                "close": (11.0, 12.5, 11.5, 13.5, 21.5, 21.5, 22.5, 24.0),
+                "volume": (100.0, 120.0, 90.0, 110.0, 100.0, 120.0, 90.0, 110.0),
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "high": (12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0),
+                "low": (10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0),
+                "close": (11.5, 12.5, 13.0, 14.5, None, 16.0, float("nan"), 18.0),
+                "volume": (100.0, 120.0, 90.0, 110.0, 130.0, 100.0, 95.0, 140.0),
+            },
+            intro="A ``null`` (skipped, the running total carrying across it) and a ``NaN`` (which "
+            "propagates) make the exact handling visible at a glance:",
+            round_to=4,
+        ),
+    ),
 )

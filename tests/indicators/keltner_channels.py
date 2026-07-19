@@ -6,7 +6,7 @@ from pomata.indicators import keltner_channels
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_keltner_channels
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 KELTNER_CHANNELS = suite_indicators(
     factory=keltner_channels,
@@ -117,7 +117,43 @@ KELTNER_CHANNELS = suite_indicators(
         "multiplier": "Band half-width as a multiple of the ATR (canonically ``2.0``). Must be a finite number "
         "``> 0``.",
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker's bands warm up independently:",
-    intro_missing="A ``null`` (yields ``null`` at that row) and a ``NaN`` (which propagates) in ``close`` "
-    "flow through the midline:",
+    examples=(
+        Example(
+            inputs={"high": (3.0, 4.0, 5.0, 6.0), "low": (1.0, 2.0, 3.0, 4.0), "close": (2.0, 3.0, 4.0, 5.0)},
+            params={"window": 2, "window_atr": 2},
+            round_to=4,
+            fields=("middle",),
+        ),
+        Example(
+            inputs={
+                "high": (3.0, 4.0, 5.0, 6.0, 13.0, 14.0, 15.0, 16.0),
+                "low": (1.0, 2.0, 3.0, 4.0, 11.0, 12.0, 13.0, 14.0),
+                "close": (2.0, 3.0, 4.0, 5.0, 12.0, 13.0, 14.0, 15.0),
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker's bands warm up independently:",
+            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            params={"window": 2, "window_atr": 2},
+            round_to=4,
+            fields=("middle",),
+        ),
+        Example(
+            inputs={
+                "high": (3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0),
+                "low": (1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0),
+                "close": (2.0, 3.0, None, 5.0, float("nan"), 7.0, 8.0),
+            },
+            intro="A ``null`` (yields ``null`` at that row) and a ``NaN`` (which propagates) in ``close`` "
+            "flow through the midline:",
+            params={"window": 2, "window_atr": 2},
+            round_to=4,
+            fields=("middle",),
+        ),
+        Example(
+            inputs={"high": (4.0, 4.0, 4.0, 4.0), "low": (4.0, 4.0, 4.0, 4.0), "close": (4.0, 4.0, 4.0, 4.0)},
+            intro="**Degenerate denominator** — a flat series has zero ATR, so all three bands collapse "
+            "onto the EMA of the close:",
+            params={"window": 2, "window_atr": 2},
+            fields=("lower",),
+        ),
+    ),
 )

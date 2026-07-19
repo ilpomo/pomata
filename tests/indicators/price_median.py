@@ -6,7 +6,7 @@ from pomata.indicators import price_median
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_price_median
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 PRICE_MEDIAN = suite_indicators(
     factory=price_median,
@@ -56,9 +56,21 @@ PRICE_MEDIAN = suite_indicators(
     ),
     returns_body="The median price for each row, the same length as the inputs. There is no window and no "
     "warm-up -- every row is defined from row ``0``.",
-    intro_over="On a multi-ticker panel, partition with ``.over`` as the windowed indicators require — "
-    "for this elementwise transform ``.over`` is optional (the result is identical without "
-    "it) and shown here only for consistency:",
-    intro_missing="A ``null`` then a ``NaN`` in ``high`` (both propagate through the sum) make the "
-    "missing-data handling visible at a glance:",
+    examples=(
+        Example(inputs={"high": (11.0, 12.0, 13.0, 12.5, 14.0), "low": (9.0, 10.0, 11.0, 11.0, 12.0)}, round_to=4),
+        Example(
+            inputs={"high": (11.0, 12.0, 13.0, 21.0, 22.0, 23.0), "low": (9.0, 10.0, 11.0, 19.0, 20.0, 21.0)},
+            intro="On a multi-ticker panel, partition with ``.over`` as the windowed indicators require — "
+            "for this elementwise transform ``.over`` is optional (the result is identical without "
+            "it) and shown here only for consistency:",
+            partition=("A", "A", "A", "B", "B", "B"),
+            round_to=4,
+        ),
+        Example(
+            inputs={"high": (11.0, None, 13.0, float("nan"), 15.0), "low": (9.0, 10.0, 11.0, 12.0, 13.0)},
+            intro="A ``null`` then a ``NaN`` in ``high`` (both propagate through the sum) make the "
+            "missing-data handling visible at a glance:",
+            round_to=4,
+        ),
+    ),
 )

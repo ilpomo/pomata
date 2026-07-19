@@ -7,7 +7,7 @@ from pomata.indicators import ichimoku
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_ichimoku
-from tests.support.declaration import Golden, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, ScaleAxis, Shape
 
 ICHIMOKU = suite_indicators(
     factory=ichimoku,
@@ -102,7 +102,37 @@ ICHIMOKU = suite_indicators(
         "window_kijun": "Base-line window (canonically ``26``). Must be ``>= 1`` and ``>= window_tenkan``.",
         "window_senkou": "Leading-span-B window (canonically ``52``). Must be ``>= 1`` and ``>= window_kijun``.",
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker's lines warm up independently:",
-    intro_missing="A ``null`` (any line whose window touches it is ``null``) and a ``NaN`` (which "
-    "propagates) make it visible:",
+    examples=(
+        Example(
+            inputs={
+                "high": (10.0, 12.0, 11.0, 13.0, 14.0, 12.0, 15.0, 13.0),
+                "low": (8.0, 9.0, 10.0, 11.0, 12.0, 10.0, 12.0, 11.0),
+            },
+            params={"window_tenkan": 2, "window_kijun": 3, "window_senkou": 4},
+            round_to=4,
+            fields=("tenkan", "senkou_b"),
+        ),
+        Example(
+            inputs={
+                "high": (10.0, 12.0, 11.0, 13.0, 14.0, 20.0, 22.0, 21.0, 23.0, 24.0),
+                "low": (8.0, 9.0, 10.0, 11.0, 12.0, 18.0, 19.0, 20.0, 21.0, 22.0),
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker's lines warm up independently:",
+            partition=("A", "A", "A", "A", "A", "B", "B", "B", "B", "B"),
+            params={"window_tenkan": 2, "window_kijun": 3, "window_senkou": 4},
+            round_to=4,
+            fields=("kijun",),
+        ),
+        Example(
+            inputs={
+                "high": (10.0, 12.0, None, 13.0, float("nan"), 12.0, 15.0),
+                "low": (8.0, 9.0, 10.0, 11.0, 12.0, 10.0, 12.0),
+            },
+            intro="A ``null`` (any line whose window touches it is ``null``) and a ``NaN`` (which "
+            "propagates) make it visible:",
+            params={"window_tenkan": 2, "window_kijun": 3, "window_senkou": 4},
+            round_to=4,
+            fields=("tenkan",),
+        ),
+    ),
 )

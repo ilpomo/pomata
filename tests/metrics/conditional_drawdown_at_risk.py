@@ -4,7 +4,7 @@ from pomata.metrics import conditional_drawdown_at_risk
 from tests.metrics.enums import Annualization, BehaviorNan, BehaviorNull
 from tests.metrics.harness import suite_metrics
 from tests.metrics.oracles import reference_conditional_drawdown_at_risk
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 
 CONDITIONAL_DRAWDOWN_AT_RISK = suite_metrics(
     factory=conditional_drawdown_at_risk,
@@ -82,7 +82,29 @@ CONDITIONAL_DRAWDOWN_AT_RISK = suite_metrics(
         "confidence": "The tail confidence level (canonically ``0.95``); the mean is taken over the worst ``1 - "
         "confidence`` of drawdowns. Must be in the open interval ``(0, 1)``.",
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
-    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
-    "handling visible:",
+    example_columns={"equity_curve": "equity"},
+    examples=(
+        Example(inputs={"equity_curve": (1.1, 1.05, 1.2, 1.15, 1.3, 1.25, 1.4)}, round_to=4),
+        Example(
+            inputs={"equity_curve": (1.1, 1.05, 1.2, 1.15, 1.3, 1.25, 1.4, 1.0, 0.9, 0.95, 1.1, 1.0, 1.2, 1.15)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+            partition=("A", "A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B", "B"),
+            round_to=4,
+        ),
+        Example(
+            inputs={"equity_curve": (1.1, 1.05, None, 1.2, float("nan"), 1.15, 1.3)},
+            intro="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+            "handling visible:",
+            round_to=4,
+        ),
+        Example(
+            inputs={"equity_curve": (1.0,)},
+            intro="**Insufficient sample** — a one-element series is at its own peak, so CDaR is exactly ``0``:",
+        ),
+        Example(
+            inputs={"equity_curve": (1.0, 1.1, 1.21)},
+            intro="**Degenerate denominator** — a monotonically rising curve has an all-zero drawdown "
+            "series, so CDaR is ``0``:",
+        ),
+    ),
 )

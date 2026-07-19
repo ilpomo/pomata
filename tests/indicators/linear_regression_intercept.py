@@ -4,7 +4,7 @@ from pomata.indicators import linear_regression_intercept
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_linear_regression_intercept
-from tests.support.declaration import Golden, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, ScaleAxis, Shape
 
 LINEAR_REGRESSION_INTERCEPT = suite_indicators(
     factory=linear_regression_intercept,
@@ -46,7 +46,22 @@ LINEAR_REGRESSION_INTERCEPT = suite_indicators(
         "window": "Number of observations in the regression window. Must be ``>= 2`` (a line needs at least "
         "two points).",
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-    intro_missing="A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make "
-    "the handling visible:",
+    example_columns={"expr": "x"},
+    examples=(
+        Example(inputs={"expr": (10.0, 11.0, 13.0, 12.0, 14.0, 13.0, 15.0)}, params={"window": 3}, round_to=4),
+        Example(
+            inputs={"expr": (10.0, 11.0, 13.0, 12.0, 20.0, 22.0, 21.0, 24.0)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            params={"window": 3},
+            round_to=4,
+        ),
+        Example(
+            inputs={"expr": (10.0, 11.0, 13.0, None, 14.0, float("nan"), 16.0)},
+            intro="A ``null`` (a window touching it yields ``null``) and a ``NaN`` (which propagates) make "
+            "the handling visible:",
+            params={"window": 3},
+            round_to=4,
+        ),
+    ),
 )

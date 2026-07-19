@@ -6,7 +6,7 @@ from pomata.metrics import total_return_rolling
 from tests.metrics.enums import Annualization, BehaviorNan, BehaviorNull
 from tests.metrics.harness import suite_metrics
 from tests.metrics.oracles import reference_total_return_rolling
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 
 TOTAL_RETURN_ROLLING = suite_metrics(
     factory=total_return_rolling,
@@ -94,7 +94,22 @@ TOTAL_RETURN_ROLLING = suite_metrics(
         "equity_curve": "Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive.",
         "window": "Number of observations in the moving window. Must be ``>= 2``.",
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-    intro_missing="A ``null`` or ``NaN`` at a window endpoint propagates, while a ``NaN`` interior to a "
-    "window is ignored:",
+    example_columns={"equity_curve": "equity"},
+    examples=(
+        Example(inputs={"equity_curve": (1.0, 1.1, 1.05, 1.2, 1.15, 1.3, 1.25)}, params={"window": 3}, round_to=4),
+        Example(
+            inputs={"equity_curve": (1.0, 1.1, 1.05, 1.2, 1.15, 1.0, 1.02, 1.08, 1.05, 1.12)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "A", "A", "B", "B", "B", "B", "B"),
+            params={"window": 3},
+            round_to=4,
+        ),
+        Example(
+            inputs={"equity_curve": (None, 1.1, 1.05, 1.2, float("nan"), 1.3, 1.25)},
+            intro="A ``null`` or ``NaN`` at a window endpoint propagates, while a ``NaN`` interior to a "
+            "window is ignored:",
+            params={"window": 3},
+            round_to=4,
+        ),
+    ),
 )

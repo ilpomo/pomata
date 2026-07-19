@@ -7,7 +7,7 @@ from tests.metrics.enums import BehaviorNan, BehaviorNull
 from tests.metrics.harness import suite_metrics
 from tests.metrics.omega_ratio import OMEGA_RATIO
 from tests.metrics.oracles import reference_omega_ratio_rolling
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 
 OMEGA_RATIO_ROLLING = suite_metrics(
     factory=omega_ratio_rolling,
@@ -101,7 +101,35 @@ OMEGA_RATIO_ROLLING = suite_metrics(
         "return (default ``0.0``); an annual target must be de-annualized by the caller before it "
         "is passed. Must be finite.",
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-    intro_missing="A ``null`` (which voids every window that spans it) and a ``NaN`` (which propagates to "
-    "its windows) make the missing-data handling visible:",
+    examples=(
+        Example(inputs={"returns": (0.01, -0.02, 0.03, -0.01, 0.02, 0.0, -0.015)}, params={"window": 3}, round_to=4),
+        Example(
+            inputs={
+                "returns": (0.01, -0.02, 0.03, -0.01, 0.02, 0.0, -0.015, 0.02, -0.005, 0.015, -0.01, 0.025, 0.0, -0.012)
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B", "B"),
+            params={"window": 3},
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (0.01, None, 0.03, -0.01, 0.02, float("nan"), -0.015, 0.02, 0.01)},
+            intro="A ``null`` (which voids every window that spans it) and a ``NaN`` (which propagates to "
+            "its windows) make the missing-data handling visible:",
+            params={"window": 3},
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (0.01, 0.02, 0.03)},
+            intro="**Degenerate denominator** — a window with no return below the threshold has zero mean "
+            "loss, so the ratio is ``+inf``:",
+            params={"window": 3},
+        ),
+        Example(
+            inputs={"returns": (1000000000.0, 0.01, 1e-09, 0.0, 0.0)},
+            intro="**Degenerate denominator** — a window of two exact zeros at the threshold, reached after "
+            "a much larger value slides out, gives a ``0 / 0``, so the ratio is ``NaN``:",
+            params={"window": 2},
+        ),
+    ),
 )

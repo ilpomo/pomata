@@ -6,7 +6,7 @@ from pomata.pnl import equity_curve
 from tests.pnl.enums import BehaviorNan, BehaviorNull, ConventionSign, SpaceCost
 from tests.pnl.harness import suite_pnl
 from tests.pnl.oracles import reference_equity_curve
-from tests.support.declaration import Golden, Pin, ScaleExempt
+from tests.support.declaration import Example, Golden, Pin, ScaleExempt
 
 EQUITY_CURVE = suite_pnl(
     factory=equity_curve,
@@ -79,7 +79,24 @@ EQUITY_CURVE = suite_pnl(
         "from :func:`returns_gross`).",
     },
     intro_basic="Basic usage on a per-bar return series:",
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker compounds independently:",
-    intro_missing="A leading ``null`` stays ``null`` (the curve begins at the first defined return) and a "
-    "later ``NaN`` then contaminates every row after it:",
+    examples=(
+        Example(inputs={"returns": (0.1, -0.05, 0.2, 0.1, -0.15, 0.05, 0.3, -0.1)}, round_to=4),
+        Example(
+            inputs={"returns": (0.1, 0.2, -0.05, 0.1, 0.0, 0.1, 0.1, -0.2)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker compounds independently:",
+            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (None, 0.1, 0.2, float("nan"), 0.1)},
+            intro="A leading ``null`` stays ``null`` (the curve begins at the first defined return) and a "
+            "later ``NaN`` then contaminates every row after it:",
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (float("inf"), 0.1, float("-inf"), 0.2)},
+            intro="**Non-finite input** — a ``+inf`` return inflates the compounded curve to ``+inf``, and "
+            "a later ``-inf`` factor flips its sign to ``-inf``, which then persists:",
+        ),
+    ),
 )

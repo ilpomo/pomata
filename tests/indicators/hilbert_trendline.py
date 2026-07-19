@@ -6,7 +6,7 @@ from pomata.indicators import hilbert_trendline
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_hilbert_trendline
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 _SAMPLE = tuple(100.0 + 0.5 * index + 10.0 * math.sin(2 * math.pi * index / 20) for index in range(80))
 
@@ -85,6 +85,16 @@ HILBERT_TRENDLINE = suite_indicators(
     returns_body="The instantaneous trendline for each row, the same length as ``expr``, on the price "
     "scale. The first ``63`` rows are ``null`` (warm-up).",
     example_imports=("import math",),
-    intro_basic="Spanning a whole cycle, the trendline cancels the swing and tracks the mean level (here "
-    "``100``): >>> import math",
+    intro_basic="Spanning a whole cycle, the trendline cancels the swing and tracks the mean level (here ``100``):",
+    examples=(
+        Example(
+            verbatim=(
+                ">>> frame = pl.select(close=100.0 + (2 * math.pi * pl.int_range(200) / 20).sin())",
+                ">>> "
+                'round(frame.select(hilbert_trendline=hilbert_trendline(pl.col("close")))["hilbert_trendline"][-1], '
+                "2)",
+                "100.0",
+            )
+        ),
+    ),
 )

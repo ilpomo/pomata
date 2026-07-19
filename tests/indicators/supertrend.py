@@ -6,7 +6,7 @@ from pomata.indicators import supertrend
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_supertrend
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 _GOLDEN_HIGH = (10.0, 11.0, 12.0, 13.0, 14.0, 13.0, 12.0, 11.0)
 
@@ -190,7 +190,48 @@ SUPERTREND = suite_indicators(
         "multiplier": "Band half-width as a multiple of the ATR (canonically ``3.0``). Must be a finite number "
         "``> 0`` (a non-positive multiplier would collapse or invert the bands).",
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker's ratchet warms up independently:",
-    intro_missing="A ``null`` in ``close`` is skipped and bridged by the running state, while a ``NaN`` "
-    "poisons the ATR recursion and latches ``NaN`` thereafter:",
+    examples=(
+        Example(
+            inputs={
+                "high": (10.0, 11.0, 12.0, 11.0, 13.0, 12.0, 14.0),
+                "low": (9.0, 10.0, 11.0, 10.0, 12.0, 11.0, 13.0),
+                "close": (9.5, 10.8, 11.8, 10.2, 12.8, 11.2, 13.8),
+            },
+            params={"window": 2, "multiplier": 2.0},
+            round_to=4,
+            fields=("line", "direction"),
+        ),
+        Example(
+            inputs={
+                "high": (10.0, 11.0, 12.0, 11.0, 13.0, 20.0, 21.0, 22.0, 21.0, 23.0),
+                "low": (9.0, 10.0, 11.0, 10.0, 12.0, 19.0, 20.0, 21.0, 20.0, 22.0),
+                "close": (9.5, 10.8, 11.8, 10.2, 12.8, 19.5, 20.8, 21.8, 20.2, 22.8),
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker's ratchet warms up "
+            "independently:",
+            partition=("A", "A", "A", "A", "A", "B", "B", "B", "B", "B"),
+            params={"window": 2, "multiplier": 2.0},
+            round_to=4,
+            fields=("line",),
+        ),
+        Example(
+            inputs={
+                "high": (10.0, 11.0, 12.0, 11.0, 13.0, 12.0, 14.0),
+                "low": (9.0, 10.0, 11.0, 10.0, 12.0, 11.0, 13.0),
+                "close": (9.5, 10.8, 11.8, None, 12.8, float("nan"), 13.8),
+            },
+            intro="A ``null`` in ``close`` is skipped and bridged by the running state, while a ``NaN`` "
+            "poisons the ATR recursion and latches ``NaN`` thereafter:",
+            params={"window": 2, "multiplier": 2.0},
+            round_to=4,
+            fields=("line",),
+        ),
+        Example(
+            inputs={"high": (10.0,), "low": (8.0,), "close": (9.0,)},
+            intro="**window == 1** — a single-bar window makes the ATR the bar's own true range, and a "
+            "close above the lower band seeds the trend long, so the line reads the lower band:",
+            params={"window": 1},
+            fields=("line",),
+        ),
+    ),
 )

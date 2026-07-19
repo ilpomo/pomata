@@ -4,7 +4,7 @@ from pomata.indicators import atr
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_atr
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 ATR = suite_indicators(
     factory=atr,
@@ -96,8 +96,44 @@ ATR = suite_indicators(
         "close": 'Close-price series (e.g. ``pl.col("close")``); the previous close supplies the two gap terms.',
         "window": "Number of observations in the Wilder moving window. Must be ``>= 1``.",
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-    intro_missing="A ``null`` ``close`` (absorbed, so the next bar falls back to ``high - low``) then a "
-    "``NaN`` ``close`` (which the Wilder recursion latches from the next bar on) make the "
-    "exact handling visible at a glance:",
+    examples=(
+        Example(
+            inputs={
+                "high": (10.0, 12.0, 13.0, 12.0, 14.0),
+                "low": (9.0, 10.0, 11.0, 10.0, 12.0),
+                "close": (9.5, 11.0, 12.0, 11.0, 13.0),
+            },
+            params={"window": 3},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "high": (12.0, 13.0, 12.5, 14.0, 22.0, 24.0, 23.0, 25.0),
+                "low": (10.0, 11.0, 11.0, 12.0, 20.0, 21.0, 21.0, 23.0),
+                "close": (11.0, 12.5, 11.5, 13.5, 21.5, 21.5, 22.5, 24.0),
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "high": (12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0),
+                "low": (10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0),
+                "close": (11.5, 12.5, None, 14.5, 15.5, float("nan"), 17.5, 18.0),
+            },
+            intro="A ``null`` ``close`` (absorbed, so the next bar falls back to ``high - low``) then a "
+            "``NaN`` ``close`` (which the Wilder recursion latches from the next bar on) make the "
+            "exact handling visible at a glance:",
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={"high": (10.0, 12.0, 11.0, 13.0), "low": (8.0, 9.0, 9.5, 10.0), "close": (9.0, 11.0, 10.0, 12.0)},
+            intro="**window == 1** — window=1 makes the Wilder smoothing the identity, so the ATR "
+            "reproduces the true range:",
+            params={"window": 1},
+        ),
+    ),
 )

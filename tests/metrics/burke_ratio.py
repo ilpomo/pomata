@@ -10,7 +10,7 @@ from pomata.metrics import burke_ratio, cagr, drawdown
 from tests.metrics.enums import Annualization, BehaviorNan, BehaviorNull, Degenerate
 from tests.metrics.harness import suite_metrics
 from tests.metrics.oracles import reference_burke_ratio
-from tests.support.declaration import Golden, Pin, ScaleExempt
+from tests.support.declaration import Example, Golden, Pin, ScaleExempt
 
 BURKE_RATIO = suite_metrics(
     factory=burke_ratio,
@@ -102,7 +102,42 @@ BURKE_RATIO = suite_metrics(
         "equity_curve": "Compounded growth-factor series (e.g. from :func:`~pomata.pnl.equity_curve`), positive.",
         "risk_free_rate": "The annualized risk-free rate subtracted from the growth (default ``0.0``). Must be finite.",
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
-    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
-    "handling visible:",
+    example_columns={"equity_curve": "equity"},
+    examples=(
+        Example(
+            inputs={"equity_curve": (1.1, 1.05, 1.2, 1.15, 1.3, 1.25, 1.4)}, params={"periods_per_year": 1}, round_to=4
+        ),
+        Example(
+            inputs={"equity_curve": (1.1, 1.05, 1.2, 1.15, 1.3, 1.25, 1.4, 1.0, 1.02, 1.01, 1.05, 1.08, 1.06, 1.12)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+            partition=("A", "A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B", "B"),
+            params={"periods_per_year": 1},
+            round_to=4,
+        ),
+        Example(
+            inputs={"equity_curve": (1.1, None, 1.2, 1.15, float("nan"), 1.25, 1.4)},
+            intro="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+            "handling visible:",
+            params={"periods_per_year": 1},
+            round_to=4,
+        ),
+        Example(
+            inputs={"equity_curve": (1.0,)},
+            intro="**Insufficient sample** — a single observation has zero excess growth and zero drawdown "
+            "energy, so the ratio is a ``0 / 0``, i.e. ``NaN``:",
+            params={"periods_per_year": 252},
+        ),
+        Example(
+            inputs={"equity_curve": (1.0, 1.1, 1.21)},
+            intro="**Degenerate denominator** — a monotonically rising curve has zero drawdown energy with "
+            "positive growth, so the ratio is ``+inf``:",
+            params={"periods_per_year": 1},
+        ),
+        Example(
+            inputs={"equity_curve": (1.0, 1.0, 1.0)},
+            intro="**Degenerate denominator** — a flat multi-row curve has zero drawdown energy and zero "
+            "excess growth, so the ratio is a ``0 / 0``, i.e. ``NaN``:",
+            params={"periods_per_year": 252},
+        ),
+    ),
 )

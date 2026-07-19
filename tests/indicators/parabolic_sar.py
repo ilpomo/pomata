@@ -6,7 +6,7 @@ from pomata.indicators import parabolic_sar
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_parabolic_sar
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 PARABOLIC_SAR = suite_indicators(
     factory=parabolic_sar,
@@ -107,7 +107,31 @@ PARABOLIC_SAR = suite_indicators(
         "maximum": "Cap on the acceleration factor. Must be in the half-open interval ``(0, 1]``, and at "
         "least ``acceleration``.",
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker seeds independently:",
-    intro_missing="A ``null`` then a ``NaN`` in ``high`` each yield ``null`` / ``NaN`` at that row and are "
-    "skipped, the running trend state bridging the gap:",
+    examples=(
+        Example(
+            inputs={
+                "high": (10.0, 11.0, 12.0, 13.0, 14.0, 13.0, 12.0, 11.0, 10.0, 11.0),
+                "low": (9.0, 10.0, 11.0, 12.0, 13.0, 12.0, 11.0, 10.0, 9.0, 10.0),
+            },
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "high": (10.0, 11.0, 12.0, 13.0, 14.0, 20.0, 21.0, 22.0, 21.0, 20.0),
+                "low": (9.0, 10.0, 11.0, 12.0, 13.0, 19.0, 20.0, 21.0, 20.0, 19.0),
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker seeds independently:",
+            partition=("A", "A", "A", "A", "A", "B", "B", "B", "B", "B"),
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "high": (10.0, 11.0, 12.0, None, 14.0, float("nan"), 12.0, 11.0),
+                "low": (9.0, 10.0, 11.0, 12.0, 13.0, 12.0, 11.0, 10.0),
+            },
+            intro="A ``null`` then a ``NaN`` in ``high`` each yield ``null`` / ``NaN`` at that row and are "
+            "skipped, the running trend state bridging the gap:",
+            round_to=4,
+        ),
+    ),
 )

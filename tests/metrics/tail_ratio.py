@@ -6,7 +6,7 @@ from pomata.metrics import tail_ratio
 from tests.metrics.enums import Annualization, BehaviorNan, BehaviorNull, Degenerate
 from tests.metrics.harness import suite_metrics
 from tests.metrics.oracles import reference_tail_ratio
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 
 TAIL_RATIO = suite_metrics(
     factory=tail_ratio,
@@ -68,7 +68,28 @@ TAIL_RATIO = suite_metrics(
     ),
     returns_body="A single ``Float64`` value: the tail ratio (one value in ``select``, one per group under "
     "``.over``). ``null`` when there are no returns.",
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
-    intro_missing="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
-    "handling visible:",
+    examples=(
+        Example(inputs={"returns": (0.02, -0.04, 0.01, -0.06, 0.03)}, round_to=4),
+        Example(
+            inputs={"returns": (0.02, -0.04, 0.01, -0.06, 0.03, 0.05, -0.02, 0.04, -0.03, 0.02)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
+            partition=("A", "A", "A", "A", "A", "B", "B", "B", "B", "B"),
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (0.02, None, -0.04, 0.01, float("nan"), -0.06, 0.03)},
+            intro="A ``null`` (skipped) and a ``NaN`` (which poisons the result) make the missing-data "
+            "handling visible:",
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (0.0, 0.0, 0.0, 0.0, 0.02)},
+            intro="**Degenerate denominator** — a zero 5th-percentile against a non-zero 95th gives ``+inf``:",
+        ),
+        Example(
+            inputs={"returns": (0.0, 0.0, 0.0)},
+            intro="**Degenerate denominator** — an all-zero series gives ``0/0`` at both tails, so the "
+            "ratio is ``NaN``:",
+        ),
+    ),
 )

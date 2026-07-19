@@ -9,7 +9,7 @@ from pomata.indicators import dominant_cycle_period
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_dominant_cycle_period
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 _SAMPLE = tuple(100.0 + 10.0 * math.sin(2 * math.pi * index / 20) for index in range(40))
 
@@ -93,5 +93,15 @@ DOMINANT_CYCLE_PERIOD = suite_indicators(
     "smoothers need to settle).",
     example_imports=("import math",),
     intro_basic="The dominant cycle of a clean period-20 sine, read at the last bar (close to its true "
-    "length of ``20`` bars): >>> import math",
+    "length of ``20`` bars):",
+    examples=(
+        Example(
+            verbatim=(
+                ">>> frame = pl.select(close=100.0 + (2 * math.pi * pl.int_range(200) / 20).sin())",
+                '>>> expr = dominant_cycle_period(pl.col("close"))',
+                '>>> round(frame.select(dominant_cycle_period=expr)["dominant_cycle_period"][-1], 2)',
+                "20.03",
+            )
+        ),
+    ),
 )

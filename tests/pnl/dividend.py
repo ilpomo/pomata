@@ -6,7 +6,7 @@ from pomata.pnl import dividend
 from tests.pnl.enums import BehaviorNan, BehaviorNull, ConventionSign, SpaceCost
 from tests.pnl.harness import suite_pnl
 from tests.pnl.oracles import reference_dividend
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 
 DIVIDEND = suite_pnl(
     factory=dividend,
@@ -75,7 +75,36 @@ DIVIDEND = suite_pnl(
         "bars.",
     },
     intro_basic="Basic usage on a held quantity and a per-share dividend:",
-    intro_over="The product is elementwise, so ``.over`` partitions identically and is shown only for consistency:",
-    intro_missing="A ``null`` then a ``NaN`` in ``quantity`` (both propagate through the product) make the "
-    "missing-data handling visible:",
+    examples=(
+        Example(
+            inputs={
+                "quantity": (100.0, 100.0, 100.0, 0.0, -50.0, -50.0, 200.0, 200.0),
+                "dividend_per_share": (0.0, 0.0, 0.5, 0.0, 0.5, 0.5, 0.0, 0.0),
+            },
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "quantity": (100.0, 100.0, 100.0, 0.0, 50.0, 50.0, -50.0, -50.0),
+                "dividend_per_share": (0.0, 0.0, 0.5, 0.0, 0.0, 0.3, 0.3, 0.3),
+            },
+            intro="The product is elementwise, so ``.over`` partitions identically and is shown only for consistency:",
+            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "quantity": (100.0, None, 100.0, float("nan"), -50.0),
+                "dividend_per_share": (0.5, 0.5, 0.5, 0.5, 0.5),
+            },
+            intro="A ``null`` then a ``NaN`` in ``quantity`` (both propagate through the product) make the "
+            "missing-data handling visible:",
+            round_to=4,
+        ),
+        Example(
+            inputs={"quantity": (float("inf"), -2.0, float("-inf")), "dividend_per_share": (1.0, float("inf"), 0.5)},
+            intro="**Non-finite input** — an infinite quantity or dividend per share carries the sign of "
+            "``quantity * dividend_per_share`` into an infinite cash flow:",
+        ),
+    ),
 )

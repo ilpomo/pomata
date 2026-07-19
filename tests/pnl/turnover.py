@@ -6,7 +6,7 @@ from pomata.pnl import turnover
 from tests.pnl.enums import BehaviorNan, BehaviorNull, ConventionSign, SpaceCost
 from tests.pnl.harness import suite_pnl
 from tests.pnl.oracles import reference_turnover
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 
 TURNOVER = suite_pnl(
     factory=turnover,
@@ -81,8 +81,26 @@ TURNOVER = suite_pnl(
     returns_body="The traded fraction for each row, the same length as ``weight``. The first row is "
     "``|weight_0|`` (the trade from a flat start), not ``null``.",
     intro_basic="Basic usage on a weight series:",
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker starts flat and never "
-    "differences across the boundary:",
-    intro_missing="A ``null`` (which voids its own row and the next, since the difference references the "
-    "previous weight) then a ``NaN`` (likewise) make the missing-data handling visible:",
+    examples=(
+        Example(inputs={"weight": (0.5, 1.0, -0.5, -0.5, 0.0, 1.0, 1.0, -1.0)}, round_to=4),
+        Example(
+            inputs={"weight": (0.5, 1.0, -0.5, -0.5, 1.0, 1.0, 0.0, 0.5)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker starts flat and never "
+            "differences across the boundary:",
+            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            round_to=4,
+        ),
+        Example(
+            inputs={"weight": (0.5, None, -0.5, float("nan"), 0.0)},
+            intro="A ``null`` (which voids its own row and the next, since the difference references the "
+            "previous weight) then a ``NaN`` (likewise) make the missing-data handling visible:",
+            round_to=4,
+        ),
+        Example(
+            inputs={"weight": (float("inf"), float("inf"), 1.0, float("-inf"))},
+            intro="**Non-finite input** — a single infinite weight carries ``|inf|`` forward, while two "
+            "consecutive equal-sign infinite weights difference to ``inf - inf``, so that bar's "
+            "turnover is ``NaN``:",
+        ),
+    ),
 )

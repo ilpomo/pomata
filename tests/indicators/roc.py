@@ -6,7 +6,7 @@ from pomata.indicators import roc
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_roc
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 ROC = suite_indicators(
     factory=roc,
@@ -97,7 +97,44 @@ ROC = suite_indicators(
         "window": "Number of observations to look back. Must be ``>= 1``.",
     },
     intro_basic="Basic usage on a single price series:",
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-    intro_missing="A ``null`` (voiding the rows that reference it) and a ``NaN`` (which propagates) make "
-    "the exact handling visible at a glance:",
+    example_columns={"expr": "close"},
+    examples=(
+        Example(inputs={"expr": (2.0, 4.0, 6.0, 8.0, 10.0)}, params={"window": 2}, round_to=4),
+        Example(
+            inputs={"expr": (10.0, 11.0, 12.0, 11.0, 13.0, 20.0, 22.0, 21.0, 23.0, 22.0)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "A", "A", "B", "B", "B", "B", "B"),
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={"expr": (10.0, 11.0, 12.0, 13.0, None, 15.0, float("nan"), 17.0, 18.0, 19.0)},
+            intro="A ``null`` (voiding the rows that reference it) and a ``NaN`` (which propagates) make "
+            "the exact handling visible at a glance:",
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={"expr": (42.0,)},
+            intro="**Insufficient sample** — a one-element series with a one-bar window stays undefined:",
+            params={"window": 1},
+        ),
+        Example(
+            inputs={"expr": (5.0, 5.0, 5.0, 5.0)},
+            intro="**Degenerate denominator** — ROC of a constant non-zero series is exactly ``0`` once warmed up:",
+            params={"window": 1},
+        ),
+        Example(
+            inputs={"expr": (0.0, 5.0, 0.0, -5.0)},
+            intro="**Degenerate denominator** — a non-zero change over a zero lagged value is ``+/-inf``, "
+            "the sign tracking the change direction:",
+            params={"window": 1},
+        ),
+        Example(
+            inputs={"expr": (0.0, 0.0, 5.0)},
+            intro="**Degenerate denominator** — a zero change over zero is ``NaN`` (``0/0``), while a "
+            "non-zero change over zero is ``+inf``:",
+            params={"window": 1},
+        ),
+    ),
 )

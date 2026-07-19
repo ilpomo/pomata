@@ -6,7 +6,7 @@ from pomata.indicators import kama
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_kama
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 KAMA = suite_indicators(
     factory=kama,
@@ -98,6 +98,32 @@ KAMA = suite_indicators(
         "window_slow": "Period of the slow smoothing-constant bound (canonically ``30``), ``2 / (window_slow + "
         "1)``. Must be ``>= 1`` and ``>= window_fast``.",
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-    intro_missing="A ``null`` (bridged) and a ``NaN`` (latched) make the handling visible:",
+    example_columns={"price": "close"},
+    examples=(
+        Example(
+            inputs={"price": (10.0, 11.0, 12.0, 11.0, 13.0, 12.5)},
+            params={"window": 2, "window_fast": 2, "window_slow": 30},
+            round_to=4,
+        ),
+        Example(
+            inputs={"price": (10.0, 11.0, 12.0, 11.0, 13.0, 20.0, 22.0, 21.0, 23.0, 22.0)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "A", "A", "B", "B", "B", "B", "B"),
+            params={"window": 2, "window_fast": 2, "window_slow": 30},
+            round_to=4,
+        ),
+        Example(
+            inputs={"price": (10.0, 11.0, 12.0, None, 13.0, float("nan"), 15.0, 16.0)},
+            intro="A ``null`` (bridged) and a ``NaN`` (latched) make the handling visible:",
+            params={"window": 2, "window_fast": 2, "window_slow": 30},
+            round_to=4,
+        ),
+        Example(
+            inputs={"price": (5.0, 5.0, 5.0, 5.0)},
+            intro="**Degenerate denominator** — a flat series has zero bar-to-bar travel, so the efficiency "
+            "ratio is taken as ``0`` (avoiding the ``0 / 0`` degenerate) and KAMA holds at the "
+            "constant:",
+            params={"window": 2, "window_fast": 2, "window_slow": 30},
+        ),
+    ),
 )

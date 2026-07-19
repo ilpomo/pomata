@@ -6,7 +6,7 @@ from pomata.indicators import percentage_price_oscillator
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_percentage_price_oscillator
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 from tests.support.tolerances import TOLERANCE_ABSOLUTE_ROLLING_ORACLE, TOLERANCE_RELATIVE_ROLLING_ORACLE
 
 PERCENTAGE_PRICE_OSCILLATOR = suite_indicators(
@@ -101,7 +101,39 @@ PERCENTAGE_PRICE_OSCILLATOR = suite_indicators(
         "window_slow": "Span of the slow EMA (canonically ``26``). Must be ``>= 1`` and ``>= window_fast``.",
     },
     intro_basic="Basic usage on a single price series:",
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker's EMAs warm up independently:",
-    intro_missing="A ``null`` (which the recursive EMA bridges) and a ``NaN`` (which latches) make the "
-    "handling visible:",
+    example_columns={"price": "close"},
+    examples=(
+        Example(
+            inputs={"price": (10.0, 11.0, 12.0, 11.0, 13.0, 14.0, 13.0, 15.0)},
+            params={"window_fast": 2, "window_slow": 3},
+            round_to=4,
+        ),
+        Example(
+            inputs={"price": (10.0, 11.0, 12.0, 11.0, 20.0, 22.0, 24.0, 22.0)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker's EMAs warm up independently:",
+            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            params={"window_fast": 2, "window_slow": 3},
+            round_to=4,
+        ),
+        Example(
+            inputs={"price": (10.0, 11.0, None, 13.0, float("nan"), 15.0)},
+            intro="A ``null`` (which the recursive EMA bridges) and a ``NaN`` (which latches) make the "
+            "handling visible:",
+            params={"window_fast": 2, "window_slow": 3},
+            round_to=4,
+        ),
+        Example(
+            inputs={"price": (0.0, 0.0, 0.0, 0.0)},
+            intro="**Degenerate denominator** — an all-zero series drives both EMAs to exactly ``0.0``, so "
+            "the ``0/0`` boundary surfaces as ``NaN``:",
+            params={"window_fast": 2, "window_slow": 3},
+        ),
+        Example(
+            inputs={"price": (1.0, 1.0, -2.0)},
+            intro="**Degenerate denominator** — a window summing to zero seeds the slow EMA at exactly "
+            "``0.0`` while the fast EMA stays non-zero, so the non-zero gap over the zero slow EMA is "
+            "``+/-inf``:",
+            params={"window_fast": 2, "window_slow": 3},
+        ),
+    ),
 )

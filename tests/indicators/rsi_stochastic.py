@@ -6,7 +6,7 @@ from pomata.indicators import rsi_stochastic
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_rsi_stochastic
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 RSI_STOCHASTIC = suite_indicators(
     factory=rsi_stochastic,
@@ -101,7 +101,40 @@ RSI_STOCHASTIC = suite_indicators(
         "window_d": "Number of observations in the %D moving average of %K (canonically ``3``). Must be ``>= 1``.",
     },
     intro_basic="Basic usage on a single price series:",
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-    intro_missing="A ``null`` (which nulls the dependent %K) and a ``NaN`` (which propagates) make the "
-    "handling visible:",
+    example_columns={"wave": "close"},
+    examples=(
+        Example(
+            inputs={"wave": (50.0, 51.0, 50.5, 52.0, 51.5, 53.0, 52.0, 54.0, 53.5, 55.0)},
+            params={"window_rsi": 3, "window_k": 3, "window_d": 2},
+            round_to=4,
+            fields=("k", "d"),
+        ),
+        Example(
+            inputs={
+                "wave": (50.0, 51.0, 50.5, 52.0, 51.5, 53.0, 52.0, 54.0, 40.0, 41.0, 40.5, 42.0, 41.5, 43.0, 42.0, 44.0)
+            },
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B", "B", "B"),
+            params={"window_rsi": 3, "window_k": 3, "window_d": 2},
+            round_to=4,
+            fields=("k",),
+        ),
+        Example(
+            inputs={
+                "wave": (50.0, 51.0, 50.5, 52.0, 51.5, 53.0, 52.0, 54.0, None, 55.0, float("nan"), 56.0, 57.0, 58.0)
+            },
+            intro="A ``null`` (which nulls the dependent %K) and a ``NaN`` (which propagates) make the "
+            "handling visible:",
+            params={"window_rsi": 3, "window_k": 3, "window_d": 2},
+            round_to=4,
+            fields=("k",),
+        ),
+        Example(
+            inputs={"wave": (10.0, 11.0, 12.0, 13.0, 14.0)},
+            intro="**Degenerate denominator** — a monotone run gives an exactly-flat RSI, so the %K channel "
+            "normalization is the ``0/0`` degenerate ``NaN``:",
+            params={"window_rsi": 2, "window_k": 2, "window_d": 1},
+            fields=("k",),
+        ),
+    ),
 )

@@ -6,7 +6,7 @@ from pomata.indicators import ema
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Seeding, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_ema
-from tests.support.declaration import Golden, Pin, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 EMA = suite_indicators(
     factory=ema,
@@ -122,7 +122,27 @@ EMA = suite_indicators(
         "``window == 1`` or a constant series), the gap largest near the start of the series and "
         "decaying geometrically as the history grows.",
     },
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-    intro_missing="A ``null`` (skipped: it voids its own row while the recursion bridges the gap) and a "
-    "``NaN`` (which latches) make the exact handling visible at a glance:",
+    example_columns={"expr": "close"},
+    examples=(
+        Example(inputs={"expr": (2.0, 4.0, 6.0, 8.0, 10.0)}, params={"window": 3}, round_to=4),
+        Example(
+            inputs={"expr": (10.0, 11.0, 12.0, 11.0, 13.0, 20.0, 22.0, 21.0, 23.0, 22.0)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
+            partition=("A", "A", "A", "A", "A", "B", "B", "B", "B", "B"),
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={"expr": (10.0, 11.0, 12.0, 13.0, None, 15.0, float("nan"), 17.0, 18.0, 19.0)},
+            intro="A ``null`` (skipped: it voids its own row while the recursion bridges the gap) and a "
+            "``NaN`` (which latches) make the exact handling visible at a glance:",
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={"expr": (1.0, 2.0, 3.0)},
+            intro="**window == 1** — the smoothing factor ``alpha=1`` reproduces the input exactly, with no warm-up:",
+            params={"window": 1},
+        ),
+    ),
 )

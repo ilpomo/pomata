@@ -6,7 +6,7 @@ from pomata.pnl import returns_gross
 from tests.pnl.enums import BehaviorNan, BehaviorNull, ConventionSign, SpaceCost
 from tests.pnl.harness import suite_pnl
 from tests.pnl.oracles import reference_returns_gross
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 
 RETURNS_GROSS = suite_pnl(
     factory=returns_gross,
@@ -88,7 +88,33 @@ RETURNS_GROSS = suite_pnl(
         '``returns_simple(pl.col("close"))``).',
     },
     intro_basic="Basic usage on a weight and an asset-return series:",
-    intro_over="The product is elementwise, so ``.over`` partitions identically and is shown only for consistency:",
-    intro_missing="A ``null`` then a ``NaN`` in ``asset_returns`` (both propagate through the product) make "
-    "the missing-data handling visible:",
+    examples=(
+        Example(
+            inputs={
+                "weight": (1.0, 0.5, -1.0, -1.0, 0.5, 1.0, -0.5, 0.5),
+                "asset_returns": (0.02, -0.01, 0.03, -0.02, 0.04, 0.01, -0.03, 0.02),
+            },
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "weight": (1.0, -1.0, 0.5, 0.5, 0.5, 0.5, -1.0, 1.0),
+                "asset_returns": (0.02, 0.03, -0.01, 0.04, -0.02, 0.01, 0.03, -0.01),
+            },
+            intro="The product is elementwise, so ``.over`` partitions identically and is shown only for consistency:",
+            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            round_to=4,
+        ),
+        Example(
+            inputs={"weight": (1.0, 0.5, -1.0, -1.0, 0.5), "asset_returns": (0.02, None, 0.03, float("nan"), 0.04)},
+            intro="A ``null`` then a ``NaN`` in ``asset_returns`` (both propagate through the product) make "
+            "the missing-data handling visible:",
+            round_to=4,
+        ),
+        Example(
+            inputs={"weight": (float("inf"), -1.0, float("-inf")), "asset_returns": (0.1, float("inf"), -0.2)},
+            intro="**Non-finite input** — an infinite weight or asset return drives the gross return to an "
+            "infinite value with the sign of ``weight * asset_returns``:",
+        ),
+    ),
 )

@@ -6,7 +6,7 @@ from pomata.pnl import cumulative_pnl
 from tests.pnl.enums import BehaviorNan, BehaviorNull, ConventionSign, SpaceCost
 from tests.pnl.harness import suite_pnl
 from tests.pnl.oracles import reference_cumulative_pnl
-from tests.support.declaration import Golden, Pin, ScaleAxis
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis
 
 CUMULATIVE_PNL = suite_pnl(
     factory=cumulative_pnl,
@@ -79,7 +79,24 @@ CUMULATIVE_PNL = suite_pnl(
         "total.",
     },
     intro_basic="Basic usage on a per-bar P&L series:",
-    intro_over="On a multi-ticker panel, wrap the call in ``.over`` so each ticker accumulates independently:",
-    intro_missing="A ``null`` (skipped, the running total carries across it) then a ``NaN`` (which "
-    "contaminates every later row) in ``returns`` make the missing-data handling visible:",
+    examples=(
+        Example(inputs={"returns": (0.1, -0.05, 0.2, 0.1, -0.15, 0.05, 0.3, -0.1)}, round_to=4),
+        Example(
+            inputs={"returns": (0.1, 0.2, -0.05, 0.1, 0.0, 0.1, 0.1, -0.2)},
+            intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker accumulates independently:",
+            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (0.1, None, 0.2, float("nan"), 0.1)},
+            intro="A ``null`` (skipped, the running total carries across it) then a ``NaN`` (which "
+            "contaminates every later row) in ``returns`` make the missing-data handling visible:",
+            round_to=4,
+        ),
+        Example(
+            inputs={"returns": (float("inf"), 0.1, float("-inf"), 0.2)},
+            intro="**Non-finite input** — a ``+inf`` return latches the running total at ``+inf`` until an "
+            "opposite-sign infinity cancels it to ``NaN``, which then persists for every later row:",
+        ),
+    ),
 )
