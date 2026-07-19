@@ -1,7 +1,7 @@
 """
 Self-tests of :mod:`tests.support.docstring` — the declaration-driven docstring-tail generator.
 
-These pin the mechanism, not the whole corpus (the corpus fidelity lives in the parity harness): the greedy wrap and
+These pin the mechanism, not the whole corpus (the corpus fidelity is held by the round-trip guard): the greedy wrap and
 its atomic code spans, the family- and shape-keyed template selection, the family-aware See Also qualifier, the
 References ordering, that the generator emits only lines present verbatim in the source it reproduces, that the tail
 splits and re-assembles without disturbing the human head, and that the executed-example capture reproduces every
@@ -29,7 +29,9 @@ def test_generated_lines_fit_the_source_budget_or_are_lone_urls() -> None:
     """No generated line exceeds the 120-column budget, except a bullet holding a single unbreakable URL."""
     for declaration in ALL_DECLARATIONS:
         for line in tail_for(declaration).splitlines():
-            assert len(line) <= 120 or line.strip().startswith("- http")
+            assert len(line) <= 120 or line.strip().startswith("- http"), (
+                f"{declaration.name}: generated line exceeds the 120-column budget: {line!r}"
+            )
 
 
 def test_wrapped_reference_continuation_is_indented_and_atomic() -> None:
@@ -148,9 +150,8 @@ def test_tail_has_the_seven_headers_in_order() -> None:
 def test_generator_invents_no_prose() -> None:
     """Every generated line's content appears verbatim in the source — the generator may re-wrap, never invent.
 
-    A line-for-line match is not required (the corpus wraps some prose more tightly than the generator's greedy fill,
-    which sub-PR 2 normalizes), but the *content* of every generated line must be a contiguous fragment of the source,
-    so the generator never fabricates a sentence a declaration field does not hold.
+    A line-for-line match is not required — only the *content*: every generated line must be a contiguous fragment of
+    the source, so the generator never fabricates a sentence a declaration field does not hold.
     """
     declaration = registry_for("indicators")["sma"]
     doc = declaration.factory.__doc__ or ""
@@ -179,7 +180,7 @@ def test_locate_splits_at_args_and_rewrite_preserves_the_head() -> None:
     assert round_trip == span.path.read_text(encoding="utf-8")
 
 
-# --- executed-example capture (commitment 2) ---
+# --- executed-example capture (the outputs are truth) ---
 
 
 @pytest.mark.parametrize("declaration", _NON_STRUCT_GOLDENS, ids=lambda d: d.name)

@@ -226,6 +226,16 @@ class TestProse:
         with pytest.raises(ValueError, match=r"a note subheader must carry a non-empty label"):
             dataclasses.replace(_VALID, notes=(("   ", "a body"),))
 
+    def test_note_label_with_trailing_colon_rejected(self) -> None:
+        """A note subheader label ending in a colon dies at construction (the bold header renders no punctuation)."""
+        with pytest.raises(ValueError, match=r"note subheader 'Seeding:' must not end with a colon"):
+            dataclasses.replace(_VALID, notes=(("Seeding:", "a body"),))
+
+    def test_opener_override_with_note_extension_rejected(self) -> None:
+        """An opener override alongside a note extension dies at construction (nothing is left to extend)."""
+        with pytest.raises(ValueError, match=r"opener_override replaces the whole opener body"):
+            dataclasses.replace(_VALID, opener_override="A bespoke opener.", note_extension="An extension.")
+
     def test_empty_bullet_label_rejected(self) -> None:
         """An edge-case bullet with a blank label dies at construction."""
         with pytest.raises(ValueError, match=r"an edge-case bullet must carry a non-empty label"):

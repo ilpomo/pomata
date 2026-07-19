@@ -14,7 +14,7 @@ what the doctest prints.
 Only the family-shared prose is a *template mined from the corpus by majority* (the Note opener body per family, the
 TypeError line, the shared Args descriptions); the sanctioned opener variant for a rolling metric is keyed off the
 declaration. Every per-function remainder is declaration data, so the generator never invents prose — where a datum is
-absent it omits the line, and the parity harness records what remains.
+absent it omits the line.
 
 :func:`tail_for` returns the tail in *source form* (a four-space base indent, matching the ``.py`` docstring body), so
 the regenerator can splice it straight back under the human head.
@@ -37,7 +37,7 @@ from tests.support.frames import materialize
 
 # --- layout constants ---
 
-BASE = "    "  # the docstring body's base indent in source (the function body is one level in)
+_BASE = "    "  # the docstring body's base indent in source (the function body is one level in)
 _WIDTH = 120  # the source line budget the corpus prose wraps to
 
 # --- family-keyed template constants (mined from the corpus by majority) ---
@@ -68,8 +68,8 @@ _BULLET_DASH = "—"
 
 # Args parameter descriptions mined from the corpus by majority: a parameter whose description is shared across sites
 # (an input-price role, a returns series, the annualization knob) becomes a template constant here. A parameter with no
-# dominant description (``window`` alone carries seventeen wordings) is left out and surfaces in the parity report as a
-# per-site remainder that must become declaration data.
+# dominant description (``window`` alone carries seventeen wordings) is left out and must be carried per function as
+# ``args_prose`` declaration data.
 ARG_DESCRIPTIONS = {
     "expr": 'Input series, typically a price column (e.g. ``pl.col("close")``).',
     "high": 'High-price series (e.g. ``pl.col("high")``).',
@@ -149,10 +149,10 @@ def _references(declaration: Declaration) -> list[str]:
     body: list[str] = []
     for entry in (declaration.reference, declaration.doi, declaration.wikipedia, declaration.reference_url):
         if entry:
-            body += _wrap(f"- {entry}", BASE + BASE, BASE + BASE + "  ")
+            body += _wrap(f"- {entry}", _BASE + _BASE, _BASE + _BASE + "  ")
     if not body:
         return []
-    return [BASE + "References:", *body]
+    return [_BASE + "References:", *body]
 
 
 def _family_of(name: str) -> str:
@@ -171,8 +171,8 @@ def _see_also(declaration: Declaration) -> list[str]:
     for name, clause in declaration.see_also:
         family = _family_of(name)
         target = name if family == declaration.family else f"~pomata.{family}.{name}"
-        body += _wrap(f"- :func:`{target}`: {clause}", BASE + BASE, BASE + BASE + "  ")
-    return [BASE + "See Also:", *body]
+        body += _wrap(f"- :func:`{target}`: {clause}", _BASE + _BASE, _BASE + _BASE + "  ")
+    return [_BASE + "See Also:", *body]
 
 
 # --- Note ---
@@ -211,10 +211,10 @@ def _extend(opener_body: str, note_extension: str) -> str:
 
 def _subheader(label: str, note_body: str) -> list[str]:
     """A ``**Label**`` subheader followed by its blank-line-separated paragraphs (the opener / pre-list note shape)."""
-    block = [BASE + BASE + f"**{label}**"]
+    block = [_BASE + _BASE + f"**{label}**"]
     for para in note_body.split("\n\n"):
         block.append("")
-        block += _paragraph(para, BASE + BASE)
+        block += _paragraph(para, _BASE + _BASE)
     return block
 
 
@@ -232,14 +232,14 @@ def _note(declaration: Declaration) -> list[str]:
         body.append("")
         body += _subheader(note_label, note_body)
     body.append("")
-    body.append(BASE + BASE + "**Edge-case behavior**")
+    body.append(_BASE + _BASE + "**Edge-case behavior**")
     body.append("")
     for bullet_label, bullet_body in declaration.bullets:
-        body += _wrap(f"- **{bullet_label}** {_BULLET_DASH} {bullet_body}", BASE + BASE, BASE + BASE + "  ")
+        body += _wrap(f"- **{bullet_label}** {_BULLET_DASH} {bullet_body}", _BASE + _BASE, _BASE + _BASE + "  ")
     if declaration.note_postscript:
         body.append("")
-        body += _paragraph(declaration.note_postscript, BASE + BASE)
-    return [BASE + "Note:", *body]
+        body += _paragraph(declaration.note_postscript, _BASE + _BASE)
+    return [_BASE + "Note:", *body]
 
 
 # --- Raises ---
@@ -247,10 +247,10 @@ def _note(declaration: Declaration) -> list[str]:
 
 def _raises(declaration: Declaration) -> list[str]:
     """The Raises section: the shared TypeError line, then the per-function ValueError clause where one is declared."""
-    body = [BASE + BASE + _TYPE_ERROR]
+    body = [_BASE + _BASE + _TYPE_ERROR]
     if declaration.raises_prose:
-        body += _wrap(declaration.raises_prose, BASE + BASE, BASE + BASE + "    ")
-    return [BASE + "Raises:", *body]
+        body += _wrap(declaration.raises_prose, _BASE + _BASE, _BASE + _BASE + "    ")
+    return [_BASE + "Raises:", *body]
 
 
 # --- Returns (the per-function body, verbatim) ---
@@ -270,10 +270,10 @@ def _returns(declaration: Declaration) -> list[str]:
             body.append("")
         if para.startswith("- "):
             for bullet in re.split(r"(?<=\.) (?=- ``)", para):
-                body += _wrap(bullet, BASE + BASE, BASE + BASE + "  ")
+                body += _wrap(bullet, _BASE + _BASE, _BASE + _BASE + "  ")
         else:
-            body += _paragraph(para, BASE + BASE)
-    return [BASE + "Returns:", *body]
+            body += _paragraph(para, _BASE + _BASE)
+    return [_BASE + "Returns:", *body]
 
 
 # --- Args (per-parameter prose overriding the mined shared table) ---
@@ -289,13 +289,13 @@ def _args(declaration: Declaration) -> list[str]:
     for pname in inspect.signature(declaration.factory).parameters:
         description = declaration.args_prose.get(pname) or ARG_DESCRIPTIONS.get(pname)
         if description is not None:
-            body += _wrap(f"{pname}: {description}", BASE + BASE, BASE + BASE + "    ")
-    return [BASE + "Args:", *body]
+            body += _wrap(f"{pname}: {description}", _BASE + _BASE, _BASE + _BASE + "    ")
+    return [_BASE + "Args:", *body]
 
 
 # --- Examples (rendered in the canonical idiom and executed at generation) ---
 
-_EX = BASE + BASE  # the eight-space indent of an Examples ``>>>`` code line
+_EX = _BASE + _BASE  # the eight-space indent of an Examples ``>>>`` code line
 
 
 def _partition_literal(labels: tuple[str, ...]) -> str:
@@ -376,7 +376,7 @@ def _round_expr(expr: pl.Expr, round_to: int | None) -> pl.Expr:
 
 
 def execute_scenario(declaration: Declaration, example: Example) -> list[str]:
-    """The executed output line(s), formatted exactly as the doctest prints them (commitment 2: outputs are truth).
+    """The executed output line(s), formatted exactly as the doctest prints them — the outputs are truth.
 
     Builds the same expression the canonical code renders and materializes it, so a captured value can never drift
     from what running the emitted doctest produces: one line per displayed struct field, else the single lane.
@@ -470,9 +470,9 @@ def _examples(declaration: Declaration) -> list[str]:
     the import alias (``as m_squared``). Each scenario is preceded by a blank line and, where declared, its prose
     intro; a bespoke scenario (a computed cycle frame, the struct ``.columns`` demonstration) is emitted verbatim.
     """
-    lines = [BASE + "Examples:"]
+    lines = [_BASE + "Examples:"]
     if declaration.intro_basic:
-        lines += _paragraph(declaration.intro_basic, BASE + BASE)
+        lines += _paragraph(declaration.intro_basic, _BASE + _BASE)
         lines.append("")  # docutils needs a blank line between the intro paragraph and the ``>>>`` import block
     for statement in declaration.example_imports:
         lines.append(_EX + f">>> {statement}")
@@ -484,7 +484,7 @@ def _examples(declaration: Declaration) -> list[str]:
         if index:  # the first scenario follows the import header directly; later ones are blank-line separated
             lines.append("")
         if example.intro:
-            lines += _paragraph(example.intro, BASE + BASE)
+            lines += _paragraph(example.intro, _BASE + _BASE)
             lines.append("")
         lines += _scenario_lines(declaration, example)
     return lines
@@ -515,9 +515,9 @@ def execute_example(
 ) -> list[float | None]:
     """Run the factory over ``columns`` (under the declared params, with ``overrides``) and return the output lane.
 
-    Commitment 2: the example outputs are truth; the generator executes the scenario at generation time so a captured
-    value can never drift from the committed one without the parity harness flagging it. ``overrides`` carries a
-    scenario's per-call parameters (a golden's ``params`` or a pin's ``params_override``).
+    The example outputs are truth: the generator executes the scenario at generation time, and the round-trip guard
+    keeps the committed line equal to the executed one. ``overrides`` carries a scenario's per-call parameters (a
+    golden's ``params`` or a pin's ``params_override``).
     """
     return materialize(columns, build_expr(declaration, **(overrides or {})))
 

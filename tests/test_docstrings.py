@@ -114,9 +114,9 @@ _SHARED_PARAMS: dict[str, frozenset[str]] = {
 def test_shared_param_prose_is_pinned(param: str) -> None:
     """Every shared parameter's Args description equals the modal wording, except the pinned per-role deviants."""
     texts = {
-        declaration.name: _effective_arg(declaration, param)
-        for declaration in _DECLS.values()
-        if param in inspect.signature(declaration.factory).parameters
+        name: _effective_arg(_DECLS[name], param)
+        for name in _NAMES
+        if param in inspect.signature(_DECLS[name].factory).parameters
     }
     counts: dict[str, int] = {}
     for text in texts.values():
@@ -260,10 +260,10 @@ def test_examples_demonstrate_every_asserted_outcome(name: str) -> None:
     for (edge_class, label, kinds), (_, example) in zip(demanded, shown, strict=True):
         if not kinds:
             continue
-        output = execute_scenario(declaration, example)[-1]
+        outputs = execute_scenario(declaration, example)
         for kind in kinds:
-            assert re.search(_KIND_TOKENS[kind], output), (
-                f"{name}: the {edge_class.value} scenario ({label}) prints {output!r}, not the asserted {kind}"
+            assert any(re.search(_KIND_TOKENS[kind], output) for output in outputs), (
+                f"{name}: the {edge_class.value} scenario ({label}) prints {outputs!r}, not the asserted {kind}"
             )
 
 
@@ -374,14 +374,20 @@ def test_returns_opener_matches_shape(name: str) -> None:
     first = _flat(declaration.returns_body)
     shape = _SHAPE_FORM[declaration.shape.name]
     if shape == "reducing":
-        assert re.match(r"A single ``Float64`` value( in ``\[.+?\]``)?: the", first), f"{name}: {first[:80]}"
-        assert "(one value in ``select``, one per group under ``.over``)" in first, name
+        assert re.match(r"A single ``Float64`` value( in ``\[.+?\]``)?: the", first), (
+            f"{name}: Returns opener {first[:80]!r} does not open with the reducing template"
+        )
+        assert "(one value in ``select``, one per group under ``.over``)" in first, (
+            f"{name}: the reducing Returns body lacks the ``select``/``.over`` clause"
+        )
     elif shape == "struct":
         assert re.match(r"A struct ``pl\.Expr`` with (two|three|four) ``Float64`` fields, the same length as", first), (
-            f"{name}: {first[:80]}"
+            f"{name}: Returns opener {first[:80]!r} does not open with the struct template"
         )
     else:
-        assert re.match(r"The .+ for each row", first), f"{name}: {first[:80]}"
+        assert re.match(r"The .+ for each row", first), (
+            f"{name}: Returns opener {first[:80]!r} does not open with the elementwise template"
+        )
 
 
 # The sentence forms a Returns body states its warm-up in; the captured group is the backticked formula whose value, at

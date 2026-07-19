@@ -434,15 +434,22 @@ class Declaration:
             if not label.strip():
                 msg = f"{self.name}: a note subheader must carry a non-empty label"
                 raise ValueError(msg)
+            if label.rstrip().endswith(":"):
+                msg = f"{self.name}: note subheader {label!r} must not end with a colon (it renders as a bold header)"
+                raise ValueError(msg)
         for label, _body in self.bullets:
             if not label.strip():
                 msg = f"{self.name}: an edge-case bullet must carry a non-empty label"
                 raise ValueError(msg)
+        if self.opener_override and self.note_extension:
+            msg = f"{self.name}: opener_override replaces the whole opener body, so note_extension cannot extend it"
+            raise ValueError(msg)
         if self.reference_url and ("doi.org" in self.reference_url or "wikipedia.org" in self.reference_url):
             msg = (
                 f"{self.name}: reference_url is the non-DOI/non-Wikipedia bucket — a {self.reference_url} URL belongs "
+                "in doi/wikipedia"
             )
-            raise ValueError(msg + "in doi/wikipedia")
+            raise ValueError(msg)
         params = set(inspect.signature(self.factory).parameters)
         unknown = sorted(key for key in self.args_prose if key not in params)
         if unknown:

@@ -89,9 +89,10 @@ def rewrite(span: DocSpan, generated: str) -> str:
 def main(argv: list[str] | None = None) -> int:
     """Compare (or rewrite) every tail; return an exit code (non-zero when a tail differs under ``--check``)."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--check", action="store_true", help="compare only, never write (the default)")
-    parser.add_argument("--write", action="store_true", help="rewrite the source tails in place")
-    parser.add_argument("--diff", action="store_true", help="under --check, print a unified diff per mismatch")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--check", action="store_true", help="compare only, never write (the default)")
+    mode.add_argument("--write", action="store_true", help="rewrite the source tails in place")
+    mode.add_argument("--diff", action="store_true", help="compare, and print a unified diff per mismatch")
     args = parser.parse_args(argv)
 
     mismatches = 0
