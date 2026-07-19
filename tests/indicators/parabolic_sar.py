@@ -121,7 +121,7 @@ PARABOLIC_SAR = suite_indicators(
                 "low": (9.0, 10.0, 11.0, 12.0, 13.0, 19.0, 20.0, 21.0, 20.0, 19.0),
             },
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker seeds independently:",
-            partition=("A", "A", "A", "A", "A", "B", "B", "B", "B", "B"),
+            partition=("AAPL",) * 5 + ("NVDA",) * 5,
             round_to=4,
         ),
         Example(

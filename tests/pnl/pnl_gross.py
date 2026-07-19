@@ -142,7 +142,7 @@ PNL_GROSS = suite_pnl(
                 "price": (100.0, 102.0, 101.0, 104.0, 50.0, 51.0, 49.0, 52.0),
             },
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            partition=("AAPL",) * 4 + ("NVDA",) * 4,
             round_to=4,
         ),
         Example(

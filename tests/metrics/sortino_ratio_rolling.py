@@ -147,7 +147,7 @@ SORTINO_RATIO_ROLLING = suite_metrics(
                 )
             },
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-            partition=("A", "A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B", "B"),
+            partition=("AAPL",) * 7 + ("NVDA",) * 7,
             params={"window": 3, "periods_per_year": 252},
             round_to=4,
         ),

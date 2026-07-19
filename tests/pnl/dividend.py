@@ -89,7 +89,7 @@ DIVIDEND = suite_pnl(
                 "dividend_per_share": (0.0, 0.0, 0.5, 0.0, 0.0, 0.3, 0.3, 0.3),
             },
             intro="The product is elementwise, so ``.over`` partitions identically and is shown only for consistency:",
-            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            partition=("AAPL",) * 4 + ("NVDA",) * 4,
             round_to=4,
         ),
         Example(

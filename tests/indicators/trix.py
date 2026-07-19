@@ -89,7 +89,7 @@ TRIX = suite_indicators(
             inputs={"price": (10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 20.0, 22.0, 24.0, 26.0, 28.0, 30.0)},
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker's EMA chain warms up "
             "independently:",
-            partition=("A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B"),
+            partition=("AAPL",) * 6 + ("NVDA",) * 6,
             params={"window": 2},
             round_to=4,
         ),

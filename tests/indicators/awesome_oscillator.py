@@ -110,7 +110,7 @@ AWESOME_OSCILLATOR = suite_indicators(
                 "low": (9.0, 10.0, 11.0, 11.0, 12.0, 19.0, 20.0, 21.0, 21.0, 22.0),
             },
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-            partition=("A", "A", "A", "A", "A", "B", "B", "B", "B", "B"),
+            partition=("AAPL",) * 5 + ("NVDA",) * 5,
             params={"window_fast": 2, "window_slow": 3},
             round_to=4,
         ),

@@ -108,7 +108,7 @@ CONDITIONAL_VALUE_AT_RISK = suite_metrics(
                 )
             },
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
-            partition=("A", "A", "A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B", "B", "B"),
+            partition=("AAPL",) * 8 + ("NVDA",) * 8,
             params={"confidence": 0.75},
             round_to=4,
         ),

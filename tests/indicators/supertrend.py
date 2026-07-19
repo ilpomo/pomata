@@ -209,7 +209,7 @@ SUPERTREND = suite_indicators(
             },
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker's ratchet warms up "
             "independently:",
-            partition=("A", "A", "A", "A", "A", "B", "B", "B", "B", "B"),
+            partition=("AAPL",) * 5 + ("NVDA",) * 5,
             params={"window": 2, "multiplier": 2.0},
             round_to=4,
             fields=("line",),

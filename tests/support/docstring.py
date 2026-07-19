@@ -298,33 +298,61 @@ def _args(declaration: Declaration) -> list[str]:
 _EX = _BASE + _BASE  # the eight-space indent of an Examples ``>>>`` code line
 
 
-def _partition_literal(labels: tuple[str, ...]) -> str:
-    """The panel partition column as the run-length idiom ``["A"] * 5 + ["B"] * 5`` (its labels are contiguous runs)."""
+def _partition_runs(labels: tuple[str, ...]) -> list[tuple[str, int]]:
+    """The partition's contiguous ``(label, count)`` runs, in order."""
     runs: list[tuple[str, int]] = []
     for label in labels:
         if runs and runs[-1][0] == label:
             runs[-1] = (label, runs[-1][1] + 1)
         else:
             runs.append((label, 1))
-    return " + ".join(f'["{label}"] * {count}' for label, count in runs)
+    return runs
+
+
+def _partition_literal(labels: tuple[str, ...]) -> str:
+    """The panel partition column as the run-length idiom ``["AAPL"] * 5 + ["NVDA"] * 5``."""
+    return " + ".join(f'["{label}"] * {count}' for label, count in _partition_runs(labels))
+
+
+def _grouped_lane_literal(values: list[float | None], runs: list[tuple[str, int]]) -> str:
+    """A panel lane as one sublist per partition group joined by ``+``, so group membership reads off the literal."""
+    segments: list[str] = []
+    start = 0
+    for _, count in runs:
+        segments.append(lane_literal(values[start : start + count]))
+        start += count
+    return " + ".join(segments)
 
 
 def _display_columns(declaration: Declaration, example: Example) -> dict[str, str]:
     """Ordered ``{display column: source literal}`` for the frame dict — the partition first, then the input roles."""
     columns: dict[str, str] = {}
+    runs = _partition_runs(example.partition) if example.partition else []
     if example.partition:
         columns[example.partition_col] = _partition_literal(example.partition)
     for role in declaration.inputs:
         name = declaration.example_columns.get(role, role)
-        columns[name] = lane_literal(list(example.inputs[role]))
+        values = list(example.inputs[role])
+        columns[name] = _grouped_lane_literal(values, runs) if runs else lane_literal(values)
     return columns
 
 
 def _column_lines(name: str, literal: str) -> list[str]:
-    """One frame-dict column: inline when it fits, else a plain-list lane exploded one element per line."""
+    """One frame-dict column: inline when it fits; an over-budget group-joined lane wraps one sublist per line (the
+    ruff form: the first sublist rides the key line, each following ``+ [...]`` opens its own line at the entry
+    indent); an over-budget plain-list lane explodes one element per line.
+    """
     inline = _EX + f'...         "{name}": {literal},'
-    plain_list = literal.startswith("[") and literal.endswith("]") and " + " not in literal and " * " not in literal
-    if len(inline) <= _WIDTH or not plain_list:
+    if len(inline) <= _WIDTH:
+        return [inline]
+    is_list = literal.startswith("[") and literal.endswith("]")
+    if is_list and " + " in literal and " * " not in literal:
+        segments = literal.split(" + ")
+        lines = [_EX + f'...         "{name}": {segments[0]}']
+        lines += [_EX + f"...         + {segment}" for segment in segments[1:]]
+        lines[-1] += ","
+        return lines
+    if not is_list or " + " in literal or " * " in literal:
         return [inline]
     elements = literal[1:-1].split(", ")
     return [

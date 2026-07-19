@@ -190,7 +190,7 @@ T3 = suite_indicators(
                 "expr": (10.0, 11.0, 12.0, 11.0, 13.0, 14.0, 13.0, 15.0, 20.0, 22.0, 21.0, 23.0, 22.0, 24.0, 25.0, 24.0)
             },
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-            partition=("A", "A", "A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B", "B", "B"),
+            partition=("AAPL",) * 8 + ("NVDA",) * 8,
             params={"window": 2},
             round_to=4,
         ),

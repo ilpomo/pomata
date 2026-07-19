@@ -84,7 +84,7 @@ CUMULATIVE_PNL = suite_pnl(
         Example(
             inputs={"returns": (0.1, 0.2, -0.05, 0.1, 0.0, 0.1, 0.1, -0.2)},
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker accumulates independently:",
-            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            partition=("AAPL",) * 4 + ("NVDA",) * 4,
             round_to=4,
         ),
         Example(

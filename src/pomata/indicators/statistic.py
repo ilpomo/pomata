@@ -86,8 +86,8 @@ def linear_regression(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 4 + ["B"] * 4,
-        ...         "x": [10.0, 11.0, 13.0, 12.0, 20.0, 22.0, 21.0, 24.0],
+        ...         "ticker": ["AAPL"] * 4 + ["NVDA"] * 4,
+        ...         "x": [10.0, 11.0, 13.0, 12.0] + [20.0, 22.0, 21.0, 24.0],
         ...     }
         ... )
         >>> expr = linear_regression(pl.col("x"), window=3)
@@ -173,8 +173,8 @@ def linear_regression_angle(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 4 + ["B"] * 4,
-        ...         "x": [10.0, 11.0, 13.0, 12.0, 20.0, 22.0, 21.0, 24.0],
+        ...         "ticker": ["AAPL"] * 4 + ["NVDA"] * 4,
+        ...         "x": [10.0, 11.0, 13.0, 12.0] + [20.0, 22.0, 21.0, 24.0],
         ...     }
         ... )
         >>> expr = linear_regression_angle(pl.col("x"), window=3)
@@ -261,8 +261,8 @@ def linear_regression_intercept(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 4 + ["B"] * 4,
-        ...         "x": [10.0, 11.0, 13.0, 12.0, 20.0, 22.0, 21.0, 24.0],
+        ...         "ticker": ["AAPL"] * 4 + ["NVDA"] * 4,
+        ...         "x": [10.0, 11.0, 13.0, 12.0] + [20.0, 22.0, 21.0, 24.0],
         ...     }
         ... )
         >>> expr = linear_regression_intercept(pl.col("x"), window=3)
@@ -353,8 +353,8 @@ def linear_regression_slope(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 4 + ["B"] * 4,
-        ...         "x": [10.0, 11.0, 13.0, 12.0, 20.0, 22.0, 21.0, 24.0],
+        ...         "ticker": ["AAPL"] * 4 + ["NVDA"] * 4,
+        ...         "x": [10.0, 11.0, 13.0, 12.0] + [20.0, 22.0, 21.0, 24.0],
         ...     }
         ... )
         >>> expr = linear_regression_slope(pl.col("x"), window=3)
@@ -463,8 +463,8 @@ def standard_deviation_ewma(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 4 + ["B"] * 4,
-        ...         "x": [10.0, 11.0, 13.0, 12.0, 20.0, 22.0, 21.0, 24.0],
+        ...         "ticker": ["AAPL"] * 4 + ["NVDA"] * 4,
+        ...         "x": [10.0, 11.0, 13.0, 12.0] + [20.0, 22.0, 21.0, 24.0],
         ...     }
         ... )
         >>> expr = standard_deviation_ewma(pl.col("x"), window=3)
@@ -566,8 +566,8 @@ def standard_deviation_rolling(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 3 + ["B"] * 3,
-        ...         "x": [10.0, 11.0, 12.0, 20.0, 22.0, 21.0],
+        ...         "ticker": ["AAPL"] * 3 + ["NVDA"] * 3,
+        ...         "x": [10.0, 11.0, 12.0] + [20.0, 22.0, 21.0],
         ...     }
         ... )
         >>> expr = standard_deviation_rolling(pl.col("x"), window=2)
@@ -685,8 +685,8 @@ def time_series_forecast(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 4 + ["B"] * 4,
-        ...         "x": [10.0, 11.0, 13.0, 12.0, 20.0, 22.0, 21.0, 24.0],
+        ...         "ticker": ["AAPL"] * 4 + ["NVDA"] * 4,
+        ...         "x": [10.0, 11.0, 13.0, 12.0] + [20.0, 22.0, 21.0, 24.0],
         ...     }
         ... )
         >>> expr = time_series_forecast(pl.col("x"), window=3)
@@ -792,8 +792,8 @@ def variance_ewma(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 4 + ["B"] * 4,
-        ...         "x": [10.0, 11.0, 13.0, 12.0, 20.0, 22.0, 21.0, 24.0],
+        ...         "ticker": ["AAPL"] * 4 + ["NVDA"] * 4,
+        ...         "x": [10.0, 11.0, 13.0, 12.0] + [20.0, 22.0, 21.0, 24.0],
         ...     }
         ... )
         >>> expr = variance_ewma(pl.col("x"), window=3)
@@ -895,8 +895,8 @@ def variance_rolling(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 3 + ["B"] * 3,
-        ...         "x": [10.0, 11.0, 12.0, 20.0, 22.0, 21.0],
+        ...         "ticker": ["AAPL"] * 3 + ["NVDA"] * 3,
+        ...         "x": [10.0, 11.0, 12.0] + [20.0, 22.0, 21.0],
         ...     }
         ... )
         >>> expr = variance_rolling(pl.col("x"), window=2)

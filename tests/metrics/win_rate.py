@@ -87,7 +87,7 @@ WIN_RATE = suite_metrics(
                 "returns": (0.03, -0.01, 0.02, -0.015, 0.01, 0.005, -0.02, 0.04, -0.02, 0.03, 0.01, 0.02, 0.01, -0.03)
             },
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced independently:",
-            partition=("A", "A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B", "B"),
+            partition=("AAPL",) * 7 + ("NVDA",) * 7,
             round_to=4,
         ),
         Example(

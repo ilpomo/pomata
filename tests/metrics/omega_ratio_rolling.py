@@ -108,7 +108,7 @@ OMEGA_RATIO_ROLLING = suite_metrics(
                 "returns": (0.01, -0.02, 0.03, -0.01, 0.02, 0.0, -0.015, 0.02, -0.005, 0.015, -0.01, 0.025, 0.0, -0.012)
             },
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-            partition=("A", "A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B", "B"),
+            partition=("AAPL",) * 7 + ("NVDA",) * 7,
             params={"window": 3},
             round_to=4,
         ),

@@ -126,7 +126,7 @@ VORTEX = suite_indicators(
                 "close": (1.5, 3.5, 5.0, 4.5, 6.0, 11.0, 10.0, 12.0, 9.0, 11.0),
             },
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-            partition=("A", "A", "A", "A", "A", "B", "B", "B", "B", "B"),
+            partition=("AAPL",) * 5 + ("NVDA",) * 5,
             params={"window": 2},
             round_to=4,
             fields=("plus", "minus"),

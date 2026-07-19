@@ -122,7 +122,7 @@ TRUE_RANGE = suite_indicators(
                 "close": (11.0, 12.5, 11.5, 13.5, 21.5, 21.5, 22.5, 24.0),
             },
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            partition=("AAPL",) * 4 + ("NVDA",) * 4,
             round_to=4,
         ),
         Example(

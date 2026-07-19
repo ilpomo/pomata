@@ -80,9 +80,9 @@ RISK_OF_RUIN = suite_metrics(
         Example(
             inputs={"returns": (0.02, -0.01, 0.03, -0.02, 0.02, 0.01, 0.03, -0.02)},
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker is reduced "
-            "independently (here ``A`` has no edge, so its ruin is certain, while the winning ``B`` "
+            "independently (here ``AAPL`` has no edge, so its ruin is certain, while the winning ``NVDA`` "
             "is small):",
-            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            partition=("AAPL",) * 4 + ("NVDA",) * 4,
             round_to=4,
         ),
         Example(

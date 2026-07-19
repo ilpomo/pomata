@@ -79,7 +79,7 @@ MIDPRICE = suite_indicators(
         Example(
             inputs={"high": (11.0, 12.0, 13.0, 21.0, 22.0, 23.0), "low": (9.0, 10.0, 11.0, 19.0, 20.0, 21.0)},
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-            partition=("A", "A", "A", "B", "B", "B"),
+            partition=("AAPL",) * 3 + ("NVDA",) * 3,
             params={"window": 2},
             round_to=4,
         ),

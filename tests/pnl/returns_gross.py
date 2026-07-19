@@ -102,7 +102,7 @@ RETURNS_GROSS = suite_pnl(
                 "asset_returns": (0.02, 0.03, -0.01, 0.04, -0.02, 0.01, 0.03, -0.01),
             },
             intro="The product is elementwise, so ``.over`` partitions identically and is shown only for consistency:",
-            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            partition=("AAPL",) * 4 + ("NVDA",) * 4,
             round_to=4,
         ),
         Example(

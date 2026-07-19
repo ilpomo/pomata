@@ -118,7 +118,7 @@ ICHIMOKU = suite_indicators(
                 "low": (8.0, 9.0, 10.0, 11.0, 12.0, 18.0, 19.0, 20.0, 21.0, 22.0),
             },
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker's lines warm up independently:",
-            partition=("A", "A", "A", "A", "A", "B", "B", "B", "B", "B"),
+            partition=("AAPL",) * 5 + ("NVDA",) * 5,
             params={"window_tenkan": 2, "window_kijun": 3, "window_senkou": 4},
             round_to=4,
             fields=("kijun",),

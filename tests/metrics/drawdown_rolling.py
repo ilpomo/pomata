@@ -71,7 +71,7 @@ DRAWDOWN_ROLLING = suite_metrics(
             inputs={"equity_curve": (1.0, 1.1, 1.05, 1.2, 1.15, 1.3, 1.25, 1.0, 0.95, 1.05, 1.0, 1.15, 1.1, 1.2)},
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker's window restarts "
             "independently and never spans the boundary:",
-            partition=("A", "A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B", "B"),
+            partition=("AAPL",) * 7 + ("NVDA",) * 7,
             params={"window": 3},
             round_to=4,
         ),

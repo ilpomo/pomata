@@ -190,7 +190,7 @@ CHANDE_MOMENTUM_OSCILLATOR = suite_indicators(
         Example(
             inputs={"price": (10.0, 11.0, 12.0, 11.0, 13.0, 20.0, 19.0, 21.0, 22.0, 20.0)},
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up independently:",
-            partition=("A", "A", "A", "A", "A", "B", "B", "B", "B", "B"),
+            partition=("AAPL",) * 5 + ("NVDA",) * 5,
             params={"window": 3},
             round_to=4,
         ),

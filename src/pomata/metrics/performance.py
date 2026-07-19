@@ -86,8 +86,8 @@ def cagr(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 2 + ["B"] * 2,
-        ...         "equity": [1.1, 1.21, 1.05, 1.1025],
+        ...         "ticker": ["AAPL"] * 2 + ["NVDA"] * 2,
+        ...         "equity": [1.1, 1.21] + [1.05, 1.1025],
         ...     }
         ... )
         >>> expr = cagr(pl.col("equity"), periods_per_year=1)
@@ -201,8 +201,8 @@ def cagr_rolling(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 5 + ["B"] * 5,
-        ...         "equity": [1.0, 1.1, 1.05, 1.2, 1.15, 1.0, 1.02, 1.08, 1.05, 1.12],
+        ...         "ticker": ["AAPL"] * 5 + ["NVDA"] * 5,
+        ...         "equity": [1.0, 1.1, 1.05, 1.2, 1.15] + [1.0, 1.02, 1.08, 1.05, 1.12],
         ...     }
         ... )
         >>> expr = cagr_rolling(pl.col("equity"), window=3, periods_per_year=4)
@@ -312,25 +312,9 @@ def stability(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 8 + ["B"] * 8,
-        ...         "returns": [
-        ...             0.01,
-        ...             0.012,
-        ...             0.009,
-        ...             0.011,
-        ...             0.013,
-        ...             0.008,
-        ...             0.01,
-        ...             0.012,
-        ...             0.02,
-        ...             -0.01,
-        ...             0.03,
-        ...             -0.02,
-        ...             0.025,
-        ...             -0.015,
-        ...             0.018,
-        ...             -0.012,
-        ...         ],
+        ...         "ticker": ["AAPL"] * 8 + ["NVDA"] * 8,
+        ...         "returns": [0.01, 0.012, 0.009, 0.011, 0.013, 0.008, 0.01, 0.012]
+        ...         + [0.02, -0.01, 0.03, -0.02, 0.025, -0.015, 0.018, -0.012],
         ...     }
         ... )
         >>> expr = stability(pl.col("returns"))
@@ -445,8 +429,8 @@ def total_return(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 4 + ["B"] * 4,
-        ...         "equity": [1.1, 1.045, 1.254, 1.3794, 1.02, 1.05, 0.98, 1.12],
+        ...         "ticker": ["AAPL"] * 4 + ["NVDA"] * 4,
+        ...         "equity": [1.1, 1.045, 1.254, 1.3794] + [1.02, 1.05, 0.98, 1.12],
         ...     }
         ... )
         >>> expr = total_return(pl.col("equity"))
@@ -527,8 +511,8 @@ def total_return_rolling(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 5 + ["B"] * 5,
-        ...         "equity": [1.0, 1.1, 1.05, 1.2, 1.15, 1.0, 1.02, 1.08, 1.05, 1.12],
+        ...         "ticker": ["AAPL"] * 5 + ["NVDA"] * 5,
+        ...         "equity": [1.0, 1.1, 1.05, 1.2, 1.15] + [1.0, 1.02, 1.08, 1.05, 1.12],
         ...     }
         ... )
         >>> expr = total_return_rolling(pl.col("equity"), window=3)

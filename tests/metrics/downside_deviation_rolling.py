@@ -114,8 +114,8 @@ DOWNSIDE_DEVIATION_ROLLING = suite_metrics(
                 "returns": (0.01, -0.02, 0.03, -0.01, 0.02, 0.0, -0.015, 0.02, -0.01, 0.04, -0.03, 0.01, 0.025, -0.02)
             },
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker warms up on its own "
-            "(the ``B`` group never borrows ``A``'s tail):",
-            partition=("A", "A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B", "B"),
+            "(the ``NVDA`` group never borrows ``AAPL``'s tail):",
+            partition=("AAPL",) * 7 + ("NVDA",) * 7,
             params={"window": 3, "periods_per_year": 252},
             round_to=4,
         ),

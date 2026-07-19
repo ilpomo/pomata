@@ -125,7 +125,7 @@ MACD = suite_indicators(
         Example(
             inputs={"expr": (10.0, 11.0, 12.0, 11.0, 20.0, 22.0, 24.0, 22.0)},
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker's EMAs warm up independently:",
-            partition=("A", "A", "A", "A", "B", "B", "B", "B"),
+            partition=("AAPL",) * 4 + ("NVDA",) * 4,
             params={"window_fast": 2, "window_slow": 3, "window_signal": 2},
             round_to=4,
             fields=("macd",),

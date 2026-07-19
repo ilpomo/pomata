@@ -81,7 +81,7 @@ VOLATILITY = suite_metrics(
             inputs={"returns": (0.01, -0.02, 0.015, 0.005, -0.01, 0.02, 0.01, -0.03, 0.0, 0.01)},
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker's volatility is "
             "computed independently:",
-            partition=("A", "A", "A", "A", "A", "B", "B", "B", "B", "B"),
+            partition=("AAPL",) * 5 + ("NVDA",) * 5,
             params={"periods_per_year": 252},
             round_to=4,
         ),

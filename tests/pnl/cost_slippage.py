@@ -94,7 +94,7 @@ COST_SLIPPAGE = suite_pnl(
             inputs={"weight": (0.5, 1.0, -0.5, 1.0, 1.0, 0.0)},
             intro="On a multi-ticker panel, wrap the call in ``.over`` so each ticker starts flat and never "
             "reaches across the boundary:",
-            partition=("A", "A", "A", "B", "B", "B"),
+            partition=("AAPL",) * 3 + ("NVDA",) * 3,
             params={"half_spread": 0.002},
             round_to=4,
         ),

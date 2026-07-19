@@ -139,7 +139,7 @@ RSI = suite_indicators(
             inputs={"expr": (10.0, 11.0, 10.5, 11.5, 12.5, 50.0, 49.0, 51.0, 50.5, 52.0)},
             intro="On a multi-ticker panel, wrap the call in ``.over`` so the difference and the recursion "
             "restart per group -- note that each ticker warms up independently:",
-            partition=("A", "A", "A", "A", "A", "B", "B", "B", "B", "B"),
+            partition=("AAPL",) * 5 + ("NVDA",) * 5,
             params={"window": 3},
             round_to=2,
         ),

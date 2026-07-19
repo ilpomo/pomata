@@ -95,8 +95,8 @@ def conditional_drawdown_at_risk(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 7 + ["B"] * 7,
-        ...         "equity": [1.1, 1.05, 1.2, 1.15, 1.3, 1.25, 1.4, 1.0, 0.9, 0.95, 1.1, 1.0, 1.2, 1.15],
+        ...         "ticker": ["AAPL"] * 7 + ["NVDA"] * 7,
+        ...         "equity": [1.1, 1.05, 1.2, 1.15, 1.3, 1.25, 1.4] + [1.0, 0.9, 0.95, 1.1, 1.0, 1.2, 1.15],
         ...     }
         ... )
         >>> expr = conditional_drawdown_at_risk(pl.col("equity"))
@@ -208,8 +208,8 @@ def drawdown(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 7 + ["B"] * 7,
-        ...         "equity": [1.0, 1.1, 1.05, 1.2, 0.9, 1.0, 1.1, 1.0, 0.95, 1.05, 1.0, 1.15, 1.1, 1.2],
+        ...         "ticker": ["AAPL"] * 7 + ["NVDA"] * 7,
+        ...         "equity": [1.0, 1.1, 1.05, 1.2, 0.9, 1.0, 1.1] + [1.0, 0.95, 1.05, 1.0, 1.15, 1.1, 1.2],
         ...     }
         ... )
         >>> frame.with_columns(drawdown=drawdown(pl.col("equity")).over("ticker").round(4))["drawdown"].to_list()
@@ -294,8 +294,8 @@ def drawdown_rolling(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 7 + ["B"] * 7,
-        ...         "equity": [1.0, 1.1, 1.05, 1.2, 1.15, 1.3, 1.25, 1.0, 0.95, 1.05, 1.0, 1.15, 1.1, 1.2],
+        ...         "ticker": ["AAPL"] * 7 + ["NVDA"] * 7,
+        ...         "equity": [1.0, 1.1, 1.05, 1.2, 1.15, 1.3, 1.25] + [1.0, 0.95, 1.05, 1.0, 1.15, 1.1, 1.2],
         ...     }
         ... )
         >>> expr = drawdown_rolling(pl.col("equity"), window=3)
@@ -377,8 +377,8 @@ def max_drawdown(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 7 + ["B"] * 7,
-        ...         "equity": [1.0, 1.1, 1.05, 1.2, 0.9, 1.0, 1.1, 1.0, 0.95, 1.05, 1.0, 1.15, 1.1, 1.2],
+        ...         "ticker": ["AAPL"] * 7 + ["NVDA"] * 7,
+        ...         "equity": [1.0, 1.1, 1.05, 1.2, 0.9, 1.0, 1.1] + [1.0, 0.95, 1.05, 1.0, 1.15, 1.1, 1.2],
         ...     }
         ... )
         >>> expr = max_drawdown(pl.col("equity"))
@@ -468,8 +468,8 @@ def max_drawdown_duration(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 7 + ["B"] * 7,
-        ...         "equity": [1.0, 0.9, 0.8, 0.85, 1.1, 1.05, 1.2, 1.0, 1.05, 0.95, 0.9, 1.1, 1.0, 1.2],
+        ...         "ticker": ["AAPL"] * 7 + ["NVDA"] * 7,
+        ...         "equity": [1.0, 0.9, 0.8, 0.85, 1.1, 1.05, 1.2] + [1.0, 1.05, 0.95, 0.9, 1.1, 1.0, 1.2],
         ...     }
         ... )
         >>> expr = max_drawdown_duration(pl.col("equity"))
@@ -566,8 +566,8 @@ def pain_index(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 7 + ["B"] * 7,
-        ...         "equity": [1.1, 1.05, 1.2, 1.15, 1.3, 1.25, 1.4, 1.0, 0.9, 0.95, 1.1, 1.0, 1.2, 1.15],
+        ...         "ticker": ["AAPL"] * 7 + ["NVDA"] * 7,
+        ...         "equity": [1.1, 1.05, 1.2, 1.15, 1.3, 1.25, 1.4] + [1.0, 0.9, 0.95, 1.1, 1.0, 1.2, 1.15],
         ...     }
         ... )
         >>> expr = pain_index(pl.col("equity"))
@@ -660,8 +660,8 @@ def ulcer_index(
 
         >>> frame = pl.DataFrame(
         ...     {
-        ...         "ticker": ["A"] * 7 + ["B"] * 7,
-        ...         "equity": [1.0, 1.1, 1.05, 1.2, 0.9, 1.0, 1.1, 1.0, 0.95, 1.05, 1.0, 1.15, 1.1, 1.2],
+        ...         "ticker": ["AAPL"] * 7 + ["NVDA"] * 7,
+        ...         "equity": [1.0, 1.1, 1.05, 1.2, 0.9, 1.0, 1.1] + [1.0, 0.95, 1.05, 1.0, 1.15, 1.1, 1.2],
         ...     }
         ... )
         >>> expr = ulcer_index(pl.col("equity"))
