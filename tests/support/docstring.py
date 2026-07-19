@@ -70,7 +70,7 @@ _BULLET_DASH = "—"
 # (an input-price role, a returns series, the annualization knob) becomes a template constant here. A parameter with no
 # dominant description (``window`` alone carries seventeen wordings) is left out and surfaces in the parity report as a
 # per-site remainder that must become declaration data.
-_ARG_DESCRIPTIONS = {
+ARG_DESCRIPTIONS = {
     "expr": 'Input series, typically a price column (e.g. ``pl.col("close")``).',
     "high": 'High-price series (e.g. ``pl.col("high")``).',
     "low": 'Low-price series (e.g. ``pl.col("low")``).',
@@ -287,7 +287,7 @@ def _args(declaration: Declaration) -> list[str]:
     """
     body: list[str] = []
     for pname in inspect.signature(declaration.factory).parameters:
-        description = declaration.args_prose.get(pname) or _ARG_DESCRIPTIONS.get(pname)
+        description = declaration.args_prose.get(pname) or ARG_DESCRIPTIONS.get(pname)
         if description is not None:
             body += _wrap(f"{pname}: {description}", BASE + BASE, BASE + BASE + "    ")
     return [BASE + "Args:", *body]
@@ -375,7 +375,7 @@ def _round_expr(expr: pl.Expr, round_to: int | None) -> pl.Expr:
     return expr.round(round_to) if round_to is not None else expr
 
 
-def _execute(declaration: Declaration, example: Example) -> list[str]:
+def execute_scenario(declaration: Declaration, example: Example) -> list[str]:
     """The executed output line(s), formatted exactly as the doctest prints them (commitment 2: outputs are truth).
 
     Builds the same expression the canonical code renders and materializes it, so a captured value can never drift
@@ -427,7 +427,7 @@ def _scenario_lines(declaration: Declaration, example: Example) -> list[str]:
         return [_EX + line for line in example.verbatim]
     lines = _frame_lines(_display_columns(declaration, example))
     name = declaration.example_alias or declaration.name
-    outputs = _execute(declaration, example)
+    outputs = execute_scenario(declaration, example)
     over = f'.over("{example.partition_col}")' if example.partition else ""
     rounding = f".round({example.round_to})" if example.round_to is not None else ""
     # a panel broadcasts a series with ``.with_columns``; a reduction (one row per group) uses ``.select``
