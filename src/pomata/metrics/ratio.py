@@ -238,8 +238,9 @@ def burke_ratio(
         - **Null** — a ``null`` equity is skipped (excluded from both the growth and the drawdown energy); an all-null
           (or empty) series yields ``null``.
         - **NaN** — a ``NaN`` equity propagates, yielding ``NaN``.
-        - **Insufficient sample** — a single observation has zero excess growth over zero drawdown energy, so the result
-          is a ``0 / 0``, i.e. ``NaN``.
+        - **Insufficient sample** — a single observation has zero drawdown energy: at an equity of exactly ``1.0`` the
+          excess growth is zero too and the result is a ``0 / 0``, i.e. ``NaN``; any other single equity puts a nonzero
+          excess over the zero energy — a signed infinity.
         - **Degenerate denominator** — a monotonically non-decreasing curve has zero drawdown energy, so the ratio is
           ``+/-inf`` (or ``NaN`` when the excess growth is also zero) — reported, not clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
@@ -353,8 +354,9 @@ def calmar_ratio(
         - **Null** — a ``null`` equity is skipped (excluded from both the growth and the drawdown); an all-null (or
           empty) series yields ``null``.
         - **NaN** — a ``NaN`` equity propagates, yielding ``NaN``.
-        - **Insufficient sample** — a single observation has zero growth over zero maximum drawdown, so the result is a
-          ``0 / 0``, i.e. ``NaN``.
+        - **Insufficient sample** — a single observation has zero maximum drawdown: at an equity of exactly ``1.0`` the
+          growth is zero too and the result is a ``0 / 0``, i.e. ``NaN``; any other single equity puts a nonzero growth
+          over the zero drawdown — a signed infinity.
         - **Degenerate denominator** — a monotonically non-decreasing curve has zero maximum drawdown, so the ratio is
           ``+/-inf`` (or ``NaN`` when the growth is also zero) — reported, not clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
@@ -915,8 +917,9 @@ def pain_ratio(
         - **Null** — a ``null`` equity is skipped (excluded from both the growth and the pain index); an all-null (or
           empty) series yields ``null``.
         - **NaN** — a ``NaN`` equity propagates, yielding ``NaN``.
-        - **Insufficient sample** — a single observation has zero excess growth over a zero pain index, so the result is
-          a ``0 / 0``, i.e. ``NaN``.
+        - **Insufficient sample** — a single observation has a zero pain index: at an equity of exactly ``1.0`` the
+          excess growth is zero too and the result is a ``0 / 0``, i.e. ``NaN``; any other single equity puts a nonzero
+          excess over the zero index — a signed infinity.
         - **Degenerate denominator** — a monotonically non-decreasing curve has a zero pain index, so the ratio is
           ``+/-inf`` (or ``NaN`` when the excess growth is also zero) — reported, not clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
@@ -1168,8 +1171,9 @@ def recovery_ratio(
 
         - **Null** — a ``null`` equity is skipped; an all-null (or empty) series yields ``null``.
         - **NaN** — a ``NaN`` equity propagates, yielding ``NaN``.
-        - **Insufficient sample** — a single observation has zero total return over zero maximum drawdown, so the result
-          is a ``0 / 0``, i.e. ``NaN``.
+        - **Insufficient sample** — a single observation has zero maximum drawdown: at an equity of exactly ``1.0`` the
+          total return is zero too and the result is a ``0 / 0``, i.e. ``NaN``; any other single equity puts a nonzero
+          return over the zero drawdown — a signed infinity.
         - **Degenerate denominator** — a monotonically non-decreasing curve has zero maximum drawdown, so the ratio is
           ``+/-inf`` with the sign of the total return (or ``NaN`` when the total return is also zero) — reported, not
           clipped.
@@ -1881,8 +1885,9 @@ def ulcer_performance_ratio(
         - **Null** — a ``null`` equity is skipped (excluded from both the growth and the ulcer index); an all-null (or
           empty) series yields ``null``.
         - **NaN** — a ``NaN`` equity propagates, yielding ``NaN``.
-        - **Insufficient sample** — a single observation has zero excess growth over a zero ulcer index, so the result
-          is a ``0 / 0``, i.e. ``NaN``.
+        - **Insufficient sample** — a single observation has a zero ulcer index: at an equity of exactly ``1.0`` the
+          excess growth is zero too and the result is a ``0 / 0``, i.e. ``NaN``; any other single equity puts a nonzero
+          excess over the zero index — a signed infinity.
         - **Degenerate denominator** — a monotonically non-decreasing curve has a zero ulcer index, so the ratio is
           ``+/-inf`` (or ``NaN`` when the excess growth is also zero) — reported, not clipped.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its

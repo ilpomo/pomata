@@ -31,6 +31,7 @@ __all__ = (
     "williams_r",
 )
 
+# Keeps the smoothed value inside (-1, 1) so the Fisher ``log((1 + x) / (1 - x))`` stays finite at the rails.
 _FISHER_CLAMP: Final = 0.999
 
 

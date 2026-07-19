@@ -115,7 +115,7 @@ KELTNER_CHANNELS = suite_indicators(
         "window": "Number of observations in the EMA midline window (canonically ``20``). Must be ``>= 1``.",
         "window_atr": "Number of observations in the ATR window (canonically ``10``). Must be ``>= 1``.",
         "multiplier": "Band half-width as a multiple of the ATR (canonically ``2.0``). Must be a finite number "
-        "``> 0``.",
+        "``> 0`` (a non-positive multiplier would collapse or invert the bands).",
     },
     examples=(
         Example(

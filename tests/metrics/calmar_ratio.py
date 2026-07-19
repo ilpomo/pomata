@@ -70,8 +70,9 @@ CALMAR_RATIO = suite_metrics(
         ("NaN", "a ``NaN`` equity propagates, yielding ``NaN``."),
         (
             "Insufficient sample",
-            "a single observation has zero growth over zero maximum drawdown, so the result is a ``0 "
-            "/ 0``, i.e. ``NaN``.",
+            "a single observation has zero maximum drawdown: at an equity of exactly ``1.0`` the growth "
+            "is zero too and the result is a ``0 / 0``, i.e. ``NaN``; any other single equity puts a "
+            "nonzero growth over the zero drawdown — a signed infinity.",
         ),
         (
             "Degenerate denominator",

@@ -105,8 +105,9 @@ def _raw_beta(
     floating-point cancellation cannot be relied on to surface the ``0 / 0``.
     """
     slope = pl.cov(returns, benchmark, ddof=0) / benchmark.var(ddof=0)
-    # ``is_finite`` keeps the guard off a NaN-poisoned input (Polars treats ``NaN == NaN`` as true), so only a genuine
-    # finite flat benchmark fires it; a NaN benchmark falls through to ``slope``, which already propagates NaN.
+    # Whole-series ``max`` / ``min`` skip NaN, so a NaN-poisoned flat benchmark still fires the guard — the outcome
+    # is ``NaN`` either way; ``is_finite`` keeps an ``inf``-carrying benchmark off it, where the ``inf`` arithmetic
+    # already lands on ``NaN``.
     benchmark_max = benchmark.max()
     is_flat = (benchmark_max == benchmark.min()) & benchmark_max.is_finite()
     return pl.when(is_flat).then(float("nan")).otherwise(slope)

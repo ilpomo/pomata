@@ -192,7 +192,8 @@ shape: (9, 4)
 60 metric `pl.Expr` — 43 reduce the whole history into the figure you report (Sharpe, Sortino, Calmar, VaR/CVaR,
 capture, benchmark-relative, and more), and 17 are their series-valued rolling and running twins, the row-wise
 `drawdown` among them. A
-`null` is skipped; a non-null `NaN` poisons the result loudly, rather than passing a plausible lie downstream:
+`null` is skipped by the reducing metrics; a non-null `NaN` poisons their result loudly, rather than passing a
+plausible lie downstream (the rolling twins follow the windowed policy on each page):
 
 ```python
 from pomata.pnl import equity_curve

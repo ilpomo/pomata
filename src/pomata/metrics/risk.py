@@ -1838,8 +1838,8 @@ def value_at_risk_parametric(
         - **NaN** — a ``NaN`` return propagates, yielding ``NaN``.
         - **Insufficient sample** — fewer than two returns leave the sample standard deviation undefined, so the result
           is ``null``.
-        - **Degenerate denominator** — a constant series has zero dispersion, so ``z * sigma`` vanishes and the result
-          is the mean itself.
+        - **Degenerate denominator** — a constant series collapses the dispersion to float noise (``~1e-17``, an
+          additive term, never a divisor), so ``z * sigma`` vanishes and the result lands on the mean.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 

@@ -116,7 +116,7 @@ BOLLINGER_BANDS = suite_indicators(
     "``<= 0``, ``NaN``, or ``±inf``).",
     args_prose={
         "window": "Number of observations in the moving window. Must be ``>= 1``.",
-        "multiplier": "Number of standard deviations between the center band and each outer band (default "
+        "multiplier": "Number of standard deviations between the center band and each outer band (canonically "
         "``2.0``). Must be a finite number ``> 0`` (a non-positive width would collapse or invert "
         "the bands). The bands are symmetric; for asymmetric bands compose :func:`sma` and "
         ":func:`standard_deviation_rolling` directly.",
