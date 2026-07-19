@@ -32,7 +32,7 @@ PROBABILISTIC_SHARPE_RATIO = suite_metrics(
     params={"periods_per_year": 252, "benchmark_sharpe": 0.0, "risk_free_rate": 0.0},
     null=BehaviorNull.SKIPPED,
     nan=BehaviorNan.POISONS,
-    annualization=Annualization.GEOMETRIC,
+    annualization=Annualization.NONE,
     degenerate=Degenerate.ZERO_DISPERSION_IS_NAN,
     oracle=reference_probabilistic_sharpe_ratio,
     scaling=(ScaleAxis(roles=("returns",), degree=0),),

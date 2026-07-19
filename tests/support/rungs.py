@@ -743,11 +743,63 @@ def _homogeneous(base: Sequence[float | None], *, k: float, degree: int) -> list
     return result
 
 
+def _refute_hidden_homogeneity(declaration: Declaration, exemption: ScaleExempt) -> None:
+    """A ``ScaleExempt`` must not be secretly homogeneous: scaling every input must fit no clean integer degree.
+
+    The probe scales all inputs at once and tries each degree in ``[-3, 3]`` against every lane; a fit means the
+    exemption hides a declarable ``ScaleAxis``. A vacuous fit does not count — the comparison must be grounded in at
+    least a handful of finite values.
+    """
+    length = widest_warmup(declaration) + 12
+    base_frame = probe_frame(declaration.inputs, length)
+    if not {"high", "low"} <= set(declaration.inputs):
+        # The deterministic builders can starve the probe of evidence: an exact cross-role proportionality makes alpha
+        # identically zero, and a monotone equity curve has zero drawdown, so the drawdown ratios are all infinite —
+        # neither grounds any degree. A small multiplicative row-alternating wiggle on the last role restores nonzero
+        # finite values while staying in-domain. Applied before scaling, so the homogeneity question — f(k * x) versus
+        # f(x) — is unchanged. OHLC frames are left alone (a wiggle could break bar coherence, which is out-of-domain
+        # by contract).
+        last = declaration.inputs[-1]
+        wiggle = 1.0 + 0.05 * ((pl.int_range(0, pl.len()) % 2) * 2 - 1).cast(pl.Float64)
+        base_frame = base_frame.with_columns((pl.col(last) * wiggle).alias(last))
+    base = actual_lanes(declaration, base_frame)
+    scaled_frame = base_frame.with_columns((pl.col(role) * _SCALE_FACTOR).alias(role) for role in declaration.inputs)
+    scaled = actual_lanes(declaration, scaled_frame)
+    pairs = [
+        (base_value, scaled_value)
+        for name, values in base.items()
+        for base_value, scaled_value in zip(values, scaled[name], strict=True)
+        if base_value is not None
+        and scaled_value is not None
+        and math.isfinite(base_value)
+        and math.isfinite(scaled_value)
+    ]
+    if not any(abs(base_value) > TOLERANCE_ABSOLUTE_PROPERTY for base_value, _ in pairs):
+        pytest.skip(f"{declaration.name}: scale-exempt — the probe grounds no nonzero value to refute homogeneity on")
+    for degree in range(-3, 4):
+        factor = _SCALE_FACTOR**degree
+        fits = all(
+            math.isclose(
+                scaled_value, base_value * factor, rel_tol=TOLERANCE_RELATIVE_SCALE, abs_tol=TOLERANCE_ABSOLUTE_PROPERTY
+            )
+            for base_value, scaled_value in pairs
+        )
+        if fits:
+            pytest.fail(
+                f"{declaration.name}: declared scale-exempt ({exemption.reason}) but scaling every input by "
+                f"{_SCALE_FACTOR} scales every lane by {_SCALE_FACTOR} ** {degree} — declare a ScaleAxis of degree "
+                f"{degree} instead"
+            )
+
+
 def check_scaling(declaration: Declaration) -> None:
-    """Each homogeneity axis: scaling only its roles by a power of two scales each lane by ``k ** degree``."""
+    """Each homogeneity axis: scaling only its roles by a power of two scales each lane by ``k ** degree``; a
+    ``ScaleExempt`` is counter-probed instead, so an exemption cannot hide a declarable axis.
+    """
     scaling = declaration.scaling
     if isinstance(scaling, ScaleExempt):
-        pytest.skip(f"{declaration.name}: scale-exempt — {scaling.reason}")
+        _refute_hidden_homogeneity(declaration, scaling)
+        return
     length = widest_warmup(declaration) + 12
     base_frame = probe_frame(declaration.inputs, length)
     base = actual_lanes(declaration, base_frame)

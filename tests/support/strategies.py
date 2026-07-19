@@ -22,12 +22,6 @@ FLOOR_SUBNORMAL = 1e-100
 # to tune.
 FLOOR_CONDITIONING = 1e-2
 
-# Magnitude floor for standardized-moment draws (skewness / kurtosis): these normalize by ``m2 ** p`` with ``p >= 1.5``,
-# so the variance is raised above a plain square and underflows at a LARGER input magnitude than FLOOR_SUBNORMAL guards
-# against (kurtosis' ``m2 ** 2`` underflows to zero around an input scale of ``1e-80``). Flooring ``|v|`` here keeps the
-# standardized moment well-conditioned even after a modest rescale of the draw (see standardized_moment_floats).
-FLOOR_STANDARDIZED_MOMENT = 1e-60
-
 
 def finite_floats(bound: float = 1e6) -> st.SearchStrategy[float]:
     """
@@ -97,46 +91,6 @@ def spans_even_lag_run(series: Sequence[float | None], min_run: int = 6) -> bool
         if run >= min_run:
             return True
     return False
-
-
-def subnormal_safe_floats(bound: float = 1e3) -> st.SearchStrategy[float]:
-    """
-    Finite floats in ``[-bound, bound]`` whose magnitude is floored at ``FLOOR_SUBNORMAL``, for a property test that
-    draws over an unrestricted magnitude domain and checks its result against a magnitude-relative tolerance
-    (:func:`tests.support.tolerances.streaming_abs_tol`), which would otherwise collapse toward zero on a
-    subnormal-magnitude draw and fail on a pure floating-point artifact rather than a bug.
-
-    Args:
-        bound: The symmetric magnitude bound; values are drawn from ``[-bound, bound]``.
-
-    Returns:
-        A strategy producing finite ``float`` values with ``FLOOR_SUBNORMAL <= |v| <= bound``.
-    """
-    return st.floats(min_value=-bound, max_value=bound, allow_nan=False, allow_infinity=False).filter(
-        lambda value: abs(value) >= FLOOR_SUBNORMAL
-    )
-
-
-def standardized_moment_floats(bound: float = 1e3) -> st.SearchStrategy[float]:
-    """
-    Finite floats in ``[-bound, bound]`` whose magnitude is floored at ``FLOOR_STANDARDIZED_MOMENT``, for a standardized
-    moment (skewness, kurtosis) whose property tiers would otherwise round apart from their two-pass oracle on a
-    subnormal-magnitude input by a pure floating-point artifact rather than a bug.
-
-    A standardized moment divides a central moment by ``m2 ** p`` with ``p >= 1.5``, so the variance is raised above a
-    plain square: at an input scale near ``1e-80`` that power underflows to ``0`` and the value collapses to ``nan``.
-    Flooring ``|v|`` at ``FLOOR_STANDARDIZED_MOMENT`` keeps ``m2 ** p`` comfortably inside the normal range while still
-    spanning a wide magnitude. The subnormal collapse itself is pinned deterministically in the edge tier.
-
-    Args:
-        bound: The symmetric magnitude bound; values are drawn from ``[-bound, bound]``.
-
-    Returns:
-        A strategy producing finite ``float`` values with ``FLOOR_STANDARDIZED_MOMENT <= |v| <= bound``.
-    """
-    return st.floats(min_value=-bound, max_value=bound, allow_nan=False, allow_infinity=False).filter(
-        lambda value: abs(value) >= FLOOR_STANDARDIZED_MOMENT
-    )
 
 
 def _population_variance_and_scale(finite: Sequence[float]) -> tuple[float, float]:

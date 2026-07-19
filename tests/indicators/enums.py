@@ -13,7 +13,7 @@ import enum
 
 
 class BehaviorNull(enum.Enum):
-    """What an interior ``null`` does to an indicator output (the indicators dialect of ``NullPolicy``)."""
+    """What an interior ``null`` does to an indicator output (the indicators dialect of the shared null axis)."""
 
     BRIDGED = "bridged"  # a recursion steps over it (state carries), so later rows recover
     IN_WINDOW_IS_NULL = "in_window_is_null"  # nulls every window that overlaps it, then recovers
@@ -25,7 +25,7 @@ class BehaviorNull(enum.Enum):
 
 
 class BehaviorNan(enum.Enum):
-    """What an interior ``NaN`` does to an indicator output (the indicators dialect of ``pomata._policy.NanPolicy``)."""
+    """What an interior ``NaN`` does to an indicator output (the indicators dialect of the shared NaN axis)."""
 
     PROPAGATES = "propagates"  # nans the rows it reaches, then recovers (a pointwise or fixed-lag map)
     LATCHES = "latches"  # a recursion carries it forward forever (every later row stays missing — a NaN or a null)

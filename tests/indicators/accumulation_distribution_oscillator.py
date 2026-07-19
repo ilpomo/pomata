@@ -6,7 +6,7 @@ from pomata.indicators import accumulation_distribution_oscillator
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_accumulation_distribution_oscillator
-from tests.support.declaration import Example, Golden, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 ACCUMULATION_DISTRIBUTION_OSCILLATOR = suite_indicators(
     factory=accumulation_distribution_oscillator,
@@ -37,6 +37,21 @@ ACCUMULATION_DISTRIBUTION_OSCILLATOR = suite_indicators(
         },
         output=(None, None, 13.0, 8.6667, 11.0556),
         params={"window_fast": 2, "window_slow": 3},
+    ),
+    pins=(
+        Pin(
+            label="equal_windows_are_zero",
+            inputs={
+                "high": (10.2, 10.5, 10.7, 10.3),
+                "low": (9.8, 10.0, 10.2, 9.9),
+                "close": (10.0, 10.3, 10.5, 10.1),
+                "volume": (100.0, 150.0, 120.0, 200.0),
+            },
+            params_override={"window_fast": 2, "window_slow": 2},
+            expected=(None, 0.0, 0.0, 0.0),
+            reason="equal fast/slow windows smooth the accumulation/distribution line identically so the "
+            "oscillator cancels to exactly 0.0",
+        ),
     ),
     reference='Chaikin, M. "Chaikin Oscillator."',
     wikipedia="https://en.wikipedia.org/wiki/Chaikin_Analytics#Chaikin_Oscillator",

@@ -2,17 +2,20 @@
 Self-tests of :mod:`tests.support.tolerances` — the ``input_scale`` sizer and the named tolerance ladder.
 
 These pin the test infrastructure: ``input_scale`` sizes every magnitude-relative tolerance, so a bug there would
-silently loosen or tighten the property tiers, and the ladder's ordering encodes the conditioning rationale.
+silently loosen or tighten the property tiers, and the ladder's ordering encodes the conditioning rationale. The
+consumer sweep keeps the ladder honest the other way: a named band nothing consumes reads as live protection while
+guarding nothing, so every constant must be load-bearing somewhere outside the ladder and this self-test.
 """
 
 import math
+import re
+from pathlib import Path
 
 from tests.support import tolerances
 from tests.support.tolerances import (
     TOLERANCE_ABSOLUTE_PROPERTY,
     TOLERANCE_ABSOLUTE_REFERENCE,
     TOLERANCE_ABSOLUTE_ROLLING_ORACLE,
-    TOLERANCE_ABSOLUTE_STREAMING,
     TOLERANCE_FACTOR_EXACT,
     TOLERANCE_RELATIVE_PROPERTY,
     TOLERANCE_RELATIVE_REFERENCE,
@@ -59,11 +62,26 @@ class TestToleranceLadder:
 
     def test_magnitude_relative_factor_ordering(self) -> None:
         """The magnitude-relative factor stays far below any per-tier band (it multiplies the input scale)."""
-        assert TOLERANCE_FACTOR_EXACT < TOLERANCE_ABSOLUTE_STREAMING
+        assert TOLERANCE_FACTOR_EXACT < TOLERANCE_ABSOLUTE_ROLLING_ORACLE
 
     def test_tier_ordering(self) -> None:
-        """The per-tier band order: reference / property (tightest) <= rolling <= streaming."""
+        """The per-tier band order: reference / property (tightest) <= rolling."""
         assert TOLERANCE_ABSOLUTE_REFERENCE == TOLERANCE_ABSOLUTE_PROPERTY
-        assert TOLERANCE_ABSOLUTE_PROPERTY <= TOLERANCE_ABSOLUTE_ROLLING_ORACLE <= TOLERANCE_ABSOLUTE_STREAMING
+        assert TOLERANCE_ABSOLUTE_PROPERTY <= TOLERANCE_ABSOLUTE_ROLLING_ORACLE
         assert TOLERANCE_RELATIVE_REFERENCE == TOLERANCE_RELATIVE_PROPERTY
         assert TOLERANCE_RELATIVE_PROPERTY <= TOLERANCE_RELATIVE_SCALE
+
+
+class TestToleranceConsumers:
+    """Every named tolerance is load-bearing: something outside the ladder must consume it."""
+
+    def test_every_constant_has_a_consumer(self) -> None:
+        """Each UPPER-cased constant is referenced outside ``tolerances.py`` and this self-test — a named band nothing
+        consumes reads as live protection while guarding nothing.
+        """
+        own = {Path("tests/support/tolerances.py").resolve(), Path(__file__).resolve()}
+        names = [name for name, value in vars(tolerances).items() if name.isupper() and isinstance(value, float)]
+        tree = [path for path in Path("tests").rglob("*.py") if path.resolve() not in own]
+        sources = [path.read_text(encoding="utf-8") for path in tree]
+        unconsumed = [name for name in names if not any(re.search(rf"\b{name}\b", source) for source in sources)]
+        assert not unconsumed, f"tolerance constants with no consumer outside the ladder: {unconsumed}"

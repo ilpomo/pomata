@@ -2,11 +2,20 @@
 
 import math
 
-from pomata.metrics import sortino_ratio
+import polars as pl
+
+from pomata.metrics import downside_deviation, sortino_ratio
 from tests.metrics.enums import Annualization, BehaviorNan, BehaviorNull, Degenerate
 from tests.metrics.harness import suite_metrics
 from tests.metrics.oracles import reference_sortino_ratio
 from tests.support.declaration import Example, Golden, Pin, ScaleAxis
+
+
+def _sortino_component() -> pl.Expr:
+    """Sortino recomposed from the public ``downside_deviation`` factory at the spec's defaults (rf 0, 252 periods)."""
+    rf_period = math.pow(1.0 + 0.0, 1.0 / 252) - 1.0
+    return (pl.col("returns") - rf_period).mean() * 252 / downside_deviation(pl.col("returns"), periods_per_year=252)
+
 
 SORTINO_RATIO = suite_metrics(
     factory=sortino_ratio,
@@ -17,6 +26,7 @@ SORTINO_RATIO = suite_metrics(
     annualization=Annualization.SQRT_TIME,
     degenerate=Degenerate.RATIO_SIGNED_INF_OR_NAN,
     oracle=reference_sortino_ratio,
+    recomposition=_sortino_component,
     scaling=(ScaleAxis(roles=("returns",), degree=0),),
     raises=(
         ({"periods_per_year": 0}, r"periods_per_year must be >= 1"),

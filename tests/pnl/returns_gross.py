@@ -17,8 +17,11 @@ RETURNS_GROSS = suite_pnl(
     space=SpaceCost.RETURNS,
     sign=ConventionSign.LONG_SHORT,
     oracle=reference_returns_gross,
-    # Degree-1 homogeneous in the weight; only the weight axis is exercised.
-    scaling=(ScaleAxis(roles=("weight",), degree=1),),
+    # Degree-1 homogeneous in the weight and in the asset return (each scales the contribution linearly).
+    scaling=(
+        ScaleAxis(roles=("weight",), degree=1),
+        ScaleAxis(roles=("asset_returns",), degree=1),
+    ),
     golden=Golden(
         inputs={
             "weight": (1.0, 0.5, -1.0, -1.0, 0.5),

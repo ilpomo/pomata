@@ -13,7 +13,7 @@ import enum
 
 
 class BehaviorNull(enum.Enum):
-    """What an interior ``null`` does to a metrics output (the metrics dialect of ``pomata._policy.NullPolicy``)."""
+    """What an interior ``null`` does to a metrics output (the metrics dialect of the shared null axis)."""
 
     SKIPPED = "skipped"  # a reduction excludes it — the scalar is what it would be if the row were absent
     IN_WINDOW_IS_NULL = "in_window_is_null"  # every trailing window overlapping it is null, then the flow recovers
@@ -21,7 +21,7 @@ class BehaviorNull(enum.Enum):
 
 
 class BehaviorNan(enum.Enum):
-    """What an interior ``NaN`` does to a metrics output (the metrics dialect of ``pomata._policy.NanPolicy``)."""
+    """What an interior ``NaN`` does to a metrics output (the metrics dialect of the shared NaN axis)."""
 
     POISONS = "poisons"  # a reduction goes ``NaN`` — the contamination cannot be excluded from the scalar
     PROPAGATES = "propagates"  # nans the rows it reaches, then recovers (a windowed or fixed-lag map)
@@ -33,7 +33,7 @@ class Annualization(enum.Enum):
     SQRT_TIME = "sqrt_time"  # multiplied by ``sqrt(periods_per_year)`` (a dispersion: volatility, the Sharpe pair)
     LINEAR = "linear"  # multiplied by ``periods_per_year`` (an arithmetic mean: the Treynor ratio)
     GEOMETRIC = "geometric"  # raised to a power of ``periods_per_year`` (a compound rate: cagr) — no closed-form ratio
-    NONE = "none"  # not annualized (a drawdown, a count, a scale-free ratio) — no ``periods_per_year`` knob
+    NONE = "none"  # output invariant to ``periods_per_year`` — no knob at all, or one that only converts an input rate
 
 
 class Degenerate(enum.Enum):

@@ -13,14 +13,14 @@ import enum
 
 
 class BehaviorNull(enum.Enum):
-    """What an interior ``null`` does to a pnl output (the pnl dialect of :class:`pomata._policy.NullPolicy`)."""
+    """What an interior ``null`` does to a pnl output (the pnl dialect of the shared null axis)."""
 
     PROPAGATES = "propagates"  # nulls the rows it reaches (its own, and a one-bar lag), then recovers
     BRIDGED = "bridged"  # a cumulation steps over it (the running state carries across), so later rows recover
 
 
 class BehaviorNan(enum.Enum):
-    """What an interior ``NaN`` does to a pnl output (the pnl dialect of :class:`pomata._policy.NanPolicy`)."""
+    """What an interior ``NaN`` does to a pnl output (the pnl dialect of the shared NaN axis)."""
 
     PROPAGATES = "propagates"  # nans the rows it reaches, then recovers (a pointwise or fixed-lag map)
     LATCHES = "latches"  # a cumulation carries it forward forever (every later row is ``NaN``)
