@@ -98,7 +98,7 @@ VARIANCE_ROLLING = suite_indicators(
         "ddof": "Delta degrees of freedom — the divisor is ``window - ddof``. ``0`` (default) divides by "
         "``window`` (the **population** variance); ``1`` divides by ``window - 1`` (the "
         "**sample** variance, the unbiased estimator used when the window is a sample of a larger "
-        "population). Must be ``< window`` (the divisor ``window - ddof`` must be positive).",
+        "population). Must be ``>= 0`` and ``< window`` (the divisor ``window - ddof`` must be positive).",
     },
     example_columns={"price": "x"},
     examples=(

@@ -27,7 +27,7 @@ The same four-tier rung set runs over all three families, under **100% branch co
 * - Tier
   - What it proves
 * - **Contract**
-  - The output's shape, dtype (`Float64`), and length; that it is a lazy `pl.Expr` (eager and lazy agree to the bit); and that under `.over(...)` each group is computed independently, never spanning a boundary.
+  - The output's shape, dtype (`Float64`), and length. That eager and lazy agree and that `.over(...)` computes each group independently hold by `pl.Expr` construction and are exercised by every panel example in the docs (run as doctests), not by a dedicated tier.
 * - **Edge**
   - The exact warm-up length, and that a `null` and a `NaN` propagate exactly as documented — across the boundaries: an empty series, a single row, an all-`null` column, a window longer than the data, an interior gap.
 * - **Correctness**

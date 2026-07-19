@@ -100,6 +100,7 @@ _PIN_MARKERS: Mapping[EdgeClass, tuple[str, ...]] = {
         "zero_lagged",
         "zero_previous",
         "zero_slow",
+        "zero_close",
         "zero_volume",
         "zero_total_volume",
         "all_zero_is",

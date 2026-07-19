@@ -507,7 +507,7 @@ def standard_deviation_rolling(
         expr: Input series, typically a price column (e.g. ``pl.col("close")``).
         window: Number of observations in the moving window. Must be ``>= 1``.
         ddof: Delta degrees of freedom — the divisor is ``window - ddof``. ``0`` (default) is the **population**
-            standard deviation; ``1`` is the **sample** standard deviation. Must be ``< window``. See
+            standard deviation; ``1`` is the **sample** standard deviation. Must be ``>= 0`` and ``< window``. See
             :func:`variance_rolling`.
 
     Returns:
@@ -833,7 +833,7 @@ def variance_rolling(
         window: Number of observations in the moving window. Must be ``>= 1``.
         ddof: Delta degrees of freedom — the divisor is ``window - ddof``. ``0`` (default) divides by ``window`` (the
             **population** variance); ``1`` divides by ``window - 1`` (the **sample** variance, the unbiased estimator
-            used when the window is a sample of a larger population). Must be ``< window`` (the divisor
+            used when the window is a sample of a larger population). Must be ``>= 0`` and ``< window`` (the divisor
             ``window - ddof`` must be positive).
 
     Returns:

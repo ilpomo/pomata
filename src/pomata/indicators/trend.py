@@ -14,6 +14,7 @@ from pomata.indicators.volatility import atr
 
 __all__ = ("parabolic_sar", "supertrend")
 
+# Wilder's SAR seeds the direction and the extreme point from the first two bars; one bar cannot define a trend.
 _MINIMUM_SEED_BARS: Final = 2
 
 _SUPERTREND_DTYPE: Final = pl.Struct({"line": pl.Float64, "direction": pl.Float64})

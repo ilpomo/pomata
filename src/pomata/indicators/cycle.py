@@ -34,9 +34,13 @@ __all__ = (
 # dominant-cycle look-back of ~31 bars (the running transform / trendline cycle average), hence 63.
 _DIRECT_WARMUP: Final = 32
 _PHASE_WARMUP: Final = 63
+# Phases land in (0, 360); a reading past 315 degrees is the wrap-around tail of the circle, folded back by a full
+# turn so a cycle's phase advances continuously.
 _PHASE_WRAP_DEGREES: Final = 315.0
+# The smoothed price deviating >= 1.5% from the instantaneous trendline flags trend mode (Ehlers' published cut).
 _TREND_MODE_THRESHOLD: Final = 0.015
 
+# Ehlers' published MESA adaptation bounds: the fast limit caps the per-bar alpha, the slow limit floors it.
 _MAMA_FAST_LIMIT: Final = 0.5
 _MAMA_SLOW_LIMIT: Final = 0.05
 

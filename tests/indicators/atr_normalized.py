@@ -7,7 +7,7 @@ from pomata.indicators import atr_normalized
 from tests.indicators.enums import BehaviorNan, BehaviorNull, RelationTalib, Warmup
 from tests.indicators.harness import suite_indicators
 from tests.indicators.oracles import reference_atr_normalized
-from tests.support.declaration import Example, Golden, ScaleAxis, Shape
+from tests.support.declaration import Example, Golden, Pin, ScaleAxis, Shape
 
 ATR_NORMALIZED = suite_indicators(
     factory=atr_normalized,
@@ -29,6 +29,19 @@ ATR_NORMALIZED = suite_indicators(
         },
         output=(None, 4.3689, 4.5238, 5.3218, 5.8373),
         params={"window": 2},
+    ),
+    pins=(
+        Pin(
+            label="zero_close_is_inf",
+            inputs={
+                "high": (10.5, 10.8, 1.0),
+                "low": (9.5, 10.0, 0.0),
+                "close": (10.0, 10.4, 0.0),
+            },
+            params_override={"window": 2},
+            expected=(None, 8.653846153846157, float("inf")),
+            reason="a close of exactly 0 divides the positive atr by zero, the IEEE-754 positive/0 == inf",
+        ),
     ),
     reference="Wilder, J. W. (1978). *New Concepts in Technical Trading Systems*. Trend Research.",
     see_also=(
@@ -52,6 +65,11 @@ ATR_NORMALIZED = suite_indicators(
             "a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent "
             "non-null position — inherited from :func:`atr`, with a ``NaN`` ``close`` also yielding "
             "``NaN`` for the ratio at that row.",
+        ),
+        (
+            "Degenerate denominator",
+            "a ``close`` of exactly ``0`` divides the ATR by zero, so the result is ``inf`` (the "
+            "ratio's correct limit); a negative ``close`` yields a negative reading.",
         ),
         (
             "Partitioning",
@@ -94,6 +112,17 @@ ATR_NORMALIZED = suite_indicators(
             intro="A ``null`` ``close`` (voiding the ratio at that row) then a ``NaN`` ``close`` (which "
             "propagates through the ratio and the latched ATR) make the missing-data handling visible "
             "at a glance:",
+            params={"window": 2},
+            round_to=4,
+        ),
+        Example(
+            inputs={
+                "high": (10.5, 10.8, 1.0),
+                "low": (9.5, 10.0, 0.0),
+                "close": (10.0, 10.4, 0.0),
+            },
+            intro="**Degenerate denominator** — a ``close`` of exactly ``0`` divides the ATR by zero, so "
+            "the ratio is ``inf``:",
             params={"window": 2},
             round_to=4,
         ),

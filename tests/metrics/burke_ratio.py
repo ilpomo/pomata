@@ -82,8 +82,9 @@ BURKE_RATIO = suite_metrics(
         ("NaN", "a ``NaN`` equity propagates, yielding ``NaN``."),
         (
             "Insufficient sample",
-            "a single observation has zero excess growth over zero drawdown energy, so the result is "
-            "a ``0 / 0``, i.e. ``NaN``.",
+            "a single observation has zero drawdown energy: at an equity of exactly ``1.0`` the excess "
+            "growth is zero too and the result is a ``0 / 0``, i.e. ``NaN``; any other single equity puts "
+            "a nonzero excess over the zero energy — a signed infinity.",
         ),
         (
             "Degenerate denominator",

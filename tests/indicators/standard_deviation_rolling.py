@@ -92,7 +92,7 @@ STANDARD_DEVIATION_ROLLING = suite_indicators(
         "window": "Number of observations in the moving window. Must be ``>= 1``.",
         "ddof": "Delta degrees of freedom — the divisor is ``window - ddof``. ``0`` (default) is the "
         "**population** standard deviation; ``1`` is the **sample** standard deviation. Must be "
-        "``< window``. See :func:`variance_rolling`.",
+        "``>= 0`` and ``< window``. See :func:`variance_rolling`.",
     },
     example_columns={"price": "x"},
     examples=(

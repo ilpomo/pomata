@@ -209,6 +209,8 @@ def atr_normalized(
           ``null`` ``close`` also nulling the ratio at that row.
         - **NaN** — a ``NaN`` contaminates the recursive state and yields ``NaN`` for every subsequent non-null position
           — inherited from :func:`atr`, with a ``NaN`` ``close`` also yielding ``NaN`` for the ratio at that row.
+        - **Degenerate denominator** — a ``close`` of exactly ``0`` divides the ATR by zero, so the result is ``inf``
+          (the ratio's correct limit); a negative ``close`` yields a negative reading.
         - **Partitioning** — wrap the call in ``.over(...)`` for a multi-series panel so each series is computed on its
           own history.
 
@@ -262,6 +264,19 @@ def atr_normalized(
         >>> expr = atr_normalized(pl.col("high"), pl.col("low"), pl.col("close"), window=2)
         >>> frame.select(atr_normalized=expr.round(4))["atr_normalized"].to_list()
         [None, 4.3689, None, 4.5561, nan, nan, nan, nan]
+
+        **Degenerate denominator** — a ``close`` of exactly ``0`` divides the ATR by zero, so the ratio is ``inf``:
+
+        >>> frame = pl.DataFrame(
+        ...     {
+        ...         "high": [10.5, 10.8, 1.0],
+        ...         "low": [9.5, 10.0, 0.0],
+        ...         "close": [10.0, 10.4, 0.0],
+        ...     }
+        ... )
+        >>> expr = atr_normalized(pl.col("high"), pl.col("low"), pl.col("close"), window=2)
+        >>> frame.select(atr_normalized=expr.round(4))["atr_normalized"].to_list()
+        [None, 8.6538, inf]
     """
     high = float64_expr(high)
     low = float64_expr(low)
@@ -295,9 +310,9 @@ def bollinger_bands(
     Args:
         expr: Input series, typically a price column (e.g. ``pl.col("close")``).
         window: Number of observations in the moving window. Must be ``>= 1``.
-        multiplier: Number of standard deviations between the center band and each outer band (default ``2.0``). Must be
-            a finite number ``> 0`` (a non-positive width would collapse or invert the bands). The bands are symmetric;
-            for asymmetric bands compose :func:`sma` and :func:`standard_deviation_rolling` directly.
+        multiplier: Number of standard deviations between the center band and each outer band (canonically ``2.0``).
+            Must be a finite number ``> 0`` (a non-positive width would collapse or invert the bands). The bands are
+            symmetric; for asymmetric bands compose :func:`sma` and :func:`standard_deviation_rolling` directly.
 
     Returns:
         A struct ``pl.Expr`` with three ``Float64`` fields, the same length as ``expr``:

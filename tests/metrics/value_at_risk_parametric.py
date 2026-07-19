@@ -35,7 +35,7 @@ VALUE_AT_RISK_PARAMETRIC = suite_metrics(
             label="constant_is_mean",
             inputs={"returns": (0.01, 0.01, 0.01)},
             expected=(0.01,),
-            reason="a constant series has zero dispersion, so z*std=0 and the value-at-risk is the mean itself",
+            reason="a constant series collapses z*std to float noise, so the value-at-risk lands on the mean",
         ),
     ),
     reference="Jorion, P. (2006). *Value at Risk: The New Benchmark for Managing Financial Risk* (3rd "
@@ -66,7 +66,8 @@ VALUE_AT_RISK_PARAMETRIC = suite_metrics(
         ),
         (
             "Degenerate denominator",
-            "a constant series has zero dispersion, so ``z * sigma`` vanishes and the result is the mean itself.",
+            "a constant series collapses the dispersion to float noise (``~1e-17``, an additive term, never a "
+            "divisor), so ``z * sigma`` vanishes and the result lands on the mean.",
         ),
         (
             "Partitioning",
