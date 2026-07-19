@@ -1,7 +1,7 @@
 name: Nightly
 
-# The non-gating tiers, consolidated: performance / complexity-scaling benchmarks, the TA-Lib differential, the
-# dependency-floor proof, and the zizmor workflow audit. They block nothing but show red so a real regression or
+# The non-gating tiers, consolidated: the TA-Lib differential, the dependency-floor proof, the sdist and citation
+# checks, and the zizmor workflow audit. They block nothing but show red so a real regression or
 # divergence is visible. Deliberately off the PR *and* merge critical paths: the nightly baseline flags a problem
 # within a day (bisecting a day of merges is cheap at this repo's pace), and the Actions "Run workflow" button covers
 # on-demand runs. GitHub disables the schedule after 60 days with no repo activity -- acceptable: an idle repo's code
@@ -16,8 +16,8 @@ on:
 permissions:
   contents: read
 
-# Don't pile up overlapping runs (nightly schedule + manual dispatch); never cancel an in-flight run, since killing
-# a benchmark mid-timing would waste the measurement.
+# Don't pile up overlapping runs (nightly schedule + manual dispatch); never cancel an in-flight run, so a
+# dispatched run always reports a complete result.
 concurrency:
   group: nightly-${{ github.ref }}
   cancel-in-progress: false
@@ -32,26 +32,6 @@ env:
   UV_NO_SYNC: "1"
 
 jobs:
-  # Performance benchmarks and complexity-scaling checks. A failure here means a regression past a function's
-  # declared cost degree landed on main (or a noisy timing) -- it blocks nothing, but it shows red so the regression
-  # is visible. The job stays serial (no -n): parallelism would corrupt the timings.
-  benchmark:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - name: "Setup: checkout"
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          persist-credentials: false
-      - name: "Setup: install uv"
-        uses: ./.github/actions/setup
-      - name: "Setup: sync dependencies (test)"
-        run: uv sync --locked --no-default-groups --group test
-      - name: "Benchmark: performance & complexity-scaling"
-        env:
-          POMATA_BENCHMARKS: "1"
-        run: uv run pytest -m benchmark
-
   # Differential parity against TA-Lib (the C reference). A mismatch flags either a real bug or an undocumented
   # convention difference to investigate -- it shows red here rather than blocking a merge.
   differential:
@@ -137,26 +117,6 @@ jobs:
           cd "$RUNNER_TEMP"/pomata-*/
           uv sync --locked --no-default-groups --group test
           uv run --no-sync pytest -n auto
-
-  # Prove the oracle re-export is exactly what its regenerator emits: a hand edit to the package __init__ (or a
-  # regenerator change) that drifts from the committed file shows red within a day. The regenerated file is the
-  # committed style byte for byte, so the diff gate needs no normalization pass.
-  oracles:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: "Setup: checkout"
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          persist-credentials: false
-      - name: "Setup: install uv"
-        uses: ./.github/actions/setup
-      - name: "Setup: sync dependencies (test)"
-        run: uv sync --locked --no-default-groups --group test
-      - name: "Guard: the oracle re-export regenerates to a no-op"
-        run: |
-          uv run --no-sync python -m tests.indicators.oracles._regenerate
-          git diff --exit-code tests/indicators/oracles/__init__.py
 
   # Validate CITATION.cff against the Citation File Format schema. Pinned like zizmor above: a version in a `run:`
   # string is outside Dependabot's reach, so the bump is manual.

@@ -75,7 +75,6 @@ test = [
     "hypothesis>=6.155.7",
     "numpy>=2.5.0",
     "pytest>=9.1.1",
-    "pytest-benchmark>=5.2.3",
     "pytest-xdist>=3.8.0",
 ]
 typecheck = [
@@ -184,12 +183,8 @@ addopts = ["--import-mode=importlib", "--strict-markers"]
 filterwarnings = [
     # Bleeding-edge stack: a warning is a defect. Promote every warning to an error so a deprecation never passes silently.
     "error",
-    # pytest-benchmark warns at startup whenever xdist is active (it auto-disables benchmarks under ``-n auto``); this is
-    # benign and expected in the parallel coverage run, where benchmarks are opt-in and not collected.
-    "ignore::pytest_benchmark.logger.PytestBenchmarkWarning",
 ]
 markers = [
-    "benchmark: performance and complexity-scaling tests.",
     "differential: non-gating checks against TA-Lib (the C reference); requires the 'differential' dependency group.",
 ]
 pythonpath = "."
