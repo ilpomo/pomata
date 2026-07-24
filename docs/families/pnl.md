@@ -2,7 +2,9 @@
 
 `pomata.pnl` turns the positions you hold into per-bar profit and loss, in two flows — **returns** (a signed weight of
 capital times an asset return) and **cash** (a quantity of units times a price change) — with transaction costs you
-compose, never bake in. Pick the flow that matches your data; either one ends in exactly the return or equity series the
+compose, never bake in.
+
+Pick the flow that matches your data; either one ends in exactly the return or equity series the
 {doc}`metrics <metrics>` family consumes.
 
 ## What you get
@@ -68,7 +70,7 @@ loses `150 x (-0.5) = -75` but collects the `150 x 0.4 = 60` dividend, less the 
 bar rides `150 x 1.5` cost-free; the unwind pays only its exit fees on a flat price move. The running ``total`` is
 additive — currency P&L sums, it does not compound.
 
-## Common pains, solved
+## The conventions
 
 ### Gross vs net: the costs that actually bite
 
@@ -109,11 +111,11 @@ shape: (6, 6)
 The drag lands only where the weight moved (rows 0, 2, 4 — the entry, the flip, the resize); a held bar pays nothing,
 so its net equals its gross.
 
-### Signal → position → P&L, with no look-ahead
+### The timing contract: nothing is shifted for you
 
-A signal computed at a bar's close cannot trade that same bar — only the next one. One `.shift(1)` on the weight is the
-whole story: the position lags the signal by exactly one bar, so the P&L can never peek at the return that produced the
-signal.
+The no-look-ahead idea lives in {doc}`Design <../design>`; what is specific to accounting is the contract on *where
+the P&L lands*. The weight you pass is the position held over the price change into that row — `pomata` never lags it
+for you, so an already-aligned weight is never double-lagged, and the lag you write is the lag you get:
 
 ```{doctest}
 >>> from pomata.pnl import returns_simple
@@ -188,45 +190,8 @@ Three `+10%` bars compound to `1.331` but sum to `0.3`; the `-10%` bar then take
 the grown capital*) while the sum drops by a flat `0.1`. Feed the equity curve to a drawdown, the cumulative total to a
 fixed-notional ledger — never the reverse.
 
-### Per-asset P&L on a panel, via `.over`
+### Per-asset P&L on a panel
 
-A long panel of many tickers is one DataFrame — but a naked return reaches across the ticker boundary and books a
-phantom move where one symbol's last close meets the next's first bar. Wrap the call in `.over(...)` and each ticker
-restarts its own warm-up.
-
-```{doctest}
->>> frame = pl.DataFrame(
-...     {
-...         "datetime": [datetime(2024, 1, d, 17) for d in (2, 3, 4)] * 3,
-...         "ticker": ["AAPL"] * 3 + ["GOOG"] * 3 + ["NVDA"] * 3,
-...         "close": [183.56, 182.19, 179.87, 138.34, 139.13, 136.83, 48.08, 47.48, 47.91],
-...     }
-... ).with_columns(pl.col("datetime").dt.replace_time_zone("America/New_York"))
->>> (
-...     frame
-...     .sort("ticker", "datetime")
-...     .with_columns(
-...         leaky=returns_simple(pl.col("close")).round(4),
-...         clean=returns_simple(pl.col("close")).over("ticker").round(4),
-...     )
-... )
-shape: (9, 5)
-┌────────────────────────────────┬────────┬────────┬─────────┬─────────┐
-│ datetime                       ┆ ticker ┆ close  ┆ leaky   ┆ clean   │
-│ ---                            ┆ ---    ┆ ---    ┆ ---     ┆ ---     │
-│ datetime[μs, America/New_York] ┆ str    ┆ f64    ┆ f64     ┆ f64     │
-╞════════════════════════════════╪════════╪════════╪═════════╪═════════╡
-│ 2024-01-02 17:00:00 EST        ┆ AAPL   ┆ 183.56 ┆ null    ┆ null    │
-│ 2024-01-03 17:00:00 EST        ┆ AAPL   ┆ 182.19 ┆ -0.0075 ┆ -0.0075 │
-│ 2024-01-04 17:00:00 EST        ┆ AAPL   ┆ 179.87 ┆ -0.0127 ┆ -0.0127 │
-│ 2024-01-02 17:00:00 EST        ┆ GOOG   ┆ 138.34 ┆ -0.2309 ┆ null    │
-│ 2024-01-03 17:00:00 EST        ┆ GOOG   ┆ 139.13 ┆ 0.0057  ┆ 0.0057  │
-│ 2024-01-04 17:00:00 EST        ┆ GOOG   ┆ 136.83 ┆ -0.0165 ┆ -0.0165 │
-│ 2024-01-02 17:00:00 EST        ┆ NVDA   ┆ 48.08  ┆ -0.6486 ┆ null    │
-│ 2024-01-03 17:00:00 EST        ┆ NVDA   ┆ 47.48  ┆ -0.0125 ┆ -0.0125 │
-│ 2024-01-04 17:00:00 EST        ┆ NVDA   ┆ 47.91  ┆ 0.0091  ┆ 0.0091  │
-└────────────────────────────────┴────────┴────────┴─────────┴─────────┘
-```
-
-Without `.over`, ticker `AAPL`'s `179.87` close bleeds into ticker `GOOG`'s `138.34` open and fabricates a `-23.09%`
-return at the boundary. With it, `GOOG` begins at `null` — its own warm-up — exactly as a fresh series should.
+Every accounting primitive obeys the same `.over("ticker")` contract as the rest of `pomata` — each asset books on
+its own history, and the {doc}`Design <../design>` page shows the leak it prevents. Book per-asset, then aggregate
+the per-asset P&L series explicitly.

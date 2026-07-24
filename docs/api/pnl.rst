@@ -1,4 +1,4 @@
-pnl
+PnL
 ===
 
 .. automodule:: pomata.pnl

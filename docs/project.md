@@ -10,7 +10,8 @@ bar a change must clear: a new function ships with a docstring, an independent o
 ## Changelog
 
 Releases use GitHub's native release notes, grouped by label — see the
-[releases page](https://github.com/ilpomo/pomata/releases).
+[releases page](https://github.com/ilpomo/pomata/releases). Pre-`1.0`, minor versions may change the API: every
+breaking change carries the `breaking` label and is listed first in its release's notes, never landed silently.
 
 ## Citing pomata
 

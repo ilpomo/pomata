@@ -1,12 +1,16 @@
 # Tutorial
 
 You have a table of prices and a strategy. You want a single number that says whether the strategy would have made
-money — honestly, after costs, without cheating on timing. This walks the whole way there: signal, position, costs,
-equity, metrics, on three real tickers, in one Polars query.
+money after costs, with the timing right. This page builds that number on a three-ticker panel — signal, position,
+costs, equity, metrics, one Polars query — and explains every decision on the way: the data shapes, the input contract,
+the warm-up, where the fee lands.
 
-Every block below runs against a small sample of daily bars shipped **in the repository** — clone it and run from
-its root (or point `read_parquet` at any OHLCV frame of your own, adjusting the column names). Paste them in order and you get
-exactly the numbers you see.
+If you come from TA-Lib or pandas-ta, exactly one habit changes: a `pomata` function returns an expression you run
+inside `select` or `with_columns`, not an array.
+
+Every block below runs against a small sample of daily bars shipped **in the repository** — clone it and run from its
+root (or point `read_parquet` at any OHLCV frame of your own, adjusting the column names). Paste them in order and you
+get exactly the numbers you see.
 
 ## The data, in whatever shape it arrives
 
@@ -34,12 +38,77 @@ shape: (6, 7)
 └────────────────────────────────┴────────┴────────┴────────┴────────┴────────┴───────────┘
 ```
 
-The `datetime` is tz-aware, stamped at the 17:00 New York close — `EST` here, `EDT` once March's clock change
-lands — so the zone travels with the price. One row per ticker per day, one column per field: the shape every
-`pomata` factory expects, because `pl.col("close")` has to point at a column.
+The `datetime` is tz-aware, stamped at 17:00 New York time — `EST` here, `EDT` once March's clock change lands — so
+the zone travels with the price. One row per ticker per day, one column per field: the shape every `pomata` factory
+expects, because `pl.col("close")` has to point at a column.
 
-Prices do not always arrive that way. The other common layout is long — every field stacked into a single `value`
-column, named by a `field` column — which is what a tidy database or a melted export gives you.
+The input contract comes down to three facts:
+1. Any numeric dtype is accepted — every factory casts its inputs to `Float64` before computing.
+2. The grain is one row per ticker per bar — `.over("ticker")` partitions rows.
+3. And rows must be sorted oldest-first within each ticker, because every window and recursion reads them in the order
+   they sit — nothing re-sorts for you.
+
+The third is the one that breaks silently, so here it is broken: the same bars exported newest-first, as CSV dumps
+often are.
+
+```{doctest}
+>>> from pomata.indicators import ema
+>>>
+>>> newest_first = wide.sort("datetime", descending=True)
+>>> (
+...     newest_first
+...     .with_columns(fast=ema(pl.col("close"), 5).over("ticker"))
+...     .filter(pl.col("ticker") == "NVDA")
+...     .select("datetime", "close", pl.col("fast").round(2))
+...     .head(5)
+... )
+shape: (5, 3)
+┌────────────────────────────────┬───────┬───────┐
+│ datetime                       ┆ close ┆ fast  │
+│ ---                            ┆ ---   ┆ ---   │
+│ datetime[μs, America/New_York] ┆ f64   ┆ f64   │
+╞════════════════════════════════╪═══════╪═══════╡
+│ 2024-03-28 17:00:00 EDT        ┆ 90.2  ┆ null  │
+│ 2024-03-27 17:00:00 EDT        ┆ 90.09 ┆ null  │
+│ 2024-03-26 17:00:00 EDT        ┆ 92.4  ┆ null  │
+│ 2024-03-25 17:00:00 EDT        ┆ 94.84 ┆ null  │
+│ 2024-03-22 17:00:00 EDT        ┆ 94.13 ┆ 92.33 │
+└────────────────────────────────┴───────┴───────┘
+```
+
+Two corruptions in one frame: the four newest bars — the ones a signal would act on — carry the warm-up `null`s, and
+March 22 reads `92.33`, the average of March 22 through March 28 — itself plus the four bars above it in the reversed
+frame: the future.
+
+One `.sort("datetime")` up front fixes both:
+
+```{doctest}
+>>> (
+...     newest_first.sort("datetime")
+...     .with_columns(fast=ema(pl.col("close"), 5).over("ticker"))
+...     .filter(pl.col("ticker") == "NVDA")
+...     .select("datetime", "close", pl.col("fast").round(2))
+...     .tail(5)
+... )
+shape: (5, 3)
+┌────────────────────────────────┬───────┬───────┐
+│ datetime                       ┆ close ┆ fast  │
+│ ---                            ┆ ---   ┆ ---   │
+│ datetime[μs, America/New_York] ┆ f64   ┆ f64   │
+╞════════════════════════════════╪═══════╪═══════╡
+│ 2024-03-22 17:00:00 EDT        ┆ 94.13 ┆ 91.29 │
+│ 2024-03-25 17:00:00 EDT        ┆ 94.84 ┆ 92.48 │
+│ 2024-03-26 17:00:00 EDT        ┆ 92.4  ┆ 92.45 │
+│ 2024-03-27 17:00:00 EDT        ┆ 90.09 ┆ 91.66 │
+│ 2024-03-28 17:00:00 EDT        ┆ 90.2  ┆ 91.18 │
+└────────────────────────────────┴───────┴───────┘
+```
+
+The same March 22 bar now reads `91.29`, built only from bars that precede it, and the newest bars carry values a signal
+can use.
+
+Sorting is not the only thing vendors change; the layout varies too. The other common layout is long — every field stacked
+into a single `value` column, named by a `field` column — which is what a tidy database or a melted export gives you.
 
 ```{doctest}
 >>> long = wide.unpivot(index=["datetime", "ticker"], variable_name="field", value_name="value")
@@ -65,10 +134,11 @@ means the field you want is picked out by a filter rather than named by a column
 We run the whole backtest from each shape below — first from `wide`, then from `long` — and the two land on the
 same verdict to the last digit.
 
-## A signal, and the warm-up it owes you
+## A signal, and its warm-up
 
-The idea is the oldest one in the book: be long while a fast average sits above a slow one. Two `ema` calls and a
-comparison. The `.over("ticker")` is not decoration — it stops `NVDA`'s recursion from bleeding into the next ticker.
+The idea is the oldest one in the book: be long while a fast average sits above a slow one. Two
+{py:func}`~pomata.indicators.ema` calls and a comparison. The `.over("ticker")` is not decoration — it stops `NVDA`'s
+recursion from bleeding into the next ticker.
 
 ```{doctest}
 >>> from pomata.indicators import ema
@@ -105,22 +175,26 @@ shape: (7, 5)
 └────────────────────────────────┴───────┴───────┴───────┴──────────┘
 ```
 
-Two things to read. `slow` is `null` until its tenth bar — the warm-up: the window has not filled, so `pomata` leaves
-the cell empty instead of seeding it with a zero that would quietly wreck everything downstream. And `position` is the
-comparison `.shift(1)`-ed — the cross you can see at the 16th's close is acted on the next bar, the 17th, never the same
-day. That one shift is the whole no-look-ahead story, and the `.over("ticker")` on it stops the shift at the ticker
-boundary instead of carrying one ticker's first position back onto another's last row.
+Two things to read:
+1. `slow` is `null` until its tenth bar — the warm-up: the window has not filled, so the cell stays empty instead of
+   carrying a seed that would flow into every average after it.
+2. `position` is the comparison `.shift(1)`-ed — the cross you can see at the 16th's close is acted on the next bar, the
+   17th, never the same day.
+
+That single shift is the timing contract ({doc}`design`, idea 5), and the `.over("ticker")` on it stops the shift
+at the ticker boundary instead of carrying one ticker's first position back onto another's last row.
 
 ## From a signal to a verdict
 
-A position is not yet a return. Take the per-bar return of the close, scale it by the position you were actually
-holding, then pay for the trading — a backtest that skips the third step is telling you a comforting lie.
+A position is not yet a return: scale the close's per-bar return by the position actually held, then charge for
+the trades.
 
-`returns_gross` applies the weight, `cost_proportional` charges a fee on the traded notional, `returns_net` subtracts
-one from the other, and `equity_curve` compounds what is left. Every lagging piece carries `.over("ticker")` — the
+{py:func}`~pomata.pnl.returns_gross` applies the weight, {py:func}`~pomata.pnl.cost_proportional` charges a fee on
+the traded notional, {py:func}`~pomata.pnl.returns_net` subtracts one from the other, and
+{py:func}`~pomata.pnl.equity_curve` compounds what is left. Every lagging piece carries `.over("ticker")` — the
 averages, the position shift, the asset return, and the turnover inside the cost — so nothing reaches across the seam
-between one ticker and the next. Group by ticker and reduce each to the few numbers you'd actually compare — one row
-per ticker, because the grouping was there all along.
+between one ticker and the next. Group by ticker and reduce each to the few numbers you'd actually compare — one row per
+ticker, because the grouping was there all along.
 
 ```{doctest}
 >>> from pomata.pnl import returns_simple, returns_gross, returns_net, cost_proportional, equity_curve
@@ -162,16 +236,16 @@ shape: (3, 4)
 ```
 
 Same rule, three verdicts. `NVDA` trended almost the whole quarter, the cross caught it, and the Sharpe shows it — the
-CAGR reads like a fantasy because annualizing a single parabolic quarter always does, which is the standing reminder
-that sixty bars are a sample, not a strategy. `GOOG` drifted up and the rule clipped a modest, real gain from it. `AAPL`
-fell and chopped, the cross was never on the right side for long, and it bled. That is the honest outcome: a
-moving-average cross follows trends, and `AAPL` had none to follow.
+CAGR reads like a fantasy because annualizing a single parabolic quarter always does; a quarter of daily bars is a
+sample, not a strategy. `GOOG` drifted up and the rule clipped a modest, real gain from it. `AAPL` fell and chopped, the
+cross was never on the right side for long, and it bled — a moving-average cross follows trends, and `AAPL` had none to
+follow.
 
 ## The same query, from long
 
 Long data hides the close inside `value`, on the rows where `field == "close"`. Filter to those, swap `pl.col("close")`
 for `pl.col("value")`, and the pipeline is otherwise character-for-character the one above — `pomata`'s factories take
-a column expression, and neither know nor care which shape it was sliced from.
+a column expression; the shape it was sliced from never enters the computation.
 
 ```{doctest}
 >>> prices = long.filter(pl.col("field") == "close")
@@ -214,12 +288,9 @@ True
 
 Same numbers, by construction.
 
-The lesson is not the strategy — it is that you went from raw bars to a costed, look-ahead-free, ticker-by-ticker 
-number, twice and from two different layouts, without leaving Polars and without a second dependency in the stack.
-
 ## Where to go next
 
-Swap `ema` for anything in the [indicator catalog](families/indicators.md), change the fee model from the
+Swap {py:func}`~pomata.indicators.ema` for anything in the [indicator catalog](families/indicators.md), change the fee model from the
 [pnl family](families/pnl.md), or pull more figures from the [metrics catalog](families/metrics.md) — the shape of the
-query does not move. Nor does it move when the panel grows: put five hundred tickers in `wide` and the same
+query does not change. Nor does it change when the panel grows: put five hundred tickers in `wide` and the same
 `.over("ticker")` that kept three of them apart keeps five hundred apart.

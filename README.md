@@ -305,6 +305,7 @@ engine — no order fills, no event loop, no lot accounting.
 ## Project
 
 - **Contributing** — see [CONTRIBUTING.md](https://github.com/ilpomo/pomata/blob/main/CONTRIBUTING.md); the full gate
-  (lint, three gating type checkers plus an advisory fourth, doctests, 100% branch coverage) runs on every commit.
+  (`ruff` and `codespell`, `mypy` / `pyright` / `pyrefly` gating with `ty` advisory, doctests, 100% branch coverage)
+  runs on every commit.
 - **License** — MIT, see [LICENSE](https://github.com/ilpomo/pomata/blob/main/LICENSE).
 - **Citation** — [CITATION.cff](https://github.com/ilpomo/pomata/blob/main/CITATION.cff).
