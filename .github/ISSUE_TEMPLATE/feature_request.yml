@@ -7,7 +7,7 @@ body:
     attributes:
       value: |
         Thanks for the suggestion. pomata aims at a focused, verifiable set of functions, so please include the
-        motivation and, for an indicator or metric, a reference for the maths.
+        motivation and, for an indicator or metric, a reference for the math.
   - type: textarea
     id: problem
     attributes:
