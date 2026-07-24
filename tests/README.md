@@ -197,6 +197,10 @@ The guards, by that test:
 - `test_precision_table.py` — the published precision figures in `docs/correctness.md` stay reproducible.
 - `test_scripts.py` — every project import a `scripts/` regenerator states resolves against the live modules (AST,
   never executing a script), so the `docs/correctness.md` invitation to rerun them cannot rot invisibly.
+- `test_complexity.py` — the timing tier (nightly-only: `POMATA_COMPLEXITY=1`, serial): every function's measured
+  growth stays linear in the rows, and flat in the window except the ten window-composed studies sanctioned by
+  name — the O(n) / O(1) contract the benchmarks page states, with its O(n·w) exception list held exact both ways
+  (an unsanctioned function that grows fails; a sanctioned one that measures flat fails as stale).
 - `test_versions.py` — the support claims (Polars floor, Python versions, OS list) in the README, the docs site, the
   contributing guide, and the CI matrix all match `pyproject.toml`.
 - `test_package.py` — import smoke for every subpackage and the exposed `__version__`.

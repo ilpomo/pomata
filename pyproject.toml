@@ -185,6 +185,7 @@ filterwarnings = [
     "error",
 ]
 markers = [
+    "complexity: the timing-based complexity tier; activates under POMATA_COMPLEXITY=1 and runs serially (nightly).",
     "differential: non-gating checks against TA-Lib (the C reference); requires the 'differential' dependency group.",
 ]
 pythonpath = "."
