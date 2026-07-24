@@ -1,4 +1,4 @@
-indicators
+Indicators
 ==========
 
 .. automodule:: pomata.indicators
