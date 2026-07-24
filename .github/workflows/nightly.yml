@@ -1,8 +1,8 @@
 name: Nightly
 
-# The non-gating tiers, consolidated: the TA-Lib differential, the dependency-floor proof, the sdist and citation
-# checks, and the zizmor workflow audit. They block nothing but show red so a real regression or
-# divergence is visible. Deliberately off the PR *and* merge critical paths: the nightly baseline flags a problem
+# The non-gating tiers, consolidated: the complexity contract, the TA-Lib differential, the dependency-floor proof,
+# the sdist and citation checks, and the zizmor workflow audit. They block nothing but show red so a real regression
+# or divergence is visible. Deliberately off the PR *and* merge critical paths: the nightly baseline flags a problem
 # within a day (bisecting a day of merges is cheap at this repo's pace), and the Actions "Run workflow" button covers
 # on-demand runs. GitHub disables the schedule after 60 days with no repo activity -- acceptable: an idle repo's code
 # cannot regress, and the disable notification doubles as the reminder for the one check that tracks the outside
@@ -32,6 +32,26 @@ env:
   UV_NO_SYNC: "1"
 
 jobs:
+  # The complexity contract: every public function must stay O(n) in the rows and O(1) in the window
+  # (tests/test_complexity.py). Timing-based, so it runs serial (no -n: parallel workers corrupt timings) and only
+  # here — a red means a function's cost has gone super-linear, not that a merge should have been blocked.
+  complexity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: "Setup: checkout"
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: "Setup: install uv"
+        uses: ./.github/actions/setup
+      - name: "Setup: sync dependencies (test)"
+        run: uv sync --locked --no-default-groups --group test
+      - name: "Guard: the linear-rows / window-free contract"
+        env:
+          POMATA_COMPLEXITY: "1"
+        run: uv run pytest -m complexity
+
   # Differential parity against TA-Lib (the C reference). A mismatch flags either a real bug or an undocumented
   # convention difference to investigate -- it shows red here rather than blocking a merge.
   differential:
