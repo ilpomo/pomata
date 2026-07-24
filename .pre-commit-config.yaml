@@ -1,23 +1,31 @@
 # Local pre-commit hooks mirroring the CI lint/format gate, plus a uv.lock consistency check. Run them with
 # `uvx pre-commit install` / `uvx pre-commit run --all-files` -- pre-commit is not added as a project dependency.
-# Heavy type-checking (mypy / pyright / pyrefly / ty) stays in CI, not here. Hook revisions are pinned to the project's
-# own ruff and uv; keep them in step after a Dependabot bump so pre-commit and CI stay aligned.
+# Heavy type-checking (mypy / pyright / pyrefly / ty) stays in CI, not here. The lint tools run through `uv run`, so
+# every hook executes exactly the version locked in uv.lock -- one source of truth, no hook rev to keep in step.
 repos:
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.20 # keep in step with the ruff version in uv.lock
+  - repo: local
     hooks:
-      - id: ruff-check # mirrors CI's `ruff check`; --fix autofixes locally
-        args: [--fix]
-      - id: ruff-format # mirrors CI's `ruff format --check`
-  - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.11.26 # keep in step with the uv version pinned by CI (this repo's tags carry no leading "v")
-    hooks:
-      - id: uv-lock # keep uv.lock consistent with pyproject.toml
-  - repo: https://github.com/codespell-project/codespell
-    rev: v2.4.2 # keep in step with the codespell version in uv.lock
-    hooks:
-      - id: codespell # mirrors CI's `codespell`; reads [tool.codespell] from pyproject.toml
-        additional_dependencies: [tomli]
+      - id: ruff-check
+        name: ruff check (locked version)
+        entry: uv run --group lint ruff check --fix --force-exclude
+        language: system
+        types_or: [python, pyi]
+      - id: ruff-format
+        name: ruff format (locked version)
+        entry: uv run --group lint ruff format --force-exclude
+        language: system
+        types_or: [python, pyi]
+      - id: codespell
+        name: codespell (locked version)
+        entry: uv run --group lint codespell
+        language: system
+        types: [text]
+      - id: uv-lock
+        name: uv lock --check
+        entry: uv lock --check
+        language: system
+        files: ^(pyproject\.toml|uv\.lock)$
+        pass_filenames: false
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
@@ -25,3 +33,4 @@ repos:
       - id: check-yaml
       - id: end-of-file-fixer
       - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md] # a two-space Markdown hard line break is content, not stray whitespace

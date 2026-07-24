@@ -54,8 +54,9 @@ updates:
         patterns: ["*"]
         update-types: ["minor", "patch"]
 
-  # pre-commit hook revisions in .pre-commit-config.yaml (ruff, uv). Grouped like the others so a hook bump arrives in
-  # one PR and the local hooks never drift from the CI tool versions. (Dependabot pre-commit support: GA 2026-03-10.)
+  # pre-commit hook revisions in .pre-commit-config.yaml: only the generic hygiene hooks (pre-commit/pre-commit-hooks)
+  # carry a rev -- the lint tools run from uv.lock through local `uv run` hooks, so they have no rev to bump here.
+  # (Dependabot pre-commit support: GA 2026-03-10.)
   - package-ecosystem: "pre-commit"
     directory: "/"
     schedule:
