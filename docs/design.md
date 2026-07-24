@@ -97,7 +97,7 @@ shape: (6, 2)
 
 **A multi-input function lands on one fixed role column — not always the first argument.**
 {py:func}`~pomata.indicators.balance_of_power` reads `open`, `high`, `low`, `close` and lands on `close`;
-{py:func}`~pomata.indicators.donchian_channels` reads `high`, `low` and lands on `low`. Each function's landing column 
+{py:func}`~pomata.indicators.donchian_channels` reads `high`, `low` and lands on `low`. Each function's landing column
 is deterministic, but it is a role column that says nothing about what the result *is* — which is why a multi-input
 result wants an alias:
 

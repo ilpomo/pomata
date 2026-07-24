@@ -290,7 +290,7 @@ Each family is then held to the yardstick that catches its bugs: **indicators to
 oracle — and, for the 58 of 75 with a twin, against the public **TA-Lib** reference too; **PnL and metrics at the
 edges**, where every degenerate input has a defined behavior.
 
-The full account — the precision guarantee, the receipts, and exactly what is and is not claimed — is on the 
+The full account — the precision guarantee, the receipts, and exactly what is and is not claimed — is on the
 [correctness page](https://ilpomo.github.io/pomata/correctness.html).
 
 ## Where pomata fits
