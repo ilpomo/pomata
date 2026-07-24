@@ -12,3 +12,24 @@
   padding-left: 0.5em;
   text-indent: 0;
 }
+
+/* Benchmark charts: the bars use Furo's own --color-brand-primary; the rolling_mean reference line needs a red the
+   theme does not define, so it lives here as a single custom property (one light value, one dark) — centralized, so a
+   future palette change is a two-line edit and never a hunt through generated SVG. */
+:root {
+  --color-benchmark-anchor: #c92a2a;
+}
+@media (prefers-color-scheme: dark) {
+  body:not([data-theme="light"]) {
+    --color-benchmark-anchor: #ff8787;
+  }
+}
+body[data-theme="dark"] {
+  --color-benchmark-anchor: #ff8787;
+}
+
+/* The benchmark result tables span the full content width (Furo sizes tables to their content). Scoped to the
+   `benchmark-table` class the pages tag via an `rst-class` directive, so no other table on the site is affected. */
+table.benchmark-table {
+  width: 100%;
+}

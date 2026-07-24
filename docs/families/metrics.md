@@ -2,10 +2,12 @@
 
 `pomata.metrics` is the scoring layer — sixty performance and risk statistics, each a reducing `pl.Expr` that
 collapses a series to a single number (with the running `drawdown` and each `*_rolling` twin the series-valued
-exceptions, one value per row or per window). Point one at a return series
-(`pomata.pnl.returns_net`) or an equity curve (`pomata.pnl.equity_curve`) and it folds the whole history into the
-figure you report — in the same Polars query that produced the series, `null`-skipping and `.over`-partitioning
-included.
+exceptions, one value per row or per window).
+
+Point one at a return series ({py:func}`~pomata.pnl.returns_net`) or an equity curve
+({py:func}`~pomata.pnl.equity_curve`) and it folds the
+whole history into the figure you report — in the same Polars query that produced the series, `null`-skipping and
+`.over`-partitioning included.
 
 ## What you get
 
@@ -73,9 +75,11 @@ Performance measured against a benchmark — what the strategy added, and how mu
 {py:func}`~pomata.metrics.treynor_ratio_rolling` ·
 {py:func}`~pomata.metrics.information_ratio_rolling`
 
-The family in one query — the strategy tracks its benchmark closely (`beta` just above one), adds a genuinely
-positive residual (`alpha`, annualized), earns it consistently (`information_ratio`), and captures about twice as
-much of the benchmark's upside as of its downside (`capture_ratio`):
+The family in one query — the strategy tracks its benchmark closely (`beta` just above one), adds a positive
+residual (`alpha`), and captures more of the benchmark's upside than of its downside (`capture_ratio`).
+
+On eight points the magnitudes are illustrative, not a read — annualizing a week of luck produces the fantasy figures
+you see below; what matters is the shape of the answer:
 
 ```{doctest}
 >>> import polars as pl
@@ -130,7 +134,7 @@ bet-sizing statistics — point these at a return series.
 {py:func}`~pomata.metrics.tail_ratio_rolling` ·
 {py:func}`~pomata.metrics.value_at_risk_rolling`
 
-## Common pains, solved
+## The conventions
 
 ### Annualization, done right
 
@@ -163,11 +167,11 @@ scaling is applied for you — never a hand-multiplied `* sqrt(252)` you can for
 The annualized figure is exactly the per-bar dispersion times `sqrt(252)` — `pomata` hands it to you, so the factor
 lives in one argument instead of scattered across your call sites.
 
-### A single `NaN`, made visible
+### A single `NaN` never passes silently
 
 One bad print in a feed can silently rewrite a metric. For the reducing metrics `pomata` draws a hard line: a `null`
-is a gap and is skipped,
-but a non-null `NaN` is corrupt data and poisons the result — so you see the problem instead of a plausible lie.
+is a gap and is skipped, but a non-null `NaN` is corrupt data and poisons the result — so you see the problem instead of
+a plausible lie.
 
 ```{doctest}
 >>> from pomata.metrics import sharpe_ratio
@@ -269,5 +273,8 @@ higher than its Sharpe Ratio lets on.
 44.4575
 ```
 
-The large upside swings inflate the Sharpe Ratio denominator but never touch the Sortino Ratio one — so the
-Sortino Ratio, blind to harmless volatility, lands far above the Sharpe Ratio.
+The large upside swings inflate the Sharpe Ratio denominator but never touch the Sortino Ratio one — so the Sortino
+Ratio, blind to harmless volatility, lands far above the Sharpe Ratio.
+
+Where next: the series these metrics consume come from the {doc}`pnl catalog <pnl>`; the composition grammar lives
+in {doc}`Design <../design>`; measured speed is on {doc}`Benchmarks <../benchmarks/index>`.

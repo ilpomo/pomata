@@ -31,9 +31,14 @@ uv sync
 
 ## For contributors
 
-`pomata` uses [uv](https://docs.astral.sh/uv/) for Python, dependencies, and the virtual environment. The optional
-dependency groups are `differential` (adds TA-Lib for the cross-reference parity tier) and the gate groups
-(`lint` / `typecheck` / `test` / `coverage` / `docs`). The full gate — lint, three gating type checkers plus an
-advisory fourth, doctests, and 100% branch coverage — runs from a clean clone (`uv sync`, then the lint / type /
-test commands in the contributing guide); see {doc}`correctness` and the
-[contributing guide](https://github.com/ilpomo/pomata/blob/main/CONTRIBUTING.md).
+`pomata` uses [uv](https://docs.astral.sh/uv/) for Python, dependencies, and the virtual environment.
+
+The optional dependency groups are `differential` (adds TA-Lib for the cross-reference parity tier) and the gate groups
+(`lint` / `typecheck` / `test` / `coverage` / `docs`).
+
+The full gate — `ruff` and `codespell`, the gating type checkers `mypy` / `pyright` / `pyrefly` with `ty` as advisory,
+doctests, and 100% branch coverage — runs from
+a clean clone (`uv sync`, then the lint / type / test commands in the contributing guide); see {doc}`correctness` and
+the [contributing guide](https://github.com/ilpomo/pomata/blob/main/CONTRIBUTING.md).
+
+Installed? The {doc}`quickstart` runs your first function on real bars.
