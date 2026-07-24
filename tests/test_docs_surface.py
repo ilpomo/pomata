@@ -173,7 +173,7 @@ def test_family_page_catalog_matches_all(family: str) -> None:
     assert public <= referenced, f"missing page entries: {sorted(public - referenced)}"
 
 
-# The modules whose factories run a Python kernel via ``map_batches`` — the set docs/concepts.md's performance note
+# The modules whose factories run a Python kernel via ``map_batches`` — the set docs/design.md's performance note
 # enumerates (the Ehlers cycle family, the seeded EMA family incl. KAMA, SAR / SuperTrend, the Fisher Transform, the
 # rolling moments, the PSR normal CDF). A kernel added elsewhere (or removed) must update that prose, so the set is
 # pinned both ways.
@@ -218,8 +218,8 @@ def test_index_family_table_matches_all() -> None:
         assert int(match.group(1)) == len(module.__all__), f"index.md: pomata.{family} row says {match.group(1)}"
 
 
-def test_python_kernel_modules_match_the_concepts_note() -> None:
-    """The ``map_batches`` kernels live in exactly the modules the concepts page's performance note enumerates."""
+def test_python_kernel_modules_match_the_design_note() -> None:
+    """The ``map_batches`` kernels live in exactly the modules the design page's performance note enumerates."""
     found: set[str] = set()
     for path in sorted((_ROOT / "src" / "pomata").rglob("*.py")):
         tree = ast.parse(path.read_text(encoding="utf-8"))

@@ -290,7 +290,7 @@ Each family is then held to the yardstick that catches its bugs: **indicators to
 oracle — and, for the 58 of 75 with a twin, against the public **TA-Lib** reference too; **PnL and metrics at the
 edges**, where every degenerate input has a defined behavior.
 
-The full account — the precision guarantee, the receipts, and exactly what is and is not claimed — is on the 
+The full account — the precision guarantee, the receipts, and exactly what is and is not claimed — is on the
 [correctness page](https://ilpomo.github.io/pomata/correctness.html).
 
 ## Where pomata fits
@@ -305,6 +305,7 @@ engine — no order fills, no event loop, no lot accounting.
 ## Project
 
 - **Contributing** — see [CONTRIBUTING.md](https://github.com/ilpomo/pomata/blob/main/CONTRIBUTING.md); the full gate
-  (lint, three gating type checkers plus an advisory fourth, doctests, 100% branch coverage) runs on every commit.
+  (`ruff` and `codespell`, `mypy` / `pyright` / `pyrefly` gating with `ty` advisory, doctests, 100% branch coverage)
+  runs on every commit.
 - **License** — MIT, see [LICENSE](https://github.com/ilpomo/pomata/blob/main/LICENSE).
 - **Citation** — [CITATION.cff](https://github.com/ilpomo/pomata/blob/main/CITATION.cff).
